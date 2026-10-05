@@ -202,6 +202,16 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => '{{ namespace | caseSnake}}/topic.py',
+                'template' => 'python/package/topic.py.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'test/test_topic.py',
+                'template'      => 'python/test/test_topic.py.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ namespace | caseSnake}}/query.py',
                 'template' => 'python/package/query.py.twig',
             ],
@@ -386,59 +396,6 @@ class Python extends Language
         }
 
         return $typeName;
-    }
-
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type = $this->getSchemaType($param);
-        $default = $this->getSchemaDefault($param);
-        $required = ($param instanceof Parameter && $param->required);
-
-        if ($required) {
-            return '';
-        }
-
-        $output = '=';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'None';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
-                case self::TYPE_FILE:
-                    $output .= '{}';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= $default;
-                    break;
-                case self::TYPE_FILE:
-                    $output .= '{}';
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'True' : 'False';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'$default'";
-                    break;
-            }
-        }
-
-        return $output;
     }
 
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string

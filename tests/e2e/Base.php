@@ -45,6 +45,11 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
+    protected const LOCATION_RESPONSES = [
+        'GET:/v1/mock/tests/general/download:passed',
+        'GET:/v1/mock/tests/general/download:passed:as:impersonated',
+    ];
+
     protected const PATH_PARAM_RESPONSES = [
         'GET:/v1/mock/tests/general/path/grant%2Fspecial%26id:passed',
     ];
@@ -100,6 +105,40 @@ abstract class Base extends TestCase
         'stub',
     ];
 
+    protected const OPTIONAL_UPLOAD_RESPONSES = [
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:with-file',
+        'optional-upload:with-file',
+        'required-file:rejected',
+    ];
+
+    protected const MULTIPART_OBJECT_RESPONSES = [
+        'optional-upload:without-file:with-metadata',
+        'optional-upload:with-file:with-metadata',
+    ];
+
+    protected const OPTIONAL_ATTACHMENT_RESPONSES = [
+        'optional-upload:without-file',
+        'optional-upload:with-file',
+    ];
+
+    protected const TEXT_RESPONSES = [
+        '; café zone',
+        'www 3600 IN A 192.0.2.1',
+        '',
+        'mixed-model',
+    ];
+
+    protected const TEXT_UPLOAD_RESPONSES = [
+        'zone-import:without-file',
+        '',
+        'zone-import:with-file',
+        '',
+    ];
+
     protected const UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
@@ -138,6 +177,95 @@ abstract class Base extends TestCase
         'Realtime update:passed',
         'Realtime presence:passed',
         'Realtime disconnect:passed',
+    ];
+
+    // Native push (MQTT) round-trip against the mock broker: subscribe, receive, and the
+    // connection lifecycle hook (onOpen) firing.
+    protected const PUSH_RESPONSES = [
+        'Push subscribe:passed',
+        'Push open:passed',
+        'Push message:passed',
+        'Push qos:passed',
+        'Push user topic:passed',
+        'Push user session topic:passed',
+        'Push user no credential:passed',
+    ];
+
+    // Web and React Native derive their client id themselves (mqtt.js needs one): a user signing
+    // in again with a new session still gets what was missed in between replayed.
+    protected const PUSH_SESSION_REPLAY_RESPONSES = [
+        'Push session replay:passed',
+    ];
+
+    protected const PUSH_CREDENTIAL_SWITCH_RESPONSES = [
+        'Push credential switch:passed',
+        'Push credential pending switch:passed',
+    ];
+
+    protected const WEB_PUSH_CONNECTION_RESPONSES = [
+        'Push concurrent refused:passed',
+        'Push tab client id:passed',
+    ];
+
+    protected const PUSH_SESSION_COOKIE_RESPONSES = [
+        'Push user cookie topic:passed',
+        'Push user cookie switch:passed',
+        'Push user cookie pending switch:passed',
+    ];
+
+    protected const PUSH_NATIVE_SESSION_COOKIE_RESPONSES = [
+        'Push session cookie:passed',
+    ];
+
+    // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
+    // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
+    // expose the reason string).
+    protected const PUSH_ERROR_RESPONSES = [
+        'Push connect error:passed',
+        'Push disconnect error:passed',
+    ];
+
+    // Android background delivery used the way an app does: a background subscription's
+    // message, the scheduled wake-up after the process died bringing the next message to the
+    // app's PushReceiver and a notification, sign-out stopping it, and a refused credential
+    // stopping it with onError.
+    // Flutter's public Push API on the Android path, with a stand-in for the native plugin on its
+    // channels: background subscribe completes once the plugin reports it subscribed, a message
+    // reaches the callback, and after sign-out it no longer reaches the app.
+    protected const FLUTTER_PUSH_NATIVE_RESPONSES = [
+        'Push native subscribe:passed',
+        'Push native message:passed',
+        'Push native close:passed',
+    ];
+
+    // Android: a saved background subscription the app later subscribes to with background off,
+    // then unsubscribes, delivers nothing after a restart.
+    protected const ANDROID_PUSH_OPT_OUT_RESPONSES = [
+        'Push background opt-out:passed',
+    ];
+
+    // Android: unsubscribing one of two in-process subscriptions on the same topic stops its
+    // callback, though the other subscription keeps the broker filter.
+    protected const ANDROID_PUSH_SHARED_TOPIC_RESPONSES = [
+        'Push shared topic unsubscribe:passed',
+    ];
+
+    protected const ANDROID_COOKIE_STORE_RESPONSES = [
+        'Cookie store reload:passed',
+        'Cookie store saved format:passed',
+    ];
+
+    // React Native and Flutter on Android: when a Push with another credential starts background
+    // delivery, the Push that had it hears on onError that its background delivery stopped.
+    protected const PUSH_NATIVE_DISPLACED_RESPONSES = [
+        'Push native displaced:passed',
+    ];
+
+    protected const PUSH_BACKGROUND_RESPONSES = [
+        'Push background message:passed',
+        'Push background restore:passed',
+        'Push background close:passed',
+        'Push background refused:passed',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
@@ -226,16 +354,25 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const TOPIC_HELPER_RESPONSES = [
+        'user/123/notification',
+        'org/42/user/123/notification',
+        'user/+/notification',
+        'chat/+/+/message',
+        'org/+/logs/#',
+        '+/notification',
+        '#',
+        'Topic empty path:passed',
+        'Topic empty level:passed',
+        'Topic slash:passed',
+        'Topic plus:passed',
+        'Topic hash:passed',
+    ];
+
     protected const ADDITIONAL_PROPERTIES_RESPONSES = [
         '{"theme":"dark","timezone":"UTC"}',
         '{"$id":"row1","custom":"value","nested":{"enabled":true}}',
         '{"data":{"enabled":true},"status":"ok","extra":"kept"}',
-    ];
-
-    protected const CLI_CONSOLE_URL_RESPONSES = [
-        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/sites/site-chirag-profile-website/deployments/deployment-123',
-        'https://cloud.appwrite.io/console/project-sgp-chirag-project-prod/functions/function-sample-function/deployment-123',
-        'https://abc.example.com/console/project-default-self-hosted-project/sites/site-docs/deployments/deployment-456',
     ];
 
     protected const CLI_HEADERS_RESPONSES = [

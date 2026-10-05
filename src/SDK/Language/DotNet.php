@@ -218,51 +218,6 @@ class DotNet extends Language
         };
     }
 
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type       = $this->getSchemaType($param);
-        $default    = $this->getSchemaDefault($param);
-        $required   = ($param instanceof Parameter && $param->required);
-
-        if ($required) {
-            return '';
-        }
-
-        $output = ' = ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= '""';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "\"{$default}\"";
-                    break;
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= 'null';
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
         $type       = $this->getSchemaType($param);
@@ -405,6 +360,11 @@ class DotNet extends Language
                 'scope'         => 'default',
                 'destination'   => '{{ spec.info.title | caseUcfirst }}/ID.cs',
                 'template'      => 'dotnet/Package/ID.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ spec.info.title | caseUcfirst }}/Topic.cs',
+                'template'      => 'dotnet/Package/Topic.cs.twig',
             ],
             [
                 'scope'         => 'default',

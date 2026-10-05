@@ -72,7 +72,7 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 	}
 
 	// Absent is the normal case here: this is the command that creates it.
-	local, err := config.LoadOrCreateLocal(config.LocalPath("."))
+	local, err := config.LoadOrCreateLocal(config.LocalPathOr(config.LocalPath(".")))
 	if err != nil {
 		return err
 	}
@@ -233,9 +233,9 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 
 	command.Println()
 	if creating {
-		output.Success(out, "Project created → %s", config.LocalFileName)
+		output.Success(out, "Project created → %s", local.Path())
 	} else {
-		output.Success(out, "Project linked → %s", config.LocalFileName)
+		output.Success(out, "Project linked → %s", local.Path())
 	}
 
 	installInitProjectSkills(out, local.Dirname())
@@ -291,7 +291,7 @@ func chooseOrganization(api *client.Client, prompter prompt.Prompter, endpoint s
 	}
 	if len(teams) == 0 {
 		return "", fmt.Errorf(
-			"no organizations found. Please create a new organization at %s/console/onboarding",
+			"no organizations found. Please create a new organization at %s/",
 			consoleBaseURL(endpoint))
 	}
 
@@ -454,7 +454,13 @@ func selectionLabel(name, id string) string {
 	return name + " (" + id + ")"
 }
 
-// consoleBaseURL strips the /v1 suffix so a console link can be built.
+// consoleBaseURL is the origin console links are built on: the new console on
+// Cloud, which is not served from the API host, and the instance root when
+// self-hosted.
 func consoleBaseURL(endpoint string) string {
+	if origin, cloud := config.CloudConsoleURL(endpoint); cloud {
+		return origin
+	}
+
 	return strings.TrimSuffix(strings.TrimSuffix(endpoint, "/"), "/v1")
 }

@@ -3,6 +3,7 @@
 namespace Appwrite\SDK;
 
 use Appwrite\SDK\Extension;
+use Appwrite\SDK\Extension\Appwrite;
 use Utopia\OpenAPI\Model\AnySchema;
 use Normalizer;
 use Utopia\OpenAPI\Model\ArraySchema;
@@ -22,6 +23,14 @@ use Utopia\OpenAPI\Specification;
 abstract class Language
 {
     private const string MULTIPART_MEDIA_TYPE = 'multipart/form-data';
+    private const string TEXT_MEDIA_TYPE = 'text/plain';
+    private const array SUCCESS_STATUSES = ['200', '201', '202', '203', '204', '205', '206', '207', '208', '226', '2XX'];
+    private const array REDIRECT_STATUSES = ['300', '301', '302', '303', '304', '305', '307', '308', '3XX'];
+
+    public const string METHOD_TYPE_UPLOAD = 'upload';
+    public const string METHOD_TYPE_GRAPHQL = 'graphql';
+    public const string METHOD_TYPE_WEB_AUTH = 'webAuth';
+    public const string METHOD_TYPE_LOCATION = 'location';
 
     public const TYPE_INTEGER = 'integer';
     public const TYPE_NUMBER = 'number';
@@ -84,8 +93,6 @@ abstract class Language
 
     abstract public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string;
 
-    abstract public function getParamDefault(Schema|Parameter $param): string;
-
     /**
      * @param string $lang Optional language variant (for multi-language SDKs)
      */
@@ -141,17 +148,16 @@ abstract class Language
             foreach ($requestSchema->properties as $property) {
                 $property = $spec?->resolveSchema($property) ?? $property;
                 if ($property instanceof StringSchema && $property->format === 'binary') {
-                    return 'upload';
+                    return self::METHOD_TYPE_UPLOAD;
                 }
             }
         }
 
         if (\in_array('graphql', $operation->tags, true)) {
-            return 'graphql';
+            return self::METHOD_TYPE_GRAPHQL;
         }
 
         foreach ($operation->responses as $status => $response) {
-            $status = (int) $status;
             foreach ($response->content as $contentType => $mediaType) {
                 $schema = $mediaType->schema;
                 if ($schema !== null && $spec instanceof Specification) {
@@ -164,16 +170,42 @@ abstract class Language
                 ) {
                     continue;
                 }
-                if ($status >= 300 && $status < 400) {
-                    return 'webAuth';
+                if (\in_array((string) $status, self::REDIRECT_STATUSES, true)) {
+                    return self::METHOD_TYPE_WEB_AUTH;
                 }
-                if ($status >= 200 && $status < 300) {
-                    return 'location';
+                if (\in_array((string) $status, self::SUCCESS_STATUSES, true)) {
+                    return self::METHOD_TYPE_LOCATION;
                 }
             }
         }
 
         return false;
+    }
+
+    /**
+     * Whether every successful response is plain text with a string schema.
+     * A contract that mixes text with another media type keeps model decoding.
+     */
+    public function isTextResponse(Operation $operation, ?Specification $spec = null): bool
+    {
+        $text = false;
+        foreach ($operation->responses as $status => $response) {
+            if (!\in_array((string) $status, self::SUCCESS_STATUSES, true)) {
+                continue;
+            }
+            foreach ($response->content as $contentType => $mediaType) {
+                $schema = $mediaType->schema;
+                if ($schema !== null && $spec instanceof Specification) {
+                    $schema = $spec->resolveSchema($schema);
+                }
+                $mediaTypeName = \strtolower(\trim(\explode(';', $contentType)[0]));
+                if ($mediaTypeName !== self::TEXT_MEDIA_TYPE || !$schema instanceof StringSchema || $schema->format === 'binary') {
+                    return false;
+                }
+                $text = true;
+            }
+        }
+        return $text;
     }
 
     /**
@@ -448,11 +480,6 @@ abstract class Language
         );
     }
 
-    protected function getSchemaDefault(Schema|Parameter $value): mixed
-    {
-        return $this->getSchema($value)->default;
-    }
-
     /**
      * Whether an array's element schema names a type the language can spell.
      *
@@ -626,9 +653,12 @@ abstract class Language
     /** @return list<Parameter> */
     protected function getOperationParameters(Operation $operation): array
     {
+        $config = $operation->extensions[Extension::APPWRITE->value][Appwrite::CONFIG->value] ?? [];
         $parameters = \array_values(\array_filter(
             $operation->parameters,
-            static fn(Parameter $parameter): bool => ($parameter->extensions[Extension::SDK_SOURCE->value] ?? '') !== 'security',
+            static fn(Parameter $parameter): bool => $parameter->location !== ParameterLocation::PATH
+                || !\is_array($config)
+                || (string) ($config[$parameter->name] ?? '') === '',
         ));
         foreach ($operation->requestBody?->content ?? [] as $mediaType) {
             if (!$mediaType->schema instanceof ObjectSchema) {

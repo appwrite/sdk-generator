@@ -1,3 +1,4 @@
+{% import 'dotnet/base/utils.twig' as utils %}
 {% set uploadIdParameter = method | uploadIdParameter %}
             string? idParamName = {% if uploadIdParameter %}"{{ uploadIdParameter.name }}"{% else %}null{% endif %};
 
@@ -7,12 +8,14 @@
             {%~ endif %}
             {%~ endfor %}
 
-            return _client.ChunkedUpload(
+            return _client.ChunkedUpload{% if not (method | responseModel) %}<{{ utils.resultType(spec.info.title, method) }}>{% endif %}(
                 apiPath,
                 apiHeaders,
                 apiParameters,
                 {%~ if (method | responseModel) %}
                 Convert,
+                {%~ else %}
+                null,
                 {%~ endif %}
                 paramName,
                 idParamName,

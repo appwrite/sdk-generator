@@ -1259,6 +1259,115 @@
         }
       }
     },
+    "/mock/tests/general/mixed": {
+      "get": {
+        "summary": "Mixed text and JSON response",
+        "operationId": "generalGetMixed",
+        "tags": ["general"],
+        "x-appwrite": {"platforms": ["client", "server"], "scope": "public"},
+        "responses": {
+          "200": {
+            "description": "Text alternative",
+            "content": {"text/plain": {"schema": {"type": "string"}}}
+          },
+          "206": {
+            "description": "JSON alternative",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/mock"}}}
+          }
+        }
+      }
+    },
+    "/mock/tests/plaintext/union": {
+      "get": {
+        "summary": "Union preceding a text method",
+        "operationId": "textafterunionGetUnion",
+        "tags": ["textafterunion"],
+        "x-appwrite": {"platforms": ["client", "server"], "scope": "public"},
+        "responses": {
+          "200": {
+            "description": "Model union",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {"$ref": "#/components/schemas/unionMock"},
+                    {"$ref": "#/components/schemas/unionStub"}
+                  ],
+                  "discriminator": {
+                    "propertyName": "type",
+                    "mapping": {
+                      "mock": "#/components/schemas/unionMock",
+                      "stub": "#/components/schemas/unionStub"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mock/tests/plaintext/after-union": {
+      "get": {
+        "summary": "Text following a union method",
+        "operationId": "textafterunionGetText",
+        "tags": ["textafterunion"],
+        "x-appwrite": {"platforms": ["client", "server"], "scope": "public"},
+        "responses": {
+          "200": {
+            "description": "Text",
+            "content": {"text/plain": {"schema": {"type": "string"}}}
+          }
+        }
+      }
+    },
+    "/mock/tests/general/zone-import": {
+      "post": {
+        "summary": "Import zone text",
+        "operationId": "plaintextImportZone",
+        "tags": ["plaintext"],
+        "x-appwrite": {"platforms": ["client", "server"], "scope": "public"},
+        "responses": {
+          "2XX": {
+            "description": "Import report",
+            "content": {"text/plain": {"schema": {"type": "string"}}}
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {"description": "Zone records", "type": "string"},
+                  "zone": {"description": "Optional zone file", "type": "string", "format": "binary"}
+                },
+                "required": ["records"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mock/tests/general/zone": {
+      "get": {
+        "summary": "Get zone text",
+        "operationId": "plaintextGetZone",
+        "tags": ["plaintext"],
+        "x-appwrite": {
+          "platforms": ["client", "server"],
+          "scope": "public"
+        },
+        "responses": {
+          "203": {
+            "description": "DNS zone file",
+            "content": {
+              "text/plain": {"schema": {"type": "string"}}
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/download": {
       "get": {
         "summary": "Download File",
@@ -1288,6 +1397,12 @@
             "Project": [],
             "Key": [],
             "JWT": []
+          },
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": [],
+            "ImpersonateUserId": []
           }
         ],
         "responses": {
@@ -2220,6 +2335,74 @@
         }
       }
     },
+    "\/mock\/tests\/general\/optional-upload": {
+      "post": {
+        "summary": "Send an optional attachment",
+        "operationId": "generalOptionalUpload",
+        "tags": [
+          "general"
+        ],
+        "description": "Multipart request with an optional attachment, not a chunked upload endpoint.",
+        "x-appwrite": {
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Conversation message",
+                    "type": "string"
+                  },
+                  "attachment": {
+                    "description": "Optional attachment",
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "metadata": {
+                    "description": "Optional metadata object",
+                    "type": "object",
+                    "x-example": "{}"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/upload-with-id": {
       "post": {
         "summary": "Upload File With ID",
@@ -2264,6 +2447,122 @@
             }
           }
         }
+      }
+    },
+    "\/mock\/tests\/general\/upload-file-only": {
+      "post": {
+        "summary": "Upload File Only",
+        "operationId": "generalUploadFileOnly",
+        "tags": [
+          "general"
+        ],
+        "description": "Upload fixture whose only parameter is the file.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "Sample file param",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/upload-generic": {
+      "post": {
+        "summary": "Upload Generic",
+        "operationId": "generalUploadGeneric",
+        "tags": [
+          "general"
+        ],
+        "description": "Upload fixture whose response model carries a generic, user-defined payload.",
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/profile"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "Sample file param",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/snake-case-params": {
+      "get": {
+        "summary": "Snake Case Params",
+        "operationId": "generalSnakeCaseParams",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture whose parameter names are snake_case in the spec.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "grant_id",
+            "description": "Grant ID.",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "<GRANT_ID>"
+            }
+          }
+        ]
       }
     },
     "\/mock\/tests\/general\/oauth2": {
@@ -2927,6 +3226,29 @@
           "version"
         ]
       },
+      "preferences": {
+        "description": "Preferences",
+        "type": "object",
+        "additionalProperties": true
+      },
+      "profile": {
+        "description": "Profile",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Profile name.",
+            "example": "John Doe"
+          },
+          "prefs": {
+            "$ref": "#\/components\/schemas\/preferences"
+          }
+        },
+        "required": [
+          "name",
+          "prefs"
+        ]
+      },
       "mock": {
         "description": "Mock",
         "type": "object",
@@ -2971,6 +3293,9 @@
               {"type": "string", "enum": ["ខេត្ត"], "title": "Province"}
             ]
           },
+          "nullableScalars": {
+            "$ref": "#/components/schemas/zznullablescalars"
+          },
           "relatedMock": {
             "type": "object",
             "description": "Optional nested mock.",
@@ -2993,6 +3318,17 @@
         "required": [
           "result"
         ]
+      },
+      "zznullablescalars": {
+        "description": "Nullable scalar response fields",
+        "type": "object",
+        "properties": {
+          "text": {"type": "string", "nullable": true},
+          "enabled": {"type": "boolean", "nullable": true},
+          "count": {"type": "integer", "nullable": true},
+          "price": {"type": "number", "nullable": true}
+        },
+        "required": ["text", "enabled", "count", "price"]
       },
       "unionMock": {
         "description": "Mock",

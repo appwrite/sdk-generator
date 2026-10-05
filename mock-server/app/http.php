@@ -16,6 +16,7 @@ use Utopia\Console;
 use Utopia\MockServer\Utopia\Response;
 use Utopia\Swoole\Request;
 use Utopia\Swoole\Response as UtopiaSwooleResponse;
+use Utopia\Validator\JSON;
 use Utopia\Validator\Text;
 use Utopia\Validator\Integer;
 use Utopia\Validator\ArrayList;
@@ -300,6 +301,50 @@ App::get('/v1/mock/tests/general/headers')
         $response->json(['result' => $res]);
     });
 
+App::get('/v1/mock/tests/general/mixed')
+    ->inject('response')
+    ->action(function ($response) {
+        $response->setStatusCode(206)->json(['result' => 'mixed-model']);
+    });
+
+App::get('/v1/mock/tests/general/zone')
+    ->inject('response')
+    ->action(function ($response) {
+        $response
+            ->setStatusCode(203)
+            ->setContentType('text/plain; charset=utf-8')
+            ->send("; café zone\nwww 3600 IN A 192.0.2.1\n");
+    });
+
+App::post('/v1/mock/tests/general/zone-import')
+    ->param('records', '', new Text(100), 'Zone records')
+    ->param('zone', [], new File(), 'Optional zone file', optional: true, skipValidation: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $records, mixed $zone, Request $request, UtopiaSwooleResponse $response) {
+        if ($records !== 'www 3600 IN A 192.0.2.1') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong zone records');
+        }
+        if (!str_starts_with($request->getHeader('content-type', ''), 'multipart/form-data; boundary=')) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Expected multipart with a boundary');
+        }
+
+        $file = $request->getFiles('zone');
+        $hasFile = !empty($file);
+        if ($hasFile) {
+            $tmpName = is_array($file['tmp_name']) ? $file['tmp_name'][0] : $file['tmp_name'];
+            $name = is_array($file['name']) ? $file['name'][0] : $file['name'];
+            if ($name !== 'file.png' || md5(file_get_contents($tmpName)) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong zone file');
+            }
+        }
+
+        $response
+            ->setStatusCode(201)
+            ->setContentType('text/plain; charset=utf-8')
+            ->send('zone-import:' . ($hasFile ? 'with-file' : 'without-file') . "\n");
+    });
+
 App::get('/v1/mock/tests/general/download')
     ->desc('Download File')
     ->groups(['mock'])
@@ -316,19 +361,20 @@ App::get('/v1/mock/tests/general/download')
     ->inject('response')
     ->action(function (Request $request, UtopiaSwooleResponse $response) {
 
-        // Location methods render from their own request template, so they are the
-        // easiest place to lose the project header. The real API pairs an API key
-        // against this header and rejects the request without it.
-        if (empty($request->getHeader('x-appwrite-project', ''))) {
+        // Client SDKs build a URL for the browser, so credentials may arrive in
+        // the query string instead of headers. The real API accepts both.
+        $project = $request->getHeader('x-appwrite-project', '') ?: $request->getParam('project', '');
+        if (empty($project)) {
             throw new Exception(Exception::GENERAL_MOCK, 'Missing project ID');
         }
+        $impersonate = $request->getHeader('x-appwrite-impersonate-user-id', '') ?: $request->getParam('impersonateuserid', '');
 
         $response
             ->setContentType('text/plain')
             ->addHeader('Content-Disposition', 'attachment; filename="test.txt"')
             ->addHeader('Expires', \date('D, d M Y H:i:s', \time() + (60 * 60 * 24 * 45)) . ' GMT') // 45 days cache
             ->addHeader('X-Peak', \memory_get_peak_usage())
-            ->send("GET:/v1/mock/tests/general/download:passed");
+            ->send('GET:/v1/mock/tests/general/download:passed' . ($impersonate === '' ? '' : ':as:' . $impersonate));
     });
 
 App::post('/v1/mock/tests/general/upload')
@@ -426,6 +472,60 @@ App::post('/v1/mock/tests/general/upload')
                 throw new Exception(Exception::GENERAL_MOCK, 'Wrong file uploaded');
             }
         }
+    });
+
+App::post('/v1/mock/tests/general/optional-upload')
+    ->desc('Send an optional attachment')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'optionalUpload')
+    ->label('sdk.request.type', 'multipart/form-data')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('message', '', new Text(100), 'Conversation message')
+    ->param('attachment', [], new File(), 'Optional attachment', optional: true, skipValidation: true)
+    ->param('metadata', null, new JSON(), 'Optional metadata object', optional: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $message, mixed $attachment, array|string|null $metadata, Request $request, UtopiaSwooleResponse $response) {
+        if ($message !== 'conversation without a required file') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong conversation message');
+        }
+        if (!str_starts_with($request->getHeader('content-type', ''), 'multipart/form-data; boundary=')) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Expected multipart with a boundary');
+        }
+        if ($request->getHeader('content-range', '') !== '') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Optional attachment must not be chunked');
+        }
+
+        $file = $request->getFiles('attachment');
+        $hasFile = !empty($file);
+        if ($hasFile) {
+            $tmpName = is_array($file['tmp_name']) ? $file['tmp_name'][0] : $file['tmp_name'];
+            $name = is_array($file['name']) ? $file['name'][0] : $file['name'];
+            if ($name !== 'file.png' || md5(file_get_contents($tmpName)) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong attachment');
+            }
+        }
+
+        $hasMetadata = $metadata !== null;
+        if ($hasMetadata) {
+            $decoded = \is_string($metadata) ? \json_decode($metadata, true) : $metadata;
+            if (\is_array($decoded)) {
+                \ksort($decoded);
+            }
+            if ($decoded !== ['source' => 'sdk', 'uri' => 'café']) {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong metadata');
+            }
+        }
+
+        $response->json([
+            'result' => 'optional-upload:' . ($hasFile ? 'with-file' : 'without-file') . ($hasMetadata ? ':with-metadata' : ''),
+        ]);
     });
 
 App::get('/v1/mock/tests/general/redirect')

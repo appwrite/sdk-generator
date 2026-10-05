@@ -1,0 +1,6 @@
+-keepclasseswithmembers class * { @org.junit.Test <methods>; }
+-if class * { @org.junit.Test <methods>; }
+-keep class <1> { *; }
+-keep class io.appwrite.E2EPushReceiver { <init>(); }
+-keep class io.appwrite.TestPayload { *; }
+-dontwarn android.content.pm.**

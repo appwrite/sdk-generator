@@ -1,6 +1,18 @@
 {% set fileParameter = (method | parameters('all')) | filter(p => (p | schemaType) == 'file') | last %}
 	paramName := "{{ fileParameter.name }}"
 
+{% if (method | textResponse) %}
+	resp, err := srv.client.SingleUpload(path, headers, params, paramName)
+	if err != nil {
+		return nil, err
+	}
+	body, err := client.ResponseBody(resp)
+	if err != nil {
+		return nil, err
+	}
+	parsed := string(body)
+	return &parsed, nil
+{% else %}
 	uploadId := ""
 {% set uploadIdParameter = method | uploadIdParameter %}
 {% if uploadIdParameter %}
@@ -65,4 +77,5 @@
 		return nil, errors.New("unexpected response type")
 	}
 	return &parsed, nil
+{% endif %}
 {% endif %}

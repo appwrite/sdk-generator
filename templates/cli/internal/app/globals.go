@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 	"github.com/spf13/cobra"
@@ -63,6 +64,8 @@ func RegisterGlobalFlags(root *cobra.Command) {
 	}
 	flags.BoolVar(&globals.Report, "report", false,
 		"Print a prefilled bug report link on error")
+	flags.StringVar(&config.LocalFile, "config-file", os.Getenv(sdk.EnvConfigFile),
+		"Project config file `path` to use instead of the nearest "+config.LocalFileName)
 }
 
 // Renderer builds an output renderer from the current global flags.

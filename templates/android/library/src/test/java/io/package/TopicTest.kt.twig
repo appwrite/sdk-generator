@@ -1,0 +1,53 @@
+package {{ sdk.namespace | caseDot }}
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
+import org.junit.Test
+
+class TopicTest {
+    private fun assertPathFails(levels: List<String>) {
+        assertThrows(IllegalArgumentException::class.java) { Topic.path(levels) }
+        assertThrows(IllegalArgumentException::class.java) { Topic.any().path(levels) }
+    }
+
+    @Test
+    fun pathJoinsLevels() {
+        assertEquals("user/123/notification", Topic.path(listOf("user", "123", "notification")).toString())
+    }
+
+    @Test
+    fun pathAppendsLevels() {
+        assertEquals(
+            "org/42/user/123/notification",
+            Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString(),
+        )
+    }
+
+    @Test
+    fun anyAppendsSingleLevelWildcard() {
+        assertEquals("user/+/notification", Topic.path(listOf("user")).any().path(listOf("notification")).toString())
+        assertEquals("chat/+/+/message", Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
+    }
+
+    @Test
+    fun allEndsTopic() {
+        assertEquals("org/+/logs/#", Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
+    }
+
+    @Test
+    fun staticAnyAndAll() {
+        assertEquals("+/notification", Topic.any().path(listOf("notification")).toString())
+        assertEquals("#", Topic.all().toString())
+    }
+
+    @Test
+    fun pathRejectsInvalidLevels() {
+        assertPathFails(emptyList())
+        assertPathFails(listOf("user", ""))
+        assertPathFails(listOf("user/123"))
+        assertPathFails(listOf("+"))
+        assertPathFails(listOf("user", "a+b"))
+        assertPathFails(listOf("user", "#"))
+        assertPathFails(listOf("a#b"))
+    }
+}

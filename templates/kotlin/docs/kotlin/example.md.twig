@@ -33,10 +33,10 @@ val {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client)
 
 {% for parameter in (method | parameters('all')) %}
 {% if parameter.required %}
-    {{parameter.name}} = {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %}
+    {{ parameter.name | caseCamel }} = {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %}
 
 {% else %}
-    {{parameter.name}} = {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %} // optional
+    {{ parameter.name | caseCamel }} = {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% else%}{{ parameter | paramExample  }}{% endif %}{% if not loop.last %},{% endif %} // optional
 {% endif %}
 {% if loop.last %}
 )

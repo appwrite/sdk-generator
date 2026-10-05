@@ -84,10 +84,7 @@ export class {{ service.name | caseUcfirst }} {
     {%- set objectType %}{ {% for parameter in allParams %}{{ parameter.name | caseCamel | escapeKeyword }}{% if not parameter.required or (parameter | schemaNullable) %}?{% endif %}: {{ parameter | getPropertyType(method, spec) | raw }}{% if not loop.last %}; {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}; onProgress?: (progress: UploadProgress) => void{% endif %} }{% endset -%}
     {%- set firstType = firstParam | getPropertyType(method, spec) -%}
     {%- set implParams = implParams|merge(['paramsOrFirst' ~ (firstOptional ? '?' : '') ~ ': ' ~ objectType ~ ' | ' ~ firstType]) -%}
-    {%- if allParams|length > 1 -%}
-        {%- set restTuple %}...rest: [{% for parameter in allParams[1:] %}{{ (parameter | getPropertyType(method, spec)) | tsTupleElement | raw }}{% if not loop.last %}, {% endif %}{% endfor %}{% if 'multipart/form-data' in (method | consumes) %}, ((progress: UploadProgress) => void)?{% endif %}]{% endset -%}
-        {%- set implParams = implParams|merge([restTuple]) -%}
-    {%- endif -%}
+    {%- set implParams = implParams|merge([method | tsRestTuple(spec)]) -%}
 {%- endif %}
     {{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature(implParams, (method | getReturn(spec)), 4, ' {') | raw }}
         {%~ if (method | parameters('all'))|length > 0 %}
@@ -109,11 +106,11 @@ export class {{ service.name | caseUcfirst }} {
         } else {
             params = {
                 {%~ for parameter in (method | parameters('all')) %}
-                {{ ((parameter.name | caseCamel | escapeKeyword) ~ ': ' ~ (loop.index0 == 0 ? 'paramsOrFirst' : ('rest[' ~ (loop.index0 - 1) ~ ']')) ~ ' as') | tsAssignment((parameter | getPropertyType(method, spec)), 16) | raw }},
+                {{ ((parameter.name | caseCamel | escapeKeyword) ~ ': ' ~ (method | tsArgument(parameter)) ~ ' as') | tsAssignment((parameter | getPropertyType(method, spec)), 16) | raw }},
                 {%~ endfor %}
             };
             {%~ if 'multipart/form-data' in (method | consumes) %}
-            onProgress = rest[{{ (method | parameters('all'))|length - 1 }}] as (progress: UploadProgress) => void;
+            onProgress = {{ method | tsArgument }} as (progress: UploadProgress) => void;
             {%~ endif %}
         }
 
@@ -138,7 +135,7 @@ export class {{ service.name | caseUcfirst }} {
         }
         {%~ endif %}
         {%~ endfor %}
-{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter.extensions['x-sdk-source']|default('')) == 'security') ? ('this.client.config.' ~ (parameter.extensions['x-sdk-config'] | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
+{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
         const apiPayload: Payload = {};
         {%~ for parameter in (method | parameters('query')) %}
@@ -177,10 +174,13 @@ export class {{ service.name | caseUcfirst }} {
             apiHeaders,
             apiPayload,
             onProgress,
+            {%~ if (method | textResponse) %}
+            'text',
+            {%~ endif %}
         );
         {%~ else %}
         {%- set callArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}
-        {%- if (method | methodType) == 'location' %}{% set callArgs = callArgs|merge(["'arrayBuffer'"]) %}{% endif %}
+        {%- if (method | methodType) == 'location' %}{% set callArgs = callArgs|merge(["'arrayBuffer'"]) %}{% elseif (method | textResponse) %}{% set callArgs = callArgs|merge(["'text'"]) %}{% endif %}
         return{{ 'this.client.call' | jsArgs(callArgs, 8, ';', 7) | raw }}
         {%~ endif %}
     }

@@ -4,7 +4,7 @@ import {{spec.info.title | caseUcfirst}}Enums
 import Foundation
 import JSONCodable
 
-/// {{ definition.description }}
+///{{ (definition.description | trim) ? ' ' ~ definition.description }}
 {% if definition.properties | length == 0 and not definition.additionalProperties %}
 open class {{ definition | modelType(spec) | raw }}: Codable {}
 {% else %}
@@ -20,7 +20,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     }
 
     {%~ for property in definition.properties %}
-    /// {{ property.description | trim }}
+    ///{{ (property.description | trim) ? ' ' ~ (property.description | trim) }}
     public let {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}?{% endif %}
 
     {%~ endfor %}
