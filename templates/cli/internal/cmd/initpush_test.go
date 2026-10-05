@@ -147,6 +147,7 @@ type fakeMessaging struct {
 	requests   []string
 	identities []map[string]any
 	failCreate bool
+	failList   int
 }
 
 func (f *fakeMessaging) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -160,6 +161,10 @@ func (f *fakeMessaging) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"total": len(f.identities), "identities": f.identities})
 	case r.Method == "GET" && r.URL.Path == "/account":
 		_ = json.NewEncoder(w).Encode(map[string]any{"email": "dev@example.com"})
+	case r.Method == "GET" && r.URL.Path == "/messaging/providers" && f.failList > 0:
+		f.failList--
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]any{"message": "unavailable", "code": 503})
 	case r.Method == "POST" && f.failCreate:
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]any{"message": "provider rejected", "code": 400})
@@ -516,6 +521,7 @@ type fakeGoogle struct {
 	policy      map[string]any
 	deletedKeys []string
 	token       string
+	onKey       func()
 }
 
 func (f *fakeGoogle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -558,6 +564,9 @@ func (f *fakeGoogle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "Key creation is not allowed on this service account.", "status": "FAILED_PRECONDITION"}})
 
 			return
+		}
+		if f.onKey != nil {
+			f.onKey()
 		}
 		project := strings.Split(path, "/")[4]
 		contents, _ := os.ReadFile(testServiceAccount(f.t, f.t.TempDir(), project))
@@ -753,4 +762,35 @@ func TestInitFcmWithGoogleKeepsAnExistingProvider(t *testing.T) {
 
 func activeProject(id string) map[string]any {
 	return map[string]any{"projectId": id, "state": "ACTIVE"}
+}
+
+func TestInitFcmRevokesTheCreatedKeyWhenTheProviderLookupFails(t *testing.T) {
+	messaging := &fakeMessaging{identities: []map[string]any{linkedGoogle("live-token")}}
+	google := &fakeGoogle{t: t, token: "live-token", projects: []map[string]any{activeProject("only-project")}}
+	setup, _, _ := newGoogleTestSetup(t, messaging, google, nil)
+	setup.firebase = nil
+	google.onKey = func() { messaging.failList = 1 }
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err == nil {
+		t.Fatal("expected the provider lookup to fail")
+	}
+	if strings.Join(google.deletedKeys, ",") != "projects/only-project/serviceAccounts/sa/keys/k1" {
+		t.Errorf("deleted %v", google.deletedKeys)
+	}
+	if len(messaging.providers) != 0 {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitFcmKeepsTheCreatedKeyOnceTheProviderIsSaved(t *testing.T) {
+	messaging := &fakeMessaging{identities: []map[string]any{linkedGoogle("live-token")}}
+	google := &fakeGoogle{t: t, token: "live-token", projects: []map[string]any{activeProject("only-project")}}
+	setup, _, _ := newGoogleTestSetup(t, messaging, google, nil)
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(google.deletedKeys) != 0 || len(messaging.providers) != 1 {
+		t.Errorf("deleted %v, providers %v", google.deletedKeys, messaging.providers)
+	}
 }
