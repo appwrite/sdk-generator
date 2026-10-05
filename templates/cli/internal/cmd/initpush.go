@@ -4,6 +4,8 @@ package cmd
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
@@ -15,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -26,6 +29,7 @@ import (
 )
 
 const (
+	apnsKeyPage         = "https://developer.apple.com/account/resources/authkeys/add"
 	fcmConsoleHome      = "https://console.firebase.google.com"
 	fcmServiceAccounts  = "https://console.firebase.google.com/project/%s/settings/serviceaccounts/adminsdk"
 	fcmSetupGuide       = "https://firebase.google.com/docs/android/setup#add-config-file"
@@ -33,6 +37,18 @@ const (
 	downloadPoll        = time.Second
 	firebaseListTimeout = 30 * time.Second
 )
+
+var (
+	apnsKeyFileName = regexp.MustCompile(`^AuthKey_([A-Z0-9]{10})\.p8$`)
+	apnsKeyID       = regexp.MustCompile(`^[A-Z0-9]{10}$`)
+)
+
+type apnsOptions struct {
+	keyPath  string
+	keyID    string
+	teamID   string
+	bundleID string
+}
 
 type fcmOptions struct {
 	keyPath       string
@@ -88,6 +104,34 @@ func newPushSetup(command *cobra.Command) (*pushSetup, error) {
 	}, nil
 }
 
+func newInitApnsCommand() *cobra.Command {
+	options := apnsOptions{}
+	command := &cobra.Command{
+		Use:   "apns",
+		Short: "Set up Apple Push Notification service for Appwrite Push",
+		RunE: func(command *cobra.Command, args []string) error {
+			setup, err := newPushSetup(command)
+			if err != nil {
+				return err
+			}
+			detected, err := detectApple(setup.root)
+			if err != nil {
+				return err
+			}
+
+			return setup.apns(options, detected)
+		},
+	}
+
+	flags := command.Flags()
+	flags.StringVar(&options.keyPath, "key-path", "", "Path to an APNs auth key (.p8)")
+	flags.StringVar(&options.keyID, "key-id", "", "APNs key ID")
+	flags.StringVar(&options.teamID, "team-id", "", "Apple Developer team ID")
+	flags.StringVar(&options.bundleID, "bundle-id", "", "iOS app bundle ID")
+
+	return command
+}
+
 func newInitFcmCommand() *cobra.Command {
 	options := fcmOptions{}
 	command := &cobra.Command{
@@ -115,6 +159,90 @@ func newInitFcmCommand() *cobra.Command {
 	return command
 }
 
+func newInitPushCommand() *cobra.Command {
+	var skipApns, skipFcm bool
+	command := &cobra.Command{
+		Use:   "push",
+		Short: "Set up background delivery for Appwrite Push on every platform in this project",
+		RunE: func(command *cobra.Command, args []string) error {
+			setup, err := newPushSetup(command)
+			if err != nil {
+				return err
+			}
+
+			return setup.push(skipApns, skipFcm)
+		},
+	}
+
+	command.Flags().BoolVar(&skipApns, "skip-apns", false, "Do not set up APNs")
+	command.Flags().BoolVar(&skipFcm, "skip-fcm", false, "Do not set up FCM")
+
+	return command
+}
+
+func (s *pushSetup) push(skipApns, skipFcm bool) error {
+	apple, err := detectApple(s.root)
+	if err != nil {
+		return err
+	}
+	android, err := detectAndroid(s.root)
+	if err != nil {
+		return err
+	}
+
+	runApns := apple.found() && !skipApns
+	runFcm := android.found() && !skipFcm
+
+	fmt.Fprintln(s.out, output.Heading("Detected"))
+	fmt.Fprintf(s.out, "  iOS      %s\n", describeApple(apple, skipApns))
+	fmt.Fprintf(s.out, "  Android  %s\n\n", describeAndroid(android, skipFcm))
+
+	if !runApns && !runFcm {
+		output.Log(s.out, "No iOS or Android app found here.")
+		output.Hint(s.out, "Run '%s init apns' or '%s init fcm' with --key-path to set up a platform directly.",
+			app.ExecutableName, app.ExecutableName)
+
+		return nil
+	}
+
+	var failures []string
+	if runApns {
+		if err := s.apns(apnsOptions{}, apple); err != nil {
+			s.reportStep("APNs", "apns", err)
+			failures = append(failures, "APNs")
+		}
+	}
+	if runFcm {
+		if runApns {
+			fmt.Fprintln(s.out)
+		}
+		if err := s.fcm(fcmOptions{}, android); err != nil {
+			s.reportStep("FCM", "fcm", err)
+			failures = append(failures, "FCM")
+		}
+	}
+
+	if len(failures) > 0 {
+		return fmt.Errorf("%s setup did not finish", strings.Join(failures, " and "))
+	}
+
+	return nil
+}
+
+func (s *pushSetup) reportStep(name, command string, err error) {
+	if errors.Is(err, prompt.ErrAborted) {
+		return
+	}
+	var unanswered *prompt.NonInteractiveError
+	if errors.As(err, &unanswered) && unanswered.Flag != "" {
+		output.Failure(s.out, "%s: %q needs an answer but there is no interactive terminal", name, unanswered.Message)
+		output.Hint(s.out, "Run '%s init %s %s <value>' instead.", app.ExecutableName, command, unanswered.Flag)
+
+		return
+	}
+	output.Failure(s.out, "%s: %s", name, err)
+}
+
 func describeFirebase(configs []firebaseConfig) string {
 	parts := make([]string, 0, len(configs))
 	for _, config := range configs {
@@ -126,6 +254,42 @@ func describeFirebase(configs []firebaseConfig) string {
 	}
 
 	return strings.Join(parts, "; ")
+}
+
+func describeApple(apple appleApp, skipped bool) string {
+	switch {
+	case !apple.found():
+		return "not found"
+	case skipped:
+		return "skipped (--skip-apns)"
+	case len(apple.BundleIDs) == 0:
+		return "found, bundle ID unknown"
+	}
+
+	return strings.Join(apple.BundleIDs, ", ")
+}
+
+func describeAndroid(android androidApp, skipped bool) string {
+	switch {
+	case !android.found():
+		return "not found"
+	case skipped:
+		return "skipped (--skip-fcm)"
+	}
+
+	description := strings.Join(android.ApplicationIDs, ", ")
+	if description == "" {
+		description = "found, application ID unknown"
+	}
+	if projects := android.projectIDs(); len(projects) > 0 {
+		label := " (Firebase project "
+		if len(projects) > 1 {
+			label = " (Firebase projects "
+		}
+		description += label + strings.Join(projects, ", ") + ")"
+	}
+
+	return description
 }
 
 func (s *pushSetup) pick(value string, detected []string, question, flag string, validate func(string) error) (string, error) {
@@ -164,6 +328,118 @@ func requiredValue(name string) func(string) error {
 
 		return nil
 	}
+}
+
+func matchesPattern(pattern *regexp.Regexp, description string) func(string) error {
+	return func(value string) error {
+		if !pattern.MatchString(value) {
+			return fmt.Errorf("%s", description)
+		}
+
+		return nil
+	}
+}
+
+func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
+	output.Log(s.out, "Setting up APNs ...")
+
+	bundleID, err := s.pick(options.bundleID, detected.BundleIDs,
+		"Which iOS bundle ID should receive push notifications?", "--bundle-id", requiredValue("bundle ID"))
+	if err != nil {
+		return err
+	}
+
+	existing, err := s.providers("apns")
+	if err != nil {
+		return err
+	}
+	production := findProvider(existing, func(provider messagingProvider) bool {
+		return provider.credential("bundleId") == bundleID && !provider.sandbox()
+	})
+	sandbox := findProvider(existing, func(provider messagingProvider) bool {
+		return provider.credential("bundleId") == bundleID && provider.sandbox()
+	})
+	if production != nil && sandbox != nil && production.Enabled && sandbox.Enabled && options.keyPath == "" && !app.Flags().Force {
+		output.Success(s.out, "APNs is already set up for %s.", bundleID)
+		output.Hint(s.out, "Pass --force or --key-path to replace the key.")
+		s.configureXcode(detected, bundleID)
+
+		return nil
+	}
+
+	teams := detected.teams(bundleID)
+	for _, provider := range []*messagingProvider{production, sandbox} {
+		if provider != nil && len(teams) == 0 && appleTeamID.MatchString(provider.credential("teamId")) {
+			teams = []string{provider.credential("teamId")}
+		}
+	}
+	teamID, err := s.pick(options.teamID, teams,
+		"What is your Apple Developer team ID?", "--team-id",
+		matchesPattern(appleTeamID, "a team ID is 10 uppercase letters or digits"))
+	if err != nil {
+		return err
+	}
+
+	keyPath := options.keyPath
+	if keyPath == "" {
+		keyPath, _, err = s.acquireKey("APNs auth key (.p8)", "", "Create one in the Apple Developer portal", "--key-path", apnsKeyPage,
+			"In the Apple Developer portal, create a key with Apple Push Notifications service (APNs) enabled and download it.",
+			func(path string) bool {
+				_, err := readApnsKey(path)
+
+				return strings.HasSuffix(path, ".p8") && err == nil
+			})
+		if err != nil {
+			return err
+		}
+	}
+
+	key, err := readApnsKey(keyPath)
+	if err != nil {
+		return err
+	}
+	if options.keyPath != "" {
+		s.checkKeyLocation(expandHome(keyPath))
+	}
+
+	keyID := options.keyID
+	if keyID == "" {
+		if match := apnsKeyFileName.FindStringSubmatch(filepath.Base(keyPath)); match != nil {
+			keyID = match[1]
+		}
+	}
+	keyID, err = s.pick(keyID, nil, "What is the key ID of this APNs key?", "--key-id",
+		matchesPattern(apnsKeyID, "a key ID is 10 uppercase letters or digits"))
+	if err != nil {
+		return err
+	}
+
+	for _, environment := range []struct {
+		sandbox  bool
+		name     string
+		existing *messagingProvider
+	}{
+		{false, "APNs (" + bundleID + ")", production},
+		{true, "APNs sandbox (" + bundleID + ")", sandbox},
+	} {
+		body := map[string]any{
+			"name":      environment.name,
+			"authKey":   key,
+			"authKeyId": keyID,
+			"teamId":    teamID,
+			"bundleId":  bundleID,
+			"sandbox":   environment.sandbox,
+			"enabled":   true,
+		}
+		if err := s.upsertProvider("apns", environment.existing, body); err != nil {
+			return err
+		}
+	}
+
+	s.configureXcode(detected, bundleID)
+	output.Success(s.out, "APNs is set up for %s.", bundleID)
+
+	return nil
 }
 
 func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
@@ -651,6 +927,27 @@ func expandHome(path string) string {
 	return path
 }
 
+func readApnsKey(path string) (string, error) {
+	contents, err := os.ReadFile(expandHome(path))
+	if err != nil {
+		return "", err
+	}
+	block, _ := pem.Decode(contents)
+	if block == nil || block.Type != "PRIVATE KEY" {
+		return "", fmt.Errorf("%s is not an APNs auth key: expected a PEM 'PRIVATE KEY' block", path)
+	}
+	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("%s is not an APNs auth key: %w", path, err)
+	}
+	ecKey, ok := key.(*ecdsa.PrivateKey)
+	if !ok || ecKey.Curve != elliptic.P256() {
+		return "", fmt.Errorf("%s is not an APNs auth key: expected a P-256 elliptic curve key", path)
+	}
+
+	return string(contents), nil
+}
+
 func readServiceAccount(path, projectID string) (map[string]any, error) {
 	contents, err := os.ReadFile(expandHome(path))
 	if err != nil {
@@ -706,6 +1003,18 @@ type messagingProvider struct {
 	Options     map[string]any `json:"options"`
 }
 
+func (p messagingProvider) credential(name string) string {
+	value, _ := p.Credentials[name].(string)
+
+	return value
+}
+
+func (p messagingProvider) sandbox() bool {
+	value, _ := p.Options["sandbox"].(bool)
+
+	return value
+}
+
 func (p messagingProvider) projectID() string {
 	account, _ := p.Credentials["serviceAccountJSON"].(map[string]any)
 	value, _ := account["project_id"].(string)
@@ -758,6 +1067,51 @@ func (s *pushSetup) upsertProvider(kind string, existing *messagingProvider, bod
 	return nil
 }
 
+func (s *pushSetup) configureXcode(detected appleApp, bundleID string) {
+	targets := detected.targets(bundleID)
+	inXcode, entitlements, infoPlists := false, 0, 0
+	for _, target := range targets {
+		if target.Project == "" {
+			continue
+		}
+		inXcode = true
+		for _, path := range target.Entitlements {
+			entitlements++
+			changed, err := editPlist(path, func(contents string) string {
+				return ensurePlistString(contents, "aps-environment", "development")
+			})
+			s.reportEdit(path, "aps-environment", changed, err)
+		}
+		for _, path := range target.InfoPlists {
+			infoPlists++
+			changed, err := editPlist(path, func(contents string) string {
+				return ensurePlistArrayValue(contents, "UIBackgroundModes", "remote-notification")
+			})
+			s.reportEdit(path, "the remote-notification background mode", changed, err)
+		}
+	}
+
+	if inXcode && entitlements == 0 {
+		output.Hint(s.out, "In Xcode, open Signing & Capabilities and add Push Notifications, so the app gets an aps-environment entitlement.")
+	}
+	if inXcode && infoPlists == 0 {
+		output.Hint(s.out, "In Xcode, add Background Modes and tick Remote notifications.")
+	}
+	if detected.ExpoConfig != "" {
+		output.Hint(s.out, "Expo regenerates ios/ on prebuild. To keep these settings, add \"remote-notification\" to expo.ios.infoPlist.UIBackgroundModes in %s.",
+			filepath.Base(detected.ExpoConfig))
+	}
+}
+
+func (s *pushSetup) reportEdit(path, what string, changed bool, err error) {
+	switch {
+	case err != nil:
+		output.Warn(s.out, "Could not add %s to %s: %s", what, path, err)
+	case changed:
+		output.Success(s.out, "Added %s to %s", what, path)
+	}
+}
+
 func (s *pushSetup) gradleHints(detected androidApp) {
 	if detected.ExpoConfig != "" {
 		if !detected.ExpoGoogleServices {
@@ -782,4 +1136,107 @@ func (s *pushSetup) gradleHints(detected androidApp) {
 		output.Hint(s.out, "Add Firebase Messaging to %s: implementation(\"com.google.firebase:firebase-messaging\"). Without it, Appwrite Push falls back to scheduled background delivery.",
 			detected.Modules[0])
 	}
+}
+
+func editPlist(path string, edit func(string) string) (bool, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return false, err
+	}
+	original := string(contents)
+	if !strings.Contains(original, "<plist") {
+		return false, errors.New("only XML property lists can be edited")
+	}
+	updated := edit(original)
+	if updated == original {
+		return false, nil
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+
+	return true, os.WriteFile(path, []byte(updated), info.Mode().Perm())
+}
+
+func lineIndent(contents string, index int) (string, int) {
+	lineStart := strings.LastIndex(contents[:index], "\n") + 1
+	indent := contents[lineStart:index]
+	if strings.TrimSpace(indent) != "" {
+		return "", index
+	}
+
+	return indent, lineStart
+}
+
+func topLevelDict(contents string) (string, int, string, string) {
+	if index := strings.Index(contents, "<dict/>"); index >= 0 && !strings.Contains(contents, "<dict>") {
+		indent, _ := lineIndent(contents, index)
+		contents = contents[:index] + "<dict>\n" + indent + "</dict>" + contents[index+len("<dict/>"):]
+	}
+	end := strings.LastIndex(contents, "</dict>")
+	if end < 0 {
+		return contents, -1, "", ""
+	}
+	closing, lineStart := lineIndent(contents, end)
+
+	unit := "\t"
+	if key := plistKeyLine.FindStringSubmatch(contents); key != nil && strings.HasPrefix(key[1], closing) && len(key[1]) > len(closing) {
+		unit = key[1][len(closing):]
+	}
+
+	return contents, lineStart, closing + unit, unit
+}
+
+var plistKeyLine = regexp.MustCompile(`(?m)^([ \t]*)<key>`)
+
+func ensurePlistString(contents, key, value string) string {
+	if strings.Contains(contents, "<key>"+key+"</key>") {
+		return contents
+	}
+	contents, at, indent, _ := topLevelDict(contents)
+	if at < 0 {
+		return contents
+	}
+
+	return contents[:at] + indent + "<key>" + key + "</key>\n" + indent + "<string>" + value + "</string>\n" + contents[at:]
+}
+
+func ensurePlistArrayValue(contents, key, value string) string {
+	marker := "<key>" + key + "</key>"
+	entry := "<string>" + value + "</string>"
+	if index := strings.Index(contents, marker); index >= 0 {
+		after := index + len(marker)
+		rest := contents[after:]
+		if empty := strings.Index(rest, "<array/>"); empty >= 0 && strings.TrimSpace(rest[:empty]) == "" {
+			keyIndent, _ := lineIndent(contents, index)
+			_, _, _, unit := topLevelDict(contents)
+			at := after + empty
+
+			return contents[:at] + "<array>\n" + keyIndent + unit + entry + "\n" + keyIndent + "</array>" + contents[at+len("<array/>"):]
+		}
+		open := strings.Index(rest, "<array>")
+		closing := strings.Index(rest, "</array>")
+		if open < 0 || closing < open || strings.TrimSpace(rest[:open]) != "" {
+			return contents
+		}
+		if strings.Contains(rest[open:closing], entry) {
+			return contents
+		}
+		keyIndent, _ := lineIndent(contents, index)
+		_, _, _, unit := topLevelDict(contents)
+		_, lineStart := lineIndent(contents, after+closing)
+		if lineStart > 0 && contents[lineStart-1] != '\n' {
+			return contents
+		}
+
+		return contents[:lineStart] + keyIndent + unit + entry + "\n" + contents[lineStart:]
+	}
+
+	contents, at, indent, unit := topLevelDict(contents)
+	if at < 0 {
+		return contents
+	}
+
+	return contents[:at] + indent + marker + "\n" + indent + "<array>\n" + indent + unit + entry + "\n" + indent + "</array>\n" + contents[at:]
 }

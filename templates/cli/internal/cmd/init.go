@@ -38,6 +38,8 @@ func newInitCommand() *cobra.Command {
 		newInitFunctionCommand(),
 		newInitSiteCommand(),
 		newInitSkillCommand(),
+		newInitPushCommand(),
+		newInitApnsCommand(),
 		newInitFcmCommand(),
 		newInitBucketCommand(),
 		newInitTeamCommand(),
