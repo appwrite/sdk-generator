@@ -93,8 +93,6 @@ abstract class Language
 
     abstract public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string;
 
-    abstract public function getParamDefault(Schema|Parameter $param): string;
-
     /**
      * @param string $lang Optional language variant (for multi-language SDKs)
      */
@@ -482,11 +480,6 @@ abstract class Language
         );
     }
 
-    protected function getSchemaDefault(Schema|Parameter $value): mixed
-    {
-        return $this->getSchema($value)->default;
-    }
-
     /**
      * Whether an array's element schema names a type the language can spell.
      *
@@ -665,7 +658,7 @@ abstract class Language
             $operation->parameters,
             static fn(Parameter $parameter): bool => $parameter->location !== ParameterLocation::PATH
                 || !\is_array($config)
-                || !isset($config[$parameter->name]),
+                || (string) ($config[$parameter->name] ?? '') === '',
         ));
         foreach ($operation->requestBody?->content ?? [] as $mediaType) {
             if (!$mediaType->schema instanceof ObjectSchema) {

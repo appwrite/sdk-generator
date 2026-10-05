@@ -293,6 +293,28 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testJavascriptClientOwnership(): void
+    {
+        $targets = [
+            ['web', false, 'client.flatten(apipayload)', 'export class push {'],
+            ['node', false, null, null],
+            ['react-native', true, 'service.flatten(apipayload)', 'export class push extends service {'],
+        ];
+
+        foreach ($targets as [$name, $hasService, $flatten, $pushDeclaration]) {
+            foreach (self::PLATFORMS as $platform) {
+                $files = $this->generate($name, $platform);
+                $this->assertSame($hasService, isset($files['src/service.ts']), "{$name}/{$platform} base module");
+                if ($pushDeclaration !== null) {
+                    $this->assertStringContainsString($pushDeclaration, $files['src/services/push.ts']);
+                }
+                if ($flatten !== null && $platform === 'client') {
+                    $this->assertStringContainsString($flatten, $files['src/services/general.ts']);
+                }
+            }
+        }
+    }
+
     /**
      * A canonical document keys `x-appwrite.auth` by platform. The fixture's
      * platform-auth operation lists `Project` for client and `Project, Key` for
@@ -351,6 +373,41 @@ final class GenerationTest extends TestCase
     {
         yield 'swift' => ['swift', 'server'];
         yield 'apple' => ['apple', 'client'];
+    }
+
+    /**
+     * Kotlin and Java examples must compile as written: quotes inside example
+     * strings stay escaped, Kotlin's `$` is not left to interpolate, and named
+     * arguments use the parameter names the service method declares.
+     */
+    #[DataProvider('kotlinLanguages')]
+    public function testExamplesUseKotlinAndJavaLiterals(string $name, string $platform): void
+    {
+        $files = $this->generate($name, $platform);
+
+        $kotlin = 'docs/examples/kotlin/general/create-documents.md';
+        $this->assertArrayHasKey($kotlin, $files, "{$name}/{$platform} did not generate {$kotlin}");
+        $this->assertStringContainsString('"\\$id" to "one"', $files[$kotlin]);
+        $this->assertStringContainsString('"title" to "say \\"hello\\""', $files[$kotlin]);
+
+        $java = 'docs/examples/java/general/create-documents.md';
+        $this->assertArrayHasKey($java, $files, "{$name}/{$platform} did not generate {$java}");
+        $this->assertStringContainsString('"$id", "one"', $files[$java]);
+        $this->assertStringContainsString('"title", "say \\"hello\\""', $files[$java]);
+
+        $named = 'docs/examples/kotlin/general/snake-case-params.md';
+        $this->assertArrayHasKey($named, $files, "{$name}/{$platform} did not generate {$named}");
+        $this->assertStringContainsString('grantid = "<grant_id>"', $files[$named]);
+        $this->assertStringNotContainsString('grant_id =', $files[$named]);
+    }
+
+    /**
+     * @return Iterator<string, array{string, string}>
+     */
+    public static function kotlinLanguages(): Iterator
+    {
+        yield 'kotlin' => ['kotlin', 'server'];
+        yield 'android' => ['android', 'client'];
     }
 
     public function testRustBodylessResponsesUseUnitWithJsonAccept(): void
@@ -486,6 +543,48 @@ final class GenerationTest extends TestCase
         $this->assertSame(1, \substr_count($signature[1] ?? '', '$projectId'));
         $this->assertStringNotContainsString('X-Appwrite-Project', $service);
         $this->assertSame($files, $this->generateDocument($document(true), 'php', 'path-config-legacy'));
+    }
+
+    /**
+     * An empty `x-appwrite.config` value names no client setting, so the path
+     * parameter stays an argument the caller passes.
+     */
+    public function testPathParametersWithBlankConfigStayArguments(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'general']],
+            'paths' => ['/tests/{project_id}/approve' => ['post' => [
+                'operationId' => 'generalApprove',
+                'tags' => ['general'],
+                'summary' => 'Approve',
+                'description' => 'Approve.',
+                'parameters' => [
+                    ['name' => 'project_id', 'in' => 'path', 'required' => true, 'description' => 'Project ID.', 'schema' => ['type' => 'string']],
+                    ['name' => 'grant_id', 'in' => 'query', 'required' => true, 'description' => 'Grant ID.', 'schema' => ['type' => 'string']],
+                ],
+                'responses' => ['204' => ['description' => 'ok']],
+                'x-appwrite' => ['config' => ['project_id' => '']],
+            ]]],
+        ];
+
+        $service = $this->generateDocument($document, 'web', 'path-config-blank')['src/services/general.ts'];
+
+        $this->assertStringContainsString('approve(projectId: string, grantId: string)', $service);
+    }
+
+    /**
+     * An upload whose only parameter is the file still takes the progress
+     * callback as its second positional argument.
+     */
+    public function testSingleParameterUploadTakesProgressCallback(): void
+    {
+        foreach (['web', 'node', 'react-native'] as $name) {
+            $service = $this->generate($name, 'client')['src/services/general.ts'];
+
+            $this->assertMatchesRegularExpression('/uploadfileonly\(\s*file: [^,]+,\s*onprogress\?: \(progress: uploadprogress\) => void,\s*\): promise/', $service, "{$name} uploadFileOnly lacks a positional onProgress");
+        }
     }
 
     public function testGoModelCommentsAreNotHtmlEscaped(): void

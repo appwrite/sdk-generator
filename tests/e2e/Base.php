@@ -197,6 +197,26 @@ abstract class Base extends TestCase
         'Push session replay:passed',
     ];
 
+    protected const PUSH_CREDENTIAL_SWITCH_RESPONSES = [
+        'Push credential switch:passed',
+        'Push credential pending switch:passed',
+    ];
+
+    protected const WEB_PUSH_CONNECTION_RESPONSES = [
+        'Push concurrent refused:passed',
+        'Push tab client id:passed',
+    ];
+
+    protected const PUSH_SESSION_COOKIE_RESPONSES = [
+        'Push user cookie topic:passed',
+        'Push user cookie switch:passed',
+        'Push user cookie pending switch:passed',
+    ];
+
+    protected const PUSH_NATIVE_SESSION_COOKIE_RESPONSES = [
+        'Push session cookie:passed',
+    ];
+
     // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
     // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
     // expose the reason string).
@@ -222,6 +242,17 @@ abstract class Base extends TestCase
     // then unsubscribes, delivers nothing after a restart.
     protected const ANDROID_PUSH_OPT_OUT_RESPONSES = [
         'Push background opt-out:passed',
+    ];
+
+    // Android: unsubscribing one of two in-process subscriptions on the same topic stops its
+    // callback, though the other subscription keeps the broker filter.
+    protected const ANDROID_PUSH_SHARED_TOPIC_RESPONSES = [
+        'Push shared topic unsubscribe:passed',
+    ];
+
+    protected const ANDROID_COOKIE_STORE_RESPONSES = [
+        'Cookie store reload:passed',
+        'Cookie store saved format:passed',
     ];
 
     // React Native and Flutter on Android: when a Push with another credential starts background
