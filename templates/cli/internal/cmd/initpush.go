@@ -269,6 +269,12 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 	}
 	discovered := false
 	var revoke func()
+	saved := false
+	defer func() {
+		if revoke != nil && !saved {
+			revoke()
+		}
+	}()
 	if account == nil {
 		page := fmt.Sprintf(fcmServiceAccounts, "_")
 		instructions := "In the Firebase console, pick your project, then click 'Generate new private key' and download the file."
@@ -344,12 +350,9 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 		"enabled":            true,
 	}
 	if err := s.upsertProvider("fcm", current, body); err != nil {
-		if revoke != nil {
-			revoke()
-		}
-
 		return err
 	}
+	saved = true
 
 	s.gradleHints(detected)
 	output.Success(s.out, "FCM is set up for Firebase project %s.", projectID)
