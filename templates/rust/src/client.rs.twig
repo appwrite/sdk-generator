@@ -664,8 +664,16 @@ impl Client {
         input_file: InputFile,
         upload_id: Option<String>,
     ) -> Result<T> {
-        self.upload(Method::POST, path, headers, params, param_name, input_file, upload_id)
-            .await
+        self.upload(
+            Method::POST,
+            path,
+            headers,
+            params,
+            param_name,
+            input_file,
+            upload_id,
+        )
+        .await
     }
 
     /// Upload a file with the endpoint's HTTP method
