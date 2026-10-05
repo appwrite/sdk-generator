@@ -491,6 +491,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                     }
                 }
                 request = UnityWebRequest.Post(url, form);
+                request.method = method.ToUpperInvariant();
             }
             else if (methodGet)
             {
