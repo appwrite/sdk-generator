@@ -264,6 +264,7 @@ try {
 
     $cliExcludes = [
         'services' => [
+            ['name' => 'analytics'], // Not yet in the released Go SDK the CLI builds against
             ['name' => 'assistant'],
             ['name' => 'avatars'],
             ['name' => 'advisor'],

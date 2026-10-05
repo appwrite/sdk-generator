@@ -528,7 +528,7 @@ App::post('/v1/mock/tests/general/optional-upload')
         ]);
     });
 
-App::post('/v1/mock/tests/general/upload-generic')
+App::put('/v1/mock/tests/general/upload-generic')
     ->desc('Upload Generic')
     ->groups(['mock'])
     ->label('scope', 'public')
@@ -552,7 +552,7 @@ App::post('/v1/mock/tests/general/upload-generic')
         // The SDK must hydrate the free-form preferences, not drop them.
         $response->json([
             'name' => 'John Doe',
-            'prefs' => ['result' => 'POST:/v1/mock/tests/general/upload-generic:passed'],
+            'prefs' => ['result' => 'PUT:/v1/mock/tests/general/upload-generic:passed'],
         ]);
     });
 

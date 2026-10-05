@@ -151,7 +151,7 @@ abstract class Base extends TestCase
     ];
 
     protected const GENERIC_UPLOAD_RESPONSES = [
-        'POST:/v1/mock/tests/general/upload-generic:passed',
+        'PUT:/v1/mock/tests/general/upload-generic:passed',
     ];
 
     protected const LARGE_FILE_RESPONSES = [

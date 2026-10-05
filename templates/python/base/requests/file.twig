@@ -30,6 +30,7 @@
 {% if (method | textResponse) %}
             response_type='text',
 {% endif %}
+            method='{{ method.method.value | caseLower }}',
         )
 {% if (method | responseModels)|length > 1 %}
 {% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}

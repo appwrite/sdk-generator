@@ -154,9 +154,10 @@ class Client:
         on_progress=None,
         upload_id='',
         response_type='json',
+        method='post',
     ):
         if params.get(param_name) is None:
-            return self.call('post', path, headers, params, response_type=response_type)
+            return self.call(method, path, headers, params, response_type=response_type)
 
         input_file = params[param_name]
 
@@ -173,7 +174,7 @@ class Client:
                     input_file.data = input.read()
 
             params[param_name] = input_file
-            return self.call('post', path, headers, params, response_type=response_type)
+            return self.call(method, path, headers, params, response_type=response_type)
 
         offset = 0
         counter = 0
@@ -241,7 +242,7 @@ class Client:
                 chunk_headers["x-{{ spec.info.title | caseLower }}-id"] = current_upload_id
 
             return self.call(
-                'post',
+                method,
                 path,
                 chunk_headers,
                 chunk_params,
