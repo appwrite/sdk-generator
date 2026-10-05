@@ -522,6 +522,12 @@ type fakeGoogle struct {
 	deletedKeys []string
 	token       string
 	onKey       func()
+
+	requireEnable bool
+	enableFails   bool
+	listDisabled  bool
+	enabled       bool
+	deleteQuota   []string
 }
 
 func (f *fakeGoogle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -537,9 +543,22 @@ func (f *fakeGoogle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_ = json.Unmarshal(body, &params)
 	path := r.URL.Path
 
+	disabled := func(api string) {
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{
+			"message": api + " has not been used in project 123 before or it is disabled.",
+			"status":  "PERMISSION_DENIED",
+			"details": []any{map[string]any{"reason": "SERVICE_DISABLED", "metadata": map[string]any{"activationUrl": "https://console.developers.google.com/apis/api/" + api + "/overview?project=123"}}},
+		}})
+	}
+
 	switch {
+	case path == "/firebase/v1beta1/projects" && f.listDisabled:
+		disabled("firebase.googleapis.com")
 	case path == "/firebase/v1beta1/projects":
 		_ = json.NewEncoder(w).Encode(map[string]any{"results": f.projects})
+	case strings.HasSuffix(path, ":testIamPermissions") && f.requireEnable && !f.enabled:
+		disabled("cloudresourcemanager.googleapis.com")
 	case strings.HasSuffix(path, ":testIamPermissions"):
 		granted := []string{}
 		for _, permission := range fcmProvisionPermissions {
@@ -548,7 +567,13 @@ func (f *fakeGoogle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"permissions": granted})
+	case strings.HasSuffix(path, "/services:batchEnable") && f.enableFails:
+		w.WriteHeader(http.StatusForbidden)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "Permission denied to enable service", "status": "PERMISSION_DENIED"}})
 	case strings.HasSuffix(path, "/services:batchEnable"):
+		_ = json.NewEncoder(w).Encode(map[string]any{"name": "operations/1", "done": false})
+	case path == "/serviceusage/v1/operations/1":
+		f.enabled = true
 		_ = json.NewEncoder(w).Encode(map[string]any{"name": "operations/1", "done": true})
 	case strings.HasSuffix(path, ":getIamPolicy"):
 		_ = json.NewEncoder(w).Encode(map[string]any{"etag": "e1", "bindings": []any{map[string]any{"role": "roles/owner", "members": []any{"user:dev@example.com"}}}})
@@ -573,6 +598,7 @@ func (f *fakeGoogle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"name": "projects/" + project + "/serviceAccounts/sa/keys/k1", "privateKeyData": base64.StdEncoding.EncodeToString(contents)})
 	case r.Method == "DELETE":
 		f.deletedKeys = append(f.deletedKeys, strings.TrimPrefix(path, "/iam/v1/"))
+		f.deleteQuota = append(f.deleteQuota, r.Header.Get("X-Goog-User-Project"))
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
@@ -611,7 +637,7 @@ func linkedGoogle(token string) map[string]any {
 
 func TestInitFcmCreatesTheKeyWithGoogle(t *testing.T) {
 	messaging := &fakeMessaging{identities: []map[string]any{linkedGoogle("live-token")}}
-	google := &fakeGoogle{t: t, token: "live-token", projects: []map[string]any{
+	google := &fakeGoogle{t: t, token: "live-token", requireEnable: true, projects: []map[string]any{
 		{"projectId": "sticker-smash-fb", "displayName": "Sticker Smash", "state": "ACTIVE"},
 		{"projectId": "tools-4821", "displayName": "Tools", "state": "ACTIVE"},
 		{"projectId": "old-project", "state": "DELETED"},
@@ -645,6 +671,21 @@ func TestInitFcmCreatesTheKeyWithGoogle(t *testing.T) {
 	}
 	if len(google.deletedKeys) != 0 {
 		t.Errorf("deleted %v", google.deletedKeys)
+	}
+	if google.policy["version"] != float64(3) {
+		t.Errorf("policy version = %v", google.policy["version"])
+	}
+	enable, check := -1, -1
+	for index, request := range google.requests {
+		if strings.HasSuffix(request, "/services:batchEnable") && enable < 0 {
+			enable = index
+		}
+		if strings.HasSuffix(request, ":testIamPermissions") && check < 0 {
+			check = index
+		}
+	}
+	if enable < 0 || check < enable {
+		t.Errorf("the APIs were not enabled before the permission check: %v", google.requests)
 	}
 }
 
@@ -742,6 +783,9 @@ func TestInitFcmRevokesTheCreatedKeyWhenTheProviderIsRejected(t *testing.T) {
 	if strings.Join(google.deletedKeys, ",") != "projects/only-project/serviceAccounts/sa/keys/k1" {
 		t.Errorf("deleted %v", google.deletedKeys)
 	}
+	if strings.Join(google.deleteQuota, ",") != "only-project" {
+		t.Errorf("revoked against quota project %v", google.deleteQuota)
+	}
 }
 
 func TestInitFcmWithGoogleKeepsAnExistingProvider(t *testing.T) {
@@ -798,5 +842,41 @@ func TestInitFcmKeepsTheCreatedKeyOnceTheProviderIsSaved(t *testing.T) {
 	}
 	if len(google.deletedKeys) != 0 || len(messaging.providers) != 1 {
 		t.Errorf("deleted %v, providers %v", google.deletedKeys, messaging.providers)
+	}
+}
+
+func TestInitFcmContinuesWhenTheAPIsCannotBeEnabledButAreOn(t *testing.T) {
+	messaging := &fakeMessaging{identities: []map[string]any{linkedGoogle("live-token")}}
+	google := &fakeGoogle{t: t, token: "live-token", enableFails: true, projects: []map[string]any{activeProject("only-project")}}
+	setup, out, _ := newGoogleTestSetup(t, messaging, google, nil)
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatalf("%s\n%s", err, out.String())
+	}
+	if !strings.Contains(out.String(), "Could not enable the APIs (Permission denied to enable service). Continuing") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	if len(messaging.providers) != 1 {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitFcmExplainsAServerWithoutTheFirebaseManagementAPI(t *testing.T) {
+	messaging := &fakeMessaging{identities: []map[string]any{linkedGoogle("live-token")}}
+	google := &fakeGoogle{t: t, token: "live-token", listDisabled: true}
+	setup, out, _ := newGoogleTestSetup(t, messaging, google, nil)
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		testServiceAccount(t, setup.downloads, "manual-project")
+	}()
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "needs the Firebase Management API enabled in the server's Google Cloud project. An administrator can enable it at https://console.developers.google.com/apis/api/firebase.googleapis.com/overview?project=123") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (manual-project)" {
+		t.Errorf("providers = %v", messaging.providers)
 	}
 }
