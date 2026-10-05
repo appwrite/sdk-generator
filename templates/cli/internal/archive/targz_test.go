@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 )
@@ -78,18 +79,22 @@ func TestReplaceKeepsTheRestOfTheBundle(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		headers[header.Name] = header
-		contents[header.Name] = string(body)
+		name := path.Clean(header.Name)
+		if _, ok := headers[name]; ok {
+			t.Errorf("%s is in the bundle twice", name)
+		}
+		headers[name] = header
+		contents[name] = string(body)
 	}
 
-	if header := headers["./runtime-env/bin/python"]; header == nil || header.Typeflag != tar.TypeSymlink || header.Linkname != "/usr/local/bin/python3" {
+	if header := headers["runtime-env/bin/python"]; header == nil || header.Typeflag != tar.TypeSymlink || header.Linkname != "/usr/local/bin/python3" {
 		t.Errorf("runtime-env/bin/python = %+v, want a symlink to /usr/local/bin/python3", header)
 	}
-	if header := headers["./bin/run.sh"]; header == nil || header.Mode != 0o755 {
+	if header := headers["bin/run.sh"]; header == nil || header.Mode != 0o755 {
 		t.Errorf("bin/run.sh = %+v, want mode 0755", header)
 	}
-	if _, ok := headers["./src/main.py"]; ok || contents["src/main.py"] != "new" {
-		t.Errorf("src/main.py = %q, want only the new source", contents["src/main.py"])
+	if contents["src/main.py"] != "new" {
+		t.Errorf("src/main.py = %q, want %q", contents["src/main.py"], "new")
 	}
 }
 
