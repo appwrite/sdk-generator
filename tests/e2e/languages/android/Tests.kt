@@ -250,6 +250,9 @@ class ServiceTest {
                 writeToFile(ex.toString())
             }
 
+            val profile = general.uploadGeneric(InputFile.fromPath("../../../../resources/file.png"))
+            writeToFile(profile.prefs.data["result"] as String)
+
             writeToFile(String(general.download()))
 
             mock = general.enum(MockType.FIRST)

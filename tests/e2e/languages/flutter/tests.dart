@@ -200,6 +200,9 @@ void main() async {
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
+  final profile = await general.uploadGeneric(file: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'));
+  print(profile.prefs.data['result']);
+
   final download = await general.download();
   print(utf8.decode(download));
 
