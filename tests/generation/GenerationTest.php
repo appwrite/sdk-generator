@@ -345,6 +345,20 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * utopia-php/client 0.5 moved its client to `Utopia\Client\Client` and keeps
+     * `Utopia\Client` only as an alias, which later releases remove.
+     */
+    public function testPhpUsesNamespacedHttpClient(): void
+    {
+        $files = $this->generate('php', 'server');
+
+        $this->assertSame([], $this->filesContaining($files, 'use utopia\\client as'));
+        $this->assertSame([], $this->filesContaining($files, 'use utopia\\client;'));
+        $this->assertStringContainsString('use utopia\\client\\client as httpclient;', $files['src/Appwrite/Client.php']);
+        $this->assertStringContainsString('"utopia-php/client": "^0.5"', $files['composer.json']);
+    }
+
+    /**
      * A JSON example for an untyped object array must render as Swift
      * dictionary literals, not as the JavaScript-style `{ ... }` the spec
      * carries. Quotes inside example strings must stay escaped, and an empty
