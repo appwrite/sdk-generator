@@ -9,6 +9,8 @@
  *  - CONNECT is accepted unless the credential is "deny" or "deny:<reason>", which is refused
  *    (with <reason> as the Reason String) so a test can assert a rejected connection and that
  *    its reason reaches the SDK; the projectId user property becomes the connection prefix.
+ *    A "slow:<anything>" credential is accepted after 500 ms, so a test can act while it connects.
+ *  - SUBSCRIBE to "e2e-whoami" publishes the connection's client id on "e2e-whoami".
  *  - SUBSCRIBE to "e2e-disconnect/<reason>" makes the broker DISCONNECT the client with <reason>
  *    as the Reason String.
  *  - "e2e-replay" keeps a replay position per project and client id, like the real broker does
@@ -79,6 +81,14 @@ class MockHandler implements Handler
             return Connack::refuse(Connack::NOT_AUTHORIZED, $properties);
         }
 
+        if (\str_starts_with($credential, 'slow:')) {
+            if (\Swoole\Coroutine::getCid() > 0) {
+                \Swoole\Coroutine::sleep(0.5);
+            } else {
+                \usleep(500_000);
+            }
+        }
+
         // Mirror the real broker: derive a stable per-connection id when the client sends
         // none, so an empty client id (the SDKs' default in reliable mode) is accepted.
         $clientId = $connect->clientId;
@@ -143,6 +153,9 @@ class MockHandler implements Handler
                         $connection->publish('e2e-replay', $message, qos: Packet::QOS_1);
                     }
                 });
+            }
+            if ($filter->topic === 'e2e-whoami') {
+                \Swoole\Timer::after(100, fn () => $connection->publish('e2e-whoami', $connection->getClientId(), qos: 0));
             }
             if ($filter->topic === 'e2e-replay-publish') {
                 // Only the publisher's project's clients, like a real publish.

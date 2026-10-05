@@ -100,6 +100,10 @@ open class Push: Service {
 
     private var mqtt: MQTTClient?
     private var connecting: Task<MQTTClient, Swift.Error>?
+    private var connectedKey = ""
+    private var connectionEpoch = 0
+    private var resubscribeOnConnect = false
+    private var retired = Set<ObjectIdentifier>()
 
     private var onOpenCb: (() -> Void)?
     private var onCloseCb: (() -> Void)?
@@ -248,7 +252,13 @@ open class Push: Service {
             requestNotificationAuthorization()
         }
 
-        let mqtt = try await connect()
+        let mqtt: MQTTClient
+        do {
+            mqtt = try await connect()
+        } catch is SupersededError {
+            return try await subscribe(topics.map { $0 as TopicValue }, background: background, title: title, retry: retry, callback: callback)
+        }
+        let epoch = sync.sync { connectionEpoch }
 
         var ids: [String] = []
         for topic in topics {
@@ -263,6 +273,16 @@ open class Push: Service {
             }
             try await brokerSubscribe(mqtt, infos)
         } catch {
+            let superseded = sync.sync { () -> Bool in
+                guard connectionEpoch != epoch else { return false }
+                for id in ids {
+                    subscriptions.removeValue(forKey: id)
+                }
+                return true
+            }
+            if superseded {
+                return try await subscribe(topics.map { $0 as TopicValue }, background: background, title: title, retry: retry, callback: callback)
+            }
             // The SUBSCRIBE failed; roll this call's registrations back (and drop any broker
             // filter no other local subscriber owns) so a failed subscribe leaks no callback.
             let filters = sync.sync { () -> [String] in
@@ -405,6 +425,19 @@ open class Push: Service {
     }
 
     private func connect() async throws -> MQTTClient {
+        let key = credentialKey()
+        let superseded = sync.sync { () -> MQTTClient? in
+            guard self.mqtt != nil || self.connecting != nil, self.connectedKey != key else { return nil }
+            self.connectionEpoch += 1
+            self.connecting = nil
+            let existing = self.mqtt
+            self.mqtt = nil
+            self.resubscribeOnConnect = !self.subscriptions.isEmpty
+            return existing
+        }
+        if let superseded {
+            retire(superseded)
+        }
         if let existing = sync.sync(execute: { self.mqtt }) {
             return existing
         }
@@ -414,16 +447,32 @@ open class Push: Service {
             if let inflight = self.connecting {
                 return inflight
             }
+            self.connectedKey = key
+            let epoch = self.connectionEpoch
             let created = Task { () throws -> MQTTClient in
                 do {
                     let client = try await self.open()
-                    self.sync.sync {
+                    let current = self.sync.sync { () -> Bool in
+                        guard self.connectionEpoch == epoch else { return false }
                         self.mqtt = client
                         self.connecting = nil
+                        return true
                     }
+                    guard current else {
+                        self.retire(client)
+                        throw SupersededError()
+                    }
+                    self.resubscribeIfSuperseded(client)
                     return client
                 } catch {
-                    self.sync.sync { self.connecting = nil }
+                    let current = self.sync.sync { () -> Bool in
+                        guard self.connectionEpoch == epoch else { return false }
+                        self.connecting = nil
+                        return true
+                    }
+                    if !current {
+                        throw SupersededError()
+                    }
                     throw error
                 }
             }
@@ -431,6 +480,36 @@ open class Push: Service {
             return created
         }
         return try await task.value
+    }
+
+    private func credentialKey() -> String {
+        let jwt = client.config["jwt"] ?? ""
+        let session = client.config["session"] ?? ""
+        let credential = jwt.isEmpty ? "appwrite-session|\(session)" : "appwrite-jwt|\(jwt)"
+        return [host, String(port), client.config["project"] ?? "", resolvedClientId, credential].joined(separator: "|")
+    }
+
+    private func retire(_ client: MQTTClient) {
+        sync.sync { _ = retired.insert(ObjectIdentifier(client)) }
+        DispatchQueue.global().async {
+            try? client.disconnect().wait()
+            try? client.syncShutdownGracefully()
+        }
+    }
+
+    private func resubscribeIfSuperseded(_ client: MQTTClient) {
+        let infos = sync.sync { () -> [MQTTSubscribeInfoV5] in
+            guard resubscribeOnConnect else { return [] }
+            resubscribeOnConnect = false
+            return Set(subscriptions.values.map { $0.filter }).map {
+                MQTTSubscribeInfoV5(topicFilter: $0, qos: effectiveQos($0))
+            }
+        }
+        if !infos.isEmpty {
+            inBackground { [weak self] in
+                try await self?.brokerSubscribe(client, infos)
+            }
+        }
     }
 
     // Read the credential off the client and build the CONNECT properties (enhanced auth plus
@@ -522,7 +601,10 @@ open class Push: Service {
 
         // Surface the connection lifecycle to the caller's onClose hook, and recover from an
         // unexpected drop (a deliberate close() is skipped via the `closing` flag).
-        mqtt.addCloseListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self] result in
+        mqtt.addCloseListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self, weak mqtt] result in
+            if let self, let mqtt, self.sync.sync(execute: { self.retired.remove(ObjectIdentifier(mqtt)) != nil }) {
+                return
+            }
             if case .failure(let error) = result {
                 self?.surface(Push.describe(error))
             } else if let self, !self.sync.sync(execute: { self.closing }) {
@@ -783,3 +865,5 @@ private func matches(filter: String, topic: String) -> Bool {
     }
     return filterParts.count == topicParts.count
 }
+
+private struct SupersededError: Swift.Error {}

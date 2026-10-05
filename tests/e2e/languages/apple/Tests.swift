@@ -629,6 +629,66 @@ class Tests: XCTestCase {
 
         let kickedError = await firstError(Push(client), subscribingTo: "e2e-disconnect/kicked-by-test")
         print(!kickedError.isEmpty ? "Push disconnect error:passed" : "Push disconnect error:failed")
+
+        func outcome(_ subscribing: () async throws -> Void) async -> String {
+            do {
+                try await subscribing()
+                return ""
+            } catch {
+                let message = (error as? AppwriteError)?.message ?? error.localizedDescription
+                return message.isEmpty ? "failed" : message
+            }
+        }
+
+        let deniedSwitch = await outcome {
+            _ = try await Push(
+                Client()
+                    .setProject("console")
+                    .setSelfSigned()
+                    .setPushEndpoint("mqtt://mqtt:1883")
+                    .setJWT("deny:switched-user")
+            ).subscribe("e2e-switch") { _ in }
+        }
+
+        let switchClient = Client()
+            .setProject("console")
+            .setSelfSigned()
+            .setPushEndpoint("mqtt://mqtt:1883")
+            .setSession(e2eSession)
+        let switchPush = Push(switchClient)
+        let initial = await outcome { _ = try await switchPush.subscribe("e2e-switch") { _ in } }
+        _ = switchClient.setJWT("deny:switched-user")
+        let switched = await outcome { _ = try await switchPush.subscribe("e2e-switch") { _ in } }
+        switchPush.close()
+        print(
+            initial.isEmpty && !deniedSwitch.isEmpty && switched == deniedSwitch
+                ? "Push credential switch:passed"
+                : "Push credential switch:failed (initial: \(initial), switched: \(switched), denied: \(deniedSwitch))"
+        )
+
+        let pendingClient = Client()
+            .setProject("console")
+            .setSelfSigned()
+            .setPushEndpoint("mqtt://mqtt:1883")
+            .setJWT("slow:pending")
+        let pendingPush = Push(pendingClient)
+        let firstPending = ErrorCollector()
+        Task {
+            firstPending.record(await outcome { _ = try await pendingPush.subscribe("e2e-switch") { _ in } })
+        }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        _ = pendingClient.setJWT("deny:switched-user")
+        let secondPending = await outcome { _ = try await pendingPush.subscribe("e2e-switch") { _ in } }
+        for _ in 0..<100 where firstPending.message == nil {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let firstPendingOutcome = firstPending.message ?? "timeout"
+        pendingPush.close()
+        print(
+            secondPending == deniedSwitch && firstPendingOutcome == deniedSwitch
+                ? "Push credential pending switch:passed"
+                : "Push credential pending switch:failed (first: \(firstPendingOutcome), second: \(secondPending))"
+        )
     }
 
     func parse(from json: String) -> String? {

@@ -670,6 +670,66 @@ void main() async {
   );
   kickedPush.close();
 
+  Future<String> outcome(Future<void> Function() subscribing) async {
+    try {
+      await subscribing();
+      return '';
+    } catch (e) {
+      final message = e.toString();
+      if (message.contains('switched-user')) {
+        return 'switched-user';
+      }
+      if (message.contains('switched-pending')) {
+        return 'switched-pending';
+      }
+      return message;
+    }
+  }
+
+  final switchClient = Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setSession(e2eSession);
+  final switchPush = Push(switchClient);
+  await switchPush.subscribe(['e2e-switch'], (_) {});
+  switchClient.setJWT('deny:switched-user');
+  final switched = await outcome(
+    () => switchPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  switchPush.close();
+  print(
+    switched == 'switched-user'
+        ? 'Push credential switch:passed'
+        : 'Push credential switch:failed ($switched)',
+  );
+
+  final pendingClient = Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setJWT('slow:pending');
+  final pendingPush = Push(pendingClient);
+  final firstPending = outcome(
+    () => pendingPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+  pendingClient.setJWT('deny:switched-pending');
+  final secondPending = await outcome(
+    () => pendingPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  final firstPendingOutcome = await firstPending.timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => 'timeout',
+  );
+  pendingPush.close();
+  print(
+    secondPending == 'switched-pending' &&
+            firstPendingOutcome == 'switched-pending'
+        ? 'Push credential pending switch:passed'
+        : 'Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending)',
+  );
+
   // Background delivery on Android through the public API. The SDK's native Android plugin needs
   // a device, so a stand-in answers on its channels, as the mock server stands in for the broker;
   // the plugin itself is exercised over the same channels by the Robolectric run.

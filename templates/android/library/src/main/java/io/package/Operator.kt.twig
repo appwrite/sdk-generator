@@ -22,6 +22,13 @@ class Operator(
 ) {
     override fun toString() = this.toJson()
 
+    fun toMap(): Map<String, Any?> = mapOf(
+        "method" to method,
+        "values" to values,
+    ).filterValues { it != null }
+
+    fun toJson(): String = toMap().toJson()
+
     companion object {
         fun increment(value: Number = 1, max: Number? = null): String {
             require(!value.toDouble().isNaN() && !value.toDouble().isInfinite()) { "Value cannot be NaN or Infinity" }
