@@ -528,6 +528,34 @@ App::post('/v1/mock/tests/general/optional-upload')
         ]);
     });
 
+App::post('/v1/mock/tests/general/upload-generic')
+    ->desc('Upload Generic')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'uploadGeneric')
+    ->label('sdk.request.type', 'multipart/form-data')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.mock', true)
+    ->param('file', [], new File(), 'Sample file param', skipValidation: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (mixed $file, Request $request, UtopiaSwooleResponse $response) {
+        $file = $request->getFiles('file');
+        $tmpName = is_array($file['tmp_name'] ?? null) ? $file['tmp_name'][0] : ($file['tmp_name'] ?? '');
+        if ($tmpName === '' || md5(file_get_contents($tmpName)) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong file');
+        }
+
+        // The SDK must hydrate the free-form preferences, not drop them.
+        $response->json([
+            'name' => 'John Doe',
+            'prefs' => ['result' => 'POST:/v1/mock/tests/general/upload-generic:passed'],
+        ]);
+    });
+
 App::get('/v1/mock/tests/general/redirect')
     ->desc('Redirect')
     ->groups(['mock'])
