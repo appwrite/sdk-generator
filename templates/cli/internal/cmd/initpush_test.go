@@ -651,7 +651,7 @@ func TestInitFcmCreatesTheKeyWithGoogle(t *testing.T) {
 func TestInitFcmSignsInWithGoogleThroughTheConsole(t *testing.T) {
 	messaging := &fakeMessaging{}
 	google := &fakeGoogle{t: t, token: "fresh-token", projects: []map[string]any{activeProject("only-project")}}
-	setup, out, _ := newGoogleTestSetup(t, messaging, google, nil)
+	setup, out, scripted := newGoogleTestSetup(t, messaging, google, nil)
 	var opened []string
 	setup.open = func(page string) {
 		opened = append(opened, page)
@@ -672,6 +672,12 @@ func TestInitFcmSignsInWithGoogleThroughTheConsole(t *testing.T) {
 	query := signIn.Query()
 	if signIn.Path != "/account/tokens/oauth2/google" || query.Get("project") != "console" || query.Get("scopes[]") != googleCloudScope {
 		t.Errorf("sign-in URL = %s", opened[0])
+	}
+	if !contains(scripted.Asked, "Which Firebase project should send push notifications?") {
+		t.Errorf("the only Firebase project was used without asking: %v", scripted.Asked)
+	}
+	if strings.Contains(out.String(), "from the key") {
+		t.Errorf("output:\n%s", out.String())
 	}
 	if !strings.Contains(out.String(), "signed in to the Appwrite console as dev@example.com") {
 		t.Errorf("output:\n%s", out.String())
