@@ -1138,6 +1138,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/initpushgoogle.go',
+                'template'      => 'cli/internal/cmd/initpushgoogle.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/initpush_test.go',
                 'template'      => 'cli/internal/cmd/initpush_test.go',
             ],

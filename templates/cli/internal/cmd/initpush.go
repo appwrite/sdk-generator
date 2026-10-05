@@ -30,6 +30,7 @@ import (
 
 const (
 	apnsKeyPage         = "https://developer.apple.com/account/resources/authkeys/add"
+	fcmConsoleHome      = "https://console.firebase.google.com"
 	fcmServiceAccounts  = "https://console.firebase.google.com/project/%s/settings/serviceaccounts/adminsdk"
 	fcmSetupGuide       = "https://firebase.google.com/docs/android/setup#add-config-file"
 	downloadTimeout     = 15 * time.Minute
@@ -56,14 +57,18 @@ type fcmOptions struct {
 }
 
 type pushSetup struct {
-	api       *client.Client
-	prompter  prompt.Prompter
-	out       io.Writer
-	root      string
-	keyDirs   []string
-	downloads string
-	open      func(string)
-	firebase  func() ([]firebaseProject, error)
+	api           *client.Client
+	prompter      prompt.Prompter
+	out           io.Writer
+	root          string
+	keyDirs       []string
+	downloads     string
+	open          func(string)
+	firebase      func() ([]firebaseProject, error)
+	console       *client.Client
+	googleHosts   map[string]string
+	googlePoll    time.Duration
+	googleTimeout time.Duration
 }
 
 func newPushSetup(command *cobra.Command) (*pushSetup, error) {
@@ -85,14 +90,17 @@ func newPushSetup(command *cobra.Command) (*pushSetup, error) {
 	}
 
 	return &pushSetup{
-		api:       context.api,
-		prompter:  context.prompter,
-		out:       command.OutOrStdout(),
-		root:      ".",
-		keyDirs:   keyDirs,
-		downloads: downloads,
-		open:      openBrowser,
-		firebase:  listFirebaseProjects,
+		api:           context.api,
+		prompter:      context.prompter,
+		out:           command.OutOrStdout(),
+		root:          ".",
+		keyDirs:       keyDirs,
+		downloads:     downloads,
+		open:          openBrowser,
+		firebase:      listFirebaseProjects,
+		console:       newConsoleForPush(),
+		googlePoll:    2 * time.Second,
+		googleTimeout: googleSignInTimeout,
 	}, nil
 }
 
@@ -374,7 +382,7 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 
 	keyPath := options.keyPath
 	if keyPath == "" {
-		keyPath, _, err = s.acquireKey("APNs auth key (.p8)", "Create one in the Apple Developer portal", "--key-path", apnsKeyPage,
+		keyPath, _, err = s.acquireKey("APNs auth key (.p8)", "", "Create one in the Apple Developer portal", "--key-path", apnsKeyPage,
 			"In the Apple Developer portal, create a key with Apple Push Notifications service (APNs) enabled and download it.",
 			func(path string) bool {
 				_, err := readApnsKey(path)
@@ -536,6 +544,7 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 		}
 	}
 	discovered := false
+	var revoke func()
 	if account == nil {
 		page := fmt.Sprintf(fcmServiceAccounts, "_")
 		instructions := "In the Firebase console, pick your project, then click 'Generate new private key' and download the file."
@@ -543,15 +552,44 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 			page = fmt.Sprintf(fcmServiceAccounts, url.PathEscape(projectID))
 			instructions = "In the Firebase console, click 'Generate new private key' and download the file."
 		}
-		path, fromProject, err := s.acquireKey("Firebase service account key (.json)", "Get one from the Firebase console", "--key-path",
-			page, instructions, serviceAccountFile(projectID))
-		if err != nil {
-			return err
+		automatic := ""
+		if s.console != nil {
+			automatic = "Sign in with Google and create it automatically"
 		}
-		discovered = fromProject
-		account, err = readServiceAccount(path, projectID)
-		if err != nil {
-			return err
+		for account == nil {
+			path, fromProject, err := s.acquireKey("Firebase service account key (.json)", automatic, "Get one from the Firebase console", "--key-path",
+				page, instructions, serviceAccountFile(projectID))
+			if errors.Is(err, errAutomaticKey) {
+				created, undo, err := s.provisionFCM(projectID, func(chosen string) error {
+					return s.fcmAlreadySetUp(chosen)
+				})
+				if errors.Is(err, errProviderAlreadySetUp) {
+					s.gradleHints(detected)
+
+					return nil
+				}
+				if errors.Is(err, prompt.ErrAborted) {
+					return err
+				}
+				if err != nil {
+					output.Warn(s.out, "%s.", err)
+					output.Log(s.out, "Provide the key another way instead.")
+					automatic = ""
+
+					continue
+				}
+				account, revoke = created, undo
+
+				break
+			}
+			if err != nil {
+				return err
+			}
+			discovered = fromProject
+			account, err = readServiceAccount(path, projectID)
+			if err != nil {
+				return err
+			}
 		}
 		if projectID == "" {
 			projectID = account["project_id"].(string)
@@ -582,6 +620,10 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 		"enabled":            true,
 	}
 	if err := s.upsertProvider("fcm", current, body); err != nil {
+		if revoke != nil {
+			revoke()
+		}
+
 		return err
 	}
 
@@ -591,7 +633,27 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 	return nil
 }
 
-func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions string, accept func(string) bool) (string, bool, error) {
+func (s *pushSetup) fcmAlreadySetUp(projectID string) error {
+	if app.Flags().Force {
+		return nil
+	}
+	existing, err := s.providers("fcm")
+	if err != nil {
+		return err
+	}
+	current := findProvider(existing, func(provider messagingProvider) bool {
+		return provider.projectID() == projectID
+	})
+	if current == nil || !current.Enabled {
+		return nil
+	}
+	output.Success(s.out, "FCM is already set up for Firebase project %s.", projectID)
+	output.Hint(s.out, "Pass --force or --key-path to replace the service account key.")
+
+	return errProviderAlreadySetUp
+}
+
+func (s *pushSetup) acquireKey(what, automatic, browserLabel, flag, page, instructions string, accept func(string) bool) (string, bool, error) {
 	found := s.projectKeys(accept)
 	if len(found) == 1 {
 		output.Log(s.out, "Using %s from the project folder.", s.display(found[0]))
@@ -617,17 +679,25 @@ func (s *pushSetup) acquireKey(what, browserLabel, flag, page, instructions stri
 		return path, true, nil
 	}
 
+	methods := []prompt.Option{
+		{Label: browserLabel, Value: "browser"},
+		{Label: "Use a file I already have", Value: "file"},
+	}
+	if automatic != "" {
+		first := prompt.Option{Label: automatic, Value: "automatic"}
+		methods = append([]prompt.Option{first}, methods...)
+	}
 	method, err := s.prompter.Choice(prompt.Choice{
 		Message: fmt.Sprintf("How would you like to provide the %s?", what),
-		Options: []prompt.Option{
-			{Label: browserLabel, Value: "browser"},
-			{Label: "Use a file I already have", Value: "file"},
-		},
-		Default: "browser",
+		Options: methods,
+		Default: methods[0].Value,
 		Flag:    flag,
 	})
 	if err != nil {
 		return "", false, err
+	}
+	if method == "automatic" {
+		return "", false, errAutomaticKey
 	}
 
 	if method == "file" {
@@ -883,37 +953,42 @@ func readServiceAccount(path, projectID string) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	return parseServiceAccount(contents, path, projectID)
+}
+
+func parseServiceAccount(contents []byte, name, projectID string) (map[string]any, error) {
 	var account map[string]any
 	if err := json.Unmarshal(contents, &account); err != nil {
-		return nil, fmt.Errorf("%s is not valid JSON: %w", path, err)
+		return nil, fmt.Errorf("%s is not valid JSON: %w", name, err)
 	}
 
-	field := func(name string) string {
-		value, _ := account[name].(string)
+	field := func(key string) string {
+		value, _ := account[key].(string)
 
 		return value
 	}
 	if field("type") != "service_account" {
-		return nil, fmt.Errorf("%s is not a service account key: 'type' must be 'service_account'", path)
+		return nil, fmt.Errorf("%s is not a service account key: 'type' must be 'service_account'", name)
 	}
-	for _, name := range []string{"project_id", "client_email", "private_key"} {
-		if field(name) == "" {
-			return nil, fmt.Errorf("%s is not a service account key: '%s' is missing", path, name)
+	for _, key := range []string{"project_id", "client_email", "private_key"} {
+		if field(key) == "" {
+			return nil, fmt.Errorf("%s is not a service account key: '%s' is missing", name, key)
 		}
 	}
 	block, _ := pem.Decode([]byte(field("private_key")))
 	if block == nil {
-		return nil, fmt.Errorf("%s has an unreadable 'private_key'", path)
+		return nil, fmt.Errorf("%s has an unreadable 'private_key'", name)
 	}
 	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("%s has an unreadable 'private_key': %w", path, err)
+		return nil, fmt.Errorf("%s has an unreadable 'private_key': %w", name, err)
 	}
 	if _, ok := key.(*rsa.PrivateKey); !ok {
-		return nil, fmt.Errorf("%s has a 'private_key' that is not an RSA key", path)
+		return nil, fmt.Errorf("%s has a 'private_key' that is not an RSA key", name)
 	}
 	if projectID != "" && field("project_id") != projectID {
-		return nil, fmt.Errorf("%s belongs to Firebase project %s, not %s", path, field("project_id"), projectID)
+		return nil, fmt.Errorf("%s belongs to Firebase project %s, not %s", name, field("project_id"), projectID)
 	}
 
 	return account, nil
