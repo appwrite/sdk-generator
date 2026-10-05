@@ -132,8 +132,16 @@ class Push(
     @Volatile
     private var mqtt: Mqtt5AsyncClient? = null
 
+    private var connectedConfig: PushConfig? = null
+    private val connectLock = Any()
+
+    @Volatile
+    private var connectionEpoch = 0
+
     // Local id -> subscription (filter + callback + per-sub options). The id is never sent to
-    // the broker; it only lets the same topic carry more than one callback.
+    // the broker; it only lets the same topic carry more than one callback. HiveMQ callbacks
+    // look their subscription up by id on delivery, because a callback stays attached to its
+    // filter until the filter itself is unsubscribed, which waits for the filter's last sub.
     private val subscriptions = ConcurrentHashMap<String, Sub>()
 
     // Whether the connection currently lives in the process-wide background host (its own MQTT
@@ -159,7 +167,10 @@ class Push(
         var background: Boolean,
         var title: String?,
         var retry: Boolean,
-    )
+    ) {
+        @Volatile
+        var client: Mqtt5AsyncClient? = null
+    }
 
     // The broker subscription for a filter uses the highest QoS any subscription on it wants,
     // so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
@@ -427,15 +438,28 @@ class Push(
 
     // In-process host: connect and register this call's new filters, blocking on each SUBACK.
     private fun subscribeInProcess(ids: List<String>) {
-        val client = connect()
-        for (id in ids) {
-            val sub = subscriptions[id] ?: continue
-            client.subscribeWith()
-                .topicFilter(sub.filter)
-                .qos(effectiveQos(sub.filter))
-                .callback { publish -> sub.callback(publish.toPushMessage()) }
-                .send()
-                .get()
+        while (true) {
+            val (client, epoch) = synchronized(connectLock) { connect() to connectionEpoch }
+            try {
+                for (id in ids) {
+                    val sub = subscriptions[id] ?: continue
+                    if (sub.client === client) {
+                        continue
+                    }
+                    client.subscribeWith()
+                        .topicFilter(sub.filter)
+                        .qos(effectiveQos(sub.filter))
+                        .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
+                        .send()
+                        .get()
+                    sub.client = client
+                }
+                return
+            } catch (e: Exception) {
+                if (epoch == connectionEpoch) {
+                    throw e
+                }
+            }
         }
     }
 
@@ -446,6 +470,7 @@ class Push(
             mqtt?.disconnect()
             mqtt = null
         }
+        subscriptions.values.forEach { it.client = null }
         PushBackground.errorHandler = { deliverBackgroundError(it) }
         PushBackground.host(appContext, buildConfig(), currentListeners())
         backgroundActive = true
@@ -455,13 +480,17 @@ class Push(
     // background subscription goes away and the connection relocates back in-process.
     private fun ensureInProcessSubscribed() {
         val client = connect()
-        for (sub in subscriptions.values) {
+        for ((id, sub) in subscriptions) {
+            if (sub.client === client) {
+                continue
+            }
             client.subscribeWith()
                 .topicFilter(sub.filter)
                 .qos(effectiveQos(sub.filter))
-                .callback { publish -> sub.callback(publish.toPushMessage()) }
+                .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
                 .send()
                 .reportFailure(client)
+            sub.client = client
         }
     }
 
@@ -471,13 +500,14 @@ class Push(
         val client = mqtt ?: return
         client.unsubscribeWith().topicFilter(filter).send().reportFailure(client)
         val qos = effectiveQos(filter)
-        for (sub in subscriptions.values.filter { it.filter == filter }) {
+        for ((id, sub) in subscriptions.filter { it.value.filter == filter }) {
             client.subscribeWith()
                 .topicFilter(filter)
                 .qos(qos)
-                .callback { publish -> sub.callback(publish.toPushMessage()) }
+                .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
                 .send()
                 .reportFailure(client)
+            sub.client = client
         }
     }
 
@@ -593,15 +623,20 @@ class Push(
         }
     }
 
-    private fun connect(): Mqtt5AsyncClient {
+    private fun connect(): Mqtt5AsyncClient = synchronized(connectLock) {
+        val config = buildConfig()
         // Reuse the existing client even while it is mid automatic-reconnect. Building a second
         // client here would give two clients the same stable id, so they would fight over the
         // broker session and callbacks could stay attached to the abandoned one.
         mqtt?.let { existing ->
-            return existing
+            if (config == connectedConfig) {
+                return existing
+            }
+            connectionEpoch++
+            existing.disconnect()
+            mqtt = null
         }
 
-        val config = buildConfig()
         // The listeners surface the lifecycle to onOpen/onClose and every connection error to
         // onError, except a refused initial CONNECT: pushConnect throws that one, and the
         // failing call reports it.
@@ -612,15 +647,33 @@ class Push(
             onError = { reportAsync(it) },
         )
         mqtt = client
+        connectedConfig = config
 
         try {
             client.pushConnect(config)
         } catch (e: Exception) {
-            close()
+            client.disconnect()
+            if (mqtt === client) {
+                mqtt = null
+                connectedConfig = null
+            }
             throw e
         }
 
-        return client
+        for ((id, sub) in subscriptions) {
+            if (sub.client == null || sub.client === client) {
+                continue
+            }
+            client.subscribeWith()
+                .topicFilter(sub.filter)
+                .qos(effectiveQos(sub.filter))
+                .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
+                .send()
+                .reportFailure(client)
+            sub.client = client
+        }
+
+        client
     }
 
     private fun buildConfig(): PushConfig {

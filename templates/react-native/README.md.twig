@@ -31,12 +31,7 @@ npx expo install react-native-appwrite react-native-url-polyfill
 ### Push
 
 `Push` connects over a raw TCP socket, so it needs `react-native-tcp-socket` and a development
-or standalone build (native modules do not run in Expo Go). Add the SDK's config plugin to your
-`app.json`; it adds the Android packaging excludes the push client's Netty dependency needs:
-
-```json
-{ "expo": { "plugins": ["{{ language.params.npmPackage }}"] } }
-```
+or standalone build (native modules do not run in Expo Go).
 
 On Expo SDK 52 and older, enable package exports in `metro.config.js` so `mqtt` resolves to its
 React Native build (Expo SDK 53 and later do this by default):

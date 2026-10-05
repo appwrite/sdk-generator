@@ -388,58 +388,6 @@ class PHP extends Language
         };
     }
 
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type = $this->getSchemaType($param);
-        $default = $this->getSchemaDefault($param);
-        $required = $param instanceof Parameter && $param->required;
-
-        if ($required) {
-            return '';
-        }
-
-        $output = ' = ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= '[]';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= \is_array($default) ? $this->jsonToAssoc($default) : (string) $default;
-                    break;
-                case self::TYPE_OBJECT:
-                    $decoded = \is_array($default) ? $default : json_decode((string) $default, true);
-                    $output .= $this->jsonToAssoc(\is_array($decoded) ? $decoded : []);
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$default}'";
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
         $type = $this->getSchemaType($param);
