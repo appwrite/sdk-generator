@@ -55,6 +55,12 @@
 		}
 		return parsed, nil
 {% endif %}
+{% elseif method | returnType(spec, spec.info.title | caseLower) != 'interface{}' and method | returnType(spec, spec.info.title | caseLower) != '[]byte' and method | returnType(spec, spec.info.title | caseLower) != 'bool' %}
+		parsed := {{ method | returnType(spec, spec.info.title | caseLower) }}{}.New(bytes)
+		if err := json.Unmarshal(bytes, parsed); err != nil {
+			return nil, err
+		}
+		return parsed, nil
 {% else %}
 		var parsed {{ method | returnType(spec, spec.info.title | caseLower) }}
 		err = json.Unmarshal(bytes, &parsed)
