@@ -600,6 +600,29 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('return profile.with_data(response, model_type)', $method[0] ?? '');
     }
 
+    /**
+     * The enums package exports nothing, so a Python example imports each enum
+     * from the module that defines it.
+     */
+    public function testPythonExamplesImportEnumsFromTheirModules(): void
+    {
+        $files = $this->generate('python', 'server');
+        $imports = 0;
+        foreach ($files as $path => $contents) {
+            if (!\str_starts_with($path, 'docs/examples/')) {
+                continue;
+            }
+            \preg_match_all('/^from appwrite\.enums(\.\w+)? import (\w+)$/m', $contents, $matches, PREG_SET_ORDER);
+            foreach ($matches as [, $module, $enum]) {
+                $imports++;
+                $definition = $files['appwrite/enums/' . \ltrim($module, '.') . '.py'] ?? '';
+                $this->assertMatchesRegularExpression("/^class {$enum}\\b/m", $definition, "{$path} imports {$enum} from appwrite.enums{$module}");
+            }
+        }
+
+        $this->assertGreaterThan(0, $imports);
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);
