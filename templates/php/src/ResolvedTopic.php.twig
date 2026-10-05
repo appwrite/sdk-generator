@@ -1,0 +1,43 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace | caseNamespace }};
+
+/**
+ * A topic ended by `all()`: nothing can be appended after the `#` wildcard.
+ */
+final readonly class ResolvedTopic implements \Stringable
+{
+    /**
+     * @internal Created by Topic::all().
+     *
+     * @param list<string> $levels
+     */
+    public function __construct(private array $levels)
+    {
+    }
+
+    /**
+     * @param array<mixed> $levels
+     */
+    public function path(array $levels): never
+    {
+        throw new \BadMethodCallException('nothing can come after all()');
+    }
+
+    public function any(): never
+    {
+        throw new \BadMethodCallException('nothing can come after all()');
+    }
+
+    public function all(): never
+    {
+        throw new \BadMethodCallException('nothing can come after all()');
+    }
+
+    public function __toString(): string
+    {
+        return \implode('/', $this->levels);
+    }
+}

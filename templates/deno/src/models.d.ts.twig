@@ -1,8 +1,9 @@
-{% macro sub_schema(property, definition, spec) %}
+{# Macros cannot see the template context, so the definitions are passed in. #}
+{% macro sub_schema(property, definition, definitions) %}
 {% apply spaceless %}
     {% if (property | schemaModel) %}
-        {% if _self.get_generics_sub(definition, spec) %}
-            {{(property | schemaModel) | caseUcfirst}}<{{ _self.get_generics_sub(definition, spec) }}>{% if (property | schemaType) == 'array' %}[]{% endif %}
+        {% if _self.get_generics_sub(definition, definitions) %}
+            {{(property | schemaModel) | caseUcfirst}}<{{ _self.get_generics_sub(definition, definitions) }}>{% if (property | schemaType) == 'array' %}[]{% endif %}
         {% else %}
             {{(property | schemaModel) | caseUcfirst}}{% if (property | schemaType) == 'array' %}[]{% endif %}
         {% endif %}
@@ -13,41 +14,51 @@
     {% endif %}
 {% endapply %}
 {% endmacro %}
-{% macro get_generics(definition, spec) %}
+{% macro get_generics(definition, definitions) %}
 {% apply spaceless %}
     {% for property in definition.properties %}
-        {% if definitions[(property | schemaModel)].additionalProperties %}
+        {% if definitions[(property | schemaModel)].additionalProperties ?? false %}
             {{(property | schemaModel) | caseUcfirst}} extends Models.{{(property | schemaModel) | caseUcfirst}}
         {% endif %}
-        {% if definitions[(property | schemaModel)] %}
-            {{_self.get_generics(definitions[(property | schemaModel)], spec)}}
+        {% if definitions[(property | schemaModel)] is defined %}
+            {{_self.get_generics(definitions[(property | schemaModel)], definitions)}}
         {% endif %}
     {% endfor %}
 {% endapply %}
 {% endmacro %}
-{% macro get_generics_sub(definition, spec, output = false) %}
+{% macro get_generics_sub(definition, definitions, output = false) %}
 {% apply spaceless %}
     {% for property in definition.properties %}
-        {% if definitions[(property | schemaModel)].additionalProperties and output %}
+        {% if (definitions[(property | schemaModel)].additionalProperties ?? false) and output %}
             {{(property | schemaModel) | caseUcfirst}}
         {% endif %}
-        {% if definitions[(property | schemaModel)] %}
-            {{_self.get_generics_sub(definitions[(property | schemaModel)], spec, true)}}
+        {% if definitions[(property | schemaModel)] is defined %}
+            {{_self.get_generics_sub(definitions[(property | schemaModel)], definitions, true)}}
         {% endif %}
     {% endfor %}
 {% endapply %}
 {% endmacro %}
+{% set importedEnums = [] %}
+{% for modelEnum in responseEnums | merge(requestModels is empty ? [] : requestModelEnums) %}
+{% if (modelEnum.title | caseUcfirst) not in importedEnums %}
+import type { {{ modelEnum.title | caseUcfirst }} } from "./enums/{{ modelEnum.title | caseKebab }}.ts";
+{% set importedEnums = importedEnums | merge([modelEnum.title | caseUcfirst]) %}
+{% endif %}
+{% endfor %}
+{% if importedEnums is not empty %}
+
+{% endif %}
 export namespace Models {
-{% for definitionName, definition in definitions %}
+{% for definitionName, definition in definitions | merge(requestModels) %}
     /**
      * {{ definition.description }}
      */
-    export type {{ definitionName | caseUcfirst }}{% if _self.get_generics(definition, spec) %}<{{_self.get_generics(definition, spec)}}>{% endif %} = {
+    export type {{ definitionName | caseUcfirst }}{% if _self.get_generics(definition, definitions) %}<{{_self.get_generics(definition, definitions)}}>{% endif %} = {
 {% for property in definition.properties %}
         /**
          * {{ property.description }}
          */
-        {{ (property | schemaName) | escapeKeyword }}{% if not (property | schemaRequired) %}?{% endif %}: {{_self.sub_schema(property, definition, spec)}};
+        {{ (property | schemaName) | escapeKeyword }}{% if not (property | schemaRequired) %}?{% endif %}: {{_self.sub_schema(property, definition, definitions)}};
 {% endfor %}
     }
 {% endfor %}

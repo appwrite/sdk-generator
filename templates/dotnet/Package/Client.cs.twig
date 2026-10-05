@@ -172,13 +172,13 @@ namespace {{ spec.info.title | caseUcfirst }}
                 foreach (var parameter in parameters)
                 {
                     if (parameter.Value == null) continue;
-                    if (parameter.Key == "file")
+                    if (parameter.Value is MultipartFormDataContent fileContent)
                     {
-                        var fileContent = parameters["file"] as MultipartFormDataContent;
-                        if (fileContent != null)
-                        {
-                            form.Add(fileContent.First()!);
-                        }
+                        form.Add(fileContent.First()!);
+                    }
+                    else if (parameter.Value is System.Collections.IDictionary)
+                    {
+                        form.Add(new StringContent(JsonSerializer.Serialize(parameter.Value, SerializerOptions)), parameter.Key);
                     }
                     else if (parameter.Value is IEnumerable<object> enumerable)
                     {
@@ -374,6 +374,10 @@ namespace {{ spec.info.title | caseUcfirst }}
 
                 return (dict as T)!;
             }
+            else if (typeof(T) == typeof(string))
+            {
+                return ((await response.Content.ReadAsStringAsync()) as T)!;
+            }
             else
             {
                 return ((await response.Content.ReadAsByteArrayAsync()) as T)!;
@@ -384,7 +388,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             string path,
             Dictionary<string, string> headers,
             Dictionary<string, object?> parameters,
-            Func<Dictionary<string, object>, T> converter,
+            Func<Dictionary<string, object>, T>? converter,
             string paramName,
             string? idParamName = null,
             Action<UploadProgress>? onProgress = null) where T : class
@@ -392,10 +396,18 @@ namespace {{ spec.info.title | caseUcfirst }}
             if (string.IsNullOrEmpty(paramName))
                 throw new ArgumentException("Parameter name cannot be null or empty", nameof(paramName));
 
-            if (!parameters.ContainsKey(paramName))
-                throw new ArgumentException($"Parameter {paramName} not found", nameof(paramName));
+            if (!parameters.TryGetValue(paramName, out var value) || value == null)
+            {
+                return await Call(
+                    method: "POST",
+                    path,
+                    headers,
+                    parameters,
+                    converter
+                );
+            }
 
-            var input = parameters[paramName] as InputFile;
+            var input = value as InputFile;
             if (input == null)
                 throw new ArgumentException($"Parameter {paramName} must be an InputFile", nameof(paramName));
 
@@ -421,11 +433,11 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
 
             var offset = 0L;
-            var buffer = new byte[Math.Min(size, ChunkSize)];
             var result = new Dictionary<string, object?>();
 
-            if (size < ChunkSize)
+            if (size < ChunkSize || typeof(T) == typeof(string))
             {
+                byte[] buffer;
                 switch (input.SourceType)
                 {
                     case "path":
@@ -435,7 +447,15 @@ namespace {{ spec.info.title | caseUcfirst }}
                         var dataStream = input.Data as Stream;
                         if (dataStream == null)
                             throw new InvalidOperationException("Stream data is null");
-                        await dataStream.ReadAsync(buffer, 0, (int)size);
+                        buffer = new byte[size];
+                        var bytesRead = 0;
+                        while (bytesRead < size)
+                        {
+                            var count = await dataStream.ReadAsync(buffer, bytesRead, (int)size - bytesRead);
+                            if (count == 0)
+                                break;
+                            bytesRead += count;
+                        }
                         break;
                     case "bytes":
                         var dataBytes = input.Data as byte[];
@@ -443,6 +463,8 @@ namespace {{ spec.info.title | caseUcfirst }}
                             throw new InvalidOperationException("Byte array data is null");
                         buffer = dataBytes;
                         break;
+                    default:
+                        throw new InvalidOperationException($"Unsupported source type: {input.SourceType}");
                 }
 
                 var content = new MultipartFormDataContent {
@@ -676,7 +698,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             var nonNullableResult = result.Where(kvp => kvp.Value != null)
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value!);
 
-            return converter(nonNullableResult);
+            return converter != null ? converter(nonNullableResult) : (nonNullableResult as T)!;
         }
     }
 }

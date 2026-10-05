@@ -27,6 +27,7 @@ final class WebChromiumTest extends Base
         'cp tests/e2e/languages/web/tests.js tests/e2e/sdks/web/tests.js',
         'cp tests/e2e/languages/web/node.js tests/e2e/sdks/web/node.js',
         'cp tests/e2e/languages/web/index.html tests/e2e/sdks/web/index.html',
+        'cp tests/e2e/languages/web/tab.html tests/e2e/sdks/web/tab.html',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy sh -c "npm install && npm run build"',
     ];
     #[Override]
@@ -41,8 +42,13 @@ final class WebChromiumTest extends Base
         ...Base::BAR_RESPONSES,
         ...Base::BAR_RESPONSES, // Object params
         ...Base::GENERAL_RESPONSES,
+        ...Base::LOCATION_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
+        ...Base::OPTIONAL_UPLOAD_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSE,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::UPLOAD_RESPONSE, // Object params
@@ -57,7 +63,13 @@ final class WebChromiumTest extends Base
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::CHANNEL_HELPER_RESPONSES,
-        ...Base::OPERATOR_HELPER_RESPONSES
+        ...Base::OPERATOR_HELPER_RESPONSES,
+        ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_SESSION_REPLAY_RESPONSES,
+        ...Base::PUSH_ERROR_RESPONSES,
+        ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
+        ...Base::WEB_PUSH_CONNECTION_RESPONSES
     ];
 }

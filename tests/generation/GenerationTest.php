@@ -96,7 +96,7 @@ final class GenerationTest extends TestCase
         'node' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'react-native' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'deno' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
-        'php' => ['src/Appwrite/Enums/WebhookEvent.php', 'public const USERCREATED', 'src/Appwrite/Enums/LocalizedStatus.php', 'public static function VALUE1', 'src/Appwrite/Enums/ProvinceType.php', 'public static function CAPITAL'],
+        'php' => ['src/Appwrite/Enums/WebhookEvent.php', 'USERCREATED', 'src/Appwrite/Enums/LocalizedStatus.php', 'public static function VALUE1', 'src/Appwrite/Enums/ProvinceType.php', 'public static function CAPITAL'],
         'python' => ['appwrite/enums/webhook_event.py', 'USERCREATED = "user.created"', 'appwrite/enums/localized_status.py', 'VALUE1 = "រាជធានី"', 'appwrite/enums/province_type.py', 'CAPITAL = "រាជធានី"'],
         'ruby' => ['lib/appwrite/enums/webhook_event.rb', "USERCREATED = 'user.created'", 'lib/appwrite/enums/localized_status.rb', "VALUE1 = 'រាជធានី'", 'lib/appwrite/enums/province_type.rb', "CAPITAL = 'រាជធានី'"],
         'dart' => ['lib/src/enums/webhook_event.dart', 'static const String userCreated', 'lib/src/enums/localized_status.dart', 'value1(value:', 'lib/src/enums/province_type.dart', 'capital(value:'],
@@ -293,11 +293,34 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testJavascriptClientOwnership(): void
+    {
+        $targets = [
+            ['web', false, 'client.flatten(apipayload)', 'export class push {'],
+            ['node', false, null, null],
+            ['react-native', true, 'service.flatten(apipayload)', 'export class push extends service {'],
+        ];
+
+        foreach ($targets as [$name, $hasService, $flatten, $pushDeclaration]) {
+            foreach (self::PLATFORMS as $platform) {
+                $files = $this->generate($name, $platform);
+                $this->assertSame($hasService, isset($files['src/service.ts']), "{$name}/{$platform} base module");
+                if ($pushDeclaration !== null) {
+                    $this->assertStringContainsString($pushDeclaration, $files['src/services/push.ts']);
+                }
+                if ($flatten !== null && $platform === 'client') {
+                    $this->assertStringContainsString($flatten, $files['src/services/general.ts']);
+                }
+            }
+        }
+    }
+
     /**
      * A canonical document keys `x-appwrite.auth` by platform. The fixture's
      * platform-auth operation lists `Project` for client and `Project, Key` for
      * server plus an optional Session, and the server alias variant lists
-     * `Project, JWT`. Optional security must not become example configuration.
+     * `Project, JWT`. Optional security must not become example configuration;
+     * the Web E2E proves it still reaches a location method's query string.
      */
     public function testExampleCredentialsFollowPlatformAuth(): void
     {
@@ -306,6 +329,7 @@ final class GenerationTest extends TestCase
             ['client', 'docs/examples/general/zzderivedauth.md', ['->setproject('], ['->setkey(', '->setjwt(', '->setsession(']],
             ['server', 'docs/examples/general/zzplatformalias.md', ['->setproject(', '->setjwt('], ['->setkey(', '->setsession(']],
             ['client', 'docs/examples/general/zzplatformalias.md', ['->setproject('], ['->setkey(', '->setjwt(', '->setsession(']],
+            ['client', 'docs/examples/general/download.md', ['->setproject('], ['->setimpersonateuserid(']],
         ];
 
         foreach ($examples as [$platform, $path, $present, $absent]) {
@@ -351,6 +375,41 @@ final class GenerationTest extends TestCase
         yield 'apple' => ['apple', 'client'];
     }
 
+    /**
+     * Kotlin and Java examples must compile as written: quotes inside example
+     * strings stay escaped, Kotlin's `$` is not left to interpolate, and named
+     * arguments use the parameter names the service method declares.
+     */
+    #[DataProvider('kotlinLanguages')]
+    public function testExamplesUseKotlinAndJavaLiterals(string $name, string $platform): void
+    {
+        $files = $this->generate($name, $platform);
+
+        $kotlin = 'docs/examples/kotlin/general/create-documents.md';
+        $this->assertArrayHasKey($kotlin, $files, "{$name}/{$platform} did not generate {$kotlin}");
+        $this->assertStringContainsString('"\\$id" to "one"', $files[$kotlin]);
+        $this->assertStringContainsString('"title" to "say \\"hello\\""', $files[$kotlin]);
+
+        $java = 'docs/examples/java/general/create-documents.md';
+        $this->assertArrayHasKey($java, $files, "{$name}/{$platform} did not generate {$java}");
+        $this->assertStringContainsString('"$id", "one"', $files[$java]);
+        $this->assertStringContainsString('"title", "say \\"hello\\""', $files[$java]);
+
+        $named = 'docs/examples/kotlin/general/snake-case-params.md';
+        $this->assertArrayHasKey($named, $files, "{$name}/{$platform} did not generate {$named}");
+        $this->assertStringContainsString('grantid = "<grant_id>"', $files[$named]);
+        $this->assertStringNotContainsString('grant_id =', $files[$named]);
+    }
+
+    /**
+     * @return Iterator<string, array{string, string}>
+     */
+    public static function kotlinLanguages(): Iterator
+    {
+        yield 'kotlin' => ['kotlin', 'server'];
+        yield 'android' => ['android', 'client'];
+    }
+
     public function testRustBodylessResponsesUseUnitWithJsonAccept(): void
     {
         $files = $this->generate('rust', 'server');
@@ -387,6 +446,147 @@ final class GenerationTest extends TestCase
      * an unsafe filter arrives as `&quot;` rather than `"`. Go doc comments are
      * read as plain text, so the entity is what the reader sees.
      */
+    /**
+     * A schema reachable only from a request body is generated as a request
+     * model. Go names the two kinds apart, the only place a generated tree
+     * shows which scope produced a model.
+     */
+    public function testRequestModelsComeFromBodyOnlySchemas(): void
+    {
+        foreach (\array_keys(self::languageClasses()) as $name) {
+            if (!\in_array('requestModel', \array_column($this->language($name)->getFiles(), 'scope'), true)) {
+                continue;
+            }
+
+            $this->assertNotEmpty(
+                $this->filesContaining($this->generate($name, 'server'), 'player'),
+                "{$name} does not generate the body-only fixture schema"
+            );
+        }
+
+        $go = $this->generate('go', 'server');
+        $this->assertArrayHasKey('models/player.go', $go, 'go no longer generates the body-only fixture schema as a model');
+        $this->assertStringContainsString('request model', $go['models/player.go']);
+        $this->assertStringNotContainsString('request model', $go['models/mock.go']);
+    }
+
+    /**
+     * The generated tree for an inline document, for a shape the shared
+     * fixture does not carry.
+     *
+     * @param  array<string, mixed>  $document
+     * @return array<string, string>
+     */
+    private function generateDocument(array $document, string $name, string $key): array
+    {
+        $dir = self::OUTPUT . '/' . $name . '/' . $key;
+        $this->removeDirectory($dir);
+
+        new SDK($this->language($name), Parser::parse($document))
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $files[\substr((string) $file->getPathname(), \strlen($dir) + 1)] = (string) \file_get_contents($file->getPathname());
+            }
+        }
+
+        return $files;
+    }
+
+    /**
+     * A path parameter the operation lists in `x-appwrite.config` is filled
+     * from the client, not from an argument, and never sent as a header. A
+     * document still binding it with a path security scheme generates the
+     * same SDK, which is what lets the producer switch without a flag day.
+     */
+    public function testPathParametersFilledFromClientConfig(): void
+    {
+        $document = static fn(bool $legacy): array => [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'general']],
+            'components' => ['securitySchemes' => \array_filter([
+                'Project' => ['type' => 'apiKey', 'name' => 'X-Appwrite-Project', 'in' => 'header', 'x-appwrite' => ['demo' => '<YOUR_PROJECT_ID>']],
+                'ProjectPath' => $legacy ? ['type' => 'apiKey', 'name' => 'project', 'in' => 'query', 'x-appwrite' => ['location' => 'path', 'param' => 'project_id', 'demo' => '<YOUR_PROJECT_ID>']] : null,
+            ])],
+            'paths' => ['/tests/{project_id}/approve' => ['post' => [
+                'operationId' => 'generalApprove',
+                'tags' => ['general'],
+                'summary' => 'Approve',
+                'description' => 'Approve.',
+                'security' => $legacy ? [['ProjectPath' => []]] : [],
+                'parameters' => [
+                    ['name' => 'project_id', 'in' => 'path', 'required' => true, 'description' => 'Project ID.', 'schema' => ['type' => 'string']],
+                    ['name' => 'project_id', 'in' => 'query', 'required' => true, 'description' => 'Project ID to act on.', 'schema' => ['type' => 'string']],
+                    ['name' => 'grant_id', 'in' => 'query', 'required' => true, 'description' => 'Grant ID.', 'schema' => ['type' => 'string']],
+                ],
+                'responses' => ['204' => ['description' => 'ok']],
+                'x-appwrite' => $legacy
+                    ? ['auth' => ['server' => ['ProjectPath' => []]]]
+                    : ['config' => ['project_id' => 'project'], 'auth' => ['server' => ['Project' => []]]],
+            ]]],
+        ];
+
+        $files = $this->generateDocument($document(false), 'php', 'path-config');
+        $service = $files['src/Appwrite/Services/General.php'];
+        \preg_match('/function approve\(([^)]*)\)/', $service, $signature);
+
+        $this->assertStringContainsString("getConfig('project')", $service);
+        $this->assertSame(1, \substr_count($signature[1] ?? '', '$projectId'));
+        $this->assertStringNotContainsString('X-Appwrite-Project', $service);
+        $this->assertSame($files, $this->generateDocument($document(true), 'php', 'path-config-legacy'));
+    }
+
+    /**
+     * An empty `x-appwrite.config` value names no client setting, so the path
+     * parameter stays an argument the caller passes.
+     */
+    public function testPathParametersWithBlankConfigStayArguments(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'general']],
+            'paths' => ['/tests/{project_id}/approve' => ['post' => [
+                'operationId' => 'generalApprove',
+                'tags' => ['general'],
+                'summary' => 'Approve',
+                'description' => 'Approve.',
+                'parameters' => [
+                    ['name' => 'project_id', 'in' => 'path', 'required' => true, 'description' => 'Project ID.', 'schema' => ['type' => 'string']],
+                    ['name' => 'grant_id', 'in' => 'query', 'required' => true, 'description' => 'Grant ID.', 'schema' => ['type' => 'string']],
+                ],
+                'responses' => ['204' => ['description' => 'ok']],
+                'x-appwrite' => ['config' => ['project_id' => '']],
+            ]]],
+        ];
+
+        $service = $this->generateDocument($document, 'web', 'path-config-blank')['src/services/general.ts'];
+
+        $this->assertStringContainsString('approve(projectId: string, grantId: string)', $service);
+    }
+
+    /**
+     * An upload whose only parameter is the file still takes the progress
+     * callback as its second positional argument.
+     */
+    public function testSingleParameterUploadTakesProgressCallback(): void
+    {
+        foreach (['web', 'node', 'react-native'] as $name) {
+            $service = $this->generate($name, 'client')['src/services/general.ts'];
+
+            $this->assertMatchesRegularExpression('/uploadfileonly\(\s*file: [^,]+,\s*onprogress\?: \(progress: uploadprogress\) => void,\s*\): promise/', $service, "{$name} uploadFileOnly lacks a positional onProgress");
+        }
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);
@@ -493,8 +693,10 @@ final class GenerationTest extends TestCase
             return;
         }
         if ($language->keepsOpenEnumType()) {
-            $this->assertSame('(WebhookEvent | (string & {}))', $language->getTypeName($openScalar, $specification));
-            $this->assertSame('(WebhookEvent | (string & {}))[]', $language->getTypeName($openArray, $specification));
+            foreach ([[$closedScalar, $openScalar], [$closedArray, $openArray]] as [$closed, $open]) {
+                $this->assertStringContainsString('WebhookEvent', $language->getTypeName($open, $specification));
+                $this->assertNotSame($language->getTypeName($closed, $specification), $language->getTypeName($open, $specification));
+            }
 
             return;
         }

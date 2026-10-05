@@ -1,0 +1,76 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:test/test.dart';
+import 'package:{{language.params.packageName}}/src/client_io.dart';
+import 'package:{{language.params.packageName}}/src/input_file.dart';
+
+void main() {
+  group('ClientIO.chunkedUpload', () {
+    late HttpServer server;
+    late Directory directory;
+    final filenames = <String?>[];
+
+    setUp(() async {
+      filenames.clear();
+      directory = await Directory.systemTemp.createTemp('chunked_upload');
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((request) async {
+        final body = latin1.decode(
+          await request
+              .fold<List<int>>([], (bytes, chunk) => bytes..addAll(chunk)),
+        );
+        final disposition = RegExp(
+          r'content-disposition:\s*form-data;\s*name="file"(?:;\s*filename="([^"]*)")?',
+          caseSensitive: false,
+        ).firstMatch(body);
+        filenames.add(disposition?.group(1));
+
+        final range = RegExp(r'bytes\s+(\d+)-(\d+)/(\d+)')
+            .firstMatch(request.headers.value('content-range') ?? '');
+        final isFinalChunk = range != null &&
+            int.parse(range.group(2)!) + 1 >= int.parse(range.group(3)!);
+
+        request.response
+          ..headers.contentType = ContentType.json
+          ..write(jsonEncode({
+            '\$id': 'upload',
+            'chunksUploaded': isFinalChunk ? 1 : 0,
+            'chunksTotal': 1,
+          }));
+        await request.response.close();
+      });
+    });
+
+    tearDown(() async {
+      await server.close(force: true);
+      await directory.delete(recursive: true);
+    });
+
+    test('sends the filename derived from path on every chunk', () async {
+      final file = File('${directory.path}/video.mp4');
+      await file.writeAsBytes(List.filled(ClientIO.chunkSize + 1, 0));
+
+      final client = ClientIO(endPoint: 'http://127.0.0.1:${server.port}');
+      await client.chunkedUpload(
+        path: '/storage/files',
+        params: {'file': InputFile.fromPath(path: file.path)},
+        paramName: 'file',
+        idParamName: '',
+        headers: {'content-type': 'multipart/form-data'},
+      );
+
+      expect(
+        filenames.length,
+        greaterThan(1),
+        reason: 'the file must be larger than one chunk for this to exercise '
+            'the chunked path at all',
+      );
+      expect(
+        filenames,
+        everyElement('video.mp4'),
+        reason: 'a chunk without a filename is parsed as a plain form field '
+            'and the server rejects the upload as an empty file',
+      );
+    });
+  });
+}

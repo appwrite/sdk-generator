@@ -1,7 +1,7 @@
 # Third-party runtime plugins
 
-The DLLs in this directory are copied from NuGet packages published by Microsoft
-and are included so the Unity SDK can use `System.Text.Json` on Unity 2021.
+The DLLs in this directory are copied from NuGet packages and are included so the
+Unity SDK can use `System.Text.Json` on Unity 2021 and `MQTTnet` for native push.
 
 To update these files, download the same package names from NuGet, copy the
 `lib/netstandard2.0/*.dll` files into this directory, and update the table below
@@ -17,6 +17,7 @@ format for automated dependency and CVE audits.
 | `System.Runtime.CompilerServices.Unsafe.dll` | `System.Runtime.CompilerServices.Unsafe` | `6.0.0` | `01748200f2400c742aa689f1f5101bd6298efdfd92c00c18f4fa473847235ba9` |
 | `System.Text.Encodings.Web.dll` | `System.Text.Encodings.Web` | `9.0.6` | `7089712df9f3f07862317652cbcca613c15fee759209f9b9d0c624dc81538829` |
 | `System.Text.Json.dll` | `System.Text.Json` | `9.0.6` | `bf1f8a674d9bb26bc7af4cefc2936bf4bda637dc9d3b71d6ca77c0b6a254fa83` |
+| `MQTTnet.dll` | `MQTTnet` | `4.3.7.1207` | `78237a3902e2ae885cbc843f9996dfb40c4926ee9a40476ff3882e2e00c5997d` |
 
-These Microsoft packages are licensed under the MIT license. See each package's
-NuGet metadata for full license and repository details.
+These packages are licensed under the MIT license. See each package's NuGet
+metadata for full license and repository details.

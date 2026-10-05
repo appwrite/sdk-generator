@@ -1,6 +1,8 @@
 {% autoescape false %}
 {%- macro render_property_value(definitions, property, spec) -%}
-{%- if (property | schemaModel) and definitions[(property | schemaModel)] -%}
+{%- if (property | responsePropertyType(spec)) starts with '*' -%}
+nil
+{%- elseif (property | schemaModel) and definitions[(property | schemaModel)] -%}
 {%- if (property | schemaType) == 'array' -%}
 []{{ (property | schemaModel) | caseUcfirst }}{ {{- _self.render_struct_init(definitions, definitions[(property | schemaModel)], spec) -}} }
 {%- else -%}
