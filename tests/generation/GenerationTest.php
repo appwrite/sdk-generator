@@ -587,6 +587,19 @@ final class GenerationTest extends TestCase
         }
     }
 
+    /**
+     * An upload returning a model with free-form data hydrates it through
+     * `with_data`, as a JSON request does, so the caller's `model_type` reaches
+     * the nested preferences instead of being dropped.
+     */
+    public function testPythonUploadHydratesGenericResponse(): void
+    {
+        $service = $this->generate('python', 'server')['appwrite/services/general.py'];
+        \preg_match('/def upload_generic\(.*?(?=\n    def )/s', $service, $method);
+
+        $this->assertStringContainsString('return profile.with_data(response, model_type)', $method[0] ?? '');
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);

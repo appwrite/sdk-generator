@@ -49,8 +49,13 @@
         return self._parse_response(response, model={% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %})
 {% endif %}
 {% elseif (method | responseModel) and (method | responseModel) != 'any' %}
+{% if (method | responseModel) | hasGenericType(spec) %}
+
+        return {% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %}.with_data(response, model_type)
+{% else %}
 
         return self._parse_response(response, model={% if ((method | responseModel) | caseUcfirst) == (service.name | caseUcfirst) %}{{ (method | responseModel) | caseUcfirst }}Model{% else %}{{ (method | responseModel) | caseUcfirst }}{% endif %})
+{% endif %}
 {% else %}
 
         return response
