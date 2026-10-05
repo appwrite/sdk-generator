@@ -7,12 +7,14 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -360,8 +362,10 @@ func TestWaitForKeyFileIgnoresEarlierFiles(t *testing.T) {
 }
 
 type fakeMessaging struct {
-	providers []map[string]any
-	requests  []string
+	providers  []map[string]any
+	requests   []string
+	identities []map[string]any
+	failCreate bool
 }
 
 func (f *fakeMessaging) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -371,6 +375,13 @@ func (f *fakeMessaging) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_ = json.Unmarshal(body, &params)
 
 	switch {
+	case r.Method == "GET" && r.URL.Path == "/account/identities":
+		_ = json.NewEncoder(w).Encode(map[string]any{"total": len(f.identities), "identities": f.identities})
+	case r.Method == "GET" && r.URL.Path == "/account":
+		_ = json.NewEncoder(w).Encode(map[string]any{"email": "dev@example.com"})
+	case r.Method == "POST" && f.failCreate:
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{"message": "provider rejected", "code": 400})
 	case r.Method == "GET" && r.URL.Path == "/messaging/providers":
 		kind := ""
 		for _, query := range r.URL.Query()["queries[]"] {
@@ -809,4 +820,252 @@ func TestKeysInAGitRepositoryMustBeIgnored(t *testing.T) {
 	if out.Len() != 0 {
 		t.Errorf("warned for an ignored key:\n%s", out.String())
 	}
+}
+
+type fakeGoogle struct {
+	t           *testing.T
+	projects    []map[string]any
+	keyBlocked  bool
+	missing     []string
+	requests    []string
+	policy      map[string]any
+	deletedKeys []string
+	token       string
+}
+
+func (f *fakeGoogle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	f.requests = append(f.requests, r.Method+" "+r.URL.Path)
+	if r.Header.Get("Authorization") != "Bearer "+f.token {
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "invalid token", "status": "UNAUTHENTICATED"}})
+
+		return
+	}
+	body, _ := io.ReadAll(r.Body)
+	var params map[string]any
+	_ = json.Unmarshal(body, &params)
+	path := r.URL.Path
+
+	switch {
+	case path == "/firebase/v1beta1/projects":
+		_ = json.NewEncoder(w).Encode(map[string]any{"results": f.projects})
+	case strings.HasSuffix(path, ":testIamPermissions"):
+		granted := []string{}
+		for _, permission := range fcmProvisionPermissions {
+			if !contains(f.missing, permission) {
+				granted = append(granted, permission)
+			}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"permissions": granted})
+	case strings.HasSuffix(path, "/services:batchEnable"):
+		_ = json.NewEncoder(w).Encode(map[string]any{"name": "operations/1", "done": true})
+	case strings.HasSuffix(path, ":getIamPolicy"):
+		_ = json.NewEncoder(w).Encode(map[string]any{"etag": "e1", "bindings": []any{map[string]any{"role": "roles/owner", "members": []any{"user:dev@example.com"}}}})
+	case strings.HasSuffix(path, ":setIamPolicy"):
+		f.policy, _ = params["policy"].(map[string]any)
+		_ = json.NewEncoder(w).Encode(f.policy)
+	case r.Method == "POST" && strings.HasSuffix(path, "/serviceAccounts"):
+		project := strings.Split(path, "/")[4]
+		_ = json.NewEncoder(w).Encode(map[string]any{"email": params["accountId"].(string) + "@" + project + ".iam.gserviceaccount.com"})
+	case r.Method == "POST" && strings.HasSuffix(path, "/keys"):
+		if f.keyBlocked {
+			w.WriteHeader(http.StatusPreconditionFailed)
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"message": "Key creation is not allowed on this service account.", "status": "FAILED_PRECONDITION"}})
+
+			return
+		}
+		project := strings.Split(path, "/")[4]
+		contents, _ := os.ReadFile(testServiceAccount(f.t, f.t.TempDir(), project))
+		_ = json.NewEncoder(w).Encode(map[string]any{"name": "projects/" + project + "/serviceAccounts/sa/keys/k1", "privateKeyData": base64.StdEncoding.EncodeToString(contents)})
+	case r.Method == "DELETE":
+		f.deletedKeys = append(f.deletedKeys, strings.TrimPrefix(path, "/iam/v1/"))
+	default:
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+func newGoogleTestSetup(t *testing.T, messaging *fakeMessaging, google *fakeGoogle, answers map[string]string) (*pushSetup, *bytes.Buffer, *prompt.Scripted) {
+	t.Helper()
+	server := httptest.NewServer(messaging)
+	t.Cleanup(server.Close)
+	googleServer := httptest.NewServer(http.StripPrefix("", google))
+	t.Cleanup(googleServer.Close)
+
+	scripted := &prompt.Scripted{Choices: answers}
+	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
+	setup.console = client.New(server.URL, "test").SetProject("console")
+	setup.googleHosts = map[string]string{
+		"firebase":     googleServer.URL + "/firebase",
+		"crm":          googleServer.URL + "/crm",
+		"iam":          googleServer.URL + "/iam",
+		"serviceusage": googleServer.URL + "/serviceusage",
+	}
+	setup.googlePoll = 10 * time.Millisecond
+	setup.googleTimeout = 2 * time.Second
+
+	return setup, out, scripted
+}
+
+func linkedGoogle(token string) map[string]any {
+	return map[string]any{
+		"provider":                  "google",
+		"providerEmail":             "dev@example.com",
+		"providerAccessToken":       token,
+		"providerAccessTokenExpiry": time.Now().Add(time.Hour).UTC().Format(time.RFC3339Nano),
+	}
+}
+
+func TestInitFcmCreatesTheKeyWithGoogle(t *testing.T) {
+	messaging := &fakeMessaging{identities: []map[string]any{linkedGoogle("live-token")}}
+	google := &fakeGoogle{t: t, token: "live-token", projects: []map[string]any{
+		{"projectId": "sticker-smash-fb", "displayName": "Sticker Smash", "state": "ACTIVE"},
+		{"projectId": "tools-4821", "displayName": "Tools", "state": "ACTIVE"},
+		{"projectId": "old-project", "state": "DELETED"},
+	}}
+	setup, out, scripted := newGoogleTestSetup(t, messaging, google, map[string]string{
+		"Which Firebase project should send push notifications?": "tools-4821",
+	})
+	var opened []string
+	setup.open = func(page string) { opened = append(opened, page) }
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatalf("%s\n%s", err, out.String())
+	}
+
+	if len(opened) != 0 {
+		t.Errorf("opened %v although a Google token was already linked", opened)
+	}
+	if strings.Join(scripted.Asked, "|") != "How would you like to provide the Firebase service account key (.json)?|Which Firebase project should send push notifications?" {
+		t.Errorf("asked %v", scripted.Asked)
+	}
+	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (tools-4821)" {
+		t.Fatalf("providers = %v", messaging.providers)
+	}
+	account := messaging.providers[0]["credentials"].(map[string]any)["serviceAccountJSON"].(map[string]any)
+	if account["project_id"] != "tools-4821" {
+		t.Errorf("account = %v", account)
+	}
+	policy, _ := json.Marshal(google.policy)
+	if !strings.Contains(string(policy), `"role":"roles/firebasecloudmessaging.admin"`) || !strings.Contains(string(policy), "@tools-4821.iam.gserviceaccount.com") {
+		t.Errorf("policy = %s", policy)
+	}
+	if len(google.deletedKeys) != 0 {
+		t.Errorf("deleted %v", google.deletedKeys)
+	}
+}
+
+func TestInitFcmSignsInWithGoogleThroughTheConsole(t *testing.T) {
+	messaging := &fakeMessaging{}
+	google := &fakeGoogle{t: t, token: "fresh-token", projects: []map[string]any{activeProject("only-project")}}
+	setup, out, _ := newGoogleTestSetup(t, messaging, google, nil)
+	var opened []string
+	setup.open = func(page string) {
+		opened = append(opened, page)
+		messaging.identities = []map[string]any{linkedGoogle("fresh-token")}
+	}
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatalf("%s\n%s", err, out.String())
+	}
+
+	if len(opened) != 1 {
+		t.Fatalf("opened %v", opened)
+	}
+	signIn, err := url.Parse(opened[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := signIn.Query()
+	if signIn.Path != "/account/tokens/oauth2/google" || query.Get("project") != "console" || query.Get("scopes[]") != googleCloudScope {
+		t.Errorf("sign-in URL = %s", opened[0])
+	}
+	if !strings.Contains(out.String(), "signed in to the Appwrite console as dev@example.com") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (only-project)" {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitFcmFallsBackWhenGoogleCannotCreateTheKey(t *testing.T) {
+	messaging := &fakeMessaging{identities: []map[string]any{linkedGoogle("live-token")}}
+	google := &fakeGoogle{t: t, token: "live-token", keyBlocked: true, projects: []map[string]any{activeProject("locked-project")}}
+	setup, out, _ := newGoogleTestSetup(t, messaging, google, nil)
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		testServiceAccount(t, setup.downloads, "locked-project")
+	}()
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatalf("%s\n%s", err, out.String())
+	}
+
+	if !strings.Contains(out.String(), "an organization policy blocks service account key creation") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (locked-project)" {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitFcmReportsMissingGooglePermissions(t *testing.T) {
+	messaging := &fakeMessaging{identities: []map[string]any{linkedGoogle("live-token")}}
+	google := &fakeGoogle{t: t, token: "live-token", missing: []string{"resourcemanager.projects.setIamPolicy"},
+		projects: []map[string]any{activeProject("shared-project")}}
+	setup, out, _ := newGoogleTestSetup(t, messaging, google, nil)
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		testServiceAccount(t, setup.downloads, "shared-project")
+	}()
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "missing resourcemanager.projects.setIamPolicy on shared-project") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	for _, request := range google.requests {
+		if strings.HasSuffix(request, "/serviceAccounts") {
+			t.Errorf("created a service account without the permissions: %v", google.requests)
+		}
+	}
+}
+
+func TestInitFcmRevokesTheCreatedKeyWhenTheProviderIsRejected(t *testing.T) {
+	messaging := &fakeMessaging{identities: []map[string]any{linkedGoogle("live-token")}, failCreate: true}
+	google := &fakeGoogle{t: t, token: "live-token", projects: []map[string]any{activeProject("only-project")}}
+	setup, _, _ := newGoogleTestSetup(t, messaging, google, nil)
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err == nil {
+		t.Fatal("expected the provider creation to fail")
+	}
+	if strings.Join(google.deletedKeys, ",") != "projects/only-project/serviceAccounts/sa/keys/k1" {
+		t.Errorf("deleted %v", google.deletedKeys)
+	}
+}
+
+func TestInitFcmWithGoogleKeepsAnExistingProvider(t *testing.T) {
+	messaging := &fakeMessaging{identities: []map[string]any{linkedGoogle("live-token")}}
+	messaging.providers = append(messaging.providers, providerDocument("fcm", "id0", map[string]any{
+		"name": "FCM (only-project)", "enabled": true,
+		"serviceAccountJSON": map[string]any{"project_id": "only-project"},
+	}))
+	google := &fakeGoogle{t: t, token: "live-token", projects: []map[string]any{activeProject("only-project")}}
+	setup, out, _ := newGoogleTestSetup(t, messaging, google, nil)
+
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "FCM is already set up for Firebase project only-project.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	for _, request := range google.requests {
+		if strings.HasSuffix(request, "/serviceAccounts") {
+			t.Errorf("created a service account for a project that is already set up: %v", google.requests)
+		}
+	}
+}
+
+func activeProject(id string) map[string]any {
+	return map[string]any{"projectId": id, "state": "ACTIVE"}
 }
