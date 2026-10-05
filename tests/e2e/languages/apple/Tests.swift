@@ -210,6 +210,9 @@ class Tests: XCTestCase {
             print(error.localizedDescription)
         }
 
+        let profile = try await general.uploadGeneric(file: InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png"))
+        print(profile.prefs.data["result"]?.value as? String ?? "")
+
         var downloaded = try await general.download()
         print(downloaded.readString(length: downloaded.readableBytes) ?? "")
 

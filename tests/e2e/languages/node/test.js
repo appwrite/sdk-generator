@@ -251,6 +251,9 @@ async function start() {
     });
     console.log(response.result);
 
+    response = await general.uploadGeneric({ file: InputFile.fromPath(__dirname + '/../../../resources/file.png', 'file.png') });
+    console.log(response.prefs.result);
+
     // Download
     console.log(new TextDecoder().decode(await general.download()));
 

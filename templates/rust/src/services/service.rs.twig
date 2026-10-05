@@ -181,9 +181,9 @@ impl {{ service.name | caseUcfirst }} {
 {% endif %}
 {% endfor %}
 {% if hasFileParam %}
-{% set uploadCall = (method | textResponse) ? 'file_upload_text' : 'file_upload' %}
+{% set uploadCall = (method | textResponse) ? 'upload_text' : 'upload' %}
 {% set requestCall = (method | textResponse) ? 'call_text' : 'call' %}
-{% set uploadArgs = [ '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'params', '"' ~ fileParamKey ~ '"', fileParamName ] %}
+{% set uploadArgs = [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'params', '"' ~ fileParamKey ~ '"', fileParamName ] %}
 {% if not (method | textResponse) %}
 {% set uploadArgs = uploadArgs | merge([ uploadIdParam ? (uploadIDRequired ? 'Some(' ~ uploadIdParam ~ '_str)' : uploadIdParam ~ '_str') : 'None' ]) %}
 {% endif %}

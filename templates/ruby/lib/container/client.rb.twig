@@ -123,13 +123,14 @@ module {{ spec.info.title | caseUcfirst }}
             param_name: '',
             id_param_name: nil,
             on_progress: nil,
-            response_type: nil
+            response_type: nil,
+            method: 'POST'
         )
             input_file = params[param_name.to_sym]
 
             if input_file.nil?
                 return call(
-                    method: 'POST',
+                    method: method,
                     path: path,
                     headers: headers,
                     params: params,
@@ -150,7 +151,7 @@ module {{ spec.info.title | caseUcfirst }}
                 end
                 params[param_name.to_sym] = input_file
                 return call(
-                    method: 'POST',
+                    method: method,
                     path: path,
                     headers: headers,
                     params: params,
@@ -214,7 +215,7 @@ module {{ spec.info.title | caseUcfirst }}
                 chunk_headers['x-{{ spec.info.title | caseLower }}-id'] = current_upload_id if current_upload_id
 
                 call(
-                    method: 'POST',
+                    method: method,
                     path: path,
                     headers: chunk_headers,
                     params: chunk_params,

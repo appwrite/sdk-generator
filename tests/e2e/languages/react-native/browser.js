@@ -202,6 +202,9 @@ import {
     response = await general.upload({ x: 'string', y: 123, z: ['string in array'], file: largeFile });
     console.log(response.result);
 
+    response = await general.uploadGeneric({ file: smallFile });
+    console.log(response.prefs.result);
+
     // Enum
     response = await general.enum(MockType.First);
     console.log(response.result);
