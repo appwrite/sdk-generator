@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -26,111 +24,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
 
-const testPbxproj = `// !$*UTF8*$!
-{
-	objects = {
-
-/* Begin PBXNativeTarget section */
-		A00000000000000000000001 /* MyApp */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = B00000000000000000000001 /* Build configuration list for PBXNativeTarget "MyApp" */;
-			name = MyApp;
-			productType = "com.apple.product-type.application";
-		};
-		A00000000000000000000002 /* MyAppTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = B00000000000000000000002 /* Build configuration list for PBXNativeTarget "MyAppTests" */;
-			name = MyAppTests;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		A00000000000000000000003 /* Widget */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = B00000000000000000000003 /* Build configuration list for PBXNativeTarget "Widget" */;
-			name = Widget;
-			productType = "com.apple.product-type.app-extension";
-		};
-		A00000000000000000000004 /* Admin */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = B00000000000000000000004 /* Build configuration list for PBXNativeTarget "Admin" */;
-			name = Admin;
-			productType = "com.apple.product-type.application";
-		};
-/* End PBXNativeTarget section */
-
-/* Begin XCBuildConfiguration section */
-		C00000000000000000000001 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = MyApp/MyApp.entitlements;
-				DEVELOPMENT_TEAM = ABCDE12345;
-				INFOPLIST_FILE = MyApp/Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
-				PRODUCT_NAME = "My App";
-			};
-			name = Debug;
-		};
-		C00000000000000000000002 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				DEVELOPMENT_TEAM = ABCDE12345;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.MyAppTests;
-			};
-			name = Debug;
-		};
-		C00000000000000000000003 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Widget/Widget.entitlements;
-				DEVELOPMENT_TEAM = ABCDE12345;
-				INFOPLIST_FILE = Widget/Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.widget;
-			};
-			name = Debug;
-		};
-		C00000000000000000000004 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Admin/Admin.entitlements;
-				DEVELOPMENT_TEAM = FGHIJ67890;
-				INFOPLIST_FILE = Admin/Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.admin;
-			};
-			name = Debug;
-		};
-/* End XCBuildConfiguration section */
-
-/* Begin XCConfigurationList section */
-		B00000000000000000000001 /* Build configuration list for PBXNativeTarget "MyApp" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C00000000000000000000001 /* Debug */,
-			);
-		};
-		B00000000000000000000002 /* Build configuration list for PBXNativeTarget "MyAppTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C00000000000000000000002 /* Debug */,
-			);
-		};
-		B00000000000000000000003 /* Build configuration list for PBXNativeTarget "Widget" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C00000000000000000000003 /* Debug */,
-			);
-		};
-		B00000000000000000000004 /* Build configuration list for PBXNativeTarget "Admin" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				C00000000000000000000004 /* Debug */,
-			);
-		};
-/* End XCConfigurationList section */
-	};
-}
-`
-
-const myAppBundle = "org.reactjs.native.example.My-App"
-
 func writeFile(t *testing.T, path, contents string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -138,35 +31,6 @@ func writeFile(t *testing.T, path, contents string) {
 	}
 	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestDetectAppleReadsTheAppTarget(t *testing.T) {
-	root := t.TempDir()
-	writeFile(t, filepath.Join(root, "ios", "MyApp.xcodeproj", "project.pbxproj"), testPbxproj)
-	writeFile(t, filepath.Join(root, "node_modules", "dep", "Dep.xcodeproj", "project.pbxproj"),
-		strings.ReplaceAll(testPbxproj, "ABCDE12345", "ZZZZZ99999"))
-
-	app, err := detectApple(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if strings.Join(app.BundleIDs, ",") != "com.example.admin,"+myAppBundle {
-		t.Errorf("bundle IDs = %v", app.BundleIDs)
-	}
-	if strings.Join(app.teams(myAppBundle), ",") != "ABCDE12345" || strings.Join(app.teams("com.example.admin"), ",") != "FGHIJ67890" {
-		t.Errorf("teams = %v / %v", app.teams(myAppBundle), app.teams("com.example.admin"))
-	}
-	targets := app.targets(myAppBundle)
-	if len(targets) != 1 {
-		t.Fatalf("targets = %+v", app.Targets)
-	}
-	if strings.Join(targets[0].Entitlements, ",") != filepath.Join(root, "ios", "MyApp", "MyApp.entitlements") {
-		t.Errorf("entitlements = %v", targets[0].Entitlements)
-	}
-	if strings.Join(targets[0].InfoPlists, ",") != filepath.Join(root, "ios", "MyApp", "Info.plist") {
-		t.Errorf("Info.plist = %v", targets[0].InfoPlists)
 	}
 }
 
@@ -209,84 +73,15 @@ android {
 func TestDetectReadsExpoConfig(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, filepath.Join(root, "app.json"), `{"expo": {
-  "ios": {"bundleIdentifier": "com.example.expo", "appleTeamId": "ABCDE12345"},
   "android": {"package": "com.example.expo", "googleServicesFile": "./google-services.json"}
 }}`)
 	writeFile(t, filepath.Join(root, "google-services.json"), `{"project_info": {"project_id": "expo-project"}, "client": []}`)
 
-	apple, _ := detectApple(root)
 	android, _ := detectAndroid(root)
 
-	if !apple.found() || apple.BundleIDs[0] != "com.example.expo" || apple.TeamIDs[0] != "ABCDE12345" {
-		t.Errorf("apple = %+v", apple)
-	}
-	if !android.found() || android.ApplicationIDs[0] != "com.example.expo" || strings.Join(android.projectIDs(), ",") != "expo-project" {
+	if android.ExpoConfig == "" || android.ApplicationIDs[0] != "com.example.expo" || strings.Join(android.projectIDs(), ",") != "expo-project" {
 		t.Errorf("android = %+v", android)
 	}
-}
-
-func TestEnsurePlistEdits(t *testing.T) {
-	empty := "<?xml version=\"1.0\"?>\n<plist version=\"1.0\">\n<dict/>\n</plist>\n"
-	got := ensurePlistString(empty, "aps-environment", "development")
-	want := "<?xml version=\"1.0\"?>\n<plist version=\"1.0\">\n<dict>\n\t<key>aps-environment</key>\n\t<string>development</string>\n</dict>\n</plist>\n"
-	if got != want {
-		t.Errorf("empty dict:\n%s", got)
-	}
-	if ensurePlistString(got, "aps-environment", "production") != got {
-		t.Error("an existing aps-environment was changed")
-	}
-
-	info := "<plist version=\"1.0\">\n<dict>\n\t<key>CFBundleName</key>\n\t<string>App</string>\n\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>fetch</string>\n\t</array>\n</dict>\n</plist>\n"
-	got = ensurePlistArrayValue(info, "UIBackgroundModes", "remote-notification")
-	if !strings.Contains(got, "\t<array>\n\t\t<string>fetch</string>\n\t\t<string>remote-notification</string>\n\t</array>") {
-		t.Errorf("existing array:\n%s", got)
-	}
-	if ensurePlistArrayValue(got, "UIBackgroundModes", "remote-notification") != got {
-		t.Error("remote-notification was added twice")
-	}
-
-	expo := "<plist version=\"1.0\">\n  <dict>\n    <key>CFBundleName</key>\n    <string>App</string>\n  </dict>\n</plist>\n"
-	got = ensurePlistArrayValue(expo, "UIBackgroundModes", "remote-notification")
-	if !strings.Contains(got, "    <string>App</string>\n    <key>UIBackgroundModes</key>\n    <array>\n      <string>remote-notification</string>\n    </array>\n  </dict>\n") {
-		t.Errorf("two-space plist:\n%s", got)
-	}
-	got = ensurePlistArrayValue(strings.Replace(got, "<string>remote-notification</string>", "<string>fetch</string>", 1), "UIBackgroundModes", "remote-notification")
-	if !strings.Contains(got, "      <string>fetch</string>\n      <string>remote-notification</string>\n    </array>") {
-		t.Errorf("two-space array:\n%s", got)
-	}
-
-	selfClosing := "<plist version=\"1.0\">\n<dict>\n\t<key>UIBackgroundModes</key>\n\t<array/>\n</dict>\n</plist>\n"
-	got = ensurePlistArrayValue(selfClosing, "UIBackgroundModes", "remote-notification")
-	if got != "<plist version=\"1.0\">\n<dict>\n\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>remote-notification</string>\n\t</array>\n</dict>\n</plist>\n" {
-		t.Errorf("self-closing array:\n%s", got)
-	}
-
-	bare := "<plist version=\"1.0\">\n<dict>\n\t<key>Nested</key>\n\t<dict>\n\t</dict>\n</dict>\n</plist>\n"
-	got = ensurePlistArrayValue(bare, "UIBackgroundModes", "remote-notification")
-	if !strings.HasSuffix(got, "\t</dict>\n\t<key>UIBackgroundModes</key>\n\t<array>\n\t\t<string>remote-notification</string>\n\t</array>\n</dict>\n</plist>\n") {
-		t.Errorf("new array:\n%s", got)
-	}
-}
-
-func writeKey(t *testing.T, path string, key any) {
-	t.Helper()
-	encoded, err := x509.MarshalPKCS8PrivateKey(key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	writeFile(t, path, string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: encoded})))
-}
-
-func testApnsKey(t *testing.T, directory string) string {
-	t.Helper()
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	path := filepath.Join(directory, "AuthKey_KEY1234567.p8")
-	writeKey(t, path, key)
-
-	return path
 }
 
 func testServiceAccount(t *testing.T, directory, projectID string) string {
@@ -309,20 +104,6 @@ func testServiceAccount(t *testing.T, directory, projectID string) string {
 	return path
 }
 
-func TestReadApnsKeyRejectsOtherKeys(t *testing.T) {
-	directory := t.TempDir()
-	if _, err := readApnsKey(testApnsKey(t, directory)); err != nil {
-		t.Errorf("P-256 key rejected: %s", err)
-	}
-
-	rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
-	rsaPath := filepath.Join(directory, "rsa.p8")
-	writeKey(t, rsaPath, rsaKey)
-	if _, err := readApnsKey(rsaPath); err == nil || !strings.Contains(err.Error(), "P-256") {
-		t.Errorf("RSA key accepted: %v", err)
-	}
-}
-
 func TestReadServiceAccountChecksTheProject(t *testing.T) {
 	path := testServiceAccount(t, t.TempDir(), "demo-project")
 	if _, err := readServiceAccount(path, "demo-project"); err != nil {
@@ -335,14 +116,14 @@ func TestReadServiceAccountChecksTheProject(t *testing.T) {
 
 func TestWaitForKeyFileIgnoresEarlierFiles(t *testing.T) {
 	directory := t.TempDir()
-	old := testApnsKey(t, directory)
+	old := testServiceAccount(t, directory, "old-project")
 	past := time.Now().Add(-time.Hour)
 	if err := os.Chtimes(old, past, past); err != nil {
 		t.Fatal(err)
 	}
 
 	started := time.Now()
-	fresh := filepath.Join(directory, "AuthKey_NEW1234567.p8")
+	fresh := filepath.Join(directory, "new-project-firebase-adminsdk-abc.json")
 	go func() {
 		time.Sleep(50 * time.Millisecond)
 		writeFile(t, filepath.Join(directory, "notes.txt"), "not a key")
@@ -351,7 +132,7 @@ func TestWaitForKeyFileIgnoresEarlierFiles(t *testing.T) {
 	}()
 
 	path, err := waitForKeyFile([]string{t.TempDir(), directory}, started, func(path string) bool {
-		return apnsKeyFileName.MatchString(filepath.Base(path))
+		return strings.HasSuffix(path, ".json")
 	}, 5*time.Second, 10*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
@@ -451,76 +232,6 @@ func newTestPushSetup(t *testing.T, server *httptest.Server, prompter prompt.Pro
 		open:      func(string) {},
 		firebase:  func() ([]firebaseProject, error) { return nil, errors.New("firebase is not installed") },
 	}, out
-}
-
-func TestInitApnsCreatesBothEnvironmentsAndEditsXcode(t *testing.T) {
-	messaging := &fakeMessaging{}
-	server := httptest.NewServer(messaging)
-	defer server.Close()
-
-	root := t.TempDir()
-	writeFile(t, filepath.Join(root, "ios", "MyApp.xcodeproj", "project.pbxproj"), testPbxproj)
-	writeFile(t, filepath.Join(root, "ios", "MyApp", "MyApp.entitlements"), "<plist version=\"1.0\">\n<dict/>\n</plist>\n")
-	writeFile(t, filepath.Join(root, "ios", "MyApp", "Info.plist"), "<plist version=\"1.0\">\n<dict>\n</dict>\n</plist>\n")
-	untouched := map[string]string{}
-	for _, path := range []string{"Admin/Admin.entitlements", "Admin/Info.plist", "Widget/Widget.entitlements", "Widget/Info.plist"} {
-		untouched[path] = "<plist version=\"1.0\">\n<dict>\n</dict>\n</plist>\n"
-		writeFile(t, filepath.Join(root, "ios", path), untouched[path])
-	}
-	keyPath := testApnsKey(t, t.TempDir())
-
-	scripted := &prompt.Scripted{}
-	setup, _ := newTestPushSetup(t, server, scripted, root)
-	detected, _ := detectApple(root)
-	if err := setup.apns(apnsOptions{keyPath: keyPath, bundleID: myAppBundle}, detected); err != nil {
-		t.Fatal(err)
-	}
-
-	if len(scripted.Asked) != 0 {
-		t.Errorf("asked %v", scripted.Asked)
-	}
-	if len(messaging.providers) != 2 {
-		t.Fatalf("providers = %v", messaging.providers)
-	}
-	for index, sandbox := range []bool{false, true} {
-		provider := messaging.providers[index]
-		credentials := provider["credentials"].(map[string]any)
-		if credentials["bundleId"] != myAppBundle || credentials["teamId"] != "ABCDE12345" ||
-			credentials["authKeyId"] != "KEY1234567" || provider["options"].(map[string]any)["sandbox"] != sandbox ||
-			provider["enabled"] != true {
-			t.Errorf("provider %d = %v", index, provider)
-		}
-	}
-
-	entitlements, _ := os.ReadFile(filepath.Join(root, "ios", "MyApp", "MyApp.entitlements"))
-	if !strings.Contains(string(entitlements), "<key>aps-environment</key>\n\t<string>development</string>") {
-		t.Errorf("entitlements:\n%s", entitlements)
-	}
-	info, _ := os.ReadFile(filepath.Join(root, "ios", "MyApp", "Info.plist"))
-	if !strings.Contains(string(info), "<string>remote-notification</string>") {
-		t.Errorf("Info.plist:\n%s", info)
-	}
-	for path, original := range untouched {
-		if contents, _ := os.ReadFile(filepath.Join(root, "ios", path)); string(contents) != original {
-			t.Errorf("%s was edited:\n%s", path, contents)
-		}
-	}
-
-	messaging.requests = nil
-	if err := setup.apns(apnsOptions{keyPath: keyPath, bundleID: myAppBundle}, detected); err != nil {
-		t.Fatal(err)
-	}
-	if len(messaging.providers) != 2 || strings.Join(messaging.requests, ",") != "GET /messaging/providers,PATCH /messaging/providers/apns/id0,PATCH /messaging/providers/apns/id1" {
-		t.Errorf("rerun requests = %v", messaging.requests)
-	}
-
-	messaging.requests = nil
-	if err := setup.apns(apnsOptions{bundleID: myAppBundle}, detected); err != nil {
-		t.Fatal(err)
-	}
-	if strings.Join(messaging.requests, ",") != "GET /messaging/providers" {
-		t.Errorf("already set up requests = %v", messaging.requests)
-	}
 }
 
 func TestInitFcmRefusesAMismatchedApp(t *testing.T) {
@@ -715,32 +426,6 @@ func (r recordingPrompter) Choice(question prompt.Choice) (string, error) {
 	return r.Scripted.Choice(question)
 }
 
-func TestInitApnsUsesAKeyInTheProjectFolder(t *testing.T) {
-	messaging := &fakeMessaging{}
-	server := httptest.NewServer(messaging)
-	defer server.Close()
-
-	root := t.TempDir()
-	testApnsKey(t, root)
-	writeFile(t, filepath.Join(root, "notes.p8"), "not a key")
-
-	scripted := &prompt.Scripted{}
-	setup, out := newTestPushSetup(t, server, scripted, root)
-	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
-		t.Fatal(err)
-	}
-
-	if len(scripted.Asked) != 0 {
-		t.Errorf("asked %v", scripted.Asked)
-	}
-	if !strings.Contains(out.String(), "Using AuthKey_KEY1234567.p8 from the project folder.") {
-		t.Errorf("output:\n%s", out.String())
-	}
-	if len(messaging.providers) != 2 || messaging.providers[0]["credentials"].(map[string]any)["authKeyId"] != "KEY1234567" {
-		t.Errorf("providers = %v", messaging.providers)
-	}
-}
-
 func TestInitFcmUsesAKeyInTheProjectFolderBeforeAskingForAProject(t *testing.T) {
 	messaging := &fakeMessaging{}
 	server := httptest.NewServer(messaging)
@@ -786,13 +471,13 @@ func TestBrowserFlowFindsAKeySavedIntoTheProjectFolder(t *testing.T) {
 	setup, _ := newTestPushSetup(t, server, &prompt.Scripted{}, root)
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		testApnsKey(t, root)
+		testServiceAccount(t, root, "saved-project")
 	}()
 
-	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
+	if err := setup.fcm(fcmOptions{}, androidApp{}); err != nil {
 		t.Fatal(err)
 	}
-	if len(messaging.providers) != 2 {
+	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (saved-project)" {
 		t.Errorf("providers = %v", messaging.providers)
 	}
 }
@@ -805,16 +490,16 @@ func TestKeysInAGitRepositoryMustBeIgnored(t *testing.T) {
 	if err := exec.Command("git", "-C", root, "init", "-q").Run(); err != nil {
 		t.Skip("git init failed")
 	}
-	key := testApnsKey(t, root)
+	key := testServiceAccount(t, root, "demo-project")
 
 	out := &bytes.Buffer{}
 	setup := &pushSetup{out: out, keyDirs: []string{root}}
 	setup.checkKeyLocation(key)
-	if !strings.Contains(out.String(), "AuthKey_KEY1234567.p8 is inside a git repository and not ignored") {
+	if !strings.Contains(out.String(), "demo-project-firebase-adminsdk-abc.json is inside a git repository and not ignored") {
 		t.Errorf("output:\n%s", out.String())
 	}
 
-	writeFile(t, filepath.Join(root, ".gitignore"), "*.p8\n")
+	writeFile(t, filepath.Join(root, ".gitignore"), "*-firebase-adminsdk-*.json\n")
 	out.Reset()
 	setup.checkKeyLocation(key)
 	if out.Len() != 0 {
