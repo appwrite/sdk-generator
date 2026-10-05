@@ -506,12 +506,29 @@ func TestInitApnsCreatesBothEnvironmentsAndEditsXcode(t *testing.T) {
 		}
 	}
 
-	messaging.requests = nil
-	if err := setup.apns(apnsOptions{keyPath: keyPath, bundleID: myAppBundle}, detected); err != nil {
+	previous := map[string]any{}
+	for _, provider := range messaging.providers {
+		previous[provider["$id"].(string)] = provider["credentials"].(map[string]any)["authKey"]
+	}
+	rotated, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if len(messaging.providers) != 2 || strings.Join(messaging.requests, ",") != "GET /messaging/providers,PATCH /messaging/providers/apns/id0,PATCH /messaging/providers/apns/id1" {
-		t.Errorf("rerun requests = %v", messaging.requests)
+	rotatedPath := filepath.Join(t.TempDir(), "AuthKey_ROTATE1234.p8")
+	writeKey(t, rotatedPath, rotated)
+	if err := setup.apns(apnsOptions{keyPath: rotatedPath, bundleID: myAppBundle}, detected); err != nil {
+		t.Fatal(err)
+	}
+	if len(messaging.providers) != 2 {
+		t.Fatalf("providers after rotation = %v", messaging.providers)
+	}
+	for _, provider := range messaging.providers {
+		id := provider["$id"].(string)
+		credentials := provider["credentials"].(map[string]any)
+		old, kept := previous[id]
+		if !kept || credentials["authKeyId"] != "ROTATE1234" || credentials["authKey"] == old {
+			t.Errorf("provider %s after rotation = %v", id, credentials)
+		}
 	}
 
 	messaging.requests = nil
