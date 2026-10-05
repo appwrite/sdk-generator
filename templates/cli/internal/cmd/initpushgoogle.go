@@ -520,10 +520,6 @@ func (s *pushSetup) pickGoogleProject(projects []firebaseProject, projectID stri
 
 		return firebaseProject{}, fmt.Errorf("this Google account cannot access Firebase project %s", projectID)
 	}
-	if len(projects) == 1 {
-		return projects[0], nil
-	}
-
 	options := make([]prompt.Option, 0, len(projects))
 	for _, project := range projects {
 		label := project.ProjectID
@@ -535,6 +531,7 @@ func (s *pushSetup) pickGoogleProject(projects []firebaseProject, projectID stri
 	chosen, err := s.prompter.Choice(prompt.Choice{
 		Message: "Which Firebase project should send push notifications?",
 		Options: options,
+		Default: projects[0].ProjectID,
 		Filter:  len(options) > 8,
 		Flag:    "--project-id",
 	})

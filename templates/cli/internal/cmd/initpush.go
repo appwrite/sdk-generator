@@ -585,6 +585,7 @@ func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {
 					continue
 				}
 				account, revoke = created, undo
+				projectID = account["project_id"].(string)
 
 				break
 			}
