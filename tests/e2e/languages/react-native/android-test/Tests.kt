@@ -287,10 +287,15 @@ class Tests {
         PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { pendingRun.complete(System.currentTimeMillis()) }
         Thread.sleep(4_000)
         val heldWhilePending = !pendingRun.isDone
+        // Acknowledge each delivery as it arrives, as JS does once its callback has run; the run must
+        // then end within the quiet window, well before the ten-second acknowledgement timeout.
         val acknowledgedAt = System.currentTimeMillis()
-        // Every message delivered so far is pending until acknowledged; settle them all, as JS does.
-        messages().mapNotNull { it["ackToken"] as? String }.forEach { module.ack(it) }
-        val endedAfterAck = runCatching { pendingRun.get(6, TimeUnit.SECONDS) - acknowledgedAt }.getOrNull()
+        val acknowledged = mutableSetOf<String>()
+        while (!pendingRun.isDone && System.currentTimeMillis() - acknowledgedAt < 8_000) {
+            messages().mapNotNull { it["ackToken"] as? String }.filter { acknowledged.add(it) }.forEach { module.ack(it) }
+            Thread.sleep(100)
+        }
+        val endedAfterAck = if (pendingRun.isDone) pendingRun.get() - acknowledgedAt else null
         val quietRun = CompletableFuture<Long>()
         val quietStart = System.currentTimeMillis()
         PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { quietRun.complete(System.currentTimeMillis()) }
