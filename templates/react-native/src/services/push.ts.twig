@@ -120,6 +120,8 @@ export class Push extends Service {
     private nativeActive = false;
     /** Bumped when the subscriptions move to the native host, superseding an open() in flight. */
     private connectionEpoch = 0;
+    /** Bumped by close(), so a subscribe that was waiting on a connection stops instead of reopening it. */
+    private closeGeneration = 0;
     private nativeEvents: { remove(): void }[] | null = null;
 
     private onOpenCb?: () => void;
@@ -378,6 +380,7 @@ export class Push extends Service {
         callbackOrOptions: MessageCallback | SubscribeOptions | undefined,
         topicOptions: SubscribeOptions,
     ): Promise<PushSubscription> {
+        const generation = this.closeGeneration;
         await this.loadCookieSession();
         // Topic-less form: subscribe(callback, options) targets the signed-in user's topic.
         const userForm = typeof topicsOrCallback === 'function';
@@ -460,6 +463,9 @@ export class Push extends Service {
             // Another Push moved this one's subscriptions to the native host meanwhile: this
             // subscribe goes there too.
             if (err instanceof SupersededError) {
+                if (generation !== this.closeGeneration) {
+                    throw closedError();
+                }
                 return this.subscribeWith(
                     topicsOrCallback,
                     callbackOrOptions,
@@ -515,6 +521,9 @@ export class Push extends Service {
             if (epoch !== this.connectionEpoch) {
                 for (const id of ids) {
                     this.subscriptions.delete(id);
+                }
+                if (generation !== this.closeGeneration) {
+                    throw closedError();
                 }
                 return this.subscribeWith(
                     topicsOrCallback,
@@ -892,6 +901,8 @@ export class Push extends Service {
      * their subscriptions and the saved ones.
      */
     close(): void {
+        this.connectionEpoch++;
+        this.closeGeneration++;
         this.teardown();
         const native = this.native;
         if (!native) {
@@ -1391,6 +1402,10 @@ const BACKGROUND_DISPLACED =
     'and the device hosts one. These subscriptions still deliver while the app runs.';
 
 /** An in-process connect superseded by the native host or by a connect with another credential. */
+function closedError(): Error {
+    return new Error('Push was closed before the subscription was established');
+}
+
 class SupersededError extends Error {
     constructor() {
         super('The push connection was superseded');
