@@ -2,25 +2,37 @@
  * Analytics auto-tracking helpers.
  *
  * These are hand-written companions to the generated `Analytics` service.
- * The generated service exposes `event(params)` for arbitrary events; this
- * module wires up common auto-tracking behaviours (pageviews, outbound links,
- * downloads, scroll depth, active engagement) on top of it via composition.
+ * The generated service exposes `createEvent(params)` for arbitrary events;
+ * this module wires up common auto-tracking behaviours (pageviews, outbound
+ * links, downloads, scroll depth, active engagement) on top of it.
  *
  * The tracking helpers accept a plain event-emitter function so they do not
- * hard-couple to the generated `Analytics` class. Typical wiring:
+ * hard-couple to the generated `Analytics` class. The emitter adapts this
+ * module's option shape to `createEvent`: `url` is required there, and `props`
+ * is a flat alternating key/value list rather than an object.
  *
  * ```ts
  * const analytics = new Analytics(client);
  * const tracking = new AnalyticsTracking(
- *     (name, options) => analytics.event({ name, ...(options ?? {}) }),
+ *     (name, options) => analytics.createEvent({
+ *         propertyId: options?.propertyId ?? '<PROPERTY_ID>',
+ *         name,
+ *         url: options?.url ?? window.location.href,
+ *         referrer: options?.referrer,
+ *         scrollDepth: options?.scrollDepth,
+ *         engagementTime: options?.engagementTime,
+ *         props: Object.entries(options?.props ?? {}).flatMap(
+ *             ([key, value]) => [key, String(value)],
+ *         ),
+ *     }),
  *     { propertyId: '<PROPERTY_ID>' }
  * );
  * tracking.enableAllAutoTracking();
  * ```
  *
  * `propertyId` is optional: when set it is merged into the options of every
- * emitted event, so an emitter that spreads its options (as above) forwards it
- * automatically instead of every caller hand-rolling it into the closure.
+ * emitted event, so an emitter that forwards `options.propertyId` (as above)
+ * picks it up instead of every caller hand-rolling it into the closure.
  * Per-event `propertyId` always wins over the configured default.
  *
  * All helpers respect `navigator.doNotTrack === '1'` by default; opt out with

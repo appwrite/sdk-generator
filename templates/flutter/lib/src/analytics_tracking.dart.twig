@@ -35,12 +35,19 @@ export 'analytics_observer.dart' show AnalyticsEventEmitter, AnalyticsObserver, 
 ///
 /// ```dart
 /// final analytics = Analytics(client);
-/// final emit = (String name, {Map<String, dynamic>? props, String? propertyId, int? engagementTime}) =>
-///     analytics.event(
+///
+/// // `createEvent` requires `url` and takes `props` as a flat alternating
+/// // key/value list, so the emitter adapts this module's option shape.
+/// void emit(String name, {Map<String, dynamic>? props, String? propertyId, int? engagementTime}) =>
+///     analytics.createEvent(
+///       propertyId: propertyId ?? '<PROPERTY_ID>',
 ///       name: name,
-///       props: props,
-///       propertyId: propertyId,
+///       url: '<APP_URL>',
 ///       engagementTime: engagementTime,
+///       props: (props ?? const {})
+///           .entries
+///           .expand((entry) => [entry.key, '${entry.value}'])
+///           .toList(),
 ///     );
 ///
 /// final tracking = AnalyticsTracking(emit, propertyId: '<PROPERTY_ID>');

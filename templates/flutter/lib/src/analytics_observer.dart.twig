@@ -3,17 +3,22 @@ import 'package:flutter/widgets.dart';
 /// Signature used to emit an analytics event from an [AnalyticsObserver] or
 /// [AnalyticsTracking] instance.
 ///
-/// The generated `Analytics` service exposes `event({required String name, ...})`,
+/// The generated `Analytics` service exposes
+/// `createEvent({required String propertyId, required String name, required String url, ...})`,
 /// so the typical wiring is:
 ///
 /// ```dart
 /// final analytics = Analytics(client);
 /// final observer = AnalyticsObserver(
-///   (name, {props, propertyId, engagementTime}) => analytics.event(
+///   (name, {props, propertyId, engagementTime}) => analytics.createEvent(
+///     propertyId: propertyId ?? '<PROPERTY_ID>',
 ///     name: name,
-///     props: props,
-///     propertyId: propertyId,
+///     url: '<APP_URL>',
 ///     engagementTime: engagementTime,
+///     props: (props ?? const {})
+///         .entries
+///         .expand((entry) => [entry.key, '${entry.value}'])
+///         .toList(),
 ///   ),
 ///   propertyId: '<PROPERTY_ID>',
 /// );
@@ -53,11 +58,15 @@ String? defaultScreenNameExtractor(Route<dynamic> route) {
 /// MaterialApp(
 ///   navigatorObservers: [
 ///     AnalyticsObserver(
-///       (name, {props, propertyId, engagementTime}) => analytics.event(
+///       (name, {props, propertyId, engagementTime}) => analytics.createEvent(
+///         propertyId: propertyId ?? '<PROPERTY_ID>',
 ///         name: name,
-///         props: props,
-///         propertyId: propertyId,
+///         url: '<APP_URL>',
 ///         engagementTime: engagementTime,
+///         props: (props ?? const {})
+///             .entries
+///             .expand((entry) => [entry.key, '${entry.value}'])
+///             .toList(),
 ///       ),
 ///       propertyId: '<PROPERTY_ID>',
 ///     ),
