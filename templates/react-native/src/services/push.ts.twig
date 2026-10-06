@@ -31,6 +31,14 @@ export interface PushMessage {
 
 export type MessageCallback = (message: PushMessage) => void | Promise<void>;
 
+/** A background notification the user tapped. */
+export interface PushNotificationOpened {
+    /** The topic the message was published to. */
+    topic: string;
+    /** The `data` sent with the message (e.g. `createPush`), parsed; `{}` when it had none. */
+    data: Record<string, unknown>;
+}
+
 /** Per-subscription options passed to `subscribe` and `PushSubscription.update`. */
 export interface SubscribeOptions {
     /**
@@ -253,6 +261,77 @@ export class Push extends Service {
      */
     async setForeground(enabled: boolean): Promise<void> {
         await this.native?.setForeground(enabled);
+    }
+
+    /**
+     * The background notification whose tap launched the app, or null. Call it once at startup:
+     * on Android a tap is reported only once. Elsewhere it reads `expo-notifications`.
+     *
+     * ```ts
+     * const opened = await push.getInitialNotification();
+     * if (opened) openSale(opened.data.saleId);
+     * ```
+     */
+    async getInitialNotification(): Promise<PushNotificationOpened | null> {
+        if (Platform.OS === 'android') {
+            const json = await this.native?.getInitialNotification();
+            if (!json) {
+                return null;
+            }
+            const opened = JSON.parse(json) as NativeOpened;
+            return toOpened(opened.topic, opened.payload);
+        }
+        const notifications = expoNotifications();
+        if (!notifications) {
+            return null;
+        }
+        const response = await notifications.getLastNotificationResponseAsync();
+        const opened = response ? openedFromExpo(response) : null;
+        if (opened) {
+            await notifications.clearLastNotificationResponseAsync?.();
+        }
+        return opened;
+    }
+
+    /**
+     * Call [callback] each time the user taps a background notification while the app is
+     * running, including in the background. Returns a function that stops listening. The tap
+     * that launched the app comes from `getInitialNotification()` instead.
+     *
+     * ```ts
+     * const stop = push.onNotificationOpened(({ data }) => openSale(data.saleId));
+     * ```
+     */
+    onNotificationOpened(
+        callback: (opened: PushNotificationOpened) => void,
+    ): () => void {
+        if (Platform.OS === 'android') {
+            if (!this.native) {
+                return () => undefined;
+            }
+            const emitter = new NativeEventEmitter(this.native);
+            const subscription = emitter.addListener(
+                '{{spec.info.title | caseUcfirst}}PushOpened',
+                (event: NativeOpened) =>
+                    callback(toOpened(event.topic, event.payload)),
+            );
+            return () => subscription.remove();
+        }
+        const notifications = expoNotifications();
+        if (!notifications) {
+            return () => undefined;
+        }
+        const listener = (
+            response: import('expo-notifications').NotificationResponse,
+        ): void => {
+            const opened = openedFromExpo(response);
+            if (opened) {
+                callback(opened);
+            }
+        };
+        const subscription =
+            notifications.addNotificationResponseReceivedListener(listener);
+        return () => subscription.remove();
     }
 
     /**
@@ -1374,8 +1453,16 @@ interface NativePush {
     resume(): Promise<void>;
     setErrorCallback(registered: boolean): Promise<string | null>;
     defaultClientId(authMethod: string, credential: string): Promise<string>;
+    /** The tapped notification that launched the app, as {@link NativeOpened} JSON. */
+    getInitialNotification(): Promise<string | null>;
     addListener(eventName: string): void;
     removeListeners(count: number): void;
+}
+
+/** A tapped notification the native module reports: its topic and raw payload. */
+interface NativeOpened {
+    topic: string;
+    payload: string;
 }
 
 /** A message the native module delivers for a hosted subscription. */
@@ -1423,6 +1510,44 @@ function requestNotificationPermission(): void {
             granted ? undefined : PermissionsAndroid.request(permission),
         )
         .catch(() => undefined);
+}
+
+/** A tapped notification's topic and message `data`, parsed from its payload. */
+function toOpened(topic: string, payload: string): PushNotificationOpened {
+    let data: unknown;
+    try {
+        data = (JSON.parse(payload) as { data?: unknown })?.data;
+    } catch {
+        data = undefined;
+    }
+    return {
+        topic,
+        data:
+            typeof data === 'object' && data !== null && !Array.isArray(data)
+                ? (data as Record<string, unknown>)
+                : {},
+    };
+}
+
+/** A tap on a notification this SDK posted through expo-notifications, else null. */
+function openedFromExpo(
+    response: import('expo-notifications').NotificationResponse,
+): PushNotificationOpened | null {
+    const data = response.notification.request.content.data;
+    return typeof data?.topic === 'string' && typeof data.payload === 'string'
+        ? toOpened(data.topic, data.payload)
+        : null;
+}
+
+/** expo-notifications when the app has installed it, else null. */
+function expoNotifications(): typeof import('expo-notifications') | null {
+    try {
+        /* eslint-disable @typescript-eslint/no-require-imports */
+        return require('expo-notifications');
+        /* eslint-enable @typescript-eslint/no-require-imports */
+    } catch {
+        return null;
+    }
 }
 
 /** What a message's `notification` block asks a background notification to show. */
