@@ -230,10 +230,18 @@ internal fun isAuthRefusal(error: Throwable?): Boolean = when (error) {
     else -> false
 }
 
-/** Send the CONNECT and wait for the CONNACK, at most [timeoutSeconds] when given. */
-internal fun Mqtt5AsyncClient.sendPushConnect(config: PushConfig, timeoutSeconds: Long? = null) {
+/**
+ * Send the CONNECT and wait for the CONNACK, at most [timeoutSeconds] when given. [credential]
+ * supplies the credential each time one is sent, including on the client's automatic reconnects
+ * and re-auths, so they can use a session rotated since this CONNECT.
+ */
+internal fun Mqtt5AsyncClient.sendPushConnect(
+    config: PushConfig,
+    timeoutSeconds: Long? = null,
+    credential: () -> String = { config.credential },
+) {
     val connAck = connectWith()
-        .enhancedAuth(PushAuthMechanism(config.authMethod, config.credential))
+        .enhancedAuth(PushAuthMechanism(config.authMethod, credential))
         // Clean start is always off, so the broker keeps this client's session and can
         // redeliver missed messages to QoS-1 subscriptions on reconnect.
         .cleanStart(false)
@@ -289,11 +297,12 @@ internal fun Mqtt5Publish.toPushMessage(): PushMessage =
 
 /**
  * Single-step MQTT 5 enhanced auth: the method and credential are placed in the CONNECT
- * packet and the broker accepts them in the CONNACK, with no AUTH round-trip.
+ * packet and the broker accepts them in the CONNACK, with no AUTH round-trip. The credential is
+ * read from [credential] each time, so an automatic reconnect or re-auth sends the current one.
  */
 internal class PushAuthMechanism(
     private val method: String,
-    private val credential: String,
+    private val credential: () -> String,
 ) : Mqtt5EnhancedAuthMechanism {
 
     override fun getMethod(): MqttUtf8String = MqttUtf8String.of(method)
@@ -305,7 +314,7 @@ internal class PushAuthMechanism(
         connect: Mqtt5Connect,
         authBuilder: Mqtt5EnhancedAuthBuilder,
     ): CompletableFuture<Void> {
-        authBuilder.data(credential.toByteArray(Charsets.UTF_8))
+        authBuilder.data(credential().toByteArray(Charsets.UTF_8))
         return CompletableFuture.completedFuture(null)
     }
 
@@ -313,7 +322,7 @@ internal class PushAuthMechanism(
         clientConfig: Mqtt5ClientConfig,
         authBuilder: Mqtt5AuthBuilder,
     ): CompletableFuture<Void> {
-        authBuilder.data(credential.toByteArray(Charsets.UTF_8))
+        authBuilder.data(credential().toByteArray(Charsets.UTF_8))
         return CompletableFuture.completedFuture(null)
     }
 

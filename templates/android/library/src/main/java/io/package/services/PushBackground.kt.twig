@@ -314,7 +314,7 @@ internal object PushBackground {
 
     private enum class CredentialRefresh { UNCHANGED, CHANGED, GONE }
 
-    // Worker thread only. Bring the saved credential up to date with the session cookie the app
+    // Bring the saved credential up to date with the session cookie the app
     // signs in with, when it comes from one (see [PushConfig.sessionCookieUrl]): a rotated session of
     // the same user replaces it, and no session or another user's is GONE. UNCHANGED when there is
     // no cookie source or it cannot be read.
@@ -334,6 +334,15 @@ internal object PushBackground {
             }
             else -> CredentialRefresh.GONE
         }
+    }
+
+    // The credential to send for a connection made with [connected]: the session re-read from the
+    // cookie store when one backs it (so an automatic reconnect uses a rotated session), else the
+    // saved one. A credential for another auth method cannot be sent on this connection.
+    private fun currentCredential(context: Context, connected: PushConfig): String {
+        refreshCredential(context)
+        val current = synchronized(lock) { config } ?: return connected.credential
+        return if (current.authMethod == connected.authMethod) current.credential else connected.credential
     }
 
     // The `a_session_<project>` cookie for [url] in the WebView cookie store, decoded; "" when there
@@ -588,7 +597,9 @@ internal object PushBackground {
         // message was delivered (see [deliver]).
         client.publishes(MqttGlobalPublishFilter.ALL, { publish -> deliver(context, publish) }, true)
         try {
-            client.sendPushConnect(config.copy(keepAlive = KEEP_ALIVE_SECONDS), CONNECT_TIMEOUT_SECONDS)
+            client.sendPushConnect(config.copy(keepAlive = KEEP_ALIVE_SECONDS), CONNECT_TIMEOUT_SECONDS) {
+                currentCredential(context, config)
+            }
         } catch (e: Exception) {
             val cause = (e as? ExecutionException)?.cause ?: e
             client.disconnect()
