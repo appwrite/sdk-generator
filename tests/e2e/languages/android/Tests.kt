@@ -839,15 +839,16 @@ class ServiceTest {
                 org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
                 Thread.sleep(100)
             }
-            val deliveredWithFresh = E2EPushReceiver.messages.toList() == listOf("push-payload") &&
-                io.appwrite.services.PushStore.loadState(context)?.first?.credential == fresh
+            val resumedMessages = E2EPushReceiver.messages.toList()
+            val resumedCredential = io.appwrite.services.PushStore.loadState(context)?.first?.credential
+            val deliveredWithFresh = resumedMessages.isNotEmpty() && resumedMessages.all { it == "push-payload" } && resumedCredential == fresh
             io.appwrite.services.PushBackground.resume(context, "appwrite-jwt", jwt("other", "someone-else"), true)
             val droppedForOtherUser = !io.appwrite.services.PushBackground.hasSaved(context)
             writeToFile(
                 if (deliveredWithFresh && droppedForOtherUser) {
                     "Push background resume credential:passed"
                 } else {
-                    "Push background resume credential:failed (delivered: $deliveredWithFresh, dropped: $droppedForOtherUser)"
+                    "Push background resume credential:failed (messages: $resumedMessages, saved: ${resumedCredential?.take(12)}, dropped: $droppedForOtherUser)"
                 },
             )
             notifications.cancelAll()

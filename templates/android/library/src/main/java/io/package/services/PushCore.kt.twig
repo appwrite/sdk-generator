@@ -167,7 +167,10 @@ internal fun buildPushClient(
         // re-auth) is final too, instead of being retried with the same credential forever.
         val authRefused = onAuthRefused != null && connected.get() &&
             context.source != MqttDisconnectSource.USER && isAuthRefusal(context.cause)
-        if (refused || authRefused) {
+        // Authentication was aborted because the app has no current credential (signed out): there
+        // is nothing to reconnect with, so the attempt fails now instead of retrying until timeout.
+        val noCredential = generateSequence(context.cause) { it.cause }.any { it is PushNoCredentialException }
+        if (refused || authRefused || noCredential) {
             context.reconnector.reconnect(false)
         } else if (context.reconnector.isReconnect) {
             // HiveMQ's automatic reconnect sends a CONNECT it builds itself, without user
@@ -373,8 +376,11 @@ internal class PushAuthMechanism(
     override fun onReAuthError(clientConfig: Mqtt5ClientConfig, cause: Throwable) = Unit
 
     private fun failedAuth(): CompletableFuture<Void> =
-        CompletableFuture<Void>().apply { completeExceptionally(IllegalStateException("No current credential to authenticate with")) }
+        CompletableFuture<Void>().apply { completeExceptionally(PushNoCredentialException()) }
 }
+
+/** Authentication aborted because there is no current credential to send (the app signed out). */
+internal class PushNoCredentialException : IllegalStateException("No current credential to authenticate with")
 
 /**
  * A [TrustManagerFactory] that accepts any certificate — used when `tlsInsecure` is set
