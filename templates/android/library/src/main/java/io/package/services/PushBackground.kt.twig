@@ -50,7 +50,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicReference
 
 private const val LOG_TAG = "{{ spec.info.title | caseUcfirst }}Push"
 
@@ -600,7 +599,6 @@ internal object PushBackground {
         val quiet = waiting
         val connected = AtomicBoolean(false)
         val retired = AtomicBoolean(false)
-        val built = AtomicReference<Mqtt5AsyncClient>()
         val client = buildPushClient(
             config.copy(keepAlive = KEEP_ALIVE_SECONDS),
             onError = { error ->
@@ -611,14 +609,7 @@ internal object PushBackground {
             onAuthRefused = { error -> worker.execute { refused(context, error) } },
             credential = { currentCredential(context, config) },
             retired = retired,
-            // A retired client that was still reconnecting in the background disconnects at once.
-            onConnected = {
-                if (retired.get()) {
-                    built.get()?.disconnect()
-                }
-            },
         )
-        built.set(client)
         // Registered before connecting, so the backlog the broker replays right after each
         // SUBSCRIBE reaches the app however the subscription was made (including the ones the
         // client restores itself after an automatic reconnect). Acknowledged by hand, once the

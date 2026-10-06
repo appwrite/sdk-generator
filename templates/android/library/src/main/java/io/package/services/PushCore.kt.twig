@@ -32,6 +32,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import javax.net.ssl.ManagerFactoryParameters
 import javax.net.ssl.TrustManager
 import javax.net.ssl.TrustManagerFactory
@@ -156,7 +157,14 @@ internal fun buildPushClient(
 
     // Whether this client has connected yet: until it has, a refused CONNECT is final.
     val connected = AtomicBoolean(false)
+    val client = AtomicReference<Mqtt5AsyncClient>()
     builder = builder.addConnectedListener {
+        // A reconnect that was already under way when the client was retired disconnects at once,
+        // so it never competes with its replacement for the broker session.
+        if (retired?.get() == true) {
+            client.get()?.disconnect()
+            return@addConnectedListener
+        }
         connected.set(true)
         onConnected?.invoke()
     }
@@ -165,6 +173,7 @@ internal fun buildPushClient(
         // in the background would otherwise come back as a second connection for the same id.
         if (retired?.get() == true) {
             context.reconnector.reconnect(false)
+            onDisconnected?.invoke()
             return@addDisconnectedListener
         }
         // A refused first CONNECT (bad credential, rate limit) is final: stop the automatic
@@ -208,7 +217,7 @@ internal fun buildPushClient(
         }
     }
 
-    return builder.buildAsync()
+    return builder.buildAsync().also { client.set(it) }
 }
 
 /**
