@@ -825,33 +825,96 @@ open class Push: Service {
             qos: Int(publish.qos.rawValue)
         )
         // Notification is per-subscription: only subs that opted in post one, each with its
-        // own title.
+        // own title. A title the server sent replaces theirs, so one notification is posted.
         let matched = sync.sync {
             subscriptions.values.filter { matches(filter: $0.filter, topic: publish.topicName) }
         }
+        let notification = PushNotificationContent(message: pushMessage)
+        var titles: [String] = []
         for entry in matched {
             entry.callback(pushMessage)
             if entry.background {
-                notify(pushMessage, title: entry.title)
+                let title = notification.title ?? entry.title ?? pushMessage.topic
+                if !titles.contains(title) {
+                    titles.append(title)
+                }
             }
+        }
+        for title in titles {
+            notify(pushMessage, title: title, notification: notification)
         }
     }
 
-    private func notify(_ message: PushMessage, title: String?) {
+    private func notify(_ message: PushMessage, title: String, notification: PushNotificationContent) {
         #if canImport(UserNotifications)
             let content = UNMutableNotificationContent()
-            content.title = title ?? message.topic
-            content.body = message.data
+            content.title = title
+            content.body = notification.body ?? (notification.title == nil && notification.image == nil ? message.data : "")
             content.sound = .default
+            content.userInfo = ["topic": message.topic, "payload": message.data]
+            guard let image = notification.image.flatMap(URL.init(string:)) else {
+                post(content)
+                return
+            }
+            Push.downloadAttachment(image) { [weak self] attachment in
+                if let attachment {
+                    content.attachments = [attachment]
+                }
+                self?.post(content)
+            }
+        #endif
+    }
+
+    #if canImport(UserNotifications)
+        private func post(_ content: UNNotificationContent) {
             let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
             UNUserNotificationCenter.current().add(request) { [weak self] error in
                 if let error {
                     self?.surface(error)
                 }
             }
-        #endif
-    }
+        }
 
+        /// Download a notification image into a file a notification can attach, or nil when it cannot be fetched.
+        private static func downloadAttachment(_ url: URL, completion: @escaping (UNNotificationAttachment?) -> Void) {
+            URLSession.shared.downloadTask(with: URLRequest(url: url, timeoutInterval: 10)) { location, _, _ in
+                guard let location else {
+                    completion(nil)
+                    return
+                }
+                let file = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathExtension(url.pathExtension.isEmpty ? "jpg" : url.pathExtension)
+                do {
+                    try FileManager.default.moveItem(at: location, to: file)
+                    completion(try UNNotificationAttachment(identifier: "image", url: file))
+                } catch {
+                    completion(nil)
+                }
+            }.resume()
+        }
+    #endif
+
+}
+
+/// What a message's `notification` block asks a background notification to show: nils when the
+/// payload has none or is not JSON.
+struct PushNotificationContent {
+    let title: String?
+    let body: String?
+    let image: String?
+
+    init(message: PushMessage) {
+        let json = (try? JSONSerialization.jsonObject(with: Data(message.payload))) as? [String: Any]
+        let notification = json?["notification"] as? [String: Any]
+        func field(_ name: String) -> String? {
+            guard let value = notification?[name] as? String, !value.isEmpty else { return nil }
+            return value
+        }
+        title = field("title")
+        body = field("body")
+        image = field("image")
+    }
 }
 
 /// The `userId` claim of a JWT's payload segment (base64url JSON), or nil when absent.
