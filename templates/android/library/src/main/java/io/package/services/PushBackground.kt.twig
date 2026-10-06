@@ -32,7 +32,9 @@ import {{ pushNamespace }}.exceptions.{{ spec.info.title | caseUcfirst }}Excepti
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.FilterInputStream
 import java.io.IOException
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
@@ -46,8 +48,8 @@ import java.util.concurrent.atomic.AtomicInteger
 
 private const val LOG_TAG = "{{ spec.info.title | caseUcfirst }}Push"
 
-/** What a message's `notification` block asks a background notification to show. */
-internal data class PushNotificationContent(val title: String?, val body: String?, val image: String?)
+/** What a message's `notification` block asks a background notification to show; [present] is false without one. */
+internal data class PushNotificationContent(val present: Boolean, val title: String?, val body: String?, val image: String?)
 
 /** A background subscription saved across restarts: its filter, QoS choice and notification title. */
 internal data class PushEntry(
@@ -701,7 +703,7 @@ internal object PushBackground {
         }
         createChannels(context)
         val id = 31 * message.hashCode() + title.hashCode()
-        val body = content.body ?: message.data.takeIf { content.title == null && content.image == null }
+        val body = content.body ?: message.data.takeIf { !content.present }
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(content.title ?: title)
             .setSmallIcon(notificationIcon(context))
@@ -731,22 +733,43 @@ internal object PushBackground {
     /** The server's `notification` block in [message]: nulls when the payload has none or is not JSON. */
     fun notificationContent(message: PushMessage): PushNotificationContent {
         val notification = runCatching { JSONObject(message.data) }.getOrNull()?.optJSONObject("notification")
-            ?: return PushNotificationContent(null, null, null)
+            ?: return PushNotificationContent(false, null, null, null)
         fun field(name: String) = (notification.opt(name) as? String)?.takeIf { it.isNotEmpty() }
-        return PushNotificationContent(field("title"), field("body"), field("image"))
+        return PushNotificationContent(true, field("title"), field("body"), field("image"))
     }
 
-    // Download a notification image, or null when it cannot be fetched or decoded in time.
+    // Download a notification image, or null when it cannot be fetched and decoded within
+    // IMAGE_TIMEOUT_MS overall, so a slow image never holds up the notification for long.
     private fun loadImage(url: String): Bitmap? = runCatching {
+        val deadline = SystemClock.elapsedRealtime() + IMAGE_TIMEOUT_MS
         val connection = URL(url).openConnection() as HttpURLConnection
         connection.connectTimeout = IMAGE_TIMEOUT_MS
         connection.readTimeout = IMAGE_TIMEOUT_MS
         try {
-            connection.inputStream.use { BitmapFactory.decodeStream(it) }
+            DeadlineInputStream(connection.inputStream, deadline).use { BitmapFactory.decodeStream(it) }
         } finally {
             connection.disconnect()
         }
     }.getOrNull()
+
+    // Fails every read once [deadline] (elapsedRealtime) has passed.
+    private class DeadlineInputStream(input: InputStream, private val deadline: Long) : FilterInputStream(input) {
+        private fun check() {
+            if (SystemClock.elapsedRealtime() > deadline) {
+                throw IOException("Notification image took too long")
+            }
+        }
+
+        override fun read(): Int {
+            check()
+            return super.read()
+        }
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int {
+            check()
+            return super.read(b, off, len)
+        }
+    }
 
     /** The ongoing notification the foreground service shows, on its own quiet channel. */
     fun ongoingNotification(context: Context) = NotificationCompat.Builder(context, SERVICE_CHANNEL_ID)
