@@ -825,23 +825,18 @@ open class Push: Service {
             qos: Int(publish.qos.rawValue)
         )
         // Notification is per-subscription: only subs that opted in post one, each with its
-        // own title. A title the server sent replaces theirs, so one notification is posted.
+        // own title. A title the server sent replaces theirs, so it is posted once.
         let matched = sync.sync {
             subscriptions.values.filter { matches(filter: $0.filter, topic: publish.topicName) }
         }
         let notification = PushNotificationContent(message: pushMessage)
-        var titles: [String] = []
+        var postedServerTitle = false
         for entry in matched {
             entry.callback(pushMessage)
-            if entry.background {
-                let title = notification.title ?? entry.title ?? pushMessage.topic
-                if !titles.contains(title) {
-                    titles.append(title)
-                }
+            if entry.background && !postedServerTitle {
+                postedServerTitle = notification.title != nil
+                notify(pushMessage, title: notification.title ?? entry.title ?? pushMessage.topic, notification: notification)
             }
-        }
-        for title in titles {
-            notify(pushMessage, title: title, notification: notification)
         }
     }
 
@@ -866,6 +861,16 @@ open class Push: Service {
     }
 
     #if canImport(UserNotifications)
+        /// The file extension a notification attachment needs for each image type it supports, by MIME type: the
+        /// attachment's type comes from the extension, not the URL's.
+        private static let imageExtensions = [
+            "image/jpeg": "jpg",
+            "image/jpg": "jpg",
+            "image/png": "png",
+            "image/gif": "gif",
+            "image/heic": "heic",
+        ]
+
         private func post(_ content: UNNotificationContent) {
             let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
             UNUserNotificationCenter.current().add(request) { [weak self] error in
@@ -875,16 +880,17 @@ open class Push: Service {
             }
         }
 
-        /// Download a notification image into a file a notification can attach, or nil when it cannot be fetched.
+        /// Download a notification image into a file a notification can attach, or nil when it cannot be fetched or is
+        /// not an image type notifications show.
         private static func downloadAttachment(_ url: URL, completion: @escaping (UNNotificationAttachment?) -> Void) {
-            URLSession.shared.downloadTask(with: URLRequest(url: url, timeoutInterval: 10)) { location, _, _ in
-                guard let location else {
+            URLSession.shared.downloadTask(with: URLRequest(url: url, timeoutInterval: 10)) { location, response, _ in
+                guard let location, let fileExtension = imageExtensions[response?.mimeType?.lowercased() ?? ""] else {
                     completion(nil)
                     return
                 }
                 let file = FileManager.default.temporaryDirectory
                     .appendingPathComponent(UUID().uuidString)
-                    .appendingPathExtension(url.pathExtension.isEmpty ? "jpg" : url.pathExtension)
+                    .appendingPathExtension(fileExtension)
                 do {
                     try FileManager.default.moveItem(at: location, to: file)
                     completion(try UNNotificationAttachment(identifier: "image", url: file))
