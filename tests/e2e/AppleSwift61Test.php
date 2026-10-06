@@ -44,6 +44,7 @@ final class AppleSwift61Test extends Base
         ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
         ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::BOUNDARY_UPLOAD_RESPONSES,
         ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
