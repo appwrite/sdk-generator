@@ -66,6 +66,33 @@ const sub = await push.subscribe('news', (message) => console.log(message.data),
 await push.setForeground(true);
 ```
 
+Notifications are posted while the app is backgrounded or closed. While it is on screen your
+callback shows the message, so none is posted unless the subscription passes
+`notifyInForeground: true`.
+
+The scheduled wake-ups are punctual only when the app may schedule exact alarms or is exempt
+from battery optimisation; otherwise Doze can defer them. Declare `SCHEDULE_EXACT_ALARM` and/or
+`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` in your app's manifest (both subject to Google Play
+policy), then check and ask from a user action. The SDK never opens these screens on its own:
+
+```js
+const status = await push.backgroundStatus(); // null outside Android
+if (status?.bestEffort) {
+    // Explain why, then:
+    await push.requestExactAlarms();
+}
+```
+
+When the app starts, saved background delivery resumes with the current session: a rotated
+session of the same user replaces the saved one, and signing out (no session) or signing in as
+someone else drops the saved subscriptions. Still call `push.close()` on sign-out.
+
+#### Upgrading from an earlier release candidate
+
+The Expo config plugin is gone: the native module now declares everything background delivery
+needs. Remove `"react-native-appwrite"` from the `plugins` list in `app.json`, or `expo config`
+fails to load it.
+
 #### Opening a tapped notification
 
 Read the `data` sent with `createPush` when the user taps a background notification:

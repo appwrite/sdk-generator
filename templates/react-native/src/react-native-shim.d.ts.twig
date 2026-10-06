@@ -1,4 +1,8 @@
 declare module 'react-native' {
+    export const AppState: {
+        readonly currentState: string | null;
+    };
+
     export const Platform: {
         readonly OS: string;
         readonly Version: number | string;

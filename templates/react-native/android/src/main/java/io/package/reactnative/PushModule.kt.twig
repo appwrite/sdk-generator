@@ -115,10 +115,19 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
     fun hasSaved(promise: Promise) = settle(promise) { bridge.hasSaved() }
 
     @ReactMethod
-    fun resume(promise: Promise) = settle(promise) {
-        bridge.resume()
+    fun resume(authMethod: String?, credential: String?, signedOutWhenMissing: Boolean, promise: Promise) = settle(promise) {
+        bridge.resume(authMethod, credential, signedOutWhenMissing)
         null
     }
+
+    @ReactMethod
+    fun backgroundStatus(promise: Promise) = settle(promise) { bridge.backgroundStatus() }
+
+    @ReactMethod
+    fun requestExactAlarms(promise: Promise) = settle(promise) { bridge.requestExactAlarms() }
+
+    @ReactMethod
+    fun requestIgnoreBatteryOptimizations(promise: Promise) = settle(promise) { bridge.requestIgnoreBatteryOptimizations() }
 
     @ReactMethod
     fun setErrorCallback(registered: Boolean, promise: Promise) = settle(promise) { bridge.setErrorCallback(registered) }

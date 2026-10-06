@@ -12,7 +12,12 @@ import mqtt, {
     type IPublishPacket,
     type MqttClient,
 } from 'mqtt';
-import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
+import {
+    AppState,
+    NativeEventEmitter,
+    NativeModules,
+    Platform,
+} from 'react-native';
 
 import { Client } from '../client';
 import { createTcpStream } from '../lib/tcp-stream';
@@ -30,6 +35,18 @@ export interface PushMessage {
 }
 
 export type MessageCallback = (message: PushMessage) => void | Promise<void>;
+
+/** What Android background delivery can rely on; see {@link Push.backgroundStatus}. */
+export interface PushBackgroundStatus {
+    /** The app may schedule exact alarms (`SCHEDULE_EXACT_ALARM`, granted). */
+    exactAlarms: boolean;
+    /** The app is exempt from battery optimisation. */
+    ignoringBatteryOptimizations: boolean;
+    /** Foreground mode ({@link Push.setForeground}) keeps the connection open in a service. */
+    foregroundService: boolean;
+    /** Wake-ups may be deferred by Doze, so messages can arrive late while the app is closed. */
+    bestEffort: boolean;
+}
 
 /** A background notification the user tapped. */
 export interface PushNotificationOpened {
@@ -60,6 +77,12 @@ export interface SubscribeOptions {
     background?: boolean;
     /** Notification title for this subscription's messages. Defaults to the message topic. */
     title?: string;
+    /**
+     * Also post the background notification while the app is on screen. Defaults to false:
+     * while the app is visible it shows the message itself through the callback, so
+     * notifications are posted only while it is backgrounded or closed.
+     */
+    notifyInForeground?: boolean;
     /**
      * Retry delivery of messages missed while disconnected. `true` (the default) subscribes
      * at QoS 1 so the broker holds this topic's messages and redelivers them on reconnect;
@@ -160,6 +183,7 @@ export class Push extends Service {
             callback: MessageCallback;
             background: boolean;
             title?: string;
+            notifyInForeground: boolean;
             qos: 0 | 1;
         }
     >();
@@ -209,8 +233,23 @@ export class Push extends Service {
         this.tlsInsecure = endpointInsecure;
 
         // Resume background delivery saved by an earlier run now, instead of at its next
-        // scheduled wake-up.
-        this.native?.resume().catch((err) => this.report(err));
+        // scheduled wake-up, with the current session: a rotated session of the same user
+        // replaces the saved one, and signed out (no session cookie) drops the saved
+        // subscriptions.
+        if (this.native) {
+            const native = this.native;
+            this.loadCookieSession()
+                .catch(() => undefined)
+                .then(() => {
+                    const current = this.currentCredential();
+                    return native.resume(
+                        current?.authMethod ?? null,
+                        current?.credential ?? null,
+                        true,
+                    );
+                })
+                .catch((err) => this.report(err));
+        }
     }
 
     // The broker subscription for a filter uses the highest QoS any local subscription on
@@ -261,6 +300,38 @@ export class Push extends Service {
      */
     async setForeground(enabled: boolean): Promise<void> {
         await this.native?.setForeground(enabled);
+    }
+
+    /**
+     * Android: what background delivery can rely on. When `bestEffort` is true the scheduled
+     * wake-ups are inexact and Doze can defer them, so messages may arrive late while the app is
+     * closed; explain why, then ask with {@link requestExactAlarms} or
+     * {@link requestIgnoreBatteryOptimizations}. Null elsewhere.
+     */
+    async backgroundStatus(): Promise<PushBackgroundStatus | null> {
+        const json = await this.native?.backgroundStatus();
+        return json ? (JSON.parse(json) as PushBackgroundStatus) : null;
+    }
+
+    /**
+     * Android 12+: open the system screen where the user allows exact alarms, for punctual
+     * background wake-ups. Call it from a user action, never on its own. Resolves false when
+     * there is nothing to ask: already allowed, older Android, the app does not declare
+     * `SCHEDULE_EXACT_ALARM`, or not Android.
+     */
+    async requestExactAlarms(): Promise<boolean> {
+        return (await this.native?.requestExactAlarms()) ?? false;
+    }
+
+    /**
+     * Android: ask the user to exempt the app from battery optimisation. Call it from a user
+     * action. Resolves false when there is nothing to ask: already exempt, the app does not
+     * declare `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, or not Android.
+     */
+    async requestIgnoreBatteryOptimizations(): Promise<boolean> {
+        return (
+            (await this.native?.requestIgnoreBatteryOptimizations()) ?? false
+        );
     }
 
     /**
@@ -515,6 +586,7 @@ export class Push extends Service {
                     callback,
                     background,
                     title: options.title,
+                    notifyInForeground: options.notifyInForeground ?? false,
                     qos,
                 });
                 return id;
@@ -566,6 +638,7 @@ export class Push extends Service {
                 callback,
                 background,
                 title: options.title,
+                notifyInForeground: options.notifyInForeground ?? false,
                 qos,
             });
             acks.push(
@@ -695,6 +768,9 @@ export class Push extends Service {
             if (next.title !== undefined) {
                 entry.title = next.title;
             }
+            if (next.notifyInForeground !== undefined) {
+                entry.notifyInForeground = next.notifyInForeground;
+            }
             if (next.retry !== undefined) {
                 const q: 0 | 1 = next.retry ? 1 : 0;
                 if (q !== entry.qos) {
@@ -748,6 +824,9 @@ export class Push extends Service {
             }
             if (next.title !== undefined) {
                 entry.title = next.title;
+            }
+            if (next.notifyInForeground !== undefined) {
+                entry.notifyInForeground = next.notifyInForeground;
             }
             if (next.retry !== undefined) {
                 entry.qos = next.retry ? 1 : 0;
@@ -886,6 +965,7 @@ export class Push extends Service {
             background: sub.background,
             title: sub.title ?? null,
             retry: sub.qos === 1,
+            notifyInForeground: sub.notifyInForeground,
         }));
     }
 
@@ -1198,6 +1278,18 @@ export class Push extends Service {
         this.cookieSession = await sessionCookie(endpoint, project);
     }
 
+    /** The credential the connection would use, or null when there is none. */
+    private currentCredential(): {
+        authMethod: AuthMethod;
+        credential: string;
+    } | null {
+        try {
+            return this.credential();
+        } catch {
+            return null;
+        }
+    }
+
     /** The credential set on the client (via Client.setJWT / setSession). */
     private credential(): { authMethod: AuthMethod; credential: string } {
         if (this.client.config.jwt) {
@@ -1425,12 +1517,19 @@ export class Push extends Service {
         };
         const serverTitle = notificationContent(message).title;
         let postedServerTitle = false;
+        // While the app is on screen it shows the message itself: only subscriptions that
+        // opted in with notifyInForeground also post a notification then.
+        const foreground = AppState.currentState === 'active';
         for (const sub of this.subscriptions.values()) {
             if (matches(sub.topic, message.topic)) {
                 await sub.callback(message);
                 // Notification is per-subscription: only subs that opted in post one, each
                 // with its own title. A title the server sent replaces theirs, so it posts once.
-                if (sub.background && !postedServerTitle) {
+                if (
+                    sub.background &&
+                    (!foreground || sub.notifyInForeground) &&
+                    !postedServerTitle
+                ) {
                     postedServerTitle = serverTitle !== undefined;
                     await this.notify(
                         message,
@@ -1450,7 +1549,15 @@ interface NativePush {
     stop(): Promise<void>;
     setForeground(enabled: boolean): Promise<void>;
     hasSaved(): Promise<boolean>;
-    resume(): Promise<void>;
+    resume(
+        authMethod: string | null,
+        credential: string | null,
+        signedOutWhenMissing: boolean,
+    ): Promise<void>;
+    /** {@link PushBackgroundStatus} as JSON. */
+    backgroundStatus(): Promise<string>;
+    requestExactAlarms(): Promise<boolean>;
+    requestIgnoreBatteryOptimizations(): Promise<boolean>;
     setErrorCallback(registered: boolean): Promise<string | null>;
     defaultClientId(authMethod: string, credential: string): Promise<string>;
     /** The tapped notification that launched the app, as {@link NativeOpened} JSON. */
