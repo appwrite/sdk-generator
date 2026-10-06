@@ -444,8 +444,14 @@ class PushIO implements Push {
     }
     if (!_notificationPermissionRequested &&
         _nativeHosts.any((push) => push._backgroundWanted)) {
+      // Counted as asked only once an Activity was there to ask from.
       _notificationPermissionRequested = true;
-      unawaited(native.requestNotificationPermission().catchError((_) {}));
+      unawaited(
+        native
+            .requestNotificationPermission()
+            .then((asked) => _notificationPermissionRequested = asked)
+            .catchError((_) => _notificationPermissionRequested = false),
+      );
     }
     final (authMethod, credential) = _credential();
     final config = {

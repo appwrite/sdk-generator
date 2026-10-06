@@ -97,7 +97,7 @@ class {{ spec.info.title | caseUcfirst }}PushPlugin :
             }
             result.success(
                 when (call.method) {
-                    "requestNotificationPermission" -> requestNotificationPermission().let { null }
+                    "requestNotificationPermission" -> requestNotificationPermission()
                     "ack" -> bridge.ack(call.argument<String>("token")!!).let { null }
                     "release" -> bridge.release().let { null }
                     "stop" -> bridge.stop().let { null }
@@ -123,15 +123,16 @@ class {{ spec.info.title | caseUcfirst }}PushPlugin :
     }
 
     // Android 13+: ask for POST_NOTIFICATIONS, which background notifications are posted with.
-    // Skipped while no Activity is attached.
-    private fun requestNotificationPermission() {
-        val activity = activity ?: return
+    // Returns false when it could not ask because no Activity is attached, so the caller asks again.
+    private fun requestNotificationPermission(): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            return
+            return true
         }
+        val activity = activity ?: return false
         if (ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.POST_NOTIFICATIONS), PERMISSION_REQUEST_CODE)
         }
+        return true
     }
 
     // The bridge calls back on background threads; event sinks must be used on the main thread.

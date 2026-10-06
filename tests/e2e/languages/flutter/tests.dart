@@ -847,6 +847,8 @@ class FakePushPlugin implements BinaryMessenger {
         return codec.encodeSuccessEnvelope(false);
       case 'defaultClientId':
         return codec.encodeSuccessEnvelope('e2e-session-user-install');
+      case 'requestNotificationPermission':
+        return codec.encodeSuccessEnvelope(true);
       default:
         return codec.encodeSuccessEnvelope(null);
     }
