@@ -85,18 +85,25 @@ app every 15 to 60 seconds to reconnect, and the broker replays what was sent in
 (`retry = true`). It reconnects with the credential saved at subscribe time, so use a session
 (`client.setSession(...)`), not a short-lived JWT.
 
-When no in-app callback is listening, each message is posted as a notification that opens
+While the app is not on screen, each message is also posted as a notification that opens
 your launch activity with `Push.EXTRA_TOPIC` and `Push.EXTRA_PAYLOAD` in its extras. It shows the
 title, body and image sent with `createPush`, falling back to the subscription's `title` and the
 raw payload for other messages. On Android 13 and later it needs the `POST_NOTIFICATIONS`
 permission: call `Push.requestNotificationPermission(activity)` before subscribing. Set its
 icon with `<meta-data android:name="{{ sdk.namespace | caseDot }}.push.notification_icon" android:resource="@drawable/..." />`
-in your `<application>`. To handle these messages in code, subclass `PushReceiver` and declare
+in your `<application>`. While the app is on screen your callback shows the message, so no
+notification is posted unless the subscription passes `notifyInForeground = true`. To handle
+messages that arrive while no callback is listening in code, subclass `PushReceiver` and declare
 it with the `{{ sdk.namespace | caseDot }}.push.MESSAGE` action (see its docs).
 
 Doze delays the scheduled runs. They are more punctual when your app may schedule exact
 alarms (`SCHEDULE_EXACT_ALARM`) or is exempt from battery optimisation; both are your app's
-choice and subject to Google Play policy, and the SDK uses them when granted. For immediate delivery even after a kill and
+choice and subject to Google Play policy, and the SDK uses them when granted. Check what delivery
+can rely on with `Push.backgroundStatus(context)`: when `bestEffort` is true, messages can arrive
+late while the app is closed. Explain why to the user, then ask from a user action with
+`Push.requestExactAlarms(context)` or `Push.requestIgnoreBatteryOptimizations(context)`, which
+return false when there is nothing to ask (including when your manifest does not declare the
+permission). The SDK never opens these screens on its own. For immediate delivery even after a kill and
 during Doze, call `push.setForeground(true)` from the foreground: it adds a foreground service
 with a quiet ongoing notification. If you never enable it, you can remove the service from
 your merged manifest, so the Play Console does not ask you to declare it:

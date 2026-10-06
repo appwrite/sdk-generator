@@ -50,6 +50,24 @@ data class PushMessage(
         get() = String(payload, Charsets.UTF_8)
 }
 
+/**
+ * What background delivery can rely on. Without exact alarms, the scheduled wake-ups are inexact
+ * and Doze can defer them, so delivery is [bestEffort] unless foreground mode keeps the
+ * connection open.
+ */
+data class PushBackgroundStatus(
+    /** The app may schedule exact alarms (`SCHEDULE_EXACT_ALARM`, granted). */
+    val exactAlarms: Boolean,
+    /** The app is exempt from battery optimisation. */
+    val ignoringBatteryOptimizations: Boolean,
+    /** Foreground mode (`setForeground(true)`) keeps the connection open in a service. */
+    val foregroundService: Boolean,
+) {
+    /** Wake-ups may be deferred by Doze, so messages can arrive late while the app is closed. */
+    val bestEffort: Boolean
+        get() = !exactAlarms && !foregroundService
+}
+
 /** Connection parameters shared between the in-process client and the foreground service. */
 internal data class PushConfig(
     val host: String,
@@ -354,6 +372,8 @@ internal class PushListener(
     // Called instead of [callback] when set, with the acknowledgement to run once the message was
     // handled: the React Native and Flutter bridges acknowledge after their callback has run.
     val acknowledgingCallback: ((PushMessage, () -> Unit) -> Unit)? = null,
+    // Also post a background notification while the app is visible.
+    val notifyInForeground: Boolean = false,
 )
 
 /** MQTT topic-filter match with '+' (single level) and '#' (multi level). */

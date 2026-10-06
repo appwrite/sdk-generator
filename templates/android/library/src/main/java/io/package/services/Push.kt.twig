@@ -32,19 +32,19 @@ private const val LOG_TAG = "{{ spec.info.title | caseUcfirst }}Push"
  */
 class PushSubscription internal constructor(
     private val unsubscribeAction: () -> Unit,
-    private val updateAction: (Boolean?, String?, Boolean?) -> Unit,
+    private val updateAction: (Boolean?, String?, Boolean?, Boolean?) -> Unit,
 ) {
     /** Drop this subscription. Closes the connection once the last one is gone. */
     fun unsubscribe() = unsubscribeAction()
 
     /**
-     * Live-update this subscription's background delivery, notification title and/or
-     * `retry` (QoS). Only the arguments you pass change; the rest stay as they
+     * Live-update this subscription's background delivery, notification title, `retry` (QoS)
+     * and/or `notifyInForeground`. Only the arguments you pass change; the rest stay as they
      * were. Changing `retry` re-subscribes this subscription's topics at the new QoS.
      */
     @JvmOverloads
-    fun update(background: Boolean? = null, title: String? = null, retry: Boolean? = null) =
-        updateAction(background, title, retry)
+    fun update(background: Boolean? = null, title: String? = null, retry: Boolean? = null, notifyInForeground: Boolean? = null) =
+        updateAction(background, title, retry, notifyInForeground)
 }
 
 /**
@@ -153,8 +153,10 @@ class Push(
     private val appContext: Context = context.applicationContext
 
     init {
-        // Resume saved background delivery now, instead of at the next scheduled run.
-        PushBackground.resume(appContext)
+        // Resume saved background delivery now, instead of at the next scheduled run, with the
+        // credential set on the client: a rotated session of the same user replaces the saved one.
+        val auth = runCatching { resolvePushAuth(client) }.getOrNull()
+        PushBackground.resume(appContext, auth?.first, auth?.second)
     }
 
     private var onOpen: (() -> Unit)? = null
@@ -167,6 +169,7 @@ class Push(
         var background: Boolean,
         var title: String?,
         var retry: Boolean,
+        var notifyInForeground: Boolean,
     ) {
         @Volatile
         var client: Mqtt5AsyncClient? = null
@@ -244,10 +247,11 @@ class Push(
         background: Boolean = true,
         title: String? = null,
         retry: Boolean = true,
+        notifyInForeground: Boolean = false,
         callback: (PushMessage) -> Unit,
     ): PushSubscription {
         val userId = reporting { resolvePushUserId(client) }
-        return subscribe(Topic.path(listOf("users", userId)), background, title, retry, callback)
+        return subscribe(Topic.path(listOf("users", userId)), background, title, retry, notifyInForeground, callback)
     }
 
     /**
@@ -262,9 +266,10 @@ class Push(
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
+        notifyInForeground: Boolean = false,
         callback: (PushMessage) -> Unit,
     ): PushSubscription =
-        subscribe(listOf(topic), background, title, retry, callback)
+        subscribe(listOf(topic), background, title, retry, notifyInForeground, callback)
 
     /**
      * Subscribe to a single topic built with [{{ sdk.namespace | caseDot }}.Topic], e.g.
@@ -277,9 +282,10 @@ class Push(
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
+        notifyInForeground: Boolean = false,
         callback: (PushMessage) -> Unit,
     ): PushSubscription =
-        subscribe(listOf(topic.toString()), background, title, retry, callback)
+        subscribe(listOf(topic.toString()), background, title, retry, notifyInForeground, callback)
 
     /**
      * Subscribe to a single topic ended with `all()`, e.g.
@@ -292,9 +298,10 @@ class Push(
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
+        notifyInForeground: Boolean = false,
         callback: (PushMessage) -> Unit,
     ): PushSubscription =
-        subscribe(listOf(topic.toString()), background, title, retry, callback)
+        subscribe(listOf(topic.toString()), background, title, retry, notifyInForeground, callback)
 
     /**
      * Subscribe to a list mixing raw strings and topics built with [{{ sdk.namespace | caseDot }}.Topic], e.g.
@@ -310,6 +317,7 @@ class Push(
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
+        notifyInForeground: Boolean = false,
         callback: (PushMessage) -> Unit,
     ): PushSubscription {
         val filters = topics.mapIndexed { index, topic ->
@@ -318,7 +326,7 @@ class Push(
             }
             topic.toString()
         }
-        return subscribe(filters, background, title, retry, callback)
+        return subscribe(filters, background, title, retry, notifyInForeground, callback)
     }
 
     /**
@@ -334,7 +342,8 @@ class Push(
      *
      * Set [background] to keep receiving while the app is backgrounded or closed, also after the
      * process is killed or the device restarts, and post a notification per matching message
-     * with [title] (defaulting to the message topic); see the class docs. [retry] chooses this
+     * with [title] (defaulting to the message topic) while the app is not on screen; set
+     * [notifyInForeground] to also post one while it is. See the class docs. [retry] chooses this
      * subscription's QoS
      * (`true` -> QoS 1 default, `false` -> QoS 0). Toggle any of these later with
      * [PushSubscription.update].
@@ -351,13 +360,14 @@ class Push(
         background: Boolean = false,
         title: String? = null,
         retry: Boolean = true,
+        notifyInForeground: Boolean = false,
         callback: (PushMessage) -> Unit,
     ): PushSubscription = reporting {
         val ids = mutableListOf<String>()
         for (topic in topics) {
             val id = UUID.randomUUID().toString()
             ids.add(id)
-            subscriptions[id] = Sub(topic, callback, background, title, retry)
+            subscriptions[id] = Sub(topic, callback, background, title, retry, notifyInForeground)
         }
 
         // If any SUBSCRIBE fails, roll this call's registrations back and return to a
@@ -382,7 +392,7 @@ class Push(
 
         PushSubscription(
             { reporting { unsubscribeIds(ids) } },
-            { bg, t, rd -> reporting { updateIds(ids, bg, t, rd) } },
+            { bg, t, rd, nf -> reporting { updateIds(ids, bg, t, rd, nf) } },
         )
     }
 
@@ -563,7 +573,7 @@ class Push(
         }
     }
 
-    private fun updateIds(ids: List<String>, background: Boolean?, title: String?, retry: Boolean?) {
+    private fun updateIds(ids: List<String>, background: Boolean?, title: String?, retry: Boolean?, notifyInForeground: Boolean?) {
         val changedFilters = mutableSetOf<String>()
         for (id in ids) {
             val sub = subscriptions[id] ?: continue
@@ -572,6 +582,9 @@ class Push(
             }
             if (title != null) {
                 sub.title = title
+            }
+            if (notifyInForeground != null) {
+                sub.notifyInForeground = notifyInForeground
             }
             if (retry != null && retry != sub.retry) {
                 sub.retry = retry
@@ -597,7 +610,9 @@ class Push(
         subscriptions.values.any { it.background } || PushBackground.hasSaved(appContext)
 
     private fun currentListeners(): List<PushListener> =
-        subscriptions.values.map { PushListener(setOf(it.filter), it.callback, it.background, it.title, it.retry) }
+        subscriptions.values.map {
+            PushListener(setOf(it.filter), it.callback, it.background, it.title, it.retry, notifyInForeground = it.notifyInForeground)
+        }
 
     /**
      * Tear down the connection and drop all subscriptions, including the background ones saved
@@ -706,6 +721,32 @@ class Push(
 
         /** The notification tap intent's extra holding the message payload as a string. */
         const val EXTRA_PAYLOAD = PushBackground.EXTRA_PAYLOAD
+
+        /**
+         * What background delivery can rely on: exact alarms, battery-optimisation exemption and
+         * foreground mode. When [PushBackgroundStatus.bestEffort] is true, wake-ups are inexact and
+         * messages can arrive late while the app is closed; explain why before asking with
+         * [requestExactAlarms] or [requestIgnoreBatteryOptimizations].
+         */
+        @JvmStatic
+        fun backgroundStatus(context: Context): PushBackgroundStatus = PushBackground.backgroundStatus(context)
+
+        /**
+         * Open the system screen where the user allows exact alarms (Android 12+), for punctual
+         * background wake-ups. Call it from a user action. Returns false when there is nothing to
+         * ask: already allowed, older Android, or the app does not declare `SCHEDULE_EXACT_ALARM`.
+         */
+        @JvmStatic
+        fun requestExactAlarms(context: Context): Boolean = PushBackground.requestExactAlarms(context)
+
+        /**
+         * Ask the user to exempt the app from battery optimisation. Call it from a user action.
+         * Returns false when there is nothing to ask: already exempt, or the app does not declare
+         * `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`.
+         */
+        @JvmStatic
+        fun requestIgnoreBatteryOptimizations(context: Context): Boolean =
+            PushBackground.requestIgnoreBatteryOptimizations(context)
 
         /**
          * Request the `POST_NOTIFICATIONS` runtime permission (Android 13+). Call from an
