@@ -135,6 +135,7 @@ internal fun buildPushClient(
     onError: ((Throwable) -> Unit)? = null,
     onAuthRefused: ((Throwable) -> Unit)? = null,
     credential: () -> String? = { config.credential },
+    retired: AtomicBoolean? = null,
 ): Mqtt5AsyncClient {
     // config.clientId is stable per user (see buildConfig), so a reconnect rebuild reuses it
     // and resumes the same session.
@@ -160,6 +161,12 @@ internal fun buildPushClient(
         onConnected?.invoke()
     }
     builder = builder.addDisconnectedListener { context ->
+        // A client its owner replaced or closed ([retired]) never reconnects: one still retrying
+        // in the background would otherwise come back as a second connection for the same id.
+        if (retired?.get() == true) {
+            context.reconnector.reconnect(false)
+            return@addDisconnectedListener
+        }
         // A refused first CONNECT (bad credential, rate limit) is final: stop the automatic
         // reconnect so pushConnect fails with the broker's reason instead of retrying forever.
         val refused = !connected.get() && context.cause is Mqtt5ConnAckException

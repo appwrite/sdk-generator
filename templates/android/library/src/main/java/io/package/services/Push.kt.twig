@@ -19,6 +19,7 @@ import java.net.URI
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 private const val LOG_TAG = "{{ spec.info.title | caseUcfirst }}Push"
 
@@ -131,6 +132,9 @@ class Push(
     // Read on the MQTT client's threads to tell a closed/replaced client's failures apart.
     @Volatile
     private var mqtt: Mqtt5AsyncClient? = null
+
+    // Set when [mqtt] is replaced or closed, so that client never reconnects in the background.
+    private var mqttRetired: AtomicBoolean? = null
 
     private var connectedConfig: PushConfig? = null
     private val connectLock = Any()
@@ -473,13 +477,19 @@ class Push(
         }
     }
 
+    // Close the in-process client for good: retired first, so one still reconnecting in the
+    // background does not come back as a second connection for the same client id.
+    private fun dropClient() {
+        mqttRetired?.set(true)
+        mqttRetired = null
+        mqtt?.disconnect()
+        mqtt = null
+    }
+
     // Relocate the connection into the background host and sync it with the current
     // subscription set (filters, per-sub callbacks/titles), saving the background ones.
     private fun hostInBackground() {
-        if (mqtt != null) {
-            mqtt?.disconnect()
-            mqtt = null
-        }
+        dropClient()
         subscriptions.values.forEach { it.client = null }
         PushBackground.errorHandler = { deliverBackgroundError(it) }
         PushBackground.host(appContext, buildConfig(), currentListeners())
@@ -619,8 +629,7 @@ class Push(
      * by an earlier run, and stop background delivery. Call it on sign-out.
      */
     fun close() {
-        mqtt?.disconnect()
-        mqtt = null
+        dropClient()
         subscriptions.clear()
         backgroundActive = false
         PushBackground.stop(appContext)
@@ -629,8 +638,7 @@ class Push(
     // The last live subscription is gone: close the connection, keeping any background
     // subscriptions saved by an earlier run.
     private fun releaseAll() {
-        mqtt?.disconnect()
-        mqtt = null
+        dropClient()
         subscriptions.clear()
         if (backgroundActive) {
             backgroundActive = false
@@ -648,25 +656,28 @@ class Push(
                 return existing
             }
             connectionEpoch++
-            existing.disconnect()
-            mqtt = null
+            dropClient()
         }
 
         // The listeners surface the lifecycle to onOpen/onClose and every connection error to
         // onError, except a refused initial CONNECT: pushConnect throws that one, and the
         // failing call reports it.
+        val retired = AtomicBoolean(false)
         val client = buildPushClient(
             config,
             onConnected = { onOpen?.invoke() },
             onDisconnected = { onClose?.invoke() },
             onError = { reportAsync(it) },
+            retired = retired,
         )
         mqtt = client
+        mqttRetired = retired
         connectedConfig = config
 
         try {
             client.pushConnect(config)
         } catch (e: Exception) {
+            retired.set(true)
             client.disconnect()
             if (mqtt === client) {
                 mqtt = null
