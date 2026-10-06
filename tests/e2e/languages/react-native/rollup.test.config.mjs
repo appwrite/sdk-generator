@@ -22,7 +22,8 @@ export default {
             entries: [
                 { find: 'react-native', replacement: 'react-native-web' },
                 {
-                    find: 'expo-file-system',
+                    // The SDK imports the legacy API from 'expo-file-system/legacy'.
+                    find: /^expo-file-system(\/legacy)?$/,
                     replacement: path.resolve(__dirname, 'shims/expo-file-system.js'),
                 },
             ],
