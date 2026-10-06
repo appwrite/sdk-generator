@@ -105,8 +105,9 @@ internal object PushBackground {
     const val EXTRA_PAYLOAD = "{{ pushNamespace }}.push.PAYLOAD"
 
     private const val SERVICE_CHANNEL_ID = "{{ spec.info.title | caseLower }}-push-service"
-    private const val JOB_ID = 0x50555348
-    private const val NEXT_JOB_ID = 0x5055534A
+    const val JOB_ID = 0x50555348
+    const val NEXT_JOB_ID = 0x5055534A
+    const val EXPEDITED_JOB_ID = 0x5055534B
     const val WATCHDOG_JOB_ID = 0x50555349
     private const val WATCHDOG_INTERVAL_MS = 15 * 60 * 1_000L
     private const val INTERVAL_MS = 15_000L
@@ -128,6 +129,13 @@ internal object PushBackground {
     private const val HEARTBEAT_RESET_MS = 3 * 24 * 60 * 60 * 1_000L
     private const val REQUEST_TIMEOUT_SECONDS = 10L
     private const val IMAGE_TIMEOUT_MS = 5_000
+
+    // How long a scheduled run stays up after connecting so the broker can replay what was missed:
+    // until nothing arrived for DRAIN_QUIET_MS and nothing is being delivered, at most the run's cap.
+    const val JOB_DRAIN_MS = 15_000L
+    const val RECEIVER_DRAIN_MS = 5_000L
+    private const val DRAIN_QUIET_MS = 2_000L
+    private const val DRAIN_POLL_MS = 200L
     private const val IMAGE_MAX_BYTES = 5 * 1024 * 1024
     private const val IMAGE_MAX_PX = 1_024
     private const val CONNECT_TIMEOUT_SECONDS = 20L
@@ -181,6 +189,12 @@ internal object PushBackground {
 
     // Set when [mqtt] is replaced or closed, so that client stops reconnecting and delivering.
     private var mqttRetired: AtomicBoolean? = null
+
+    // Messages being delivered, and when one last arrived or finished, for a run's drain window.
+    private val delivering = AtomicInteger(0)
+
+    @Volatile
+    private var lastDelivery = 0L
     private var connectedConfig: PushConfig? = null
     private var connectedNetwork: Network? = null
     private var lastHeartbeat = 0L
@@ -386,9 +400,11 @@ internal object PushBackground {
      * re-arm the next run, and call [done] once finished. Shuts down when nothing is saved.
      *
      * A run of a chained job ([jobId]) arms the next run under the other chained id: scheduling the
-     * id that is running would stop the run in progress.
+     * id that is running would stop the run in progress. With [drainMs], the run stays up after
+     * connecting while the broker replays what was missed (at most that long), so a process woken
+     * from the background is not cached and frozen before the messages are delivered.
      */
-    fun tick(context: Context, jobId: Int? = null, done: () -> Unit) {
+    fun tick(context: Context, jobId: Int? = null, drainMs: Long = 0, done: () -> Unit) {
         val app = context.applicationContext
         val wakeLock = acquireWakeLock(app)
         worker.execute {
@@ -407,6 +423,9 @@ internal object PushBackground {
                     ensureService(app)
                     registerNetworkCallback(app)
                     converge(app, heartbeat = true)
+                    if (drainMs > 0 && mqtt != null) {
+                        awaitDeliveries(drainMs)
+                    }
                 } else {
                     shutdown(app)
                 }
@@ -416,6 +435,43 @@ internal object PushBackground {
                 releaseWakeLock(wakeLock)
                 done()
             }
+        }
+    }
+
+    // Worker thread only. Wait until no message arrived for DRAIN_QUIET_MS and none is being
+    // delivered, at most [maxMs].
+    private fun awaitDeliveries(maxMs: Long) {
+        val start = SystemClock.elapsedRealtime()
+        if (lastDelivery < start) {
+            lastDelivery = start
+        }
+        while (SystemClock.elapsedRealtime() - start < maxMs) {
+            if (delivering.get() == 0 && SystemClock.elapsedRealtime() - lastDelivery >= DRAIN_QUIET_MS) {
+                return
+            }
+            Thread.sleep(DRAIN_POLL_MS)
+        }
+    }
+
+    /**
+     * Android 12+: hand a run to an expedited job, which starts at once with network access and
+     * keeps the process runnable until it finishes. A broadcast receiver woken in a cached process
+     * runs at background priority and can be frozen before it connects. Returns false when the
+     * job cannot be scheduled (older Android, or the expedited quota is used up), so the caller
+     * runs the tick itself.
+     */
+    fun runExpedited(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return false
+        }
+        return try {
+            val job = JobInfo.Builder(EXPEDITED_JOB_ID, ComponentName(context, PushJobService::class.java))
+                .setExpedited(true)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                .build()
+            context.getSystemService(JobScheduler::class.java)?.schedule(job) == JobScheduler.RESULT_SUCCESS
+        } catch (e: Exception) {
+            false
         }
     }
 
@@ -750,6 +806,17 @@ internal object PushBackground {
     // Deliver a message, then acknowledge it: right away, or once every listener that acknowledges
     // messages itself has done so (at most ACK_TIMEOUT_SECONDS later).
     private fun deliver(context: Context, publish: Mqtt5Publish) {
+        delivering.incrementAndGet()
+        lastDelivery = SystemClock.elapsedRealtime()
+        try {
+            deliverAcknowledged(context, publish)
+        } finally {
+            lastDelivery = SystemClock.elapsedRealtime()
+            delivering.decrementAndGet()
+        }
+    }
+
+    private fun deliverAcknowledged(context: Context, publish: Mqtt5Publish) {
         val acknowledged = AtomicBoolean(false)
         val acknowledge = {
             if (acknowledged.compareAndSet(false, true)) {
@@ -1072,6 +1139,7 @@ internal object PushBackground {
     private fun cancelSchedule(context: Context) {
         context.getSystemService(JobScheduler::class.java)?.cancel(JOB_ID)
         context.getSystemService(JobScheduler::class.java)?.cancel(NEXT_JOB_ID)
+        context.getSystemService(JobScheduler::class.java)?.cancel(EXPEDITED_JOB_ID)
         context.getSystemService(JobScheduler::class.java)?.cancel(WATCHDOG_JOB_ID)
         context.getSystemService(AlarmManager::class.java)?.cancel(tickIntent(context))
     }
