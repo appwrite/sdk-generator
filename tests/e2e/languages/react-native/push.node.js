@@ -225,6 +225,23 @@ async function main() {
             : `Push close while connecting:failed (${closedOutcome})`,
     );
 
+    const quickPush = new Push(new Client().setProject('console').setPushEndpoint(ENDPOINT).setSession(e2eSession));
+    let quickOpened = false;
+    quickPush.onOpen(() => (quickOpened = true));
+    const quickOutcome = quickPush.subscribe(['e2e-switch'], () => {}).then(
+        () => '',
+        (e) => (e instanceof Error ? e.message : String(e)),
+    );
+    quickPush.close();
+    const quickClosed = await Promise.race([quickOutcome, timeout(5000, 'timeout')]);
+    await timeout(200);
+    console.log(
+        quickClosed === 'Push was closed before the subscription was established' && !quickOpened
+            ? 'Push close right after subscribe:passed'
+            : `Push close right after subscribe:failed (${quickClosed}, opened: ${quickOpened})`,
+    );
+    quickPush.close();
+
     // mqtt.js keepalive timers would otherwise hold the event loop open.
     process.exit(0);
 }

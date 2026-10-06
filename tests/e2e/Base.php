@@ -210,6 +210,10 @@ abstract class Base extends TestCase
         'Push close while connecting:passed',
     ];
 
+    protected const PUSH_CLOSE_RIGHT_AFTER_SUBSCRIBE_RESPONSES = [
+        'Push close right after subscribe:passed',
+    ];
+
     protected const PUSH_CLOSE_FROM_CALLBACK_RESPONSES = [
         'Push close from callback:passed',
     ];

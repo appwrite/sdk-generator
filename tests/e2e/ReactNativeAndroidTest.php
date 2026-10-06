@@ -71,6 +71,7 @@ final class ReactNativeAndroidTest extends Base
         ...Base::PUSH_ERROR_RESPONSES,
         ...Base::PUSH_NATIVE_DISPLACED_RESPONSES,
         ...Base::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,
+        ...Base::PUSH_CLOSE_RIGHT_AFTER_SUBSCRIBE_RESPONSES,
         ...Base::PUSH_BACKGROUND_RESPONSES,
         ...Base::PUSH_NATIVE_SESSION_COOKIE_RESPONSES,
     ];
