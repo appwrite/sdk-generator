@@ -338,11 +338,24 @@ internal object PushBackground {
 
     // The credential to send for a connection made with [connected]: the session re-read from the
     // cookie store when one backs it (so an automatic reconnect uses a rotated session), else the
-    // saved one. A credential for another auth method cannot be sent on this connection.
-    private fun currentCredential(context: Context, connected: PushConfig): String {
-        refreshCredential(context)
+    // one it connected with. Only a newer credential of the same user, for the same connection
+    // (broker, client id, project), is borrowed: a connection being replaced by [host] keeps its
+    // own. Null when the app signed out or another user signed in: authentication is aborted and
+    // delivery stops.
+    private fun currentCredential(context: Context, connected: PushConfig): String? {
+        if (refreshCredential(context) == CredentialRefresh.GONE) {
+            worker.execute { stop(context) }
+            return null
+        }
         val current = synchronized(lock) { config } ?: return connected.credential
-        return if (current.authMethod == connected.authMethod) current.credential else connected.credential
+        val sameConnection = current.host == connected.host && current.port == connected.port &&
+            current.clientId == connected.clientId && current.project == connected.project &&
+            current.authMethod == connected.authMethod
+        return if (sameConnection && sameUser(connected.authMethod, connected.credential, current.authMethod, current.credential)) {
+            current.credential
+        } else {
+            connected.credential
+        }
     }
 
     // The `a_session_<project>` cookie for [url] in the WebView cookie store, decoded; "" when there
