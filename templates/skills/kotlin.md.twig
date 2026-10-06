@@ -570,9 +570,9 @@ import io.{{ spec.info.title | caseLower }}.enums.TablesDBIndexType
 import io.{{ spec.info.title | caseLower }}.models.Membership
 import io.{{ spec.info.title | caseLower }}.services.Teams
 
-val tablesDB = TablesDB(adminClient) // API key client
+val adminTablesDB = TablesDB(adminClient) // API key client
 
-tablesDB.createTable(
+adminTablesDB.createTable(
     databaseId = "[DATABASE_ID]",
     tableId = "invoices",
     name = "Invoices",
@@ -586,7 +586,7 @@ tablesDB.createTable(
 )
 
 // Index tenantId so per-tenant filters stay fast (the column must be available first)
-tablesDB.createIndex(
+adminTablesDB.createIndex(
     databaseId = "[DATABASE_ID]",
     tableId = "invoices",
     key = "tenant_idx",
@@ -684,6 +684,9 @@ Deleting a membership revokes access at once: the user stops matching every `Rol
 ### Write and Read Tenant Data
 
 ```kotlin
+// Android client, or a per-request session or JWT client on the server, so permissions apply
+val tablesDB = TablesDB(client)
+
 // Tag every row with its tenant and grant access through the tenant's team
 tablesDB.createRow(
     databaseId = "[DATABASE_ID]",
@@ -752,7 +755,7 @@ suspend fun requireTenantRole(tenantId: String, userId: String, role: String? = 
 Deleting a team removes its memberships, not the rows and files that grant it access, and a team created later with the same ID would inherit them. Delete tenant data first, server-side, in every tenant table and bucket:
 
 ```kotlin
-tablesDB.deleteRows(
+adminTablesDB.deleteRows(
     databaseId = "[DATABASE_ID]",
     tableId = "invoices",
     queries = listOf(Query.equal("tenantId", "[TENANT_ID]"))

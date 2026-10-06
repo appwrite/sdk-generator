@@ -503,9 +503,9 @@ import {{ spec.info.title }}
 import {{ spec.info.title }}Enums
 import {{ spec.info.title }}Models
 
-let tablesDB = TablesDB(adminClient) // API key client
+let adminTablesDB = TablesDB(adminClient) // API key client
 
-try await tablesDB.createTable(
+try await adminTablesDB.createTable(
     databaseId: "[DATABASE_ID]",
     tableId: "invoices",
     name: "Invoices",
@@ -519,7 +519,7 @@ try await tablesDB.createTable(
 )
 
 // Index tenantId so per-tenant filters stay fast (the column must be available first)
-try await tablesDB.createIndex(
+try await adminTablesDB.createIndex(
     databaseId: "[DATABASE_ID]",
     tableId: "invoices",
     key: "tenant_idx",
@@ -620,6 +620,9 @@ Deleting a membership revokes access at once: the user stops matching every `Rol
 ### Write and Read Tenant Data
 
 ```swift
+// Apple client, or a per-request session or JWT client on the server, so permissions apply
+let tablesDB = TablesDB(client)
+
 // Tag every row with its tenant and grant access through the tenant's team
 try await tablesDB.createRow(
     databaseId: "[DATABASE_ID]",
@@ -691,7 +694,7 @@ func requireTenantRole(_ tenantId: String, _ userId: String, _ role: String? = n
 Deleting a team removes its memberships, not the rows and files that grant it access, and a team created later with the same ID would inherit them. Delete tenant data first, server-side, in every tenant table and bucket:
 
 ```swift
-try await tablesDB.deleteRows(
+try await adminTablesDB.deleteRows(
     databaseId: "[DATABASE_ID]",
     tableId: "invoices",
     queries: [Query.equal("tenantId", value: "[TENANT_ID]")]

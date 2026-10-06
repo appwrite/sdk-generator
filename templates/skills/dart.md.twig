@@ -516,9 +516,9 @@ import 'package:dart_{{ spec.info.title | caseLower }}/dart_{{ spec.info.title |
 import 'package:dart_{{ spec.info.title | caseLower }}/enums.dart' as enums;
 import 'package:dart_{{ spec.info.title | caseLower }}/models.dart' as models;
 
-final tablesDB = TablesDB(adminClient); // API key client
+final adminTablesDB = TablesDB(adminClient); // API key client
 
-await tablesDB.createTable(
+await adminTablesDB.createTable(
     databaseId: '[DATABASE_ID]',
     tableId: 'invoices',
     name: 'Invoices',
@@ -532,7 +532,7 @@ await tablesDB.createTable(
 );
 
 // Index tenantId so per-tenant filters stay fast (the column must be available first)
-await tablesDB.createIndex(
+await adminTablesDB.createIndex(
     databaseId: '[DATABASE_ID]',
     tableId: 'invoices',
     key: 'tenant_idx',
@@ -630,6 +630,9 @@ Deleting a membership revokes access at once: the user stops matching every `Rol
 ### Write and Read Tenant Data
 
 ```dart
+// Flutter client, or a per-request session or JWT client on the server, so permissions apply
+final tablesDB = TablesDB(client);
+
 // Tag every row with its tenant and grant access through the tenant's team
 await tablesDB.createRow(
     databaseId: '[DATABASE_ID]',
@@ -698,7 +701,7 @@ Future<models.Membership> requireTenantRole(String tenantId, String userId, [Str
 Deleting a team removes its memberships, not the rows and files that grant it access, and a team created later with the same ID would inherit them. Delete tenant data first, server-side, in every tenant table and bucket:
 
 ```dart
-await tablesDB.deleteRows(
+await adminTablesDB.deleteRows(
     databaseId: '[DATABASE_ID]',
     tableId: 'invoices',
     queries: [Query.equal('tenantId', '[TENANT_ID]')],

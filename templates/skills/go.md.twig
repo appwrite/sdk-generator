@@ -1,5 +1,7 @@
 {% set lang = 'go' %}
 {% set langName = 'Go' %}
+{# Go needs the major-version suffix in the module path; update it with each sdk-for-go major release #}
+{% set goModule %}github.com/{{ sdk.gitUserName }}/sdk-for-go/v6{% endset %}
 {% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Go applications with {{ spec.info.title }}. Covers user management, database/table CRUD, file storage, and functions via API keys. Uses per-service packages and functional options pattern. Also covers multi-tenant apps with Teams (tenant isolation, invites, memberships).{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
@@ -8,7 +10,7 @@
 ## Installation
 
 ```bash
-go get github.com/{{ sdk.gitUserName }}/sdk-for-go
+go get {{ goModule }}
 ```
 
 ## Setting Up the Client
@@ -17,11 +19,11 @@ go get github.com/{{ sdk.gitUserName }}/sdk-for-go
 import (
     "os"
 
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/id"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/users"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/tablesdb"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/storage"
+    "{{ goModule }}/client"
+    "{{ goModule }}/id"
+    "{{ goModule }}/users"
+    "{{ goModule }}/tablesdb"
+    "{{ goModule }}/storage"
 )
 
 clt := client.New(
@@ -126,7 +128,7 @@ _, err = service.CreateTable(
 ### Query Methods
 
 ```go
-import "github.com/{{ sdk.gitUserName }}/sdk-for-go/query"
+import "{{ goModule }}/query"
 
 // Filtering
 query.Equal("field", "value")             // == (or pass slice for IN)
@@ -162,7 +164,7 @@ query.And([]string{query.GreaterThan("age", 18), query.LessThan("age", 65)})  //
 ### File Storage
 
 ```go
-import "github.com/{{ sdk.gitUserName }}/sdk-for-go/file"
+import "{{ goModule }}/file"
 
 service := storage.New(clt)
 
@@ -183,7 +185,7 @@ _, err = service.DeleteFile("[BUCKET_ID]", "[FILE_ID]")
 #### InputFile Factory Methods
 
 ```go
-import "github.com/{{ sdk.gitUserName }}/sdk-for-go/file"
+import "{{ goModule }}/file"
 
 file.NewInputFile("/path/to/file.png", "file.png")          // from filesystem path
 file.NewInputFileFromReader(reader, "file.png", size)        // from io.Reader (size required)
@@ -193,7 +195,7 @@ file.NewInputFileFromBytes(data, "file.png")                 // from []byte
 ### Teams
 
 ```go
-import "github.com/{{ sdk.gitUserName }}/sdk-for-go/teams"
+import "{{ goModule }}/teams"
 
 svc := teams.New(clt)
 
@@ -227,7 +229,7 @@ _, err = svc.Delete("[TEAM_ID]")
 ### Serverless Functions
 
 ```go
-import "github.com/{{ sdk.gitUserName }}/sdk-for-go/functions"
+import "{{ goModule }}/functions"
 
 svc := functions.New(clt)
 
@@ -281,8 +283,8 @@ SSR apps using Go frameworks (net/http, Gin, Echo, Chi, etc.) use the **server S
 
 ```go
 import (
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/account"
+    "{{ goModule }}/client"
+    "{{ goModule }}/account"
 )
 
 // Admin client (reusable)
@@ -394,7 +396,7 @@ http.HandleFunc("/oauth/success", func(w http.ResponseWriter, r *http.Request) {
 ## Error Handling
 
 ```go
-import "github.com/{{ sdk.gitUserName }}/sdk-for-go/apperr"
+import "{{ goModule }}/apperr"
 
 doc, err := service.GetRow("[DATABASE_ID]", "[TABLE_ID]", "[ROW_ID]")
 if err != nil {
@@ -423,8 +425,8 @@ Appwrite uses permission strings to control access to resources. Each permission
 
 ```go
 import (
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/permission"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/role"
+    "{{ goModule }}/permission"
+    "{{ goModule }}/role"
 )
 ```
 
@@ -488,11 +490,11 @@ Turn on row security and keep table-level permissions to `create`. Table-level p
 
 ```go
 import (
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/permission"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/query"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/role"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/tablesdb"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/teams"
+    "{{ goModule }}/permission"
+    "{{ goModule }}/query"
+    "{{ goModule }}/role"
+    "{{ goModule }}/tablesdb"
+    "{{ goModule }}/teams"
 )
 
 db := tablesdb.New(adminClient) // API key client
@@ -511,9 +513,15 @@ _, err := db.CreateTable(
         map[string]interface{}{"key": "amount", "type": "double", "required": true},
     }),
 )
+if err != nil {
+    return err
+}
 
 // Index tenantId so per-tenant filters stay fast (the column must be available first)
 _, err = db.CreateIndex("[DATABASE_ID]", "invoices", "tenant_idx", "key", []string{"tenantId"})
+if err != nil {
+    return err
+}
 ```
 
 If only server code creates rows, leave the table-level permissions empty.
@@ -526,11 +534,17 @@ With an API key, `Create` makes a team with **no members**. Add the owner yourse
 adminTeams := teams.New(adminClient)
 
 tenant, err := adminTeams.Create(id.Unique(), "Example Corp")
+if err != nil {
+    return err
+}
 _, err = adminTeams.CreateMembership(
     tenant.Id,
     []string{"owner", "admin"},
     adminTeams.WithCreateMembershipUserId("[USER_ID]"), // with an API key the user joins at once; no invite email
 )
+if err != nil {
+    return err
+}
 ```
 
 Calling `Create` through a user's session client instead makes that user the owner, and `WithCreateRoles` sets the **creator's** roles (default `owner`).
@@ -623,9 +637,9 @@ import (
     "os"
     "slices"
 
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/appwrite"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
-    "github.com/{{ sdk.gitUserName }}/sdk-for-go/models"
+    "{{ goModule }}/appwrite"
+    "{{ goModule }}/client"
+    "{{ goModule }}/models"
     "github.com/open-runtimes/types-for-go/v4/openruntimes"
 )
 
@@ -671,8 +685,14 @@ _, err := db.DeleteRows(
     "invoices",
     db.WithDeleteRowsQueries([]string{query.Equal("tenantId", "[TENANT_ID]")}),
 )
+if err != nil {
+    return err // keep the team so the cleanup can be retried
+}
 
 _, err = adminTeams.Delete("[TENANT_ID]")
+if err != nil {
+    return err
+}
 ```
 
 ### Choosing an Isolation Model

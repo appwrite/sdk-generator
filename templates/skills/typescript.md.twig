@@ -725,9 +725,9 @@ Turn on row security and keep table-level permissions to `create`. Table-level p
 ```typescript
 import { Client, TablesDB, Teams, ID, Query, Permission, Role, TablesDBIndexType } from 'node-{{ spec.info.title | caseLower }}';
 
-const tablesDB = new TablesDB(adminClient); // API key client
+const adminTablesDB = new TablesDB(adminClient); // API key client
 
-await tablesDB.createTable({
+await adminTablesDB.createTable({
     databaseId: '[DATABASE_ID]',
     tableId: 'invoices',
     name: 'Invoices',
@@ -741,7 +741,7 @@ await tablesDB.createTable({
 });
 
 // Index tenantId so per-tenant filters stay fast (the column must be available first)
-await tablesDB.createIndex({
+await adminTablesDB.createIndex({
     databaseId: '[DATABASE_ID]',
     tableId: 'invoices',
     key: 'tenant_idx',
@@ -840,6 +840,9 @@ Deleting a membership revokes access at once: the user stops matching every `Rol
 ### Write and Read Tenant Data
 
 ```typescript
+// Web or React Native client, or a per-request session or JWT client on the server, so permissions apply
+const tablesDB = new TablesDB(client);
+
 // Tag every row with its tenant and grant access through the tenant's team
 await tablesDB.createRow({
     databaseId: '[DATABASE_ID]',
@@ -911,7 +914,7 @@ async function requireTenantRole(tenantId: string, userId: string, role?: string
 Deleting a team removes its memberships, not the rows and files that grant it access, and a team created later with the same ID would inherit them. Delete tenant data first, server-side, in every tenant table and bucket:
 
 ```typescript
-await tablesDB.deleteRows({
+await adminTablesDB.deleteRows({
     databaseId: '[DATABASE_ID]',
     tableId: 'invoices',
     queries: [Query.equal('tenantId', '[TENANT_ID]')]
