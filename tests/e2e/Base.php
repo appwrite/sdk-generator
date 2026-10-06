@@ -154,6 +154,10 @@ abstract class Base extends TestCase
         'PUT:/v1/mock/tests/general/upload-generic:passed',
     ];
 
+    protected const BOUNDARY_UPLOAD_RESPONSES = [
+        'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
     protected const LARGE_FILE_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
@@ -204,6 +208,18 @@ abstract class Base extends TestCase
     protected const PUSH_CREDENTIAL_SWITCH_RESPONSES = [
         'Push credential switch:passed',
         'Push credential pending switch:passed',
+    ];
+
+    protected const PUSH_CLOSE_WHILE_CONNECTING_RESPONSES = [
+        'Push close while connecting:passed',
+    ];
+
+    protected const PUSH_CLOSE_RIGHT_AFTER_SUBSCRIBE_RESPONSES = [
+        'Push close right after subscribe:passed',
+    ];
+
+    protected const PUSH_CLOSE_FROM_CALLBACK_RESPONSES = [
+        'Push close from callback:passed',
     ];
 
     protected const WEB_PUSH_CONNECTION_RESPONSES = [

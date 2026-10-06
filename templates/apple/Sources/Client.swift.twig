@@ -491,7 +491,7 @@ open class Client {
 
         let size = (input.data as! ByteBuffer).readableBytes
 
-        if size < Client.chunkSize || T.self == String.self {
+        if size <= Client.chunkSize || T.self == String.self {
             params[paramName] = input
             return try await call(
                 method: method,

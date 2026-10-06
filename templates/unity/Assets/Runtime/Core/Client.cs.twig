@@ -801,7 +801,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 var buffer = new byte[Math.Min(size, ChunkSize)];
                 var result = new Dictionary<string, object?>();
 
-                if (size < ChunkSize || typeof(T) == typeof(string))
+                if (size <= ChunkSize || typeof(T) == typeof(string))
                 {
                     switch (input.SourceType)
                     {

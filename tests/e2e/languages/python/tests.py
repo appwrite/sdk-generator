@@ -105,6 +105,9 @@ data = open('./tests/resources/large_file.mp4', 'rb').read()
 response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4','video/mp4'))
 print(response.result)
 
+response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(bytes(5 * 1024 * 1024), 'boundary.bin', 'application/octet-stream'))
+print(response.result)
+
 response = general.upload_generic(InputFile.from_path('./tests/resources/file.png'))
 print(response.prefs.data['result'])
 

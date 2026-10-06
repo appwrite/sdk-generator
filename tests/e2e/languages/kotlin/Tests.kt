@@ -153,6 +153,13 @@ class ServiceTest {
                 writeToFile(ex.toString())
             }
 
+            try {
+                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(ByteArray(5 * 1024 * 1024), "boundary.bin", "application/octet-stream"))
+                writeToFile(mock.result)
+            } catch (ex: Exception) {
+                writeToFile(ex.toString())
+            }
+
             val profile = general.uploadGeneric(InputFile.fromPath("../../../resources/file.png"))
             writeToFile(profile.prefs.data["result"] as String)
 

@@ -402,7 +402,7 @@ class Client @JvmOverloads constructor(
             else -> throw UnsupportedOperationException()
         }
 
-        if (size < CHUNK_SIZE || responseType == String::class.java) {
+        if (size <= CHUNK_SIZE || responseType == String::class.java) {
             val data = when (input.sourceType) {
                 "file", "path" -> File(input.path).asRequestBody()
                 "bytes" -> (input.data as ByteArray).toRequestBody(input.mimeType.toMediaType())

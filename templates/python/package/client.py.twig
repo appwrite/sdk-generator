@@ -168,7 +168,7 @@ class Client:
             size = len(input_file.data)
             input = input_file.data
 
-        if size < self._chunk_size or response_type == 'text':
+        if size <= self._chunk_size or response_type == 'text':
             if input_file.source_type == 'path':
                 with open(input_file.path, 'rb') as input:
                     input_file.data = input.read()

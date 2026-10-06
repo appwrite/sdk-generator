@@ -120,6 +120,8 @@ export class Push extends Service {
     private nativeActive = false;
     /** Bumped when the subscriptions move to the native host, superseding an open() in flight. */
     private connectionEpoch = 0;
+    /** Bumped by close(), so a subscribe that was waiting on a connection stops instead of reopening it. */
+    private closeGeneration = 0;
     private nativeEvents: { remove(): void }[] | null = null;
 
     private onOpenCb?: () => void;
@@ -378,7 +380,9 @@ export class Push extends Service {
         callbackOrOptions: MessageCallback | SubscribeOptions | undefined,
         topicOptions: SubscribeOptions,
     ): Promise<PushSubscription> {
+        const generation = this.closeGeneration;
         await this.loadCookieSession();
+        this.throwIfClosedSince(generation);
         // Topic-less form: subscribe(callback, options) targets the signed-in user's topic.
         const userForm = typeof topicsOrCallback === 'function';
         const topics = userForm ? this.userTopic() : topicsOrCallback;
@@ -424,6 +428,7 @@ export class Push extends Service {
                 nativeHosts.size > 0 ||
                 (await this.native.hasSaved()))
         ) {
+            this.throwIfClosedSince(generation);
             const ids = topicList.map((topic) => {
                 const id = randomId();
                 this.subscriptions.set(id, {
@@ -452,6 +457,7 @@ export class Push extends Service {
         if (background) {
             await this.startBackground();
         }
+        this.throwIfClosedSince(generation);
 
         let client: MqttClient;
         try {
@@ -460,6 +466,7 @@ export class Push extends Service {
             // Another Push moved this one's subscriptions to the native host meanwhile: this
             // subscribe goes there too.
             if (err instanceof SupersededError) {
+                this.throwIfClosedSince(generation);
                 return this.subscribeWith(
                     topicsOrCallback,
                     callbackOrOptions,
@@ -516,6 +523,7 @@ export class Push extends Service {
                 for (const id of ids) {
                     this.subscriptions.delete(id);
                 }
+                this.throwIfClosedSince(generation);
                 return this.subscribeWith(
                     topicsOrCallback,
                     callbackOrOptions,
@@ -892,6 +900,8 @@ export class Push extends Service {
      * their subscriptions and the saved ones.
      */
     close(): void {
+        this.connectionEpoch++;
+        this.closeGeneration++;
         this.teardown();
         const native = this.native;
         if (!native) {
@@ -920,6 +930,13 @@ export class Push extends Service {
         this.everConnected = false;
         this.subscriptions.clear();
         this.stopBackground();
+    }
+
+    /** Throws once close() has run since `generation` was read, so a subscribe started before it stops. */
+    private throwIfClosedSince(generation: number): void {
+        if (generation !== this.closeGeneration) {
+            throw closedError();
+        }
     }
 
     /** True while any live subscription has opted into background delivery. */
@@ -1391,6 +1408,10 @@ const BACKGROUND_DISPLACED =
     'and the device hosts one. These subscriptions still deliver while the app runs.';
 
 /** An in-process connect superseded by the native host or by a connect with another credential. */
+function closedError(): Error {
+    return new Error('Push was closed before the subscription was established');
+}
+
 class SupersededError extends Error {
     constructor() {
         super('The push connection was superseded');

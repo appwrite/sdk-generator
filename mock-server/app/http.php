@@ -419,6 +419,10 @@ App::post('/v1/mock/tests/general/upload')
                 throw new Exception(Exception::GENERAL_MOCK, 'Invalid content-range header');
             }
 
+            if ($start === 0 && $end === $size - 1 && $size === $chunkSize) {
+                throw new Exception(Exception::GENERAL_MOCK, 'A file of exactly the chunk size must be sent in one request');
+            }
+
             if ($start === 0 && !empty($id)) {
                 throw new Exception(Exception::GENERAL_MOCK, 'First chunked request cannot have id header');
             }
@@ -459,6 +463,14 @@ App::post('/v1/mock/tests/general/upload')
             $file['tmp_name'] = (\is_array($file['tmp_name'])) ? $file['tmp_name'][0] : $file['tmp_name'];
             $file['name'] = (\is_array($file['name'])) ? $file['name'][0] : $file['name'];
             $file['size'] = (\is_array($file['size'])) ? $file['size'][0] : $file['size'];
+
+            if ($file['name'] === 'boundary.bin') {
+                if ($file['size'] !== $chunkSize) {
+                    throw new Exception(Exception::GENERAL_MOCK, 'Wrong boundary file size');
+                }
+
+                return;
+            }
 
             if ($file['name'] !== 'file.png') {
                 throw new Exception(Exception::GENERAL_MOCK, 'Wrong file name');
