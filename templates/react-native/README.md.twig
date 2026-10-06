@@ -66,6 +66,23 @@ const sub = await push.subscribe('news', (message) => console.log(message.data),
 await push.setForeground(true);
 ```
 
+#### Opening a tapped notification
+
+Read the `data` sent with `createPush` when the user taps a background notification:
+
+```js
+// The tap that launched the app (reported once, so call it at startup).
+const opened = await push.getInitialNotification();
+if (opened) {
+    openSale(opened.data.saleId);
+}
+
+// Taps while the app is running, including in the background.
+const stop = push.onNotificationOpened(({ topic, data }) => openSale(data.saleId));
+```
+
+On Android the SDK's native module reports the taps. Elsewhere they come from `expo-notifications`.
+
 Foreground mode runs a `remoteMessaging` foreground service, which Google Play asks apps to
 declare in the Play Console. Apps that never enable it can remove the service from their merged
 manifest with `tools:node="remove"` on `io.{{ spec.info.title | caseLower }}.services.PushService` and

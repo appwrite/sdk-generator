@@ -9,7 +9,8 @@
 // (as in Expo Go), so background delivery is unavailable and the topic-less subscribe's
 // default falls back to the foreground.
 import { EventEmitter } from 'events';
-import { NativeModules, PermissionsAndroid } from 'react-native';
+import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
+import { __test as expoNotifications } from 'expo-notifications';
 import { Client } from './src/client';
 import { Push } from './src/services/push';
 import { Topic } from './src/topic';
@@ -194,6 +195,8 @@ async function main() {
         resume: async () => {},
         setErrorCallback: async () => null,
         defaultClientId: async () => 'e2e-install',
+        getInitialNotification: async () =>
+            JSON.stringify({ topic: 'news', payload: JSON.stringify({ data: { saleId: '42' } }) }),
         addListener: () => {},
         removeListeners: () => {},
     };
@@ -206,6 +209,37 @@ async function main() {
     await timeout(200);
     console.log(firstErrors.some((e) => e.message.includes('Background delivery stopped')) && secondErrors.length === 0 ? 'Push native displaced:passed' : 'Push native displaced:failed');
     console.log(PermissionsAndroid.requested.length === 1 && PermissionsAndroid.requested[0] === 'android.permission.POST_NOTIFICATIONS' ? 'Push notification permission:passed' : 'Push notification permission:failed');
+    // Taps on background notifications: the launching one is parsed to its data, and later ones
+    // reach onNotificationOpened until it is stopped.
+    const launched = await firstUser.getInitialNotification();
+    const tapped = [];
+    const stopOpened = firstUser.onNotificationOpened((opened) => tapped.push(opened));
+    NativeModules.AppwritePush.emitter.emit('AppwritePushOpened', { topic: 'news', payload: JSON.stringify({ data: { saleId: '7' } }) });
+    stopOpened();
+    NativeModules.AppwritePush.emitter.emit('AppwritePushOpened', { topic: 'news', payload: 'not json' });
+    console.log(launched?.topic === 'news' && launched.data.saleId === '42' && tapped.length === 1 && tapped[0].data.saleId === '7' ? 'Push notification opened JS:passed' : 'Push notification opened JS:failed');
+
+    // The same taps outside Android, where expo-notifications posted the notification: the launching
+    // response is read and cleared, notifications the SDK did not post are ignored, and later taps
+    // reach onNotificationOpened until it is stopped.
+    const expoResponse = (data) => ({ notification: { request: { content: { data } } } });
+    const expoTap = (saleId) => expoResponse({ topic: 'news', payload: JSON.stringify({ data: { saleId } }) });
+    Platform.OS = 'ios';
+    const iosPush = new Push(sessionClient);
+    expoNotifications.lastResponse = expoTap('1');
+    const iosLaunched = await iosPush.getInitialNotification();
+    const iosCleared = expoNotifications.lastResponse === null;
+    expoNotifications.lastResponse = expoResponse({ screen: 'other-library' });
+    const iosForeign = await iosPush.getInitialNotification();
+    const iosTapped = [];
+    const stopIos = iosPush.onNotificationOpened((opened) => iosTapped.push(opened));
+    expoNotifications.respond(expoResponse({ screen: 'other-library' }));
+    expoNotifications.respond(expoTap('2'));
+    stopIos();
+    expoNotifications.respond(expoTap('3'));
+    iosPush.close();
+    Platform.OS = 'android';
+    console.log(iosLaunched?.data.saleId === '1' && iosCleared && iosForeign === null && iosTapped.length === 1 && iosTapped[0].data.saleId === '2' ? 'Push notification opened expo:passed' : 'Push notification opened expo:failed');
     firstUser.close();
     secondUser.close();
     delete NativeModules.AppwritePush;
