@@ -43,7 +43,9 @@ class PushBridge(context: Context, private val events: Events) {
      * [configJson].
      *
      * Config: `{"host", "port", "tls", "tlsInsecure", "clientId" (optional; per user and install
-     * when empty), "authMethod", "credential", "project"}`. Subscriptions: an array of
+     * when empty), "authMethod", "credential", "project", "sessionCookieUrl" (optional: the endpoint
+     * whose session cookie in the WebView cookie store holds the credential, so background runs
+     * follow a rotated session)}`. Subscriptions: an array of
      * `{"id", "topic", "background", "title" (optional), "retry", "notifyInForeground" (optional)}`.
      *
      * [done] is called once the connection is up and every filter is subscribed, or with the
@@ -63,6 +65,7 @@ class PushBridge(context: Context, private val events: Events) {
             authMethod = authMethod,
             credential = credential,
             project = json.optString("project"),
+            sessionCookieUrl = json.optString("sessionCookieUrl").ifEmpty { null },
         )
         val list = JSONArray(subscriptionsJson)
         val listeners = (0 until list.length()).map { index ->

@@ -24,6 +24,7 @@ import io.appwrite.reactnative.AppwritePushModule
 import io.appwrite.services.PushBackground
 import io.appwrite.services.PushMessage
 import io.appwrite.services.PushReceiver
+import io.appwrite.services.PushStore
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Test
@@ -210,6 +211,34 @@ class Tests {
         call { module.stop(it) }
         sessionCookie()
         notificationOpened()
+
+        // While no JS runs, background runs follow the session cookie the app signs in with: a
+        // rotated session of the same user replaces the saved one, and signing out stops delivery.
+        val cookieUrl = "http://$host/v1"
+        val cookies = android.webkit.CookieManager.getInstance()
+        val rotated = android.util.Base64.encodeToString(
+            JSONObject().put("id", "e2e-session-user").put("secret", "rotated").toString().toByteArray(),
+            android.util.Base64.NO_WRAP,
+        )
+        cookies.setCookie(cookieUrl, "a_session_console=$rotated")
+        val cookieConfig = JSONObject(config("appwrite-session", SESSION)).put("sessionCookieUrl", cookieUrl).toString()
+        call { module.host(cookieConfig, subscriptions, it) }
+        PushBackground.dropProcessState(context)
+        PushBackground.tick(context) {}
+        waitFor { PushStore.loadState(context)?.first?.credential == rotated }
+        val followed = PushStore.loadState(context)?.first?.credential == rotated
+        cookies.removeAllCookies(null)
+        PushBackground.tick(context) {}
+        waitFor { !PushBackground.hasSaved(context) }
+        val stoppedWhenSignedOut = !PushBackground.hasSaved(context)
+        writeToFile(
+            if (followed && stoppedWhenSignedOut) {
+                "Push background cookie refresh:passed"
+            } else {
+                "Push background cookie refresh:failed (followed: $followed, stopped: $stoppedWhenSignedOut)"
+            },
+        )
+        call { module.stop(it) }
     }
 
     // Taps on the notifications background delivery posts, read the way push.ts reads them: the tap

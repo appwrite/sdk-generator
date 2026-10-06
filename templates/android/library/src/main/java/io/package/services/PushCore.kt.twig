@@ -79,6 +79,10 @@ internal data class PushConfig(
     val authMethod: String,
     val credential: String,
     val project: String,
+    // The endpoint whose `a_session_<project>` cookie in the WebView cookie store holds the app's
+    // session, when its credential comes from there (React Native). Background runs read it, so
+    // they keep up with a rotated session while no app code runs.
+    val sessionCookieUrl: String? = null,
 )
 
 /**

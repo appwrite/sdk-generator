@@ -77,5 +77,6 @@ final class ReactNativeAndroidTest extends Base
         ...Base::PUSH_BACKGROUND_RESPONSES,
         ...Base::PUSH_NATIVE_SESSION_COOKIE_RESPONSES,
         ...Base::PUSH_NOTIFICATION_OPENED_RESPONSES,
+        ...Base::REACT_NATIVE_PUSH_COOKIE_REFRESH_RESPONSES,
     ];
 }

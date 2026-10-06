@@ -24,6 +24,7 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.util.AtomicFile
 import android.util.Log
+import android.webkit.CookieManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -311,6 +312,43 @@ internal object PushBackground {
         }
     }
 
+    private enum class CredentialRefresh { UNCHANGED, CHANGED, GONE }
+
+    // Worker thread only. Bring the saved credential up to date with the session cookie the app
+    // signs in with, when it comes from one (see [PushConfig.sessionCookieUrl]): a rotated session of
+    // the same user replaces it, and no session or another user's is GONE. UNCHANGED when there is
+    // no cookie source or it cannot be read.
+    private fun refreshCredential(context: Context): CredentialRefresh {
+        val current = synchronized(lock) { config } ?: return CredentialRefresh.UNCHANGED
+        val url = current.sessionCookieUrl ?: return CredentialRefresh.UNCHANGED
+        val session = readSessionCookie(url, current.project) ?: return CredentialRefresh.UNCHANGED
+        return when {
+            session.isEmpty() -> CredentialRefresh.GONE
+            current.authMethod == "appwrite-session" && session == current.credential -> CredentialRefresh.UNCHANGED
+            sameUser(current.authMethod, current.credential, "appwrite-session", session) -> {
+                synchronized(lock) {
+                    config = current.copy(authMethod = "appwrite-session", credential = session)
+                    persist(context.applicationContext)
+                }
+                CredentialRefresh.CHANGED
+            }
+            else -> CredentialRefresh.GONE
+        }
+    }
+
+    // The `a_session_<project>` cookie for [url] in the WebView cookie store, decoded; "" when there
+    // is none, and null when the store cannot be read.
+    private fun readSessionCookie(url: String, project: String): String? = runCatching {
+        val name = "a_session_$project"
+        CookieManager.getInstance().getCookie(url)
+            ?.split(";")
+            ?.map { it.trim() }
+            ?.firstOrNull { it.substringBefore("=") == name }
+            ?.substringAfter("=")
+            ?.let { Uri.decode(it) }
+            ?: ""
+    }.getOrNull()
+
     private fun sameUser(savedMethod: String, saved: String, method: String, credential: String): Boolean {
         fun userId(method: String, credential: String) =
             if (method == "appwrite-session") userIdFromSession(credential) else userIdFromJwt(credential)
@@ -490,6 +528,11 @@ internal object PushBackground {
     }
 
     private fun convergeOnce(context: Context, heartbeat: Boolean) {
+        // Signed out, or signed in as someone else, since the subscriptions were saved.
+        if (refreshCredential(context) == CredentialRefresh.GONE) {
+            stop(context)
+            return
+        }
         val (current, wanted) = synchronized(lock) { config to wanted() }
         if (current == null || wanted.isEmpty()) {
             disconnect()
@@ -639,6 +682,21 @@ internal object PushBackground {
     // registered the message is also saved, and the next onError registration receives it. A
     // waiting caller receives it instead.
     private fun refused(context: Context, error: Throwable) {
+        // The saved credential may be a session the app has since rotated: retry once with the
+        // current one. Refused again, it is unchanged and delivery stops below.
+        if (!waiting) {
+            when (refreshCredential(context)) {
+                CredentialRefresh.CHANGED -> {
+                    converge(context, heartbeat = false)
+                    return
+                }
+                CredentialRefresh.GONE -> {
+                    stop(context)
+                    return
+                }
+                CredentialRefresh.UNCHANGED -> Unit
+            }
+        }
         if (waiting) {
             fail(error)
         } else if (!report(error)) {
@@ -1130,6 +1188,7 @@ internal object PushStore {
                     authMethod = it.getString("authMethod"),
                     credential = it.getString("credential"),
                     project = it.getString("project"),
+                    sessionCookieUrl = it.optString("sessionCookieUrl").ifEmpty { null },
                 )
             }
             val list = json.getJSONArray("entries")
@@ -1159,7 +1218,8 @@ internal object PushStore {
                     .put("keepAlive", config.keepAlive)
                     .put("authMethod", config.authMethod)
                     .put("credential", config.credential)
-                    .put("project", config.project),
+                    .put("project", config.project)
+                    .put("sessionCookieUrl", config.sessionCookieUrl ?: JSONObject.NULL),
             )
             .put(
                 "entries",

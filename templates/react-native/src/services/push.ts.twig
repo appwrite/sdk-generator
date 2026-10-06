@@ -895,6 +895,12 @@ export class Push extends Service {
             authMethod,
             credential,
             project: this.client.config.project ?? '',
+            // A session from the cookie store: background runs re-read it there, so they follow
+            // a rotated session while no JS runs.
+            sessionCookieUrl:
+                credential === this.cookieSession && !this.client.config.jwt
+                    ? (this.client.config.endpoint ?? '')
+                    : '',
         };
         await native.setErrorCallback(
             [...nativeHosts].some((push) => push.onErrorCb !== undefined),

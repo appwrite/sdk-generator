@@ -83,9 +83,11 @@ if (status?.bestEffort) {
 }
 ```
 
-When the app starts, saved background delivery resumes with the current session: a rotated
-session of the same user replaces the saved one, and signing out (no session) or signing in as
-someone else drops the saved subscriptions. Still call `push.close()` on sign-out.
+Saved background delivery follows the app's current session, also while the app is closed: each
+background run re-reads the session cookie, so a rotated session of the same user replaces the
+saved one, and signing out (no session) or signing in as someone else stops background delivery.
+If the broker still refuses the credential, delivery stops and `onError` reports it the next time
+the app registers one. Still call `push.close()` on sign-out.
 
 #### Upgrading from an earlier release candidate
 
