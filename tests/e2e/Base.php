@@ -287,6 +287,7 @@ abstract class Base extends TestCase
     ];
 
     protected const REACT_NATIVE_PUSH_OPENED_RESPONSES = [
+        'Push background status JS:passed',
         'Push notification opened JS:passed',
         'Push notification opened expo:passed',
     ];
@@ -294,6 +295,18 @@ abstract class Base extends TestCase
     // React Native on Android: the tap that launched the app is reported once, later taps as events.
     protected const PUSH_NOTIFICATION_OPENED_RESPONSES = [
         'Push notification opened:passed',
+    ];
+
+    // Android only: no notification while the app is on screen, the watchdog job, and resume with
+    // the current credential.
+    protected const ANDROID_PUSH_BACKGROUND_RESPONSES = [
+        'Push background message:passed',
+        'Push foreground no notification:passed',
+        'Push background watchdog:passed',
+        'Push background restore:passed',
+        'Push background resume credential:passed',
+        'Push background close:passed',
+        'Push background refused:passed',
     ];
 
     protected const PUSH_BACKGROUND_RESPONSES = [

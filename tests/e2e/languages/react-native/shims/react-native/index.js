@@ -25,4 +25,4 @@ const PermissionsAndroid = {
     },
 };
 
-module.exports = { Platform: { OS: 'android', Version: 34 }, NativeModules: {}, NativeEventEmitter, PermissionsAndroid };
+module.exports = { AppState: { currentState: 'background' }, Platform: { OS: 'android', Version: 34 }, NativeModules: {}, NativeEventEmitter, PermissionsAndroid };

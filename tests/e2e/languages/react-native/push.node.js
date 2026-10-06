@@ -192,7 +192,14 @@ async function main() {
         stop: async () => {},
         setForeground: async () => {},
         hasSaved: async () => false,
-        resume: async () => {},
+        resumed: [],
+        resume: async (...args) => {
+            NativeModules.AppwritePush.resumed.push(args);
+        },
+        backgroundStatus: async () =>
+            JSON.stringify({ exactAlarms: false, ignoringBatteryOptimizations: false, foregroundService: false, bestEffort: true }),
+        requestExactAlarms: async () => true,
+        requestIgnoreBatteryOptimizations: async () => false,
         setErrorCallback: async () => null,
         defaultClientId: async () => 'e2e-install',
         getInitialNotification: async () =>
@@ -217,6 +224,13 @@ async function main() {
     NativeModules.AppwritePush.emitter.emit('AppwritePushOpened', { topic: 'news', payload: JSON.stringify({ data: { saleId: '7' } }) });
     stopOpened();
     NativeModules.AppwritePush.emitter.emit('AppwritePushOpened', { topic: 'news', payload: 'not json' });
+    // Background status and the requests reach the native module, and the saved delivery resumed
+    // with the session the client signs in with, dropping it when signed out.
+    const status = await firstUser.backgroundStatus();
+    const askedExact = await firstUser.requestExactAlarms();
+    const askedBattery = await firstUser.requestIgnoreBatteryOptimizations();
+    const resumed = NativeModules.AppwritePush.resumed.find((args) => args[0] === 'appwrite-session');
+    console.log(status?.bestEffort === true && askedExact === true && askedBattery === false && resumed?.[1] === e2eSession && resumed?.[2] === true ? 'Push background status JS:passed' : 'Push background status JS:failed');
     console.log(launched?.topic === 'news' && launched.data.saleId === '42' && tapped.length === 1 && tapped[0].data.saleId === '7' ? 'Push notification opened JS:passed' : 'Push notification opened JS:failed');
 
     // The same taps outside Android, where expo-notifications posted the notification: the launching

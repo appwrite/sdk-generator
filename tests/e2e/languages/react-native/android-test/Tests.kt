@@ -102,6 +102,15 @@ class Tests {
 
     @Test
     fun background() {
+        // The app is not on screen, so background subscriptions post their notifications.
+        shadowOf(context.getSystemService(android.app.ActivityManager::class.java)).setProcesses(
+            listOf(
+                android.app.ActivityManager.RunningAppProcessInfo().apply {
+                    pid = android.os.Process.myPid()
+                    importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED
+                },
+            ),
+        )
         val host = System.getenv("PUSH_HOST") ?: "mqtt"
         val config = { authMethod: String, credential: String ->
             JSONObject()
@@ -179,7 +188,7 @@ class Tests {
         notifications.cancelAll()
         E2EPushReceiver.messages.clear()
         events.clear()
-        call { module.resume(it) }
+        call { module.resume("appwrite-session", SESSION, true, it) }
         waitFor(3_000) { E2EPushReceiver.messages.isNotEmpty() || messages().isNotEmpty() }
         writeToFile(
             if (E2EPushReceiver.messages.isEmpty() && messages().isEmpty() && shadowOf(notifications).allNotifications.isEmpty()) {

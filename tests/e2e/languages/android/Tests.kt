@@ -728,6 +728,15 @@ class ServiceTest {
                     }
                 },
             )
+            // The app is on screen: the live callback shows the message, so no notification is posted.
+            org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.ActivityManager::class.java)).setProcesses(
+                listOf(
+                    android.app.ActivityManager.RunningAppProcessInfo().apply {
+                        pid = android.os.Process.myPid()
+                        importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                    },
+                ),
+            )
             val backgroundPush = Push(pushClient().setSession(e2eSession), context)
             val liveLatch = java.util.concurrent.CountDownLatch(1)
             backgroundPush.subscribe("e2e-push", background = true, title = "E2E title") { message ->
@@ -741,6 +750,33 @@ class ServiceTest {
                 } else {
                     "Push background message:failed"
                 },
+            )
+            Thread.sleep(500)
+            writeToFile(
+                if (org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) {
+                    "Push foreground no notification:passed"
+                } else {
+                    "Push foreground no notification:failed"
+                },
+            )
+            // Besides the chain of runs, a periodic job restarts delivery if a run is ever dropped.
+            val jobs = context.getSystemService(android.app.job.JobScheduler::class.java)
+            val watchdog = jobs.getPendingJob(io.appwrite.services.PushBackground.WATCHDOG_JOB_ID)
+            writeToFile(
+                if (watchdog?.isPeriodic == true && watchdog.isPersisted) {
+                    "Push background watchdog:passed"
+                } else {
+                    "Push background watchdog:failed"
+                },
+            )
+            // From here on the app is not on screen.
+            org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.ActivityManager::class.java)).setProcesses(
+                listOf(
+                    android.app.ActivityManager.RunningAppProcessInfo().apply {
+                        pid = android.os.Process.myPid()
+                        importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED
+                    },
+                ),
             )
             val alarms = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.AlarmManager::class.java))
 
@@ -775,6 +811,24 @@ class ServiceTest {
                     "Push background restore:passed"
                 } else {
                     "Push background restore:failed (messages: ${E2EPushReceiver.messages.toList()}, title: $postedTitle, text: $postedText)"
+                },
+            )
+
+            // The app starts again with a rotated session of the same user: it replaces the saved one
+            // and delivery continues. Signed in as someone else, the saved subscriptions are dropped.
+            fun session(userId: String, secret: String) = android.util.Base64.encodeToString(
+                org.json.JSONObject().put("id", userId).put("secret", secret).toString().toByteArray(),
+                android.util.Base64.NO_WRAP,
+            )
+            io.appwrite.services.PushBackground.resume(context, "appwrite-session", session("e2e-session-user", "rotated"), true)
+            val keptForSameUser = io.appwrite.services.PushBackground.hasSaved(context)
+            io.appwrite.services.PushBackground.resume(context, "appwrite-session", session("someone-else", "other"), true)
+            val droppedForOtherUser = !io.appwrite.services.PushBackground.hasSaved(context)
+            writeToFile(
+                if (keptForSameUser && droppedForOtherUser) {
+                    "Push background resume credential:passed"
+                } else {
+                    "Push background resume credential:failed (kept: $keptForSameUser, dropped: $droppedForOtherUser)"
                 },
             )
 
