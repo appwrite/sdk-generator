@@ -211,16 +211,21 @@ class Dart extends Language
         }
 
         return match ($type) {
-            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $this->escapeInterpolation((string) $example),
             self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($decoded = json_decode((string) $example, true)) !== null
             ? (empty($decoded) && $example === '{}'
                 ? '{}'
-                : preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT)))
-            : $example,
-            self::TYPE_STRING => "'{$example}'",
+                : $this->escapeInterpolation((string) preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT))))
+            : $this->escapeInterpolation((string) $example),
+            self::TYPE_STRING => "'" . $this->escapeInterpolation((string) $example) . "'",
         };
+    }
+
+    private function escapeInterpolation(string $value): string
+    {
+        return str_replace('$', '\$', str_replace('\$', '$', $value));
     }
 
     public function getModelToMapValue(Schema $property, string $propertyName, bool $required): string
