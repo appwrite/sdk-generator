@@ -218,14 +218,14 @@ executions = functions.list_executions(function_id: '[FUNCTION_ID]')
 #### Writing a Function Handler (Ruby runtime)
 
 ```ruby
-# src/main.rb — Appwrite Function entry point
+# src/main.rb: Appwrite Function entry point
 def main(context)
-    # context.req.body         — raw body (String)
-    # context.req.body_json    — parsed JSON (Hash or nil)
-    # context.req.headers      — headers (Hash)
-    # context.req.method       — HTTP method
-    # context.req.path         — URL path
-    # context.req.query        — query params (Hash)
+    # context.req.body:         raw body (String)
+    # context.req.body_json:    parsed JSON (Hash or nil)
+    # context.req.headers:      headers (Hash)
+    # context.req.method:       HTTP method
+    # context.req.path:         URL path
+    # context.req.query:        query params (Hash)
 
     context.log("Processing: #{context.req.method} #{context.req.path}")
 
@@ -244,8 +244,8 @@ end
 
 SSR apps using Ruby frameworks (Rails, Sinatra, etc.) use the **server SDK** to handle auth. You need two clients:
 
-- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
-- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+- **Admin client**: uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client**: uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```ruby
 require '{{ spec.info.title | caseLower }}'
@@ -324,7 +324,7 @@ get '/oauth' do
     redirect redirect_url
 end
 
-# Step 2: Handle callback — exchange token for session
+# Step 2: Handle the callback and exchange the token for a session
 get '/oauth/success' do
     account = Account.new(admin_client)
     session = account.create_session(
@@ -366,11 +366,11 @@ end
 
 | Code | Meaning |
 |------|---------|
-| `401` | Unauthorized — missing or invalid session/API key |
-| `403` | Forbidden — insufficient permissions |
-| `404` | Not found — resource does not exist |
-| `409` | Conflict — duplicate ID or unique constraint |
-| `429` | Rate limited — too many requests |
+| `401` | Unauthorized: missing or invalid session/API key |
+| `403` | Forbidden: insufficient permissions |
+| `404` | Not found: resource does not exist |
+| `409` | Conflict: duplicate ID or unique constraint |
+| `429` | Rate limited: too many requests |
 
 ## Permissions & Roles (Critical)
 
@@ -417,9 +417,9 @@ file = storage.create_file(
 > **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
-> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
-> - **`Role.any` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
-> - **`Permission.read(Role.any)` on sensitive data** — makes the resource publicly readable
+> - **Forgetting permissions**: the resource becomes inaccessible to all users (including the creator)
+> - **`Role.any` with `write`/`update`/`delete`**: allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.read(Role.any)` on sensitive data**: makes the resource publicly readable
 
 ## Multi-tenancy with Teams
 

@@ -8,7 +8,7 @@
 ## Installation
 
 ```swift
-// Swift Package Manager — Package.swift
+// Swift Package Manager: Package.swift
 .package(url: "https://github.com/{{ sdk.gitUserName }}/sdk-for-swift", branch: "main")
 ```
 
@@ -281,14 +281,14 @@ let executions = try await functions.listExecutions(functionId: "[FUNCTION_ID]")
 #### Writing a Function Handler (Swift runtime)
 
 ```swift
-// Sources/main.swift — Appwrite Function entry point
+// Sources/main.swift: Appwrite Function entry point
 func main(context: RuntimeContext) async throws -> RuntimeOutput {
-    // context.req.body        — raw body (String)
-    // context.req.bodyJson    — parsed JSON ([String: Any]?)
-    // context.req.headers     — headers ([String: String])
-    // context.req.method      — HTTP method
-    // context.req.path        — URL path
-    // context.req.query       — query params ([String: String])
+    // context.req.body:        raw body (String)
+    // context.req.bodyJson:    parsed JSON ([String: Any]?)
+    // context.req.headers:     headers ([String: String])
+    // context.req.method:      HTTP method
+    // context.req.path:        URL path
+    // context.req.query:       query params ([String: String])
 
     context.log("Processing: \(context.req.method) \(context.req.path)")
 
@@ -307,8 +307,8 @@ func main(context: RuntimeContext) async throws -> RuntimeOutput {
 
 SSR apps using server-side Swift (Vapor, Hummingbird, etc.) use the **server SDK** to handle auth. You need two clients:
 
-- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
-- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+- **Admin client**: uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client**: uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```swift
 import {{ spec.info.title }}
@@ -386,7 +386,7 @@ app.get("oauth") { req async throws -> Response in
     return req.redirect(to: redirectUrl)
 }
 
-// Step 2: Handle callback — exchange token for session
+// Step 2: Handle the callback and exchange the token for a session
 app.get("oauth", "success") { req async throws -> Response in
     let userId = try req.query.get(String.self, at: "userId")
     let secret = try req.query.get(String.self, at: "secret")
@@ -427,11 +427,11 @@ do {
 
 | Code | Meaning |
 |------|---------|
-| `401` | Unauthorized — missing or invalid session/API key |
-| `403` | Forbidden — insufficient permissions |
-| `404` | Not found — resource does not exist |
-| `409` | Conflict — duplicate ID or unique constraint |
-| `429` | Rate limited — too many requests |
+| `401` | Unauthorized: missing or invalid session/API key |
+| `403` | Forbidden: insufficient permissions |
+| `404` | Not found: resource does not exist |
+| `409` | Conflict: duplicate ID or unique constraint |
+| `429` | Rate limited: too many requests |
 
 ## Permissions & Roles (Critical)
 
@@ -477,9 +477,9 @@ let file = try await storage.createFile(
 > **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
-> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
-> - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
-> - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
+> - **Forgetting permissions**: the resource becomes inaccessible to all users (including the creator)
+> - **`Role.any()` with `write`/`update`/`delete`**: allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.read(Role.any())` on sensitive data**: makes the resource publicly readable
 
 ## Multi-tenancy with Teams
 

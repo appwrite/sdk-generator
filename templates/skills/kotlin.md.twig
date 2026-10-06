@@ -8,10 +8,10 @@
 ## Installation
 
 ```kotlin
-// build.gradle.kts — Android
+// build.gradle.kts (Android)
 implementation("io.{{ spec.info.title | caseLower }}:sdk-for-android:+")
 
-// build.gradle.kts — Server (Kotlin JVM)
+// build.gradle.kts (server, Kotlin JVM)
 implementation("io.{{ spec.info.title | caseLower }}:sdk-for-kotlin:+")
 ```
 
@@ -342,17 +342,17 @@ val executions = functions.listExecutions(functionId = "[FUNCTION_ID]")
 #### Writing a Function Handler (Kotlin runtime)
 
 ```kotlin
-// src/Main.kt — Appwrite Function entry point
+// src/Main.kt: Appwrite Function entry point
 import io.openruntimes.kotlin.RuntimeContext
 import io.openruntimes.kotlin.RuntimeOutput
 
 fun main(context: RuntimeContext): RuntimeOutput {
-    // context.req.body        — raw body (String)
-    // context.req.bodyJson    — parsed JSON (Map)
-    // context.req.headers     — headers (Map)
-    // context.req.method      — HTTP method
-    // context.req.path        — URL path
-    // context.req.query       — query params (Map)
+    // context.req.body:        raw body (String)
+    // context.req.bodyJson:    parsed JSON (Map)
+    // context.req.headers:     headers (Map)
+    // context.req.method:      HTTP method
+    // context.req.path:        URL path
+    // context.req.query:       query params (Map)
 
     context.log("Processing: ${context.req.method} ${context.req.path}")
 
@@ -371,8 +371,8 @@ fun main(context: RuntimeContext): RuntimeOutput {
 
 SSR apps using Kotlin server frameworks (Ktor, Spring Boot, etc.) use the **server SDK** to handle auth. You need two clients:
 
-- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
-- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+- **Admin client**: uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client**: uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```kotlin
 import io.{{ spec.info.title | caseLower }}.Client
@@ -452,7 +452,7 @@ get("/oauth") {
     call.respondRedirect(redirectUrl)
 }
 
-// Step 2: Handle callback — exchange token for session
+// Step 2: Handle the callback and exchange the token for a session
 get("/oauth/success") {
     val account = Account(adminClient)
     val session = account.createSession(
@@ -492,11 +492,11 @@ try {
 
 | Code | Meaning |
 |------|---------|
-| `401` | Unauthorized — missing or invalid session/API key |
-| `403` | Forbidden — insufficient permissions |
-| `404` | Not found — resource does not exist |
-| `409` | Conflict — duplicate ID or unique constraint |
-| `429` | Rate limited — too many requests |
+| `401` | Unauthorized: missing or invalid session/API key |
+| `403` | Forbidden: insufficient permissions |
+| `404` | Not found: resource does not exist |
+| `409` | Conflict: duplicate ID or unique constraint |
+| `429` | Rate limited: too many requests |
 
 ## Permissions & Roles (Critical)
 
@@ -542,9 +542,9 @@ val file = storage.createFile(
 > **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
-> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
-> - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
-> - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
+> - **Forgetting permissions**: the resource becomes inaccessible to all users (including the creator)
+> - **`Role.any()` with `write`/`update`/`delete`**: allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.read(Role.any())` on sensitive data**: makes the resource publicly readable
 
 ## Multi-tenancy with Teams
 

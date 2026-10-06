@@ -244,7 +244,7 @@ executions, err := svc.ListExecutions("[FUNCTION_ID]")
 #### Writing a Function Handler (Go runtime)
 
 ```go
-// src/main.go — Appwrite Function entry point
+// src/main.go: Appwrite Function entry point
 package handler
 
 import (
@@ -252,12 +252,12 @@ import (
 )
 
 func Main(context openruntimes.Context) openruntimes.Response {
-    // context.Req.Body        — raw body (string)
-    // context.Req.BodyJson    — parsed JSON (map[string]interface{})
-    // context.Req.Headers     — headers (map[string]string)
-    // context.Req.Method      — HTTP method
-    // context.Req.Path        — URL path
-    // context.Req.Query       — query params (map[string]string)
+    // context.Req.Body:        raw body (string)
+    // context.Req.BodyJson:    parsed JSON (map[string]interface{})
+    // context.Req.Headers:     headers (map[string]string)
+    // context.Req.Method:      HTTP method
+    // context.Req.Path:        URL path
+    // context.Req.Query:       query params (map[string]string)
 
     context.Log("Processing: " + context.Req.Method + " " + context.Req.Path)
 
@@ -276,8 +276,8 @@ func Main(context openruntimes.Context) openruntimes.Response {
 
 SSR apps using Go frameworks (net/http, Gin, Echo, Chi, etc.) use the **server SDK** to handle auth. You need two clients:
 
-- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
-- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+- **Admin client**: uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client**: uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```go
 import (
@@ -370,7 +370,7 @@ http.HandleFunc("/oauth", func(w http.ResponseWriter, r *http.Request) {
     http.Redirect(w, r, redirectURL, http.StatusFound)
 })
 
-// Step 2: Handle callback — exchange token for session
+// Step 2: Handle the callback and exchange the token for a session
 http.HandleFunc("/oauth/success", func(w http.ResponseWriter, r *http.Request) {
     svc := account.New(adminClient)
     session, err := svc.CreateSession(r.URL.Query().Get("userId"), r.URL.Query().Get("secret"))
@@ -411,11 +411,11 @@ if err != nil {
 
 | Code | Meaning |
 |------|---------|
-| `401` | Unauthorized — missing or invalid session/API key |
-| `403` | Forbidden — insufficient permissions |
-| `404` | Not found — resource does not exist |
-| `409` | Conflict — duplicate ID or unique constraint |
-| `429` | Rate limited — too many requests |
+| `401` | Unauthorized: missing or invalid session/API key |
+| `403` | Forbidden: insufficient permissions |
+| `404` | Not found: resource does not exist |
+| `409` | Conflict: duplicate ID or unique constraint |
+| `429` | Rate limited: too many requests |
 
 ## Permissions & Roles (Critical)
 
@@ -463,9 +463,9 @@ f, err := service.CreateFile(
 > **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
-> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
-> - **`role.Any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
-> - **`permission.Read(role.Any())` on sensitive data** — makes the resource publicly readable
+> - **Forgetting permissions**: the resource becomes inaccessible to all users (including the creator)
+> - **`role.Any()` with `write`/`update`/`delete`**: allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`permission.Read(role.Any())` on sensitive data**: makes the resource publicly readable
 
 ## Multi-tenancy with Teams
 

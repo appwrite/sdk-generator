@@ -313,14 +313,14 @@ final executions = await functions.listExecutions(functionId: '[FUNCTION_ID]');
 #### Writing a Function Handler (Dart runtime)
 
 ```dart
-// lib/main.dart — Appwrite Function entry point
+// lib/main.dart: Appwrite Function entry point
 Future<dynamic> main(final context) async {
-    // context.req.body        — raw body (String)
-    // context.req.bodyJson    — parsed JSON (Map or null)
-    // context.req.headers     — headers (Map)
-    // context.req.method      — HTTP method
-    // context.req.path        — URL path
-    // context.req.query       — query params (Map)
+    // context.req.body:        raw body (String)
+    // context.req.bodyJson:    parsed JSON (Map or null)
+    // context.req.headers:     headers (Map)
+    // context.req.method:      HTTP method
+    // context.req.path:        URL path
+    // context.req.query:       query params (Map)
 
     context.log('Processing: ${context.req.method} ${context.req.path}');
 
@@ -339,8 +339,8 @@ Future<dynamic> main(final context) async {
 
 SSR apps using server-side Dart (Dart Frog, Shelf, etc.) use the **server SDK** (`dart_{{ spec.info.title | caseLower }}`) to handle auth. You need two clients:
 
-- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
-- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+- **Admin client**: uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client**: uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```dart
 import 'package:dart_{{ spec.info.title | caseLower }}/dart_{{ spec.info.title | caseLower }}.dart';
@@ -407,7 +407,7 @@ final redirectUrl = await account.createOAuth2Token(
 );
 return Response(statusCode: 302, headers: {'Location': redirectUrl});
 
-// Step 2: Handle callback — exchange token for session
+// Step 2: Handle the callback and exchange the token for a session
 final account = Account(adminClient);
 final session = await account.createSession(
     userId: request.uri.queryParameters['userId']!,
@@ -440,11 +440,11 @@ try {
 
 | Code | Meaning |
 |------|---------|
-| `401` | Unauthorized — missing or invalid session/API key |
-| `403` | Forbidden — insufficient permissions |
-| `404` | Not found — resource does not exist |
-| `409` | Conflict — duplicate ID or unique constraint |
-| `429` | Rate limited — too many requests |
+| `401` | Unauthorized: missing or invalid session/API key |
+| `403` | Forbidden: insufficient permissions |
+| `404` | Not found: resource does not exist |
+| `409` | Conflict: duplicate ID or unique constraint |
+| `429` | Rate limited: too many requests |
 
 ## Permissions & Roles (Critical)
 
@@ -490,9 +490,9 @@ final file = await storage.createFile(
 > **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
-> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
-> - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
-> - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
+> - **Forgetting permissions**: the resource becomes inaccessible to all users (including the creator)
+> - **`Role.any()` with `write`/`update`/`delete`**: allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.read(Role.any())` on sensitive data**: makes the resource publicly readable
 
 ## Multi-tenancy with Teams
 

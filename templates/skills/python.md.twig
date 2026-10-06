@@ -221,16 +221,16 @@ executions = functions.list_executions('[FUNCTION_ID]')
 #### Writing a Function Handler (Python runtime)
 
 ```python
-# src/main.py — Appwrite Function entry point
+# src/main.py: Appwrite Function entry point
 def main(context):
-    # context.req — request object
-    #   .body        — raw request body (string)
-    #   .body_json   — parsed JSON body (dict, or None if not JSON)
-    #   .headers     — request headers (dict)
-    #   .method      — HTTP method (GET, POST, etc.)
-    #   .path        — URL path
-    #   .query       — parsed query parameters (dict)
-    #   .query_string — raw query string
+    # context.req: request object
+    #   .body:        raw request body (string)
+    #   .body_json:   parsed JSON body (dict, or None if not JSON)
+    #   .headers:     request headers (dict)
+    #   .method:      HTTP method (GET, POST, etc.)
+    #   .path:        URL path
+    #   .query:       parsed query parameters (dict)
+    #   .query_string: raw query string
 
     context.log('Processing: ' + context.req.method + ' ' + context.req.path)
 
@@ -254,8 +254,8 @@ def main(context):
 
 SSR apps (Flask, Django, FastAPI, etc.) use the **server SDK** to handle auth. You need two clients:
 
-- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
-- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+- **Admin client**: uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client**: uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```python
 from {{ spec.info.title | caseLower }}.client import Client
@@ -328,7 +328,7 @@ def oauth():
     )
     return redirect(redirect_url)
 
-# Step 2: Handle callback — exchange token for session
+# Step 2: Handle the callback and exchange the token for a session
 @app.get('/oauth/success')
 def oauth_success():
     account = Account(admin_client)
@@ -363,11 +363,11 @@ except AppwriteException as e:
 
 | Code | Meaning |
 |------|---------|
-| `401` | Unauthorized — missing or invalid session/API key |
-| `403` | Forbidden — insufficient permissions for this action |
-| `404` | Not found — resource does not exist |
-| `409` | Conflict — duplicate ID or unique constraint violation |
-| `429` | Rate limited — too many requests, retry after backoff |
+| `401` | Unauthorized: missing or invalid session/API key |
+| `403` | Forbidden: insufficient permissions for this action |
+| `404` | Not found: resource does not exist |
+| `409` | Conflict: duplicate ID or unique constraint violation |
+| `429` | Rate limited: too many requests, retry after backoff |
 
 ## Permissions & Roles (Critical)
 
@@ -404,9 +404,9 @@ file = storage.create_file('[BUCKET_ID]', ID.unique(), InputFile.from_path('/pat
 > **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
-> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
-> - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
-> - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
+> - **Forgetting permissions**: the resource becomes inaccessible to all users (including the creator)
+> - **`Role.any()` with `write`/`update`/`delete`**: allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.read(Role.any())` on sensitive data**: makes the resource publicly readable
 
 ## Multi-tenancy with Teams
 

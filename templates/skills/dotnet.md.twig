@@ -206,17 +206,17 @@ var executions = await functions.ListExecutions("[FUNCTION_ID]");
 #### Writing a Function Handler (.NET runtime)
 
 ```csharp
-// src/Main.cs — Appwrite Function entry point
+// src/Main.cs: Appwrite Function entry point
 using System.Text.Json;
 
 public async Task<RuntimeOutput> Main(RuntimeContext context)
 {
-    // context.Req.Body        — raw body (string)
-    // context.Req.BodyJson    — parsed JSON (JsonElement)
-    // context.Req.Headers     — headers (Dictionary)
-    // context.Req.Method      — HTTP method
-    // context.Req.Path        — URL path
-    // context.Req.Query       — query params (Dictionary)
+    // context.Req.Body:        raw body (string)
+    // context.Req.BodyJson:    parsed JSON (JsonElement)
+    // context.Req.Headers:     headers (Dictionary)
+    // context.Req.Method:      HTTP method
+    // context.Req.Path:        URL path
+    // context.Req.Query:       query params (Dictionary)
 
     context.Log($"Processing: {context.Req.Method} {context.Req.Path}");
 
@@ -234,8 +234,8 @@ public async Task<RuntimeOutput> Main(RuntimeContext context)
 
 SSR apps using .NET frameworks (ASP.NET, Blazor Server, etc.) use the **server SDK** to handle auth. You need two clients:
 
-- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
-- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+- **Admin client**: uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client**: uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```csharp
 using {{ spec.info.title }};
@@ -314,7 +314,7 @@ app.MapGet("/oauth", async () =>
     return Results.Redirect(redirectUrl);
 });
 
-// Step 2: Handle callback — exchange token for session
+// Step 2: Handle the callback and exchange the token for a session
 app.MapGet("/oauth/success", async (HttpContext ctx, string userId, string secret) =>
 {
     var account = new Account(adminClient);
@@ -355,11 +355,11 @@ catch (AppwriteException e)
 
 | Code | Meaning |
 |------|---------|
-| `401` | Unauthorized — missing or invalid session/API key |
-| `403` | Forbidden — insufficient permissions |
-| `404` | Not found — resource does not exist |
-| `409` | Conflict — duplicate ID or unique constraint |
-| `429` | Rate limited — too many requests |
+| `401` | Unauthorized: missing or invalid session/API key |
+| `403` | Forbidden: insufficient permissions |
+| `404` | Not found: resource does not exist |
+| `409` | Conflict: duplicate ID or unique constraint |
+| `429` | Rate limited: too many requests |
 
 ## Permissions & Roles (Critical)
 
@@ -400,9 +400,9 @@ var file = await storage.CreateFile("[BUCKET_ID]", ID.Unique(),
 > **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
-> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
-> - **`Role.Any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
-> - **`Permission.Read(Role.Any())` on sensitive data** — makes the resource publicly readable
+> - **Forgetting permissions**: the resource becomes inaccessible to all users (including the creator)
+> - **`Role.Any()` with `write`/`update`/`delete`**: allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.Read(Role.Any())` on sensitive data**: makes the resource publicly readable
 
 ## Multi-tenancy with Teams
 
