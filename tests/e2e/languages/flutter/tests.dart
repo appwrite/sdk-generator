@@ -800,6 +800,9 @@ void main() async {
   print(firstErrors.any((e) => e.toString().contains('Background delivery stopped')) && secondErrors.isEmpty
       ? 'Push native displaced:passed'
       : 'Push native displaced:failed');
+  print(plugin.calls.where((m) => m == 'requestNotificationPermission').length == 1
+      ? 'Push notification permission:passed'
+      : 'Push notification permission:failed');
   firstUser.close();
   secondUser.close();
   PushNative.debugInstance = null;
@@ -810,6 +813,7 @@ void main() async {
 class FakePushPlugin implements BinaryMessenger {
   static const codec = StandardMethodCodec();
   final subscribed = Completer<void>();
+  final calls = <String>[];
   final _hosted = <Map<String, dynamic>>[];
   MessageHandler? _events;
 
@@ -830,6 +834,7 @@ class FakePushPlugin implements BinaryMessenger {
   Future<ByteData?> send(String channel, ByteData? message) async {
     final call = codec.decodeMethodCall(message);
     final arguments = call.arguments as Map<Object?, Object?>?;
+    calls.add(call.method);
     switch (call.method) {
       case 'host':
         _hosted
@@ -842,6 +847,8 @@ class FakePushPlugin implements BinaryMessenger {
         return codec.encodeSuccessEnvelope(false);
       case 'defaultClientId':
         return codec.encodeSuccessEnvelope('e2e-session-user-install');
+      case 'requestNotificationPermission':
+        return codec.encodeSuccessEnvelope(true);
       default:
         return codec.encodeSuccessEnvelope(null);
     }

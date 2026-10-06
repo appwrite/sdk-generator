@@ -9,7 +9,7 @@
 // (as in Expo Go), so background delivery is unavailable and the topic-less subscribe's
 // default falls back to the foreground.
 import { EventEmitter } from 'events';
-import { NativeModules } from 'react-native';
+import { NativeModules, PermissionsAndroid } from 'react-native';
 import { Client } from './src/client';
 import { Push } from './src/services/push';
 import { Topic } from './src/topic';
@@ -205,6 +205,7 @@ async function main() {
     await secondUser.subscribe(['news'], () => {}, { background: true });
     await timeout(200);
     console.log(firstErrors.some((e) => e.message.includes('Background delivery stopped')) && secondErrors.length === 0 ? 'Push native displaced:passed' : 'Push native displaced:failed');
+    console.log(PermissionsAndroid.requested.length === 1 && PermissionsAndroid.requested[0] === 'android.permission.POST_NOTIFICATIONS' ? 'Push notification permission:passed' : 'Push notification permission:failed');
     firstUser.close();
     secondUser.close();
     delete NativeModules.AppwritePush;

@@ -821,6 +821,35 @@ class ServiceTest {
             )
             refusedPush.close()
 
+            // A message from createPush: the notification shows the server's title and body, not the
+            // raw JSON, and still posts when its image cannot be fetched.
+            notifications.cancelAll()
+            val serverPayload = org.json.JSONObject()
+                .put("messageId", "e2e-message")
+                .put("notification", org.json.JSONObject().put("title", "Server title").put("body", "Server body").put("image", "http://127.0.0.1:1/image.png"))
+                .put("data", org.json.JSONObject().put("saleId", "42"))
+                .toString()
+            val serverMessage = io.appwrite.services.PushMessage("e2e-push", serverPayload.toByteArray(), 1)
+            io.appwrite.services.PushBackground.notify(context, serverMessage, "E2E title")
+            val content = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()?.extras
+            val contentTitle = content?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
+            val contentText = content?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
+            // An empty notification block shows the subscription's title, never the raw JSON.
+            notifications.cancelAll()
+            val emptyMessage = io.appwrite.services.PushMessage("e2e-push", "{\"notification\":{}}".toByteArray(), 1)
+            io.appwrite.services.PushBackground.notify(context, emptyMessage, "E2E title")
+            val empty = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()?.extras
+            val emptyTitle = empty?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
+            val emptyText = empty?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
+            writeToFile(
+                if (contentTitle == "Server title" && contentText == "Server body" && emptyTitle == "E2E title" && emptyText == null) {
+                    "Push notification content:passed"
+                } else {
+                    "Push notification content:failed (title: $contentTitle, text: $contentText, empty: $emptyTitle/$emptyText)"
+                },
+            )
+            notifications.cancelAll()
+
             // Opting out of a saved background subscription: after a restart, the app subscribes to
             // the same topic with background off and then unsubscribes. When the app opens again,
             // nothing arrives in the background.
