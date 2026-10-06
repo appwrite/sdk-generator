@@ -237,18 +237,7 @@ export class Push extends Service {
         // replaces the saved one, and signed out (no session cookie) drops the saved
         // subscriptions.
         if (this.native) {
-            const native = this.native;
-            this.loadCookieSession()
-                .catch(() => undefined)
-                .then(() => {
-                    const current = this.currentCredential();
-                    return native.resume(
-                        current?.authMethod ?? null,
-                        current?.credential ?? null,
-                        true,
-                    );
-                })
-                .catch((err) => this.report(err));
+            this.resumeNative(this.native).catch((err) => this.report(err));
         }
     }
 
@@ -1270,6 +1259,27 @@ export class Push extends Service {
         return this.connecting.then(() => this.mqtt!);
     }
 
+    /**
+     * Resume saved native delivery with the current credential. Only a cookie lookup that
+     * succeeded and found no session counts as signed out; a failed or impossible lookup keeps
+     * the saved subscriptions.
+     */
+    private async resumeNative(native: NativePush): Promise<void> {
+        const { jwt, session, endpoint, project } = this.client.config;
+        let signedOut = false;
+        if (!jwt && !session) {
+            const lookup = await lookupSessionCookie(endpoint, project);
+            this.cookieSession = lookup.session;
+            signedOut = lookup.found === false;
+        }
+        const current = this.currentCredential();
+        await native.resume(
+            current?.authMethod ?? null,
+            current?.credential ?? null,
+            signedOut,
+        );
+    }
+
     private async loadCookieSession(): Promise<void> {
         const { jwt, session, endpoint, project } = this.client.config;
         if (jwt || session) {
@@ -1777,15 +1787,29 @@ async function sessionCookie(
     endpoint: string | undefined,
     project: string | undefined,
 ): Promise<string> {
+    return (await lookupSessionCookie(endpoint, project)).session;
+}
+
+/**
+ * Look up the session cookie. `found` is false only when the lookup succeeded and there is no
+ * session, and null when it could not be looked up (no cookie module, endpoint or project, or
+ * the lookup failed).
+ */
+async function lookupSessionCookie(
+    endpoint: string | undefined,
+    project: string | undefined,
+): Promise<{ found: boolean | null; session: string }> {
     const cookies = NativeModules?.{{spec.info.title | caseUcfirst}}Cookies as NativeCookies | undefined;
     if (!cookies || !endpoint || !project) {
-        return '';
+        return { found: null, session: '' };
     }
     try {
         const value = await cookies.session(endpoint, project);
-        return value ? decodeURIComponent(value) : '';
+        return value
+            ? { found: true, session: decodeURIComponent(value) }
+            : { found: false, session: '' };
     } catch {
-        return '';
+        return { found: null, session: '' };
     }
 }
 
