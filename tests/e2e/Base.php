@@ -301,6 +301,7 @@ abstract class Base extends TestCase
     protected const REACT_NATIVE_PUSH_COOKIE_REFRESH_RESPONSES = [
         'Push background cookie refresh:passed',
         'Push background reconnect credential:passed',
+        'Push background drain:passed',
     ];
 
     // Android only: no notification while the app is on screen, the watchdog job, and resume with

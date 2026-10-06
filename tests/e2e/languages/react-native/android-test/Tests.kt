@@ -276,6 +276,32 @@ class Tests {
             },
         )
         call { module.stop(it) }
+
+        // A scheduled run stays up while a delivery is pending (JS has not acknowledged it yet) and
+        // ends shortly after it settles; with nothing pending it ends once deliveries are quiet.
+        events.clear()
+        call { module.host(config("appwrite-session", SESSION), subscriptions, it) }
+        waitFor { messages().isNotEmpty() }
+        val pendingToken = messages().firstOrNull()?.get("ackToken") as? String
+        val pendingRun = CompletableFuture<Long>()
+        PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { pendingRun.complete(android.os.SystemClock.elapsedRealtime()) }
+        Thread.sleep(4_000)
+        val heldWhilePending = !pendingRun.isDone
+        val acknowledgedAt = android.os.SystemClock.elapsedRealtime()
+        pendingToken?.let { module.ack(it) }
+        val endedAfterAck = runCatching { pendingRun.get(6, TimeUnit.SECONDS) - acknowledgedAt }.getOrNull()
+        val quietRun = CompletableFuture<Long>()
+        val quietStart = android.os.SystemClock.elapsedRealtime()
+        PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { quietRun.complete(android.os.SystemClock.elapsedRealtime()) }
+        val quietTook = runCatching { quietRun.get(12, TimeUnit.SECONDS) - quietStart }.getOrNull()
+        writeToFile(
+            if (pendingToken != null && heldWhilePending && endedAfterAck != null && quietTook != null && quietTook in 1_500L..8_000L) {
+                "Push background drain:passed"
+            } else {
+                "Push background drain:failed (held: $heldWhilePending, after ack: $endedAfterAck, quiet: $quietTook)"
+            },
+        )
+        call { module.stop(it) }
     }
 
     // Taps on the notifications background delivery posts, read the way push.ts reads them: the tap
