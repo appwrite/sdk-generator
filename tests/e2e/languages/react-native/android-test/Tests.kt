@@ -288,7 +288,8 @@ class Tests {
         Thread.sleep(4_000)
         val heldWhilePending = !pendingRun.isDone
         val acknowledgedAt = System.currentTimeMillis()
-        pendingToken?.let { module.ack(it) }
+        // Every message delivered so far is pending until acknowledged; settle them all, as JS does.
+        messages().mapNotNull { it["ackToken"] as? String }.forEach { module.ack(it) }
         val endedAfterAck = runCatching { pendingRun.get(6, TimeUnit.SECONDS) - acknowledgedAt }.getOrNull()
         val quietRun = CompletableFuture<Long>()
         val quietStart = System.currentTimeMillis()
