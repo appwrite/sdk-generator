@@ -11,6 +11,11 @@
  *    its reason reaches the SDK; the projectId user property becomes the connection prefix.
  *    A "slow:<anything>" credential is accepted after 500 ms, so a test can act while it connects.
  *  - SUBSCRIBE to "e2e-whoami" publishes the connection's client id on "e2e-whoami".
+ *  - SUBSCRIBE to "e2e-whoauth" publishes the credential the connection authenticated with on
+ *    "e2e-whoauth", and does again after every later CONNECT of that client id, so a test can
+ *    see which credential an automatic reconnect sent.
+ *  - SUBSCRIBE to "e2e-drop/<ms>" closes the connection <ms> later without a DISCONNECT (a lost
+ *    connection, which the client reconnects from on its own), once per client id.
  *  - SUBSCRIBE to "e2e-disconnect/<reason>" makes the broker DISCONNECT the client with <reason>
  *    as the Reason String.
  *  - "e2e-replay" keeps a replay position per project and client id, like the real broker does
@@ -65,6 +70,15 @@ class MockHandler implements Handler
     /** @var array<string, Connection> project|client id => its connection, while subscribed to "e2e-replay" */
     private array $replayOnline = [];
 
+    /** @var array<int, string> connection object id => the credential it authenticated with */
+    private array $credentials = [];
+
+    /** @var array<string, true> project|client id => subscribed to "e2e-whoauth" */
+    private array $whoauth = [];
+
+    /** @var array<string, true> project|client id => already dropped by "e2e-drop/<ms>" */
+    private array $dropped = [];
+
     public function onConnect(Connect $connect, Connection $connection): Connack|Auth
     {
         $connection->prefix = $connect->userProperties()['projectId'] ?? '';
@@ -96,6 +110,12 @@ class MockHandler implements Handler
             $clientId = 'custom_' . $connection->prefix . '_' . \spl_object_id($connection);
         }
         $connection->setClientId($clientId);
+        $this->credentials[\spl_object_id($connection)] = $credential;
+
+        // A client id that asked for "e2e-whoauth" hears the credential of every later CONNECT.
+        if (isset($this->whoauth[$connection->prefix . '|' . $clientId])) {
+            \Swoole\Timer::after(100, fn () => $connection->publish('e2e-whoauth', $credential, qos: 0));
+        }
 
         // Echo the authentication method in the CONNACK. MQTT 5 enhanced-auth clients that use
         // a challenge/response mechanism (HiveMQ on Android) require the accepting CONNACK to
@@ -153,6 +173,19 @@ class MockHandler implements Handler
                         $connection->publish('e2e-replay', $message, qos: Packet::QOS_1);
                     }
                 });
+            }
+            if ($filter->topic === 'e2e-whoauth') {
+                $this->whoauth[$connection->prefix . '|' . $connection->getClientId()] = true;
+                $credential = $this->credentials[\spl_object_id($connection)] ?? '';
+                \Swoole\Timer::after(100, fn () => $connection->publish('e2e-whoauth', $credential, qos: 0));
+            }
+            if (\str_starts_with($filter->topic, 'e2e-drop/')) {
+                $key = $connection->prefix . '|' . $connection->getClientId();
+                if (!isset($this->dropped[$key])) {
+                    $this->dropped[$key] = true;
+                    $delay = \max(1, (int) \substr($filter->topic, \strlen('e2e-drop/')));
+                    \Swoole\Timer::after($delay, fn () => $connection->disconnect());
+                }
             }
             if ($filter->topic === 'e2e-whoami') {
                 \Swoole\Timer::after(100, fn () => $connection->publish('e2e-whoami', $connection->getClientId(), qos: 0));
