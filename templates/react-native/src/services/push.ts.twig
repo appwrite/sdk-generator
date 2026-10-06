@@ -12,12 +12,7 @@ import mqtt, {
     type IPublishPacket,
     type MqttClient,
 } from 'mqtt';
-import {
-    NativeEventEmitter,
-    NativeModules,
-    PermissionsAndroid,
-    Platform,
-} from 'react-native';
+import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
 
 import { Client } from '../client';
 import { createTcpStream } from '../lib/tcp-stream';
@@ -1417,6 +1412,11 @@ function requestNotificationPermission(): void {
         return;
     }
     notificationPermissionRequested = true;
+    // Required here rather than imported: react-native-web, which web builds alias, lacks it.
+    /* eslint-disable @typescript-eslint/no-require-imports */
+    const reactNative: typeof import('react-native') = require('react-native');
+    /* eslint-enable @typescript-eslint/no-require-imports */
+    const { PermissionsAndroid } = reactNative;
     const permission = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
     PermissionsAndroid.check(permission)
         .then((granted) =>
