@@ -814,23 +814,44 @@ class ServiceTest {
                 },
             )
 
-            // The app starts again with a rotated session of the same user: it replaces the saved one
-            // and delivery continues. Signed in as someone else, the saved subscriptions are dropped.
-            fun session(userId: String, secret: String) = android.util.Base64.encodeToString(
-                org.json.JSONObject().put("id", userId).put("secret", secret).toString().toByteArray(),
-                android.util.Base64.NO_WRAP,
-            )
-            io.appwrite.services.PushBackground.resume(context, "appwrite-session", session("e2e-session-user", "rotated"), true)
-            val keptForSameUser = io.appwrite.services.PushBackground.hasSaved(context)
-            io.appwrite.services.PushBackground.resume(context, "appwrite-session", session("someone-else", "other"), true)
+            // The app starts again with a new credential for the same user while the saved one is no
+            // longer accepted: it replaces the saved one, so delivery continues instead of being
+            // refused. Signed in as someone else, the saved subscriptions are dropped.
+            fun jwt(prefix: String, userId: String) = prefix + "." + android.util.Base64.encodeToString(
+                org.json.JSONObject().put("userId", userId).toString().toByteArray(),
+                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING,
+            ) + ".signature"
+            val savedState = io.appwrite.services.PushStore.loadState(context)
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            if (savedState != null) {
+                io.appwrite.services.PushStore.saveState(
+                    context,
+                    savedState.first.copy(authMethod = "appwrite-jwt", credential = jwt("deny:stale", "e2e-jwt-user")),
+                    savedState.second,
+                )
+            }
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
+            val fresh = jwt("fresh", "e2e-jwt-user")
+            io.appwrite.services.PushBackground.resume(context, "appwrite-jwt", fresh, true)
+            val resumeDeadline = System.currentTimeMillis() + 10_000
+            while (E2EPushReceiver.messages.isEmpty() && System.currentTimeMillis() < resumeDeadline) {
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                Thread.sleep(100)
+            }
+            val deliveredWithFresh = E2EPushReceiver.messages.toList() == listOf("push-payload") &&
+                io.appwrite.services.PushStore.loadState(context)?.first?.credential == fresh
+            io.appwrite.services.PushBackground.resume(context, "appwrite-jwt", jwt("other", "someone-else"), true)
             val droppedForOtherUser = !io.appwrite.services.PushBackground.hasSaved(context)
             writeToFile(
-                if (keptForSameUser && droppedForOtherUser) {
+                if (deliveredWithFresh && droppedForOtherUser) {
                     "Push background resume credential:passed"
                 } else {
-                    "Push background resume credential:failed (kept: $keptForSameUser, dropped: $droppedForOtherUser)"
+                    "Push background resume credential:failed (delivered: $deliveredWithFresh, dropped: $droppedForOtherUser)"
                 },
             )
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
 
             // Sign-out: close() stops background delivery, including what the earlier run saved. When
             // the app opens again afterwards (a new process, then a new Push), nothing is delivered.
