@@ -170,6 +170,14 @@ class Tests {
                 context.registerReceiver(receiver, filter)
             }
             wakeUp.send()
+            // On Android 12+ the alarm hands the run to an expedited job; run that job's work, as
+            // JobScheduler would (Robolectric does not run jobs).
+            shadowOf(android.os.Looper.getMainLooper()).idle()
+            val jobScheduler = context.getSystemService(android.app.job.JobScheduler::class.java)
+            if (jobScheduler.allPendingJobs.any { it.id == PushBackground.EXPEDITED_JOB_ID }) {
+                jobScheduler.cancel(PushBackground.EXPEDITED_JOB_ID)
+                PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) {}
+            }
         }
         waitFor { E2EPushReceiver.messages.isNotEmpty() }
         val posted = shadowOf(notifications).allNotifications.firstOrNull()
