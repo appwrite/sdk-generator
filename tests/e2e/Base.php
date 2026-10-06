@@ -281,6 +281,11 @@ abstract class Base extends TestCase
         'Push native displaced:passed',
     ];
 
+    // React Native and Flutter on Android ask for POST_NOTIFICATIONS once background delivery starts.
+    protected const PUSH_NOTIFICATION_PERMISSION_RESPONSES = [
+        'Push notification permission:passed',
+    ];
+
     protected const PUSH_BACKGROUND_RESPONSES = [
         'Push background message:passed',
         'Push background restore:passed',
