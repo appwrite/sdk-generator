@@ -14,7 +14,7 @@ import android.content.Intent
 class PushJobService : JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
         // The periodic watchdog only restarts the chain; the chained job re-arms itself once done.
-        PushBackground.tick(this, fromJob = params.jobId != PushBackground.WATCHDOG_JOB_ID) { jobFinished(params, false) }
+        PushBackground.tick(this, params.jobId.takeIf { it != PushBackground.WATCHDOG_JOB_ID }) { jobFinished(params, false) }
         return true
     }
 

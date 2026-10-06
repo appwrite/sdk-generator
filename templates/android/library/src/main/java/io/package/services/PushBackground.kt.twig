@@ -105,6 +105,7 @@ internal object PushBackground {
 
     private const val SERVICE_CHANNEL_ID = "{{ spec.info.title | caseLower }}-push-service"
     private const val JOB_ID = 0x50555348
+    private const val NEXT_JOB_ID = 0x5055534A
     const val WATCHDOG_JOB_ID = 0x50555349
     private const val WATCHDOG_INTERVAL_MS = 15 * 60 * 1_000L
     private const val INTERVAL_MS = 15_000L
@@ -321,10 +322,10 @@ internal object PushBackground {
      * One scheduled run: under a wakelock, reconnect if needed, send a heartbeat when one is due,
      * re-arm the next run, and call [done] once finished. Shuts down when nothing is saved.
      *
-     * A run of the scheduled job ([fromJob]) re-arms the next job only after [done]: scheduling the
-     * same job id while it runs would stop the run in progress.
+     * A run of a chained job ([jobId]) arms the next run under the other chained id: scheduling the
+     * id that is running would stop the run in progress.
      */
-    fun tick(context: Context, fromJob: Boolean = false, done: () -> Unit) {
+    fun tick(context: Context, jobId: Int? = null, done: () -> Unit) {
         val app = context.applicationContext
         val wakeLock = acquireWakeLock(app)
         worker.execute {
@@ -338,7 +339,7 @@ internal object PushBackground {
                     // the wakelock) still leaves the chain armed; the watchdog job restarts a chain
                     // that was dropped anyway. A refused credential in converge() shuts down,
                     // cancelling them again.
-                    schedule(app, INTERVAL_MS, jobToo = !fromJob)
+                    schedule(app, INTERVAL_MS, runningJobId = jobId)
                     ensureWatchdog(app)
                     ensureService(app)
                     registerNetworkCallback(app)
@@ -351,16 +352,13 @@ internal object PushBackground {
             } finally {
                 releaseWakeLock(wakeLock)
                 done()
-                if (fromJob && synchronized(lock) { isActive() }) {
-                    scheduleJob(app, INTERVAL_MS)
-                }
             }
         }
     }
 
     /** Run once more shortly after the task was removed, so an OEM kill that follows is undone. */
     fun scheduleRestart(context: Context) {
-        schedule(context.applicationContext, RESTART_DELAY_MS, jobToo = false)
+        schedule(context.applicationContext, RESTART_DELAY_MS, alarmOnly = true)
     }
 
     /**
@@ -909,10 +907,16 @@ internal object PushBackground {
     }
 
     // Arm the next run in [delayMs]: the job, and an alarm just after it in case the job is late.
-    private fun schedule(context: Context, delayMs: Long, jobToo: Boolean = true) {
+    // The chained job alternates between two ids, so a run ([runningJobId]) never schedules its
+    // own id, which would stop it; the other id is cancelled only when it is not the one running.
+    private fun schedule(context: Context, delayMs: Long, alarmOnly: Boolean = false, runningJobId: Int? = null) {
         val interval = interval(context, delayMs)
-        if (jobToo) {
-            scheduleJob(context, delayMs)
+        if (!alarmOnly) {
+            val next = if (runningJobId == JOB_ID) NEXT_JOB_ID else JOB_ID
+            if (runningJobId == null) {
+                context.getSystemService(JobScheduler::class.java)?.cancel(if (next == JOB_ID) NEXT_JOB_ID else JOB_ID)
+            }
+            scheduleJob(context, delayMs, next)
         }
         val alarms = context.getSystemService(AlarmManager::class.java) ?: return
         val at = SystemClock.elapsedRealtime() + interval + 1_000L
@@ -931,9 +935,9 @@ internal object PushBackground {
     private fun interval(context: Context, delayMs: Long): Long =
         if (delayMs == INTERVAL_MS && privileged(context)) PRIVILEGED_INTERVAL_MS else delayMs
 
-    private fun scheduleJob(context: Context, delayMs: Long) {
+    private fun scheduleJob(context: Context, delayMs: Long, id: Int) {
         try {
-            val job = JobInfo.Builder(JOB_ID, ComponentName(context, PushJobService::class.java))
+            val job = JobInfo.Builder(id, ComponentName(context, PushJobService::class.java))
                 .setMinimumLatency(interval(context, delayMs))
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .setPersisted(true)
@@ -967,6 +971,7 @@ internal object PushBackground {
 
     private fun cancelSchedule(context: Context) {
         context.getSystemService(JobScheduler::class.java)?.cancel(JOB_ID)
+        context.getSystemService(JobScheduler::class.java)?.cancel(NEXT_JOB_ID)
         context.getSystemService(JobScheduler::class.java)?.cancel(WATCHDOG_JOB_ID)
         context.getSystemService(AlarmManager::class.java)?.cancel(tickIntent(context))
     }
