@@ -439,19 +439,22 @@ internal object PushBackground {
     }
 
     // Worker thread only. Wait until no message arrived for DRAIN_QUIET_MS and none is being
-    // delivered, at most [maxMs].
+    // delivered, at most [maxMs]. Timed with the real monotonic clock ([nowMs]), which keeps moving
+    // while this thread sleeps.
     private fun awaitDeliveries(maxMs: Long) {
-        val start = SystemClock.elapsedRealtime()
+        val start = nowMs()
         if (lastDelivery < start) {
             lastDelivery = start
         }
-        while (SystemClock.elapsedRealtime() - start < maxMs) {
-            if (delivering.get() == 0 && SystemClock.elapsedRealtime() - lastDelivery >= DRAIN_QUIET_MS) {
+        while (nowMs() - start < maxMs) {
+            if (delivering.get() == 0 && nowMs() - lastDelivery >= DRAIN_QUIET_MS) {
                 return
             }
             Thread.sleep(DRAIN_POLL_MS)
         }
     }
+
+    private fun nowMs(): Long = System.nanoTime() / 1_000_000
 
     /**
      * Android 12+: hand a run to an expedited job, which starts at once with network access and
@@ -810,9 +813,9 @@ internal object PushBackground {
     // handed over, so a run's drain window waits for it.
     private fun deliver(context: Context, publish: Mqtt5Publish) {
         delivering.incrementAndGet()
-        lastDelivery = SystemClock.elapsedRealtime()
+        lastDelivery = nowMs()
         deliverAcknowledged(context, publish) {
-            lastDelivery = SystemClock.elapsedRealtime()
+            lastDelivery = nowMs()
             delivering.decrementAndGet()
         }
     }

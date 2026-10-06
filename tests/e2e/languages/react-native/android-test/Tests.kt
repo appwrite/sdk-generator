@@ -284,15 +284,15 @@ class Tests {
         waitFor { messages().isNotEmpty() }
         val pendingToken = messages().firstOrNull()?.get("ackToken") as? String
         val pendingRun = CompletableFuture<Long>()
-        PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { pendingRun.complete(android.os.SystemClock.elapsedRealtime()) }
+        PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { pendingRun.complete(System.currentTimeMillis()) }
         Thread.sleep(4_000)
         val heldWhilePending = !pendingRun.isDone
-        val acknowledgedAt = android.os.SystemClock.elapsedRealtime()
+        val acknowledgedAt = System.currentTimeMillis()
         pendingToken?.let { module.ack(it) }
         val endedAfterAck = runCatching { pendingRun.get(6, TimeUnit.SECONDS) - acknowledgedAt }.getOrNull()
         val quietRun = CompletableFuture<Long>()
-        val quietStart = android.os.SystemClock.elapsedRealtime()
-        PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { quietRun.complete(android.os.SystemClock.elapsedRealtime()) }
+        val quietStart = System.currentTimeMillis()
+        PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { quietRun.complete(System.currentTimeMillis()) }
         val quietTook = runCatching { quietRun.get(12, TimeUnit.SECONDS) - quietStart }.getOrNull()
         writeToFile(
             if (pendingToken != null && heldWhilePending && endedAfterAck != null && quietTook != null && quietTook in 1_500L..8_000L) {
