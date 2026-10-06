@@ -761,7 +761,7 @@ class ServiceTest {
             )
             // Besides the chain of runs, a periodic job restarts delivery if a run is ever dropped.
             val jobs = context.getSystemService(android.app.job.JobScheduler::class.java)
-            val watchdog = jobs.getPendingJob(io.appwrite.services.PushBackground.WATCHDOG_JOB_ID)
+            val watchdog = jobs.allPendingJobs.firstOrNull { it.id == io.appwrite.services.PushBackground.WATCHDOG_JOB_ID }
             writeToFile(
                 if (watchdog?.isPeriodic == true && watchdog.isPersisted) {
                     "Push background watchdog:passed"

@@ -954,7 +954,7 @@ internal object PushBackground {
     private fun ensureWatchdog(context: Context) {
         val jobs = context.getSystemService(JobScheduler::class.java) ?: return
         try {
-            if (jobs.getPendingJob(WATCHDOG_JOB_ID) != null) {
+            if (jobs.allPendingJobs.any { it.id == WATCHDOG_JOB_ID }) {
                 return
             }
             jobs.schedule(
