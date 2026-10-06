@@ -38,12 +38,16 @@ flutter pub add {{ language.params.packageName }}
 
 ### Push on Android
 
-`Push` includes a native Android plugin, and `flutter_local_notifications` needs core library
-desugaring, so add this to `android/app/build.gradle.kts` (desugaring is configured when the app
-is assembled, so a plugin cannot apply it for you):
+`Push` includes a native Android plugin, so the SDK needs Android 7.0 (API 24) or later: apps
+with a lower `minSdk` fail to build until they raise it. `flutter_local_notifications` also needs
+core library desugaring. Add both to `android/app/build.gradle.kts` (desugaring is configured when
+the app is assembled, so a plugin cannot apply it for you):
 
 ```kotlin
 android {
+    defaultConfig {
+        minSdk = 24
+    }
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
     }
@@ -61,7 +65,16 @@ seconds to reconnect; the broker replays what was sent in between (`retry: true`
 in-app callback receives are posted as notifications that open the app. It reconnects with the
 credential saved at subscribe time, so use a session rather than a short-lived JWT.
 
+On Android 13 and later, notifications only appear once the user grants the
+`POST_NOTIFICATIONS` runtime permission. Without it, the subscription still delivers to your
+callback but posts no notification, so ask before subscribing, for example with
+`flutter_local_notifications`:
+
 ```dart
+await FlutterLocalNotificationsPlugin()
+    .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+    ?.requestNotificationsPermission();
+
 final sub = await push.subscribe('news', (message) => print(message.data),
     background: true, title: 'News');
 
