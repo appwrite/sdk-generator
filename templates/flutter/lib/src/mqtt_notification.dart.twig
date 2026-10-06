@@ -5,11 +5,18 @@ import 'mqtt_message.dart';
 /// What a message's `notification` block asks a background notification to show: nulls when
 /// the payload has none or is not JSON.
 class PushNotificationContent {
+  /// Whether the message has a `notification` block at all.
+  final bool present;
   final String? title;
   final String? body;
   final String? image;
 
-  const PushNotificationContent._(this.title, this.body, this.image);
+  const PushNotificationContent._(
+    this.present,
+    this.title,
+    this.body,
+    this.image,
+  );
 
   factory PushNotificationContent.of(PushMessage message) {
     Object? notification;
@@ -25,6 +32,7 @@ class PushNotificationContent {
     }
 
     return PushNotificationContent._(
+      notification is Map,
       field('title'),
       field('body'),
       field('image'),
@@ -37,5 +45,5 @@ class PushNotificationContent {
   /// The body to show: the server's, else the raw payload when the message carries no
   /// notification block at all.
   String? bodyFor(PushMessage message) =>
-      body ?? (title == null && image == null ? message.data : null);
+      body ?? (present ? null : message.data);
 }

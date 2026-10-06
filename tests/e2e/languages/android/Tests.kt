@@ -834,11 +834,18 @@ class ServiceTest {
             val content = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()?.extras
             val contentTitle = content?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
             val contentText = content?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
+            // An empty notification block shows the subscription's title, never the raw JSON.
+            notifications.cancelAll()
+            val emptyMessage = io.appwrite.services.PushMessage("e2e-push", "{\"notification\":{}}".toByteArray(), 1)
+            io.appwrite.services.PushBackground.notify(context, emptyMessage, "E2E title")
+            val empty = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()?.extras
+            val emptyTitle = empty?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
+            val emptyText = empty?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
             writeToFile(
-                if (contentTitle == "Server title" && contentText == "Server body") {
+                if (contentTitle == "Server title" && contentText == "Server body" && emptyTitle == "E2E title" && emptyText == null) {
                     "Push notification content:passed"
                 } else {
-                    "Push notification content:failed (title: $contentTitle, text: $contentText)"
+                    "Push notification content:failed (title: $contentTitle, text: $contentText, empty: $emptyTitle/$emptyText)"
                 },
             )
             notifications.cancelAll()

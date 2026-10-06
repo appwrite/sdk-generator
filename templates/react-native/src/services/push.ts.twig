@@ -1041,8 +1041,7 @@ export class Push extends Service {
             const notifications: typeof import('expo-notifications') = require('expo-notifications');
             /* eslint-enable @typescript-eslint/no-require-imports */
             const content = notificationContent(message);
-            const raw =
-                content.title === undefined && content.image === undefined;
+            const raw = !content.present;
             await notifications.scheduleNotificationAsync({
                 content: {
                     title: content.title ?? title,
@@ -1427,6 +1426,8 @@ function requestNotificationPermission(): void {
 
 /** What a message's `notification` block asks a background notification to show. */
 interface NotificationContent {
+    /** Whether the message has a `notification` block at all. */
+    present: boolean;
     title?: string;
     body?: string;
     image?: string;
@@ -1439,16 +1440,17 @@ function notificationContent(message: PushMessage): NotificationContent {
         notification = (JSON.parse(message.data) as { notification?: unknown })
             ?.notification;
     } catch {
-        return {};
+        return { present: false };
     }
     if (typeof notification !== 'object' || notification === null) {
-        return {};
+        return { present: false };
     }
     const field = (name: string): string | undefined => {
         const value = (notification as Record<string, unknown>)[name];
         return typeof value === 'string' && value !== '' ? value : undefined;
     };
     return {
+        present: true,
         title: field('title'),
         body: field('body'),
         image: field('image'),

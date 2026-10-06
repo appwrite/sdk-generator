@@ -849,7 +849,7 @@ open class Push: Service {
         #if canImport(UserNotifications)
             let content = UNMutableNotificationContent()
             content.title = title
-            content.body = notification.body ?? (notification.title == nil && notification.image == nil ? message.data : "")
+            content.body = notification.body ?? (notification.present ? "" : message.data)
             content.sound = .default
             content.userInfo = ["topic": message.topic, "payload": message.data]
             guard let image = notification.image.flatMap(URL.init(string:)) else {
@@ -900,6 +900,7 @@ open class Push: Service {
 /// What a message's `notification` block asks a background notification to show: nils when the
 /// payload has none or is not JSON.
 struct PushNotificationContent {
+    let present: Bool
     let title: String?
     let body: String?
     let image: String?
@@ -907,6 +908,7 @@ struct PushNotificationContent {
     init(message: PushMessage) {
         let json = (try? JSONSerialization.jsonObject(with: Data(message.payload))) as? [String: Any]
         let notification = json?["notification"] as? [String: Any]
+        present = notification != nil
         func field(_ name: String) -> String? {
             guard let value = notification?[name] as? String, !value.isEmpty else { return nil }
             return value
