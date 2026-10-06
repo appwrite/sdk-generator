@@ -805,22 +805,24 @@ internal object PushBackground {
 
     // Deliver a message, then acknowledge it: right away, or once every listener that acknowledges
     // messages itself has done so (at most ACK_TIMEOUT_SECONDS later).
+    // A message counts as being delivered until it is acknowledged: for the React Native and Flutter
+    // bridges, once their callback has run (or the acknowledgement times out), not when the event is
+    // handed over, so a run's drain window waits for it.
     private fun deliver(context: Context, publish: Mqtt5Publish) {
         delivering.incrementAndGet()
         lastDelivery = SystemClock.elapsedRealtime()
-        try {
-            deliverAcknowledged(context, publish)
-        } finally {
+        deliverAcknowledged(context, publish) {
             lastDelivery = SystemClock.elapsedRealtime()
             delivering.decrementAndGet()
         }
     }
 
-    private fun deliverAcknowledged(context: Context, publish: Mqtt5Publish) {
+    private fun deliverAcknowledged(context: Context, publish: Mqtt5Publish, settled: () -> Unit) {
         val acknowledged = AtomicBoolean(false)
         val acknowledge = {
             if (acknowledged.compareAndSet(false, true)) {
                 runCatching { publish.acknowledge() }
+                settled()
             }
         }
         val pending = AtomicInteger(1)
