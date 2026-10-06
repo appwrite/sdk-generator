@@ -104,6 +104,8 @@ open class Push: Service {
     private var connectionEpoch = 0
     private var resubscribeOnConnect = false
     private var retired = Set<ObjectIdentifier>()
+    private var closedClients = Set<ObjectIdentifier>()
+    private var closeGeneration = 0
 
     private var onOpenCb: (() -> Void)?
     private var onCloseCb: (() -> Void)?
@@ -252,10 +254,14 @@ open class Push: Service {
             requestNotificationAuthorization()
         }
 
+        let generation = sync.sync { closeGeneration }
         let mqtt: MQTTClient
         do {
             mqtt = try await connect()
         } catch is SupersededError {
+            if sync.sync(execute: { closeGeneration != generation }) {
+                throw Push.closedError()
+            }
             return try await subscribe(topics.map { $0 as TopicValue }, background: background, title: title, retry: retry, callback: callback)
         }
         let epoch = sync.sync { connectionEpoch }
@@ -281,6 +287,9 @@ open class Push: Service {
                 return true
             }
             if superseded {
+                if sync.sync(execute: { closeGeneration != generation }) {
+                    throw Push.closedError()
+                }
                 return try await subscribe(topics.map { $0 as TopicValue }, background: background, title: title, retry: retry, callback: callback)
             }
             // The SUBSCRIBE failed; roll this call's registrations back (and drop any broker
@@ -388,30 +397,47 @@ open class Push: Service {
     }
 
     /// Tear down the connection and drop all active subscriptions.
+    ///
+    /// Returns at once: the DISCONNECT and the client shutdown run on a background queue,
+    /// because a blocking wait is not allowed on the event loop that runs message callbacks,
+    /// and those callbacks may call `close()` or drop the last subscription. A connection
+    /// still being opened is abandoned, and any `subscribe` waiting on it throws.
     public func close() {
         let client = sync.sync { () -> MQTTClient? in
             // Mark this a deliberate close so the close listener does not reconnect.
             closing = true
+            connectionEpoch += 1
+            closeGeneration += 1
             let existing = mqtt
             mqtt = nil
             connecting?.cancel()
             connecting = nil
+            resubscribeOnConnect = false
             subscriptions.removeAll()
+            if let existing {
+                closedClients.insert(ObjectIdentifier(existing))
+            }
             return existing
         }
         guard let client else { return }
-        do {
-            try client.disconnect().wait()
-        } catch MQTTError.noConnection {
-            // Already disconnected (e.g. the broker dropped the connection); nothing to send.
-        } catch {
-            surface(Push.describe(error))
+        DispatchQueue.global().async { [weak self] in
+            do {
+                try client.disconnect().wait()
+            } catch MQTTError.noConnection {
+                // Already disconnected (e.g. the broker dropped the connection); nothing to send.
+            } catch {
+                self?.surface(Push.describe(error))
+            }
+            do {
+                try client.syncShutdownGracefully()
+            } catch {
+                self?.surface(error)
+            }
         }
-        do {
-            try client.syncShutdownGracefully()
-        } catch {
-            surface(error)
-        }
+    }
+
+    private static func closedError() -> Swift.Error {
+        {{ spec.info.title | caseUcfirst }}Error(message: "Push was closed before the subscription was established")
     }
 
     private func requestNotificationAuthorization() {
@@ -603,6 +629,10 @@ open class Push: Service {
         // unexpected drop (a deliberate close() is skipped via the `closing` flag).
         mqtt.addCloseListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self, weak mqtt] result in
             if let self, let mqtt, self.sync.sync(execute: { self.retired.remove(ObjectIdentifier(mqtt)) != nil }) {
+                return
+            }
+            if let self, let mqtt, self.sync.sync(execute: { self.closedClients.remove(ObjectIdentifier(mqtt)) != nil }) {
+                self.onCloseCb?()
                 return
             }
             if case .failure(let error) = result {
