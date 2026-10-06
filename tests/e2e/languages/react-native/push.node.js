@@ -209,6 +209,22 @@ async function main() {
     secondUser.close();
     delete NativeModules.AppwritePush;
 
+    const closingPush = new Push(
+        new Client().setProject('console').setPushEndpoint(ENDPOINT).setJWT('slow:closing'),
+    );
+    const closingOutcome = closingPush.subscribe(['e2e-switch'], () => {}).then(
+        () => '',
+        (e) => (e instanceof Error ? e.message : String(e)),
+    );
+    await timeout(100);
+    closingPush.close();
+    const closedOutcome = await Promise.race([closingOutcome, timeout(5000, 'timeout')]);
+    console.log(
+        closedOutcome === 'Push was closed before the subscription was established'
+            ? 'Push close while connecting:passed'
+            : `Push close while connecting:failed (${closedOutcome})`,
+    );
+
     // mqtt.js keepalive timers would otherwise hold the event loop open.
     process.exit(0);
 }

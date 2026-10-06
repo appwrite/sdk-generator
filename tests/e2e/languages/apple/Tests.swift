@@ -692,6 +692,53 @@ class Tests: XCTestCase {
                 ? "Push credential pending switch:passed"
                 : "Push credential pending switch:failed (first: \(firstPendingOutcome), second: \(secondPending))"
         )
+
+        let closingPush = Push(
+            Client()
+                .setProject("console")
+                .setSelfSigned()
+                .setPushEndpoint("mqtt://mqtt:1883")
+                .setJWT("slow:closing")
+        )
+        let closedWhileConnecting = ErrorCollector()
+        Task {
+            closedWhileConnecting.record(await outcome { _ = try await closingPush.subscribe("e2e-switch") { _ in } })
+        }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        closingPush.close()
+        for _ in 0..<100 where closedWhileConnecting.message == nil {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let closedOutcome = closedWhileConnecting.message ?? "timeout"
+        print(
+            closedOutcome == "Push was closed before the subscription was established"
+                ? "Push close while connecting:passed"
+                : "Push close while connecting:failed (\(closedOutcome))"
+        )
+
+        let callbackPush = Push(
+            Client()
+                .setProject("console")
+                .setSelfSigned()
+                .setPushEndpoint("mqtt://mqtt:1883")
+                .setSession(e2eSession)
+        )
+        let handle = SubscriptionBox()
+        let closedFromCallback = ErrorCollector()
+        handle.subscription = try? await callbackPush.subscribe("e2e-push") { _ in
+            handle.subscription?.unsubscribe()
+            closedFromCallback.record("closed")
+        }
+        for _ in 0..<50 where closedFromCallback.message == nil {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let reopened = await outcome { _ = try await callbackPush.subscribe("e2e-switch") { _ in } }
+        callbackPush.close()
+        print(
+            closedFromCallback.message == "closed" && reopened.isEmpty
+                ? "Push close from callback:passed"
+                : "Push close from callback:failed (callback: \(closedFromCallback.message ?? "none"), reopened: \(reopened))"
+        )
     }
 
     func parse(from json: String) -> String? {
@@ -720,6 +767,10 @@ final class TopicCollector: @unchecked Sendable {
         defer { lock.unlock() }
         return received
     }
+}
+
+final class SubscriptionBox: @unchecked Sendable {
+    var subscription: PushSubscription?
 }
 
 final class ErrorCollector: @unchecked Sendable {

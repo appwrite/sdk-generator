@@ -206,6 +206,14 @@ abstract class Base extends TestCase
         'Push credential pending switch:passed',
     ];
 
+    protected const PUSH_CLOSE_WHILE_CONNECTING_RESPONSES = [
+        'Push close while connecting:passed',
+    ];
+
+    protected const PUSH_CLOSE_FROM_CALLBACK_RESPONSES = [
+        'Push close from callback:passed',
+    ];
+
     protected const WEB_PUSH_CONNECTION_RESPONSES = [
         'Push concurrent refused:passed',
         'Push tab client id:passed',
