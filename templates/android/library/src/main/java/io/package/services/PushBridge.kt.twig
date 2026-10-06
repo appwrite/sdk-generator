@@ -65,7 +65,7 @@ class PushBridge(context: Context, private val events: Events) {
             authMethod = authMethod,
             credential = credential,
             project = json.optString("project"),
-            sessionCookieUrl = json.optString("sessionCookieUrl").ifEmpty { null },
+            sessionCookieUrl = if (json.isNull("sessionCookieUrl")) null else json.optString("sessionCookieUrl").ifEmpty { null },
         )
         val list = JSONArray(subscriptionsJson)
         val listeners = (0 until list.length()).map { index ->

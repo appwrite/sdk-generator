@@ -1188,7 +1188,7 @@ internal object PushStore {
                     authMethod = it.getString("authMethod"),
                     credential = it.getString("credential"),
                     project = it.getString("project"),
-                    sessionCookieUrl = it.optString("sessionCookieUrl").ifEmpty { null },
+                    sessionCookieUrl = if (it.isNull("sessionCookieUrl")) null else it.optString("sessionCookieUrl").ifEmpty { null },
                 )
             }
             val list = json.getJSONArray("entries")
