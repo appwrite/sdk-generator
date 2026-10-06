@@ -288,6 +288,10 @@ abstract class Base extends TestCase
         'Push background refused:passed',
     ];
 
+    protected const ANDROID_PUSH_NOTIFICATION_RESPONSES = [
+        'Push notification content:passed',
+    ];
+
     protected const QUERY_HELPER_RESPONSES = [
         '{"method":"equal","attribute":"released","values":[true]}',
         '{"method":"equal","attribute":"title","values":["Spiderman","Dr. Strange"]}',
