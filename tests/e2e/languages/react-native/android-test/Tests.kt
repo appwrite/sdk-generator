@@ -1,3 +1,4 @@
+import android.app.Activity
 import android.app.AlarmManager
 import android.app.Application
 import android.app.Notification
@@ -27,6 +28,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.io.File
@@ -95,7 +97,8 @@ class TestPromise : Promise {
 class Tests {
     private val context = ApplicationProvider.getApplicationContext<Application>()
     private val events = CopyOnWriteArrayList<Pair<String, Map<String, Any?>>>()
-    private val module = AppwritePushModule(BridgeReactContext(context)) { event, body -> events.add(event to body) }
+    private val reactContext = BridgeReactContext(context)
+    private val module = AppwritePushModule(reactContext) { event, body -> events.add(event to body) }
 
     @Test
     fun background() {
@@ -197,6 +200,31 @@ class Tests {
         )
         call { module.stop(it) }
         sessionCookie()
+        notificationOpened()
+    }
+
+    // Taps on the notifications background delivery posts, read the way push.ts reads them: the tap
+    // that launched the app is reported once, and a tap while the app runs arrives as an event.
+    private fun notificationOpened() {
+        val payload = JSONObject().put("data", JSONObject().put("saleId", "42")).toString()
+        val tap = { Intent(Intent.ACTION_MAIN).putExtra(PushBackground.EXTRA_TOPIC, "e2e-push").putExtra(PushBackground.EXTRA_PAYLOAD, payload) }
+        val activity = Robolectric.buildActivity(Activity::class.java, tap()).setup().get()
+        reactContext.onHostResume(activity)
+        val launched = call { module.getInitialNotification(it) }.getOrNull() as? String
+        val again = call { module.getInitialNotification(it) }.getOrNull()
+        val initial = launched?.let { JSONObject(it) }
+        events.clear()
+        reactContext.onNewIntent(activity, tap())
+        val opened = events.firstOrNull { it.first == AppwritePushModule.OPENED_EVENT }?.second
+        writeToFile(
+            if (initial?.optString("topic") == "e2e-push" && initial.optString("payload") == payload && again == null &&
+                opened?.get("topic") == "e2e-push" && opened["payload"] == payload
+            ) {
+                "Push notification opened:passed"
+            } else {
+                "Push notification opened:failed (launched: $launched, again: $again, opened: $opened)"
+            },
+        )
     }
 
     private fun sessionCookie() {

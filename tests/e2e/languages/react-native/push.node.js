@@ -194,6 +194,8 @@ async function main() {
         resume: async () => {},
         setErrorCallback: async () => null,
         defaultClientId: async () => 'e2e-install',
+        getInitialNotification: async () =>
+            JSON.stringify({ topic: 'news', payload: JSON.stringify({ data: { saleId: '42' } }) }),
         addListener: () => {},
         removeListeners: () => {},
     };
@@ -206,6 +208,15 @@ async function main() {
     await timeout(200);
     console.log(firstErrors.some((e) => e.message.includes('Background delivery stopped')) && secondErrors.length === 0 ? 'Push native displaced:passed' : 'Push native displaced:failed');
     console.log(PermissionsAndroid.requested.length === 1 && PermissionsAndroid.requested[0] === 'android.permission.POST_NOTIFICATIONS' ? 'Push notification permission:passed' : 'Push notification permission:failed');
+    // Taps on background notifications: the launching one is parsed to its data, and later ones
+    // reach onNotificationOpened until it is stopped.
+    const launched = await firstUser.getInitialNotification();
+    const tapped = [];
+    const stopOpened = firstUser.onNotificationOpened((opened) => tapped.push(opened));
+    NativeModules.AppwritePush.emitter.emit('AppwritePushOpened', { topic: 'news', payload: JSON.stringify({ data: { saleId: '7' } }) });
+    stopOpened();
+    NativeModules.AppwritePush.emitter.emit('AppwritePushOpened', { topic: 'news', payload: 'not json' });
+    console.log(launched?.topic === 'news' && launched.data.saleId === '42' && tapped.length === 1 && tapped[0].data.saleId === '7' ? 'Push notification opened JS:passed' : 'Push notification opened JS:failed');
     firstUser.close();
     secondUser.close();
     delete NativeModules.AppwritePush;
