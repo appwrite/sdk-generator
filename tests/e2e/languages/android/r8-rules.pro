@@ -4,3 +4,4 @@
 -keep class io.appwrite.E2EPushReceiver { <init>(); }
 -keep class io.appwrite.TestPayload { *; }
 -dontwarn android.content.pm.**
+-dontwarn android.app.IActivityManager**
