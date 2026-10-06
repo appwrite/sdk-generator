@@ -145,7 +145,7 @@ module {{ spec.info.title | caseUcfirst }}
                 size = input_file.data.bytesize
             end
 
-            if size < @chunk_size || response_type == "text"
+            if size <= @chunk_size || response_type == "text"
                 if input_file.source_type == 'path'
                     input_file.data = IO.read(input_file.path)
                 end
