@@ -13,6 +13,7 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientConfig
 import com.hivemq.client.mqtt.mqtt5.auth.Mqtt5EnhancedAuthMechanism
 import com.hivemq.client.mqtt.mqtt5.exceptions.Mqtt5ConnAckException
 import com.hivemq.client.mqtt.mqtt5.exceptions.Mqtt5DisconnectException
+import com.hivemq.client.mqtt.mqtt5.lifecycle.Mqtt5ClientReconnector
 import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5Auth
 import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5AuthBuilder
 import com.hivemq.client.mqtt.mqtt5.message.auth.Mqtt5EnhancedAuthBuilder
@@ -133,6 +134,7 @@ internal fun buildPushClient(
     onDisconnected: (() -> Unit)? = null,
     onError: ((Throwable) -> Unit)? = null,
     onAuthRefused: ((Throwable) -> Unit)? = null,
+    credential: () -> String? = { config.credential },
 ): Mqtt5AsyncClient {
     // config.clientId is stable per user (see buildConfig), so a reconnect rebuild reuses it
     // and resumes the same session.
@@ -167,6 +169,11 @@ internal fun buildPushClient(
             context.source != MqttDisconnectSource.USER && isAuthRefusal(context.cause)
         if (refused || authRefused) {
             context.reconnector.reconnect(false)
+        } else if (context.reconnector.isReconnect) {
+            // HiveMQ's automatic reconnect sends a CONNECT it builds itself, without user
+            // properties: the broker then misses the project and refuses the credential. Reconnect
+            // with the same CONNECT this client connects with instead.
+            (context.reconnector as? Mqtt5ClientReconnector)?.connect(pushConnectMessage(config, credential))
         }
         onDisconnected?.invoke()
         if (!refused) {
@@ -240,8 +247,21 @@ internal fun Mqtt5AsyncClient.sendPushConnect(
     timeoutSeconds: Long? = null,
     credential: () -> String? = { config.credential },
 ) {
-    val connAck = connectWith()
-        .enhancedAuth(PushAuthMechanism(config.authMethod, credential))
+    val connAck = connect(pushConnectMessage(config, credential))
+    if (timeoutSeconds == null) {
+        connAck.get()
+    } else {
+        connAck.get(timeoutSeconds, TimeUnit.SECONDS)
+    }
+}
+
+/**
+ * The CONNECT for [config]: enhanced auth with the credential from [credential], and the project
+ * as a user property, which the broker resolves the credential against.
+ */
+internal fun pushConnectMessage(config: PushConfig, credential: () -> String?): Mqtt5Connect =
+    Mqtt5Connect.builder()
+        .enhancedAuth(PushAuthMechanism(config.authMethod, config.project, credential))
         // Clean start is always off, so the broker keeps this client's session and can
         // redeliver missed messages to QoS-1 subscriptions on reconnect.
         .cleanStart(false)
@@ -249,13 +269,7 @@ internal fun Mqtt5AsyncClient.sendPushConnect(
         .userProperties()
         .add("projectId", config.project)
         .applyUserProperties()
-        .send()
-    if (timeoutSeconds == null) {
-        connAck.get()
-    } else {
-        connAck.get(timeoutSeconds, TimeUnit.SECONDS)
-    }
-}
+        .build()
 
 /**
  * The error a lost connection reports, or null when it is not an error (a disconnect the app
@@ -303,6 +317,7 @@ internal fun Mqtt5Publish.toPushMessage(): PushMessage =
  */
 internal class PushAuthMechanism(
     private val method: String,
+    private val project: String,
     private val credential: () -> String?,
 ) : Mqtt5EnhancedAuthMechanism {
 
@@ -325,7 +340,11 @@ internal class PushAuthMechanism(
         authBuilder: Mqtt5AuthBuilder,
     ): CompletableFuture<Void> {
         val current = credential() ?: return failedAuth()
+        // The broker resolves a re-auth against the project in its user properties too.
         authBuilder.data(current.toByteArray(Charsets.UTF_8))
+            .userProperties()
+            .add("projectId", project)
+            .applyUserProperties()
         return CompletableFuture.completedFuture(null)
     }
 

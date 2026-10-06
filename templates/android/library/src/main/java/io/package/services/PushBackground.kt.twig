@@ -603,6 +603,7 @@ internal object PushBackground {
                 }
             },
             onAuthRefused = { error -> worker.execute { refused(context, error) } },
+            credential = { currentCredential(context, config) },
         )
         // Registered before connecting, so the backlog the broker replays right after each
         // SUBSCRIBE reaches the app however the subscription was made (including the ones the
