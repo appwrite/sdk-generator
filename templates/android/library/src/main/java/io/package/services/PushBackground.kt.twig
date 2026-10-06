@@ -32,9 +32,7 @@ import {{ pushNamespace }}.exceptions.{{ spec.info.title | caseUcfirst }}Excepti
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import java.io.FilterInputStream
 import java.io.IOException
-import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
@@ -738,36 +736,25 @@ internal object PushBackground {
         return PushNotificationContent(true, field("title"), field("body"), field("image"))
     }
 
+    // Downloads notification images, so a slow one is abandoned without holding up delivery.
+    private val imageLoader = Executors.newCachedThreadPool { runnable ->
+        Thread(runnable, "{{ spec.info.title | caseUcfirst }}PushImage").apply { isDaemon = true }
+    }
+
     // Download a notification image, or null when it cannot be fetched and decoded within
-    // IMAGE_TIMEOUT_MS overall, so a slow image never holds up the notification for long.
-    private fun loadImage(url: String): Bitmap? = runCatching {
-        val deadline = SystemClock.elapsedRealtime() + IMAGE_TIMEOUT_MS
-        val connection = URL(url).openConnection() as HttpURLConnection
+    // IMAGE_TIMEOUT_MS overall. On timeout the connection is closed, which ends a read in progress.
+    private fun loadImage(url: String): Bitmap? {
+        val connection = runCatching { URL(url).openConnection() as HttpURLConnection }.getOrNull() ?: return null
         connection.connectTimeout = IMAGE_TIMEOUT_MS
         connection.readTimeout = IMAGE_TIMEOUT_MS
-        try {
-            DeadlineInputStream(connection.inputStream, deadline).use { BitmapFactory.decodeStream(it) }
+        val download = imageLoader.submit<Bitmap?> { connection.inputStream.use { BitmapFactory.decodeStream(it) } }
+        return try {
+            download.get(IMAGE_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
+        } catch (e: Exception) {
+            download.cancel(true)
+            null
         } finally {
             connection.disconnect()
-        }
-    }.getOrNull()
-
-    // Fails every read once [deadline] (elapsedRealtime) has passed.
-    private class DeadlineInputStream(input: InputStream, private val deadline: Long) : FilterInputStream(input) {
-        private fun check() {
-            if (SystemClock.elapsedRealtime() > deadline) {
-                throw IOException("Notification image took too long")
-            }
-        }
-
-        override fun read(): Int {
-            check()
-            return super.read()
-        }
-
-        override fun read(b: ByteArray, off: Int, len: Int): Int {
-            check()
-            return super.read(b, off, len)
         }
     }
 
