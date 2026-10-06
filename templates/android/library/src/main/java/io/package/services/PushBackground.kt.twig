@@ -846,7 +846,7 @@ internal object PushBackground {
             settle()
         }
         if (!acknowledged.get()) {
-            worker.schedule({ acknowledge() }, ACK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            ackTimer.schedule({ acknowledge() }, ACK_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         }
     }
 
@@ -966,6 +966,11 @@ internal object PushBackground {
     }
 
     // Downloads notification images, so a slow one is abandoned without holding up delivery.
+    // Acknowledgement timeouts, apart from [worker] so they fire while a run's drain window holds it.
+    private val ackTimer = Executors.newSingleThreadScheduledExecutor { runnable ->
+        Thread(runnable, "{{ spec.info.title | caseUcfirst }}PushAck").apply { isDaemon = true }
+    }
+
     private val imageLoader = Executors.newCachedThreadPool { runnable ->
         Thread(runnable, "{{ spec.info.title | caseUcfirst }}PushImage").apply { isDaemon = true }
     }
