@@ -6,6 +6,8 @@
  * encoding, packet ids, the QoS handshake, keep-alive reaping and subscription matching
  * (+ / # wildcards); this file only supplies test policy through a Handler:
  *
+ *  - CONNECT without a "projectId" user property is refused, as the real broker resolves the
+ *    credential against that project (an automatic reconnect must send it too).
  *  - CONNECT is accepted unless the credential is "deny" or "deny:<reason>", which is refused
  *    (with <reason> as the Reason String) so a test can assert a rejected connection and that
  *    its reason reaches the SDK; the projectId user property becomes the connection prefix.
@@ -82,6 +84,12 @@ class MockHandler implements Handler
     public function onConnect(Connect $connect, Connection $connection): Connack|Auth
     {
         $connection->prefix = $connect->userProperties()['projectId'] ?? '';
+        if ($connection->prefix === '') {
+            return Connack::refuse(
+                Connack::NOT_AUTHORIZED,
+                (new Properties())->add(new Property(Property::REASON_STRING, 'Missing projectId')),
+            );
+        }
 
         // A rejected credential, explained with an MQTT 5 Reason String like the real broker's
         // refuseConnect(). The test picks the reason: "deny:<reason>" is refused with <reason>.
