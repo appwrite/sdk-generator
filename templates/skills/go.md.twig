@@ -1,6 +1,6 @@
 {% set lang = 'go' %}
 {% set langName = 'Go' %}
-{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Go applications with {{ spec.info.title }}. Covers user management, database/table CRUD, file storage, and functions via API keys. Uses per-service packages and functional options pattern.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Go applications with {{ spec.info.title }}. Covers user management, database/table CRUD, file storage, and functions via API keys. Uses per-service packages and functional options pattern. Also covers multi-tenant apps with Teams (tenant isolation, invites, memberships).{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
 # {{ spec.info.title }} {{ langName }} SDK
@@ -221,6 +221,8 @@ _, err = svc.Delete("[TEAM_ID]")
 ```
 
 > **Role-based access:** Use `role.Team("[TEAM_ID]")` for all team members or `role.Team("[TEAM_ID]", "editor")` for a specific team role when setting permissions.
+
+> **Multi-tenant apps:** to give each organization or workspace its own isolated data, invites, and roles, see **Multi-tenancy with Teams** below.
 
 ### Serverless Functions
 
@@ -464,4 +466,229 @@ f, err := service.CreateFile(
 > - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
 > - **`role.Any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
 > - **`permission.Read(role.Any())` on sensitive data** — makes the resource publicly readable
+
+## Multi-tenancy with Teams
+
+Model each tenant (an organization, workspace, school, or customer account) as a **team**. Memberships carry the tenant roles, and `role.Team()` permissions keep one tenant's rows and files invisible to every other tenant. All tenants share one project and one set of tables.
+
+| Tenant concept | {{ spec.info.title }} primitive |
+|----------------|---------------------|
+| Tenant | Team (the team ID is the tenant ID) |
+| User belongs to a tenant | Membership (`Confirm` is `true` once joined) |
+| Tenant roles (`owner`, `admin`, `member`) | Membership `Roles` (free-form strings) |
+| Tenant-only data | Row/file permissions with `role.Team(tenantID, "")` or `role.Team(tenantID, "admin")` |
+| Tenant settings (plan, branding) | Team prefs (`GetPrefs` / `UpdatePrefs`). Every member can read them, so never store secrets there |
+| Platform staff across all tenants | A user label set with `UpdateLabels` on the users service, granted through `role.Label("staff")` |
+
+> **Go option setters are methods on the service value.** Call `svc.WithCreateTablePermissions(...)` on the `*tablesdb.TablesDB` (or `*teams.Teams`) you are calling, not a package-level function. `role.Team` and `role.Users` always take their second argument; pass `""` for none.
+
+### Configure Tenant Tables (once)
+
+Turn on row security and keep table-level permissions to `create`. Table-level permissions apply to **every row**, and a user needs access at the table level *or* the row level, so `permission.Read(role.Users(""))` on the table lets every signed-in user read every tenant's rows.
+
+```go
+import (
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/permission"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/query"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/role"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/tablesdb"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/teams"
+)
+
+db := tablesdb.New(adminClient) // API key client
+
+_, err := db.CreateTable(
+    "[DATABASE_ID]",
+    "invoices",
+    "Invoices",
+    db.WithCreateTablePermissions([]string{
+        permission.Create(role.Users("")), // signed-in users may create rows; nothing else table-wide
+    }),
+    db.WithCreateTableRowSecurity(true), // row permissions decide who sees each row
+    db.WithCreateTableColumns([]interface{}{
+        map[string]interface{}{"key": "tenantId", "type": "varchar", "size": 36, "required": true},
+        map[string]interface{}{"key": "title", "type": "varchar", "size": 255, "required": true},
+        map[string]interface{}{"key": "amount", "type": "double", "required": true},
+    }),
+)
+
+// Index tenantId so per-tenant filters stay fast (the column must be available first)
+_, err = db.CreateIndex("[DATABASE_ID]", "invoices", "tenant_idx", "key", []string{"tenantId"})
+```
+
+If only server code creates rows, leave the table-level permissions empty.
+
+### Create a Tenant
+
+With an API key, `Create` makes a team with **no members**. Add the owner yourself:
+
+```go
+adminTeams := teams.New(adminClient)
+
+tenant, err := adminTeams.Create(id.Unique(), "Example Corp")
+_, err = adminTeams.CreateMembership(
+    tenant.Id,
+    []string{"owner", "admin"},
+    adminTeams.WithCreateMembershipUserId("[USER_ID]"), // with an API key the user joins at once; no invite email
+)
+```
+
+Calling `Create` through a user's session client instead makes that user the owner, and `WithCreateRoles` sets the **creator's** roles (default `owner`).
+
+> **Teams have no fixed role list.** A role exists as soon as a membership carries it. Roles are flat strings: `owner` does not imply `admin`. Only `owner` is special: owners invite and remove members, change roles, update the team, and delete it.
+
+### Invite and Manage Members
+
+Which client calls `CreateMembership` decides what happens:
+
+- **Session client** (acting as a tenant owner): sends an invite email and creates a pending membership (`Confirm` is `false`) until the user accepts.
+- **Admin client** (API key): sends no email and adds the user immediately. Use it for SSO provisioning, bulk imports, or a custom invite flow.
+
+```go
+// As the signed-in owner: send an invite email
+userTeams := teams.New(sessionClient)
+_, err := userTeams.CreateMembership(
+    "[TENANT_ID]",
+    []string{"member"},
+    userTeams.WithCreateMembershipEmail("user@example.com"),
+    userTeams.WithCreateMembershipUrl("https://example.com/accept-invite"), // hostname must be registered as a platform
+)
+
+// /accept-invite route: {{ spec.info.title }} appended teamId, membershipId, userId, and secret to the url.
+// No session is needed: the secret authorizes the accept.
+q := r.URL.Query()
+_, err = userTeams.UpdateMembershipStatus(q.Get("teamId"), q.Get("membershipId"), q.Get("userId"), q.Get("secret"))
+
+// Members of a tenant
+members, err := userTeams.ListMemberships("[TENANT_ID]")
+
+// One user's membership and roles in a tenant
+mine, err := userTeams.ListMemberships(
+    "[TENANT_ID]",
+    userTeams.WithListMembershipsQueries([]string{query.Equal("userId", "[USER_ID]")}),
+)
+
+// Change a member's roles (owners only, or an API key)
+_, err = userTeams.UpdateMembership("[TENANT_ID]", "[MEMBERSHIP_ID]", []string{"admin"})
+
+// Remove a member, revoke a pending invite, or leave the tenant (users can delete their own membership)
+_, err = userTeams.DeleteMembership("[TENANT_ID]", "[MEMBERSHIP_ID]")
+```
+
+Deleting a membership revokes access at once: the user stops matching every `role.Team()` permission for that tenant. To hide member names, emails, and MFA status from other members, enable membership privacy in the Console under **Auth** > **Policies** > **Memberships**.
+
+### Write and Read Tenant Data
+
+Use the per-request session client so permissions apply:
+
+```go
+userDB := tablesdb.New(sessionClient)
+
+// Tag every row with its tenant and grant access through the tenant's team
+_, err := userDB.CreateRow(
+    "[DATABASE_ID]",
+    "invoices",
+    id.Unique(),
+    map[string]interface{}{"tenantId": "[TENANT_ID]", "title": "Q2 Invoice", "amount": 2500},
+    userDB.WithCreateRowPermissions([]string{
+        permission.Read(role.Team("[TENANT_ID]", "")),        // every member of the tenant
+        permission.Update(role.Team("[TENANT_ID]", "admin")), // tenant admins only
+        permission.Delete(role.Team("[TENANT_ID]", "admin")),
+    }),
+)
+
+// Returns only rows the user can read, from ALL of the user's tenants.
+// Filter by tenantId to show the active tenant.
+invoices, err := userDB.ListRows(
+    "[DATABASE_ID]",
+    "invoices",
+    userDB.WithListRowsQueries([]string{query.Equal("tenantId", "[TENANT_ID]")}),
+)
+```
+
+> **A session or JWT client can only grant roles the user holds.** A user whose only role is `member` gets `401` when setting `permission.Update(role.Team("[TENANT_ID]", "admin"))`. Grant roles the user has (such as `role.Team("[TENANT_ID]", "")`), or write the row with the admin client, which can grant any role.
+
+Files follow the same pattern: create the bucket with `WithCreateBucketFileSecurity(true)` and give each file `role.Team()` permissions. Realtime needs no extra work: subscribers only receive events for rows and files they can read.
+
+### API Keys Ignore Tenant Boundaries
+
+An API key bypasses all permissions, so the admin client sees every tenant's data. For requests made on behalf of a user:
+
+1. **Act as the user** with the per-request session client from the SSR section, or with a JWT. Permissions then isolate tenants for you.
+2. **If you must use the API key**, confirm the caller's membership and roles first, then filter every query by `tenantId`. Take the user ID from the verified session or the `x-appwrite-user-id` function header, never from the request body.
+
+```go
+import (
+    "errors"
+    "os"
+    "slices"
+
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/appwrite"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/client"
+    "github.com/{{ sdk.gitUserName }}/sdk-for-go/models"
+    "github.com/open-runtimes/types-for-go/v4/openruntimes"
+)
+
+// Appwrite Function: build a client that acts as the calling user.
+// x-appwrite-user-jwt is present only when a signed-in user called the function.
+func userClient(context openruntimes.Context) (client.Client, error) {
+    jwt := context.Req.Headers["x-appwrite-user-jwt"]
+    if jwt == "" {
+        return client.Client{}, errors.New("unauthorized")
+    }
+    return appwrite.NewClient(
+        appwrite.WithEndpoint(os.Getenv("APPWRITE_FUNCTION_API_ENDPOINT")),
+        appwrite.WithProject(os.Getenv("APPWRITE_FUNCTION_PROJECT_ID")),
+        appwrite.WithJWT(jwt),
+    ), nil
+}
+
+// API key path: verify membership before touching tenant data
+func requireTenantRole(adminTeams *teams.Teams, tenantID, userID, requiredRole string) (*models.Membership, error) {
+    list, err := adminTeams.ListMemberships(
+        tenantID,
+        adminTeams.WithListMembershipsQueries([]string{query.Equal("userId", userID)}),
+    )
+    if err != nil {
+        return nil, err
+    }
+    for _, m := range list.Memberships {
+        if m.Confirm && (requiredRole == "" || slices.Contains(m.Roles, requiredRole)) {
+            return &m, nil
+        }
+    }
+    return nil, errors.New("forbidden")
+}
+```
+
+### Offboard a Tenant
+
+Deleting a team removes its memberships, not the rows and files that grant it access, and a team created later with the same ID would inherit them. Delete tenant data first, with the admin client, in every tenant table and bucket:
+
+```go
+_, err := db.DeleteRows(
+    "[DATABASE_ID]",
+    "invoices",
+    db.WithDeleteRowsQueries([]string{query.Equal("tenantId", "[TENANT_ID]")}),
+)
+
+_, err = adminTeams.Delete("[TENANT_ID]")
+```
+
+### Choosing an Isolation Model
+
+| Model | Use when | Trade-off |
+|-------|----------|-----------|
+| Shared tables + team permissions (default) | Most SaaS apps | One schema for all tenants; isolation depends on correct permissions |
+| Table or database per tenant | Tenants need their own schema, or their data must be exported or dropped as a unit | Every schema change runs once per tenant. Put `role.Team(tenantID, "")` in the table-level permissions and leave row security off |
+| Project per tenant | Tenants need separate users, auth settings, or regions | Users and sessions cannot cross projects; far more to operate |
+
+> **Common mistakes:**
+> - **Table-level `read`/`update`/`delete` for `role.Users("")` or `role.Any()` on a tenant table**: exposes every tenant's rows
+> - **Row security left off**: row permissions are ignored and only table-level permissions count
+> - **Treating `tenantId` as the security boundary**: it is a filter, and clients can write any value into it. Permissions are the boundary
+> - **Serving user requests with the API key and no membership check**: the key sees every tenant
+> - **Granting a role the user lacks through a session or JWT client**: fails with `401`; use the admin client instead
+> - **Expecting `owner` to imply `admin`**: roles are flat strings; give users every role your permissions check
+> - **Deleting a team but not its data**: orphaned rows remain, and a future team with the same ID inherits them
 

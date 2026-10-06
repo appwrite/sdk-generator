@@ -109,6 +109,32 @@ appwrite push settings --force
 
 `unique()` is fine for a one-shot row or user. Resources you will push need a **stable** `$id` in the config so the next pull matches.
 
+## Multi-tenant projects
+
+When the app gives each organization its own team, those teams are **data** the app creates at runtime, not schema. Keep them out of `appwrite.config.json`. `pull team` lists every team and replaces the config's `teams` array, so it writes every customer's team (prefs included) into a checked-in file. Skip teams in `pull all` too. Keep only fixed teams the app depends on, such as a staff team, or none.
+
+Tenant **tables** do belong in the config. Give them `"rowSecurity": true` and no table-wide `read`, `update`, or `delete` for `users` or `any`. Table permissions apply to every row, so any of those exposes every tenant. Row permissions with `team:<TENANT_ID>` roles do the isolating.
+
+```json
+{
+  "$id": "invoices",
+  "$permissions": ["create(\"users\")"],
+  "databaseId": "main",
+  "name": "Invoices",
+  "rowSecurity": true
+}
+```
+
+```bash
+# Good: inspect one tenant without touching the config
+appwrite teams list-memberships --team-id <TENANT_ID> --json
+
+# Bad: dumps every tenant into a checked-in file
+appwrite pull team
+```
+
+With an API key, `teams create-membership --user-id` adds the user immediately; no invite email is sent.
+
 ## Type-safe application code
 
 When writing application code against TablesDB, inspect `appwrite.config.json` before inventing interfaces, database IDs, table IDs, or column names. The generators read the local config; they do not inspect the remote schema. A stale config produces stale code.

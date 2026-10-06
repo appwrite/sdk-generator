@@ -1,6 +1,6 @@
 {% set lang = 'python' %}
 {% set langName = 'Python' %}
-{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Python applications with {{ spec.info.title }}, including Django, Flask, and FastAPI integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Python applications with {{ spec.info.title }}, including Django, Flask, and FastAPI integrations. Covers user management, database/table CRUD, file storage, and functions via API keys. Also covers multi-tenant apps with Teams (tenant isolation, invites, memberships).{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
 # {{ spec.info.title }} {{ langName }} SDK
@@ -204,6 +204,8 @@ teams.delete('[TEAM_ID]')
 
 > **Role-based access:** Use `Role.team('[TEAM_ID]')` for all team members or `Role.team('[TEAM_ID]', 'editor')` for a specific team role when setting permissions.
 
+> **Multi-tenant apps:** to give each organization or workspace its own isolated data, invites, and roles, see **Multi-tenancy with Teams** below.
+
 ### Serverless Functions
 
 ```python
@@ -405,4 +407,219 @@ file = storage.create_file('[BUCKET_ID]', ID.unique(), InputFile.from_path('/pat
 > - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
 > - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
 > - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
+
+## Multi-tenancy with Teams
+
+Model each tenant (an organization, workspace, school, or customer account) as a **team**. Memberships carry the tenant roles, and `Role.team()` permissions keep one tenant's rows and files invisible to every other tenant. All tenants share one project and one set of tables.
+
+| Tenant concept | {{ spec.info.title }} primitive |
+|----------------|---------------------|
+| Tenant | Team (the team ID is the tenant ID) |
+| User belongs to a tenant | Membership (`confirm` is `True` once joined) |
+| Tenant roles (`owner`, `admin`, `member`) | Membership `roles` (free-form strings) |
+| Tenant-only data | Row/file permissions with `Role.team(tenant_id)` or `Role.team(tenant_id, 'admin')` |
+| Tenant settings (plan, branding) | Team prefs (`get_prefs` / `update_prefs`). Every member can read them, so never store secrets there |
+| Platform staff across all tenants | A user label set with `users.update_labels()`, granted through `Role.label('staff')` |
+
+### Configure Tenant Tables (once)
+
+Turn on row security and keep table-level permissions to `create`. Table-level permissions apply to **every row**, and a user needs access at the table level *or* the row level, so `Permission.read(Role.users())` on the table lets every signed-in user read every tenant's rows.
+
+```python
+from {{ spec.info.title | caseLower }}.enums.tables_db_index_type import TablesDBIndexType
+from {{ spec.info.title | caseLower }}.permission import Permission
+from {{ spec.info.title | caseLower }}.role import Role
+from {{ spec.info.title | caseLower }}.services.teams import Teams
+
+tables_db = TablesDB(admin_client)  # API key client
+
+tables_db.create_table(
+    database_id='[DATABASE_ID]',
+    table_id='invoices',
+    name='Invoices',
+    permissions=[Permission.create(Role.users())],  # signed-in users may create rows; nothing else table-wide
+    row_security=True,                              # row permissions decide who sees each row
+    columns=[
+        {'key': 'tenantId', 'type': 'varchar', 'size': 36,  'required': True},
+        {'key': 'title',    'type': 'varchar', 'size': 255, 'required': True},
+        {'key': 'amount',   'type': 'double',               'required': True},
+    ],
+)
+
+# Index tenantId so per-tenant filters stay fast (the column must be available first)
+tables_db.create_index(
+    database_id='[DATABASE_ID]',
+    table_id='invoices',
+    key='tenant_idx',
+    type=TablesDBIndexType.KEY,
+    columns=['tenantId'],
+)
+```
+
+If only server code creates rows, leave the table-level `permissions` empty.
+
+### Create a Tenant
+
+With an API key, `create()` makes a team with **no members**. Add the owner yourself:
+
+```python
+admin_teams = Teams(admin_client)
+
+tenant = admin_teams.create(team_id=ID.unique(), name='Example Corp')
+admin_teams.create_membership(
+    team_id=tenant.id,
+    roles=['owner', 'admin'],
+    user_id='[USER_ID]',         # with an API key the user joins at once; no invite email
+)
+```
+
+Calling `create()` through a user's session client instead makes that user the owner, and `roles` sets the **creator's** roles (default `['owner']`).
+
+> **Teams have no fixed role list.** A role exists as soon as a membership carries it. Roles are flat strings: `owner` does not imply `admin`. Only `owner` is special: owners invite and remove members, change roles, update the team, and delete it.
+
+### Invite and Manage Members
+
+Which client calls `create_membership()` decides what happens:
+
+- **Session client** (acting as a tenant owner): sends an invite email and creates a pending membership (`confirm` is `False`) until the user accepts.
+- **Admin client** (API key): sends no email and adds the user immediately. Use it for SSO provisioning, bulk imports, or a custom invite flow.
+
+```python
+# As the signed-in owner: send an invite email
+teams = Teams(session_client)
+teams.create_membership(
+    team_id='[TENANT_ID]',
+    roles=['member'],
+    email='user@example.com',
+    url='https://example.com/accept-invite',   # hostname must be registered as a platform
+)
+
+# /accept-invite route: {{ spec.info.title }} appended teamId, membershipId, userId, and secret to the url.
+# No session is needed: the secret authorizes the accept.
+teams.update_membership_status(
+    team_id=request.args['teamId'],
+    membership_id=request.args['membershipId'],
+    user_id=request.args['userId'],
+    secret=request.args['secret'],
+)
+
+# Members of a tenant
+members = teams.list_memberships(team_id='[TENANT_ID]')
+
+# One user's membership and roles in a tenant
+mine = teams.list_memberships(
+    team_id='[TENANT_ID]',
+    queries=[Query.equal('userId', '[USER_ID]')],
+)
+
+# Change a member's roles (owners only, or an API key)
+teams.update_membership(team_id='[TENANT_ID]', membership_id='[MEMBERSHIP_ID]', roles=['admin'])
+
+# Remove a member, revoke a pending invite, or leave the tenant (users can delete their own membership)
+teams.delete_membership(team_id='[TENANT_ID]', membership_id='[MEMBERSHIP_ID]')
+```
+
+Deleting a membership revokes access at once: the user stops matching every `Role.team()` permission for that tenant. To hide member names, emails, and MFA status from other members, enable membership privacy in the Console under **Auth** > **Policies** > **Memberships**.
+
+### Write and Read Tenant Data
+
+Use the per-request session client so permissions apply:
+
+```python
+tables_db = TablesDB(session_client)
+
+# Tag every row with its tenant and grant access through the tenant's team
+tables_db.create_row(
+    database_id='[DATABASE_ID]',
+    table_id='invoices',
+    row_id=ID.unique(),
+    data={'tenantId': '[TENANT_ID]', 'title': 'Q2 Invoice', 'amount': 2500},
+    permissions=[
+        Permission.read(Role.team('[TENANT_ID]')),             # every member of the tenant
+        Permission.update(Role.team('[TENANT_ID]', 'admin')),  # tenant admins only
+        Permission.delete(Role.team('[TENANT_ID]', 'admin')),
+    ],
+)
+
+# Returns only rows the user can read, from ALL of the user's tenants.
+# Filter by tenantId to show the active tenant.
+invoices = tables_db.list_rows(
+    database_id='[DATABASE_ID]',
+    table_id='invoices',
+    queries=[Query.equal('tenantId', '[TENANT_ID]')],
+)
+```
+
+> **A session or JWT client can only grant roles the user holds.** A user whose only role is `member` gets `401` when setting `Permission.update(Role.team('[TENANT_ID]', 'admin'))`. Grant roles the user has (such as `Role.team('[TENANT_ID]')`), or write the row with the admin client, which can grant any role.
+
+Files follow the same pattern: create the bucket with `file_security=True` and give each file `Role.team()` permissions. Realtime needs no extra work: subscribers only receive events for rows and files they can read.
+
+### API Keys Ignore Tenant Boundaries
+
+An API key bypasses all permissions, so the admin client sees every tenant's data. For requests made on behalf of a user:
+
+1. **Act as the user** with the per-request session client from the SSR section, or with a JWT. Permissions then isolate tenants for you.
+2. **If you must use the API key**, confirm the caller's membership and roles first, then filter every query by `tenantId`. Take the user ID from the verified session or the `x-appwrite-user-id` function header, never from the request body.
+
+```python
+# Appwrite Function: act as the calling user
+def main(context):
+    jwt = context.req.headers.get('x-appwrite-user-jwt')  # present only when a signed-in user called the function
+    if not jwt:
+        return context.res.json({'error': 'Unauthorized'}, 401)
+
+    user_client = (Client()
+        .set_endpoint(os.environ['APPWRITE_FUNCTION_API_ENDPOINT'])
+        .set_project(os.environ['APPWRITE_FUNCTION_PROJECT_ID'])
+        .set_jwt(jwt))
+
+    invoices = TablesDB(user_client).list_rows(
+        database_id='[DATABASE_ID]',
+        table_id='invoices',
+        queries=[Query.equal('tenantId', '[TENANT_ID]')],
+    )
+    return context.res.json({'total': invoices.total})
+
+# API key path: verify membership before touching tenant data
+def require_tenant_role(tenant_id, user_id, role=None):
+    result = admin_teams.list_memberships(
+        team_id=tenant_id,
+        queries=[Query.equal('userId', user_id)],
+    )
+    membership = next((m for m in result.memberships if m.confirm), None)
+    if membership is None or (role and role not in membership.roles):
+        raise PermissionError('Forbidden')
+    return membership
+```
+
+### Offboard a Tenant
+
+Deleting a team removes its memberships, not the rows and files that grant it access, and a team created later with the same ID would inherit them. Delete tenant data first, with the admin client, in every tenant table and bucket:
+
+```python
+TablesDB(admin_client).delete_rows(
+    database_id='[DATABASE_ID]',
+    table_id='invoices',
+    queries=[Query.equal('tenantId', '[TENANT_ID]')],
+)
+
+admin_teams.delete(team_id='[TENANT_ID]')
+```
+
+### Choosing an Isolation Model
+
+| Model | Use when | Trade-off |
+|-------|----------|-----------|
+| Shared tables + team permissions (default) | Most SaaS apps | One schema for all tenants; isolation depends on correct permissions |
+| Table or database per tenant | Tenants need their own schema, or their data must be exported or dropped as a unit | Every schema change runs once per tenant. Put `Role.team(tenant_id)` in the table-level permissions and leave row security off |
+| Project per tenant | Tenants need separate users, auth settings, or regions | Users and sessions cannot cross projects; far more to operate |
+
+> **Common mistakes:**
+> - **Table-level `read`/`update`/`delete` for `Role.users()` or `Role.any()` on a tenant table**: exposes every tenant's rows
+> - **Row security left off**: row permissions are ignored and only table-level permissions count
+> - **Treating `tenantId` as the security boundary**: it is a filter, and clients can write any value into it. Permissions are the boundary
+> - **Serving user requests with the API key and no membership check**: the key sees every tenant
+> - **Granting a role the user lacks through a session or JWT client**: fails with `401`; use the admin client instead
+> - **Expecting `owner` to imply `admin`**: roles are flat strings; give users every role your permissions check
+> - **Deleting a team but not its data**: orphaned rows remain, and a future team with the same ID inherits them
 
