@@ -37,9 +37,9 @@ val result = {% endif %}{{ service.name | caseCamel }}.{{ (method | methodName) 
 
     {%~ for parameter in (method | parameters('all')) %}
     {%~ if (parameter | enumValues) is not empty %}
-    {{ parameter.name }} = {{ (parameter | enumName) }}.{{ ((parameter | enumKeys)[0] ?? (parameter | enumValues)[0]) | caseEnumKey }},{% if not parameter.required %} // (optional){% endif %}
+    {{ parameter.name | caseCamel }} = {{ (parameter | enumName) }}.{{ ((parameter | enumKeys)[0] ?? (parameter | enumValues)[0]) | caseEnumKey }},{% if not parameter.required %} // (optional){% endif %}
     {%~ else %}
-    {{ parameter.name }} = {{ parameter | paramExample }}, {% if not parameter.required %}// (optional){% endif %}
+    {{ parameter.name | caseCamel }} = {{ parameter | paramExample }}, {% if not parameter.required %}// (optional){% endif %}
     {%~ endif %}
 
     {%~ endfor %}

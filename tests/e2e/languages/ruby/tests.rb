@@ -110,6 +110,13 @@ rescue => e
     puts e
 end
 
+begin
+    response = general.upload_generic(file: InputFile.from_path('./tests/resources/file.png'))
+    puts response.prefs.data['result']
+rescue => e
+    puts e
+end
+
 puts general.download.body
 
 response = general.enum(mock_type: MockType::FIRST)

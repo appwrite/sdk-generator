@@ -242,6 +242,9 @@ echo $response->result . "\n";
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../../resources/large_file.mp4'));
 echo $response->result . "\n";
 
+$response = $general->uploadGeneric(InputFile::withPath(__DIR__ . '/../../../resources/file.png'));
+echo $response->prefs->data['result'] . "\n";
+
 echo $general->download() . "\n";
 
 $response = $general->enum(MockType::FIRST());

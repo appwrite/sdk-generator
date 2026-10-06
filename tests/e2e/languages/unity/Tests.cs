@@ -203,6 +203,9 @@ namespace AppwriteTests
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             LogResult(mock.Result);
 
+            var profile = await general.UploadGeneric(InputFile.FromPath("../../../resources/file.png"));
+            LogResult(profile.Prefs.Data["result"]);
+
             // Download test
             var downloadResult = await general.Download();
             if (downloadResult != null)
@@ -652,6 +655,48 @@ namespace AppwriteTests
             LogResult(disconnectError == "kicked-by-test"
                 ? "Push disconnect error:passed"
                 : "Push disconnect error:failed");
+
+            async Task<string> Outcome(System.Func<Task> subscribing)
+            {
+                try
+                {
+                    await subscribing();
+                    return "";
+                }
+                catch (System.Exception e)
+                {
+                    return e.Message;
+                }
+            }
+
+            var switchClient = PushClient().SetSession(e2eSession);
+            var switchPushObject = new GameObject("PushSwitchTest");
+            var switchPush = switchPushObject.AddComponent<Push>();
+            switchPush.Initialize(switchClient);
+            await switchPush.Subscribe("e2e-switch", (message) => { });
+            switchClient.SetJWT("deny:switched-user");
+            var switched = await Outcome(() => switchPush.Subscribe("e2e-switch", (message) => { }));
+            switchPush.Close();
+            Object.DestroyImmediate(switchPushObject);
+            LogResult(switched == "switched-user"
+                ? "Push credential switch:passed"
+                : $"Push credential switch:failed ({switched})");
+
+            var pendingClient = PushClient().SetJWT("slow:pending");
+            var pendingPushObject = new GameObject("PushPendingSwitchTest");
+            var pendingPush = pendingPushObject.AddComponent<Push>();
+            pendingPush.Initialize(pendingClient);
+            var firstPending = Outcome(() => pendingPush.Subscribe("e2e-switch", (message) => { }));
+            await Task.Delay(100);
+            pendingClient.SetJWT("deny:switched-pending");
+            var secondPending = await Outcome(() => pendingPush.Subscribe("e2e-switch", (message) => { }));
+            var firstWinner = await Task.WhenAny(firstPending, Task.Delay(5000));
+            var firstPendingOutcome = firstWinner == firstPending ? firstPending.Result : "timeout";
+            pendingPush.Close();
+            Object.DestroyImmediate(pendingPushObject);
+            LogResult(secondPending == "switched-pending" && firstPendingOutcome == "switched-pending"
+                ? "Push credential pending switch:passed"
+                : $"Push credential pending switch:failed (first: {firstPendingOutcome}, second: {secondPending})");
 
             // Cleanup Realtime GameObject
             if (realtimeObject)

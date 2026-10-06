@@ -50,11 +50,11 @@ class Client @JvmOverloads constructor(
     var endpoint: String = "{{(spec | endpoint)}}",
     @set:JvmSynthetic
     var endpointRealtime: String? = null,
+    private var selfSigned: Boolean = false,
     @set:JvmSynthetic
     var endpointPush: String? = null,
     @set:JvmSynthetic
-    var pushClientId: String? = null,
-    private var selfSigned: Boolean = false
+    var pushClientId: String? = null
 ) : CoroutineScope {
 
     companion object {
@@ -439,6 +439,7 @@ class Client @JvmOverloads constructor(
      * @param path
      * @param headers
      * @param params
+     * @param method HTTP method the upload endpoint is declared with; resuming by upload ID always uses GET
      *
      * @return [T]
      */
@@ -452,10 +453,11 @@ class Client @JvmOverloads constructor(
         paramName: String,
         idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
+        method: String = "POST",
     ): T {
         if (params[paramName] == null) {
             return call(
-                method = "POST",
+                method = method,
                 path,
                 headers,
                 params,
@@ -486,7 +488,7 @@ class Client @JvmOverloads constructor(
                 data
             )
             return call(
-                method = "POST",
+                method = method,
                 path,
                 headers,
                 params,
@@ -557,7 +559,7 @@ class Client @JvmOverloads constructor(
             )
 
             val chunkResult = call(
-                method = "POST",
+                method = method,
                 path,
                 chunkHeaders,
                 chunkParams,

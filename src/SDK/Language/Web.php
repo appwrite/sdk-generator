@@ -49,11 +49,6 @@ class Web extends JS
                 'template'      => 'web/src/client.ts.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/service.ts',
-                'template'      => 'web/src/service.ts.twig',
-            ],
-            [
                 'scope'         => 'service',
                 'destination'   => 'src/services/{{service.name | caseKebab}}.ts',
                 'template'      => 'web/src/services/template.ts.twig',
@@ -566,6 +561,36 @@ class Web extends JS
         return implode(' &&' . "\n" . $indent, $shape);
     }
 
+    protected function formatArgument(Operation $method, ?Parameter $parameter = null): string
+    {
+        $parameters = $this->getOperationParameters($method);
+        if (!$parameter instanceof Parameter) {
+            return 'rest[' . (\count($parameters) - 1) . ']';
+        }
+
+        foreach ($parameters as $index => $candidate) {
+            if ($candidate->name === $parameter->name) {
+                return $index === 0 ? 'paramsOrFirst' : 'rest[' . ($index - 1) . ']';
+            }
+        }
+
+        throw new InvalidArgumentException("Parameter '{$parameter->name}' is not an argument of '{$method->id}'");
+    }
+
+    protected function formatRestTuple(Operation $method, Specification $spec): string
+    {
+        $elements = [];
+        foreach (\array_slice($this->getOperationParameters($method), 1) as $parameter) {
+            $elements[] = $this->formatTupleElement($this->getPropertyType($parameter, $method, $spec));
+        }
+
+        if (isset($method->requestBody?->content['multipart/form-data'])) {
+            $elements[] = $this->formatTupleElement('(progress: UploadProgress) => void');
+        }
+
+        return $elements === [] ? '' : '...rest: [' . implode(', ', $elements) . ']';
+    }
+
     /**
      * Render one element of a rest-parameter tuple.
      *
@@ -1071,7 +1096,8 @@ class Web extends JS
                 return $lhs . ' ' . $this->wrapConditionalType($type, $indent);
             }, ['is_safe' => ['html']]),
             new TwigFilter('tsModelProperty', fn(string $label, string $type, int $indent = 8): string => $this->formatModelProperty($label, $type, $indent), ['is_safe' => ['html']]),
-            new TwigFilter('tsTupleElement', fn(string $type): string => $this->formatTupleElement($type), ['is_safe' => ['html']]),
+            new TwigFilter('tsArgument', fn(Operation $method, ?Parameter $parameter = null): string => $this->formatArgument($method, $parameter), ['is_safe' => ['html']]),
+            new TwigFilter('tsRestTuple', fn(Operation $method, Specification $spec): string => $this->formatRestTuple($method, $spec), ['is_safe' => ['html']]),
             new TwigFilter('tsTypeAlias', fn(string $name, string $generics, string $tail, int $indent = 4): string => $this->formatTypeAlias($name, $generics, $tail, $indent), ['is_safe' => ['html']]),
             new TwigFilter('tsApiPath', fn(string $path, array $replacements, int $indent = 8): string => $this->formatApiPath($path, $replacements, $indent), ['is_safe' => ['html']]),
             new TwigFilter('tsObjectStatement', fn(string $prefix, string $body, string $suffix = ';', int $indent = 8): string => $this->formatObjectStatement($prefix, trim($body), $suffix, $indent), ['is_safe' => ['html']]),
@@ -1105,9 +1131,7 @@ class Web extends JS
                     }
                 }
 
-                $hasRest = count($params) > 1;
-
-                return $this->formatOverloadCondition($hasRequired, $keys, $hasRest);
+                return $this->formatOverloadCondition($hasRequired, $keys, $this->formatRestTuple($method, $spec) !== '');
             }, ['is_safe' => ['html']]),
         ]);
     }

@@ -38,22 +38,14 @@ flutter pub add {{ language.params.packageName }}
 
 ### Push on Android
 
-`Push` includes a native Android plugin whose MQTT client bundles Netty. Its jars ship duplicate
-`META-INF` files that Android's packager rejects, and `flutter_local_notifications` needs core
-library desugaring, so add this to `android/app/build.gradle.kts` (packaging is resolved when the
-app is assembled, so a plugin cannot apply it for you):
+`Push` includes a native Android plugin, and `flutter_local_notifications` needs core library
+desugaring, so add this to `android/app/build.gradle.kts` (desugaring is configured when the app
+is assembled, so a plugin cannot apply it for you):
 
 ```kotlin
 android {
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-    }
-    packaging {
-        resources {
-            excludes += "/META-INF/INDEX.LIST"
-            excludes += "/META-INF/io.netty.versions.properties"
-            excludes += "/META-INF/DEPENDENCIES"
-        }
     }
 }
 

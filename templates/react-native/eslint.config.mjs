@@ -10,7 +10,6 @@ export default tseslint.config(
             'types/',
             'docs/',
             'rollup.config.mjs',
-            'app.plugin.js',
             'react-native.config.js',
         ],
     },

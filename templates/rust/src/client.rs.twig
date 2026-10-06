@@ -654,7 +654,7 @@ impl Client {
             .await
     }
 
-    /// Upload a file
+    /// Upload a file with POST
     pub async fn file_upload<T: DeserializeOwned>(
         &self,
         path: &str,
@@ -664,7 +664,31 @@ impl Client {
         input_file: InputFile,
         upload_id: Option<String>,
     ) -> Result<T> {
-        self.file_upload_with_progress(
+        self.upload(
+            Method::POST,
+            path,
+            headers,
+            params,
+            param_name,
+            input_file,
+            upload_id,
+        )
+        .await
+    }
+
+    /// Upload a file with the endpoint's HTTP method
+    pub async fn upload<T: DeserializeOwned>(
+        &self,
+        method: Method,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: HashMap<String, Value>,
+        param_name: &str,
+        input_file: InputFile,
+        upload_id: Option<String>,
+    ) -> Result<T> {
+        self.upload_with_progress(
+            method,
             path,
             headers,
             params,
@@ -679,8 +703,23 @@ impl Client {
         .await
     }
 
+    /// Upload a file with POST and return the plain-text response body
     pub async fn file_upload_text(
         &self,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: HashMap<String, Value>,
+        param_name: &str,
+        input_file: InputFile,
+    ) -> Result<String> {
+        self.upload_text(Method::POST, path, headers, params, param_name, input_file)
+            .await
+    }
+
+    /// Upload a file with the endpoint's HTTP method and return the plain-text response body
+    pub async fn upload_text(
+        &self,
+        method: Method,
         path: &str,
         headers: Option<HashMap<String, String>>,
         params: HashMap<String, Value>,
@@ -690,6 +729,7 @@ impl Client {
         let url = format!("{}{}", self.state.load().config.endpoint, path);
 
         self.single_file_upload(
+            method,
             &url,
             headers,
             params,
@@ -700,9 +740,35 @@ impl Client {
         .await
     }
 
-    /// Upload a file with progress callback
+    /// Upload a file with POST and a progress callback
     pub async fn file_upload_with_progress<T: DeserializeOwned, F>(
         &self,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: HashMap<String, Value>,
+        param_name: &str,
+        input_file: InputFile,
+        options: UploadOptions<F>,
+    ) -> Result<T>
+    where
+        F: Fn(UploadProgress),
+    {
+        self.upload_with_progress(
+            Method::POST,
+            path,
+            headers,
+            params,
+            param_name,
+            input_file,
+            options,
+        )
+        .await
+    }
+
+    /// Upload a file with the endpoint's HTTP method and a progress callback
+    pub async fn upload_with_progress<T: DeserializeOwned, F>(
+        &self,
+        method: Method,
         path: &str,
         headers: Option<HashMap<String, String>>,
         params: HashMap<String, Value>,
@@ -725,6 +791,7 @@ impl Client {
 
             let result = self
                 .single_file_upload(
+                    method,
                     &url,
                     headers,
                     params,
@@ -747,6 +814,7 @@ impl Client {
         }
 
         self.chunked_file_upload_with_progress(
+            method,
             path,
             headers,
             params,
@@ -759,6 +827,7 @@ impl Client {
 
     async fn single_file_upload<T: DeserializeOwned>(
         &self,
+        method: Method,
         url: &str,
         headers: Option<HashMap<String, String>>,
         params: HashMap<String, Value>,
@@ -793,7 +862,10 @@ impl Client {
             form = form.text(key, value_str);
         }
 
-        let mut request_builder = state.http.post(url).headers(state.config.headers.clone());
+        let mut request_builder = state
+            .http
+            .request(method, url)
+            .headers(state.config.headers.clone());
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {
@@ -811,6 +883,7 @@ impl Client {
 
     async fn chunked_file_upload_with_progress<T: DeserializeOwned, F>(
         &self,
+        method: Method,
         path: &str,
         headers: Option<HashMap<String, String>>,
         params: HashMap<String, Value>,
@@ -865,6 +938,7 @@ impl Client {
         if next_chunk == 0 {
             let result = self
                 .upload_file_chunk(
+                    method.clone(),
                     path,
                     headers.clone(),
                     params.clone(),
@@ -905,6 +979,7 @@ impl Client {
 
         while tasks.len() < max_concurrency && next_chunk < total_chunks {
             let client = self.clone();
+            let method = method.clone();
             let path = path.to_string();
             let headers = headers.clone();
             let params = params.clone();
@@ -916,6 +991,7 @@ impl Client {
             tasks.spawn(async move {
                 let result = client
                     .upload_file_chunk(
+                        method,
                         &path,
                         headers,
                         params,
@@ -964,6 +1040,7 @@ impl Client {
 
             while tasks.len() < max_concurrency && next_chunk < total_chunks {
                 let client = self.clone();
+                let method = method.clone();
                 let path = path.to_string();
                 let headers = headers.clone();
                 let params = params.clone();
@@ -975,6 +1052,7 @@ impl Client {
                 tasks.spawn(async move {
                     let result = client
                         .upload_file_chunk(
+                            method,
                             &path,
                             headers,
                             params,
@@ -1001,6 +1079,7 @@ impl Client {
 
     async fn upload_file_chunk(
         &self,
+        method: Method,
         path: &str,
         headers: Option<HashMap<String, String>>,
         params: HashMap<String, Value>,
@@ -1056,7 +1135,10 @@ impl Client {
         }
 
         let url = format!("{}{}", state.config.endpoint, path);
-        let mut request_builder = state.http.post(url).headers(state.config.headers.clone());
+        let mut request_builder = state
+            .http
+            .request(method, url)
+            .headers(state.config.headers.clone());
 
         if let Some(custom_headers) = headers {
             for (key, value) in custom_headers {

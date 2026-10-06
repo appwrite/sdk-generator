@@ -224,13 +224,18 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             apiPath,
             apiHeaders,
             apiParams,
+            {%~ if (method | responseModel) | hasGenericType(spec) %}
+            responseType = classOf(),
+            {%~ else %}
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java,
+            {%~ endif %}
             {%~ if (method | responseModel) %}
             converter,
             {%~ endif %}
             paramName = paramName,
             idParamName = idParamName,
             onProgress = onProgress,
+            method = "{{ method.method.value | caseUpper }}",
         )
         {%~ else %}
         return client.call(

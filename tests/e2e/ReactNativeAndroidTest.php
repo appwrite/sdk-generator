@@ -66,9 +66,11 @@ final class ReactNativeAndroidTest extends Base
     #[Override]
     protected array $expectedOutput = [
         ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_SESSION_COOKIE_RESPONSES,
         ...Base::PUSH_SESSION_REPLAY_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
         ...Base::PUSH_NATIVE_DISPLACED_RESPONSES,
-        ...Base::PUSH_BACKGROUND_RESPONSES
+        ...Base::PUSH_BACKGROUND_RESPONSES,
+        ...Base::PUSH_NATIVE_SESSION_COOKIE_RESPONSES,
     ];
 }

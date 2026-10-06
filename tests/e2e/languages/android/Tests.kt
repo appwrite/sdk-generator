@@ -250,6 +250,9 @@ class ServiceTest {
                 writeToFile(ex.toString())
             }
 
+            val profile = general.uploadGeneric(InputFile.fromPath("../../../../resources/file.png"))
+            writeToFile(profile.prefs.data["result"] as String)
+
             writeToFile(String(general.download()))
 
             mock = general.enum(MockType.FIRST)
@@ -667,6 +670,43 @@ class ServiceTest {
                 },
             )
 
+            val outcome = { block: () -> Unit ->
+                try {
+                    block()
+                    ""
+                } catch (e: Exception) {
+                    e.message ?: ""
+                }
+            }
+            val switchClient = pushClient().setSession(
+                android.util.Base64.encodeToString("{\"id\":\"e2e-switch-user\",\"secret\":\"e2e-secret\"}".toByteArray(), android.util.Base64.NO_WRAP),
+            )
+            val switchPush = Push(switchClient, ApplicationProvider.getApplicationContext())
+            switchPush.subscribe("e2e-switch") { }
+            switchClient.setJWT("deny:switched-user")
+            val switched = outcome { switchPush.subscribe("e2e-switch") { } }
+            switchPush.close()
+            writeToFile(if (switched == "switched-user") "Push credential switch:passed" else "Push credential switch:failed ($switched)")
+
+            val pendingClient = pushClient().setJWT("slow:pending")
+            val pendingPush = Push(pendingClient, ApplicationProvider.getApplicationContext())
+            val firstPending = java.util.concurrent.CompletableFuture.supplyAsync {
+                outcome { pendingPush.subscribe("e2e-switch") { } }
+            }
+            Thread.sleep(100)
+            pendingClient.setJWT("deny:switched-pending")
+            val secondPending = outcome { pendingPush.subscribe("e2e-switch") { } }
+            val firstPendingOutcome = runCatching { firstPending.get(10, java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault("timeout")
+            pendingPush.close()
+            Thread.sleep(500)
+            writeToFile(
+                if (secondPending == "switched-pending" && firstPendingOutcome in listOf("", "switched-pending")) {
+                    "Push credential pending switch:passed"
+                } else {
+                    "Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending)"
+                },
+            )
+
             // Background delivery, used the way an app does: subscribe with background on and a
             // PushReceiver declared, then the process dies, and the scheduled wake-up brings the
             // next message to the receiver and a notification. Sign-out stops it.
@@ -716,7 +756,7 @@ class ServiceTest {
                 wakeUp.send()
             }
             val deadline = System.currentTimeMillis() + 10_000
-            while (E2EPushReceiver.messages.isEmpty() && System.currentTimeMillis() < deadline) {
+            while ((E2EPushReceiver.messages.isEmpty() || org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) && System.currentTimeMillis() < deadline) {
                 org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
                 Thread.sleep(100)
             }
@@ -727,7 +767,7 @@ class ServiceTest {
                 if (E2EPushReceiver.messages.toList() == listOf("push-payload") && postedTitle == "E2E title" && postedText == "push-payload") {
                     "Push background restore:passed"
                 } else {
-                    "Push background restore:failed"
+                    "Push background restore:failed (messages: ${E2EPushReceiver.messages.toList()}, title: $postedTitle, text: $postedText)"
                 },
             )
 
@@ -796,6 +836,64 @@ class ServiceTest {
                 },
             )
             reopened.close()
+
+            // Two in-process subscriptions on one topic share the broker filter, so unsubscribing
+            // one keeps the filter. Its callback must still stop: every SUBSCRIBE makes the mock
+            // publish to e2e-push, and only the remaining subscription may receive the next one.
+            val sharedPush = Push(pushClient().setSession(e2eSession), context)
+            val removedReceived = java.util.concurrent.atomic.AtomicInteger(0)
+            val keptLatch = java.util.concurrent.atomic.AtomicReference(java.util.concurrent.CountDownLatch(1))
+            val removedSub = sharedPush.subscribe("e2e-push", background = false) { removedReceived.incrementAndGet() }
+            val keptSub = sharedPush.subscribe("e2e-push", background = false) { keptLatch.get().countDown() }
+            val bothReceived = keptLatch.get().await(10, java.util.concurrent.TimeUnit.SECONDS) && removedReceived.get() > 0
+            removedSub.unsubscribe()
+            Thread.sleep(500)
+            removedReceived.set(0)
+            keptLatch.set(java.util.concurrent.CountDownLatch(1))
+            val triggerSub = sharedPush.subscribe("e2e-trigger", background = false) { }
+            val keptReceived = keptLatch.get().await(10, java.util.concurrent.TimeUnit.SECONDS)
+            Thread.sleep(500)
+            writeToFile(
+                if (bothReceived && keptReceived && removedReceived.get() == 0) {
+                    "Push shared topic unsubscribe:passed"
+                } else {
+                    "Push shared topic unsubscribe:failed"
+                },
+            )
+            triggerSub.unsubscribe()
+            keptSub.unsubscribe()
+            sharedPush.close()
+        }
+
+        val cookieUri = java.net.URI("https://cloud.appwrite.io/v1")
+        val cookieContext = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val savedPreferences = cookieContext.getSharedPreferences("e2e-cookies-saved", android.content.Context.MODE_PRIVATE)
+        savedPreferences.edit().clear().commit()
+        io.appwrite.cookies.stores.SharedPreferencesCookieStore(savedPreferences).add(
+            cookieUri,
+            java.net.HttpCookie("a_session_123456", "secret").apply {
+                domain = "cloud.appwrite.io"
+                path = "/"
+            },
+        )
+        writeToFile(cookieCheck("reload", io.appwrite.cookies.stores.SharedPreferencesCookieStore(savedPreferences).get(cookieUri)))
+
+        val legacyPreferences = cookieContext.getSharedPreferences("e2e-cookies-legacy", android.content.Context.MODE_PRIVATE)
+        legacyPreferences.edit().clear()
+            .putString(
+                "https://cloud.appwrite.io",
+                """[{"discard":false,"domain":"cloud.appwrite.io","httpOnly":false,"maxAge":-1,"name":"a_session_123456","path":"/","secure":false,"value":"secret","version":1}]""",
+            )
+            .commit()
+        writeToFile(cookieCheck("saved format", io.appwrite.cookies.stores.SharedPreferencesCookieStore(legacyPreferences).get(cookieUri)))
+    }
+
+    private fun cookieCheck(name: String, cookies: List<java.net.HttpCookie>): String {
+        val session = cookies.singleOrNull { it.name == "a_session_123456" }
+        return if (session?.value == "secret" && session.domain == "cloud.appwrite.io" && session.path == "/") {
+            "Cookie store $name:passed"
+        } else {
+            "Cookie store $name:failed ($cookies)"
         }
     }
 

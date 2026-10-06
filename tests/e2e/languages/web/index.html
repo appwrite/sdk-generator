@@ -287,6 +287,9 @@
             });
             console.log(response.result);
 
+            response = await general.uploadGeneric({ file: document.getElementById("file").files[0] });
+            console.log(response.prefs.result);
+
             response = await general.enum(MockType.First);
             console.log(response.result);
 
@@ -711,6 +714,85 @@
             } catch (e) {}
             console.log((await kickedError) === 'kicked-by-test' ? 'Push disconnect error:passed' : 'Push disconnect error:failed');
             kickedPush.close();
+
+            const outcome = (subscribing) => subscribing.then(() => '', (e) => (e instanceof Error ? e.message : String(e)));
+            const switchClient = new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession);
+            const switchPush = new Push(switchClient);
+            await switchPush.subscribe(['e2e-switch'], () => {});
+            switchClient.setJWT('deny:switched-user');
+            const switched = await outcome(switchPush.subscribe(['e2e-switch'], () => {}));
+            switchPush.close();
+            console.log(switched === 'switched-user' ? 'Push credential switch:passed' : `Push credential switch:failed (${switched})`);
+
+            const pendingClient = new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setJWT('slow:pending');
+            const pendingPush = new Push(pendingClient);
+            const firstPending = outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            pendingClient.setJWT('deny:switched-pending');
+            const secondPending = await outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
+            const firstPendingOutcome = await Promise.race([firstPending, new Promise((resolve) => setTimeout(() => resolve('timeout'), 5000))]);
+            pendingPush.close();
+            console.log(
+                secondPending === 'switched-pending' && firstPendingOutcome === 'switched-pending'
+                    ? 'Push credential pending switch:passed'
+                    : `Push credential pending switch:failed (first: ${firstPendingOutcome}, second: ${secondPending})`,
+            );
+
+            const refusedPush = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setJWT('deny:concurrent-refused'));
+            const refused = await Promise.all([
+                outcome(refusedPush.subscribe(['e2e-push'], () => {})),
+                outcome(refusedPush.subscribe(['e2e-push'], () => {})),
+            ]);
+            refusedPush.close();
+            console.log(
+                refused.every((message) => message === 'concurrent-refused')
+                    ? 'Push concurrent refused:passed'
+                    : `Push concurrent refused:failed (${refused.join(', ')})`,
+            );
+
+            // The client id the broker sees for a Push. The mock echoes the connection's client id
+            // on e2e-whoami, so this is an observable identity, not the SDK's formatting.
+            const newTabPush = () => new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession));
+            const whoamiOf = (tabPush) => Promise.race([
+                new Promise((resolve) => { tabPush.subscribe(['e2e-whoami'], (m) => resolve(m.data)); }),
+                new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
+            ]);
+
+            // Closing and reopening in the same tab resumes the same client id, so the broker replays.
+            const firstTab = newTabPush();
+            const pageId = await whoamiOf(firstTab);
+            firstTab.close();
+            const secondTab = newTabPush();
+            const samePageId = await whoamiOf(secondTab);
+            secondTab.close();
+
+            // Two Push instances alive at the same time in one page must get distinct client ids, so
+            // neither takes over the other's broker session.
+            const liveA = newTabPush();
+            const liveB = newTabPush();
+            const [liveAId, liveBId] = await Promise.all([whoamiOf(liveA), whoamiOf(liveB)]);
+            liveA.close();
+            liveB.close();
+
+            // A popup copies its opener's sessionStorage, like a duplicated tab, and still gets its own id.
+            const popupId = await Promise.race([
+                new Promise((resolve) => {
+                    window.addEventListener('message', (event) => {
+                        if (event.data && typeof event.data.whoami === 'string') {
+                            resolve(event.data.whoami);
+                        }
+                    });
+                    window.open('tab.html', '_blank');
+                }),
+                new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
+            ]);
+            console.log(
+                pageId !== '' && pageId === samePageId &&
+                liveAId !== '' && liveBId !== '' && liveAId !== liveBId &&
+                popupId !== '' && popupId !== pageId
+                    ? 'Push tab client id:passed'
+                    : `Push tab client id:failed (page ${pageId}, same ${samePageId}, liveA ${liveAId}, liveB ${liveBId}, popup ${popupId})`,
+            );
 
         });
     </script>

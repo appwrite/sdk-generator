@@ -42,6 +42,8 @@ export default [
                 file: pkg.jsdelivr,
                 name: 'Appwrite',
                 extend: true,
+                // A script tag has no module loader, so the lazy mqtt.js import is inlined here.
+                inlineDynamicImports: true,
             },
         ],
     },

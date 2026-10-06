@@ -2449,6 +2449,122 @@
         }
       }
     },
+    "\/mock\/tests\/general\/upload-file-only": {
+      "post": {
+        "summary": "Upload File Only",
+        "operationId": "generalUploadFileOnly",
+        "tags": [
+          "general"
+        ],
+        "description": "Upload fixture whose only parameter is the file.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "Sample file param",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/upload-generic": {
+      "put": {
+        "summary": "Upload Generic",
+        "operationId": "generalUploadGeneric",
+        "tags": [
+          "general"
+        ],
+        "description": "Upload fixture whose response model carries a generic, user-defined payload.",
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/profile"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "Sample file param",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/snake-case-params": {
+      "get": {
+        "summary": "Snake Case Params",
+        "operationId": "generalSnakeCaseParams",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture whose parameter names are snake_case in the spec.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "grant_id",
+            "description": "Grant ID.",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "<GRANT_ID>"
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/oauth2": {
       "get": {
         "summary": "OAuth2",
@@ -3108,6 +3224,29 @@
           "code",
           "type",
           "version"
+        ]
+      },
+      "preferences": {
+        "description": "Preferences",
+        "type": "object",
+        "additionalProperties": true
+      },
+      "profile": {
+        "description": "Profile",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Profile name.",
+            "example": "John Doe"
+          },
+          "prefs": {
+            "$ref": "#\/components\/schemas\/preferences"
+          }
+        },
+        "required": [
+          "name",
+          "prefs"
         ]
       },
       "mock": {
