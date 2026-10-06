@@ -300,6 +300,7 @@ abstract class Base extends TestCase
     // React Native on Android: background runs follow the session in the WebView cookie store.
     protected const REACT_NATIVE_PUSH_COOKIE_REFRESH_RESPONSES = [
         'Push background cookie refresh:passed',
+        'Push background reconnect credential:passed',
     ];
 
     // Android only: no notification while the app is on screen, the watchdog job, and resume with

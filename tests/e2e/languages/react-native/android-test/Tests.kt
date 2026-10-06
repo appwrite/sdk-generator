@@ -239,6 +239,35 @@ class Tests {
             },
         )
         call { module.stop(it) }
+
+        // An automatic reconnect sends the session the app has now: the cookie rotates while the
+        // connection is up, the broker drops it, and the client reconnects on its own with the new
+        // session, which the broker echoes on "e2e-whoauth".
+        cookies.setCookie(cookieUrl, "a_session_console=$SESSION")
+        val reconnected = android.util.Base64.encodeToString(
+            JSONObject().put("id", "e2e-session-user").put("secret", "reconnected").toString().toByteArray(),
+            android.util.Base64.NO_WRAP,
+        )
+        val authSubscriptions = JSONArray()
+            .put(JSONObject().put("id", "auth").put("topic", "e2e-whoauth").put("background", true).put("retry", false))
+            .put(JSONObject().put("id", "drop").put("topic", "e2e-drop/1500").put("background", true).put("retry", false))
+            .toString()
+        val sentCredentials = {
+            messages().filter { it["id"] == "auth" }.map { decode(it["payload"]) }
+        }
+        events.clear()
+        call { module.host(cookieConfig, authSubscriptions, it) }
+        waitFor { SESSION in sentCredentials() }
+        cookies.setCookie(cookieUrl, "a_session_console=$reconnected")
+        waitFor(15_000) { reconnected in sentCredentials() }
+        writeToFile(
+            if (sentCredentials().firstOrNull() == SESSION && reconnected in sentCredentials()) {
+                "Push background reconnect credential:passed"
+            } else {
+                "Push background reconnect credential:failed (sent: ${sentCredentials()})"
+            },
+        )
+        call { module.stop(it) }
     }
 
     // Taps on the notifications background delivery posts, read the way push.ts reads them: the tap
