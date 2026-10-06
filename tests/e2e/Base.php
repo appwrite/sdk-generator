@@ -288,6 +288,7 @@ abstract class Base extends TestCase
 
     protected const REACT_NATIVE_PUSH_OPENED_RESPONSES = [
         'Push notification opened JS:passed',
+        'Push notification opened expo:passed',
     ];
 
     // React Native on Android: the tap that launched the app is reported once, later taps as events.
