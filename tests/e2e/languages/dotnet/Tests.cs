@@ -276,6 +276,10 @@ namespace AppwriteTests
                 Query.Equal("name", "Alice"),
                 Query.GreaterThan("age", 18)
             }));
+            TestContext.WriteLine(Query.Relationship("comments", new List<string> {
+                Query.Equal("approved", true),
+                Query.Limit(2)
+            }));
 
             // Permission & Roles helper tests
             TestContext.WriteLine(Permission.Read(Role.Any()));

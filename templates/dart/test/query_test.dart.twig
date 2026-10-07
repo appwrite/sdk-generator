@@ -316,6 +316,24 @@ void main() {
     expect(query['values'][1]['values'], [18]);
   });
 
+  test('returns relationship', () {
+    final inner1 = Query.equal('approved', true);
+    final inner2 = Query.limit(2);
+
+    final query = jsonDecode(Query.relationship('comments', [inner1, inner2]));
+
+    expect(query['attribute'], 'comments');
+    expect(query['method'], 'relationship');
+    expect(query['values'].length, 2);
+
+    expect(query['values'][0]['method'], 'equal');
+    expect(query['values'][0]['attribute'], 'approved');
+    expect(query['values'][0]['values'], [true]);
+
+    expect(query['values'][1]['method'], 'limit');
+    expect(query['values'][1]['values'], [2]);
+  });
+
   test('returns createdBefore', () {
     final query = jsonDecode(Query.createdBefore('2023-01-01'));
     expect(query['attribute'], '\$createdAt');

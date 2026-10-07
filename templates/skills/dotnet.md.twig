@@ -132,6 +132,7 @@ Query.CursorBefore("[ROW_ID]")
 Query.Select(new List<string> { "field1", "field2" })
 Query.Or(new List<string> { Query.Equal("a", 1), Query.Equal("b", 2) })   // OR
 Query.And(new List<string> { Query.GreaterThan("age", 18), Query.LessThan("age", 65) })  // AND (default)
+Query.Relationship("comments", new List<string> { Query.Equal("approved", true), Query.Limit(25) })  // related documents
 ```
 
 ### File Storage

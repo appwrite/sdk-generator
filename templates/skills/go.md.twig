@@ -157,6 +157,7 @@ query.CursorBefore("[ROW_ID]")
 query.Select([]string{"field1", "field2"})
 query.Or([]string{query.Equal("a", 1), query.Equal("b", 2)})    // OR
 query.And([]string{query.GreaterThan("age", 18), query.LessThan("age", 65)})  // AND (default)
+query.Relationship("comments", []string{query.Equal("approved", true), query.Limit(25)})  // related documents
 ```
 
 ### File Storage
