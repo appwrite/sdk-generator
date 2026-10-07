@@ -43,7 +43,7 @@ final class ReactNativeAndroidTest extends Base
         // Install deps without peers (react-native-tcp-socket is an optional peer that would
         // not install anyway), then drop the Node shims for the native peers into node_modules
         // so the generated push transport resolves them at runtime, then bundle for Node.
-        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/react-native node:22 sh -c "npm install --omit=peer && npm install --no-save @rollup/plugin-commonjs @rollup/plugin-node-resolve @rollup/plugin-replace && rm -rf node_modules/react-native node_modules/react-native-tcp-socket && cp -R shims/react-native node_modules/react-native && cp -R shims/react-native-tcp-socket node_modules/react-native-tcp-socket && npx rollup -c rollup.push.config.mjs"',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/react-native node:22 sh -c "npm install --omit=peer && npm install --no-save @rollup/plugin-commonjs @rollup/plugin-node-resolve @rollup/plugin-replace && rm -rf node_modules/react-native node_modules/react-native-tcp-socket node_modules/expo-notifications && cp -R shims/react-native node_modules/react-native && cp -R shims/react-native-tcp-socket node_modules/react-native-tcp-socket && cp -R shims/expo-notifications node_modules/expo-notifications && npx rollup -c rollup.push.config.mjs"',
         // The native Android module's background delivery: a Robolectric project compiling the
         // package's android/ sources (AppwritePushModule over the shared core) against
         // react-android, with the Android SDK's Gradle wrapper.
@@ -71,9 +71,12 @@ final class ReactNativeAndroidTest extends Base
         ...Base::PUSH_ERROR_RESPONSES,
         ...Base::PUSH_NATIVE_DISPLACED_RESPONSES,
         ...Base::PUSH_NOTIFICATION_PERMISSION_RESPONSES,
+        ...Base::REACT_NATIVE_PUSH_OPENED_RESPONSES,
         ...Base::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,
         ...Base::PUSH_CLOSE_RIGHT_AFTER_SUBSCRIBE_RESPONSES,
         ...Base::PUSH_BACKGROUND_RESPONSES,
         ...Base::PUSH_NATIVE_SESSION_COOKIE_RESPONSES,
+        ...Base::PUSH_NOTIFICATION_OPENED_RESPONSES,
+        ...Base::REACT_NATIVE_PUSH_COOKIE_REFRESH_RESPONSES,
     ];
 }

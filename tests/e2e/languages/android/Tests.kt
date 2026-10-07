@@ -728,6 +728,15 @@ class ServiceTest {
                     }
                 },
             )
+            // The app is on screen: the live callback shows the message, so no notification is posted.
+            org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.ActivityManager::class.java)).setProcesses(
+                listOf(
+                    android.app.ActivityManager.RunningAppProcessInfo().apply {
+                        pid = android.os.Process.myPid()
+                        importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                    },
+                ),
+            )
             val backgroundPush = Push(pushClient().setSession(e2eSession), context)
             val liveLatch = java.util.concurrent.CountDownLatch(1)
             backgroundPush.subscribe("e2e-push", background = true, title = "E2E title") { message ->
@@ -741,6 +750,33 @@ class ServiceTest {
                 } else {
                     "Push background message:failed"
                 },
+            )
+            Thread.sleep(500)
+            writeToFile(
+                if (org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) {
+                    "Push foreground no notification:passed"
+                } else {
+                    "Push foreground no notification:failed"
+                },
+            )
+            // Besides the chain of runs, a periodic job restarts delivery if a run is ever dropped.
+            val jobs = context.getSystemService(android.app.job.JobScheduler::class.java)
+            val watchdog = jobs.allPendingJobs.firstOrNull { it.id == io.appwrite.services.PushBackground.WATCHDOG_JOB_ID }
+            writeToFile(
+                if (watchdog?.isPeriodic == true && watchdog.isPersisted) {
+                    "Push background watchdog:passed"
+                } else {
+                    "Push background watchdog:failed"
+                },
+            )
+            // From here on the app is not on screen.
+            org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.ActivityManager::class.java)).setProcesses(
+                listOf(
+                    android.app.ActivityManager.RunningAppProcessInfo().apply {
+                        pid = android.os.Process.myPid()
+                        importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED
+                    },
+                ),
             )
             val alarms = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.AlarmManager::class.java))
 
@@ -761,6 +797,14 @@ class ServiceTest {
                     context.registerReceiver(receiver as android.content.BroadcastReceiver, filter)
                 }
                 wakeUp.send()
+                // On Android 12+ the alarm hands the run to an expedited job; run that job's work, as
+                // JobScheduler would (Robolectric does not run jobs).
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                val jobScheduler = context.getSystemService(android.app.job.JobScheduler::class.java)
+                if (jobScheduler.allPendingJobs.any { it.id == io.appwrite.services.PushBackground.EXPEDITED_JOB_ID }) {
+                    jobScheduler.cancel(io.appwrite.services.PushBackground.EXPEDITED_JOB_ID)
+                    io.appwrite.services.PushBackground.tick(context, drainMs = io.appwrite.services.PushBackground.JOB_DRAIN_MS) {}
+                }
             }
             val deadline = System.currentTimeMillis() + 10_000
             while ((E2EPushReceiver.messages.isEmpty() || org.robolectric.Shadows.shadowOf(notifications).allNotifications.isEmpty()) && System.currentTimeMillis() < deadline) {
@@ -777,6 +821,46 @@ class ServiceTest {
                     "Push background restore:failed (messages: ${E2EPushReceiver.messages.toList()}, title: $postedTitle, text: $postedText)"
                 },
             )
+
+            // The app starts again with a new credential for the same user while the saved one is no
+            // longer accepted: it replaces the saved one, so delivery continues instead of being
+            // refused. Signed in as someone else, the saved subscriptions are dropped.
+            fun jwt(prefix: String, userId: String) = prefix + "." + android.util.Base64.encodeToString(
+                org.json.JSONObject().put("userId", userId).toString().toByteArray(),
+                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP or android.util.Base64.NO_PADDING,
+            ) + ".signature"
+            val savedState = io.appwrite.services.PushStore.loadState(context)
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            if (savedState != null) {
+                io.appwrite.services.PushStore.saveState(
+                    context,
+                    savedState.first.copy(authMethod = "appwrite-jwt", credential = jwt("deny:stale", "e2e-jwt-user")),
+                    savedState.second,
+                )
+            }
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
+            val fresh = jwt("fresh", "e2e-jwt-user")
+            io.appwrite.services.PushBackground.resume(context, "appwrite-jwt", fresh, true)
+            val resumeDeadline = System.currentTimeMillis() + 10_000
+            while (E2EPushReceiver.messages.isEmpty() && System.currentTimeMillis() < resumeDeadline) {
+                org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                Thread.sleep(100)
+            }
+            val resumedMessages = E2EPushReceiver.messages.toList()
+            val resumedCredential = io.appwrite.services.PushStore.loadState(context)?.first?.credential
+            val deliveredWithFresh = resumedMessages.isNotEmpty() && resumedMessages.all { it == "push-payload" } && resumedCredential == fresh
+            io.appwrite.services.PushBackground.resume(context, "appwrite-jwt", jwt("other", "someone-else"), true)
+            val droppedForOtherUser = !io.appwrite.services.PushBackground.hasSaved(context)
+            writeToFile(
+                if (deliveredWithFresh && droppedForOtherUser) {
+                    "Push background resume credential:passed"
+                } else {
+                    "Push background resume credential:failed (messages: $resumedMessages, saved: ${resumedCredential?.take(12)}, dropped: $droppedForOtherUser)"
+                },
+            )
+            notifications.cancelAll()
+            E2EPushReceiver.messages.clear()
 
             // Sign-out: close() stops background delivery, including what the earlier run saved. When
             // the app opens again afterwards (a new process, then a new Push), nothing is delivered.

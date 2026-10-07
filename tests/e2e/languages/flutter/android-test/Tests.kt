@@ -106,6 +106,16 @@ class Tests {
         AppwritePushPlugin().onAttachedToEngine(binding)
         call(EVENTS, "listen", null)
 
+        // The app is not on screen, so background subscriptions post their notifications.
+        shadowOf(context.getSystemService(android.app.ActivityManager::class.java)).setProcesses(
+            listOf(
+                android.app.ActivityManager.RunningAppProcessInfo().apply {
+                    pid = android.os.Process.myPid()
+                    importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED
+                },
+            ),
+        )
+
         val host = System.getenv("PUSH_HOST") ?: "mqtt"
         val config = { authMethod: String, credential: String ->
             JSONObject()
@@ -164,6 +174,14 @@ class Tests {
                 context.registerReceiver(receiver, filter)
             }
             wakeUp.send()
+            // On Android 12+ the alarm hands the run to an expedited job; run that job's work, as
+            // JobScheduler would (Robolectric does not run jobs).
+            shadowOf(android.os.Looper.getMainLooper()).idle()
+            val jobScheduler = context.getSystemService(android.app.job.JobScheduler::class.java)
+            if (jobScheduler.allPendingJobs.any { it.id == PushBackground.EXPEDITED_JOB_ID }) {
+                jobScheduler.cancel(PushBackground.EXPEDITED_JOB_ID)
+                PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) {}
+            }
         }
         waitFor { E2EPushReceiver.messages.isNotEmpty() }
         val posted = shadowOf(notifications).allNotifications.firstOrNull()
@@ -183,7 +201,7 @@ class Tests {
         notifications.cancelAll()
         E2EPushReceiver.messages.clear()
         dart.events.clear()
-        call(METHODS, "resume", null)
+        call(METHODS, "resume", mapOf("authMethod" to "appwrite-session", "credential" to SESSION))
         waitFor(3_000) { E2EPushReceiver.messages.isNotEmpty() || messages().isNotEmpty() }
         writeToFile(
             if (E2EPushReceiver.messages.isEmpty() && messages().isEmpty() && shadowOf(notifications).allNotifications.isEmpty()) {

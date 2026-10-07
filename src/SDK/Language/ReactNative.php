@@ -134,6 +134,11 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/{{ spec.info.title | caseUcfirst }}PushIntentListener.java',
+                'template'      => 'react-native/android/src/main/java/io/package/reactnative/PushIntentListener.java.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/{{ spec.info.title | caseUcfirst }}CookiesModule.kt',
                 'template'      => 'react-native/android/src/main/java/io/package/reactnative/CookiesModule.kt.twig',
             ],

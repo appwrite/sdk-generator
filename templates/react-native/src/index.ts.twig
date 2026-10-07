@@ -5,7 +5,9 @@ export { {{service.name | caseUcfirst}} } from './services/{{service.name | case
 export { Realtime } from './services/realtime';
 export { Push } from './services/push';
 export type {
+    PushBackgroundStatus,
     PushMessage,
+    PushNotificationOpened,
     PushSubscription,
     SubscribeOptions,
     MessageCallback,
