@@ -22,7 +22,7 @@ export default {
             entries: [
                 { find: 'react-native', replacement: 'react-native-web' },
                 {
-                    find: /^expo-file-system(\/legacy)?$/,
+                    find: 'expo-file-system',
                     replacement: path.resolve(__dirname, 'shims/expo-file-system.js'),
                 },
             ],
