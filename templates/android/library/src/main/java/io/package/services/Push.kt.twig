@@ -547,13 +547,28 @@ class Push(
         mqtt = null
     }
 
-    // Stop listening to the background host, reporting its open connection closing first, as the
-    // in-process connection reports its own close.
+    // Whether this Push reported the background host's connection open.
+    @Volatile
+    private var backgroundOpen = false
+
+    // The background host's connection opened or closed: report it once per change.
+    private fun backgroundConnection(open: Boolean) {
+        if (backgroundOpen == open) {
+            return
+        }
+        backgroundOpen = open
+        try {
+            if (open) onOpen?.invoke() else onClose?.invoke()
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Push connection callback threw", e)
+        }
+    }
+
+    // Stop listening to the background host, reporting its connection closing when this Push
+    // reported it open, as the in-process connection reports its own close.
     private fun leaveBackgroundHost() {
         PushBackground.connectionHandler = null
-        if (PushBackground.isConnected) {
-            onClose?.invoke()
-        }
+        backgroundConnection(false)
     }
 
     // Relocate the connection into the background host and sync it with the current
@@ -563,10 +578,10 @@ class Push(
         dropClient()
         subscriptions.values.forEach { it.client = null }
         PushBackground.errorHandler = { deliverBackgroundError(it) }
-        PushBackground.connectionHandler = { open -> if (open) onOpen?.invoke() else onClose?.invoke() }
+        PushBackground.connectionHandler = { open -> backgroundConnection(open) }
         // Joining a connection a background run already opened: report it open now.
-        if (!backgroundActive && PushBackground.isConnected) {
-            onOpen?.invoke()
+        if (PushBackground.isConnected) {
+            backgroundConnection(true)
         }
         PushBackground.host(appContext, buildConfig(), currentListeners())
         backgroundActive = true
