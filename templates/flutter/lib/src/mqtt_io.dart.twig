@@ -106,6 +106,9 @@ class PushIO implements Push {
   // Bumped when the subscriptions move to the native host, or the credential changes,
   // superseding an _open in flight.
   int _connectionEpoch = 0;
+
+  // Bumped by close(), so work that awaited across it does not subscribe or resume afterwards.
+  int _closeGeneration = 0;
   Completer<void>? _openCancel;
   String _connectedKey = '';
   bool _resubscribeOnConnect = false;
@@ -179,9 +182,13 @@ class PushIO implements Push {
     // user replaces the saved one, and another user drops the saved subscriptions.
     final native = _native;
     if (native != null) {
+      final generation = _closeGeneration;
       unawaited(
         _readCookieSession()
             .then((_) {
+              if (generation != _closeGeneration) {
+                return null;
+              }
               final (authMethod, credential) = _currentCredential();
               return native.resume(authMethod, credential);
             })
@@ -200,7 +207,13 @@ class PushIO implements Push {
       return;
     }
     try {
-      await client.init();
+      // Wait for an initialization in progress, and initialize only a client that never was.
+      while (!client.initialized && client.initProgress) {
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
+      if (!client.initialized) {
+        await client.init();
+      }
       final name = 'a_session_${client.config['project'] ?? ''}';
       final cookies = await client.cookieJar.loadForRequest(
         Uri.parse(client.endPoint),
@@ -413,7 +426,13 @@ class PushIO implements Push {
     bool retry = true,
     bool notifyInForeground = false,
   }) async {
+    final generation = _closeGeneration;
     await _readCookieSession();
+    if (generation != _closeGeneration) {
+      throw {{spec.info.title | caseUcfirst}}Exception(
+        'Push was closed before the subscription was established',
+      );
+    }
     final List<String> topicList;
     try {
       topicList = _topicList(client, topics, _cookieSession);
@@ -1001,6 +1020,7 @@ class PushIO implements Push {
   /// subscriptions and the saved ones.
   @override
   void close() {
+    _closeGeneration++;
     _teardown();
     final native = _native;
     if (native == null) {
