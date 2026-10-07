@@ -673,6 +673,13 @@
             anonymousPush.close();
             console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
 
+            // Signed in through the client: with no JWT or session set on it, the user comes from
+            // the session its sign-in kept in localStorage (cookieFallback).
+            window.localStorage.setItem('cookieFallback', JSON.stringify({ a_session_console: e2eSession }));
+            const signInTopics = await userTopicsOf(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083'));
+            window.localStorage.removeItem('cookieFallback');
+            console.log(onlyTopic(signInTopics, 'users/e2e-session-user') ? 'Push user sign-in session topic:passed' : 'Push user sign-in session topic:failed');
+
             // A message published while the user is signed out reaches their next sign-in, though that
             // sign-in has a new session secret (subscribing to "e2e-replay-publish" makes the mock
             // publish on "e2e-replay", queued for clients that subscribed before and are offline).
@@ -792,6 +799,43 @@
                 popupId !== '' && popupId !== pageId
                     ? 'Push tab client id:passed'
                     : `Push tab client id:failed (page ${pageId}, same ${samePageId}, liveA ${liveAId}, liveB ${liveBId}, popup ${popupId})`,
+            );
+
+            // A tap on a notification this page showed reaches onNotificationOpened with the
+            // message's parsed data until it is stopped. The browser's Notification is stood in
+            // for, so the test can click the one a background delivery shows.
+            const shown = [];
+            const RealNotification = window.Notification;
+            window.Notification = class {
+                static permission = 'granted';
+                static requestPermission() {
+                    return Promise.resolve('granted');
+                }
+                constructor(title, options) {
+                    this.title = title;
+                    this.options = options;
+                    shown.push(this);
+                }
+                close() {}
+            };
+            const tapPush = new Push(client);
+            const tapped = [];
+            const stopTaps = tapPush.onNotificationOpened((opened) => tapped.push(opened));
+            const initial = await tapPush.getInitialNotification();
+            await tapPush.subscribe(['e2e-push'], () => {}, { background: true, title: 'E2E title' });
+            const shownDeadline = Date.now() + 10000;
+            while (shown.length === 0 && Date.now() < shownDeadline) {
+                await new Promise((resolve) => setTimeout(resolve, 50));
+            }
+            shown[0]?.onclick?.();
+            stopTaps();
+            shown[0]?.onclick?.();
+            tapPush.close();
+            window.Notification = RealNotification;
+            console.log(
+                initial === null && tapped.length === 1 && tapped[0].topic === 'e2e-push' && JSON.stringify(tapped[0].data) === '{}'
+                    ? 'Push notification opened web:passed'
+                    : `Push notification opened web:failed (initial: ${initial}, shown: ${shown.length}, tapped: ${JSON.stringify(tapped)})`,
             );
 
         });
