@@ -20,6 +20,7 @@ import io.appwrite.models.Mock
 import io.appwrite.models.Player
 import io.appwrite.models.RealtimeSubscriptionUpdate
 import io.appwrite.services.Bar
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import io.appwrite.services.Foo
 import io.appwrite.services.General
 import io.appwrite.services.Plaintext
@@ -642,6 +643,28 @@ class ServiceTest {
             anonymousPush.close()
             writeToFile(if (noCredentialRejected) "Push user no credential:passed" else "Push user no credential:failed")
 
+            // Signed in through the client: with no JWT or session set on it, the user comes from
+            // the session its sign-in saved in the cookie store.
+            val signInClient = pushClient()
+            val signInUrl = signInClient.endpoint.toHttpUrl()
+            signInClient.cookieJar.saveFromResponse(
+                signInUrl,
+                listOf(
+                    okhttp3.Cookie.Builder()
+                        .name("a_session_console")
+                        .value(android.net.Uri.encode(e2eSession))
+                        .domain(signInUrl.host)
+                        .build(),
+                ),
+            )
+            writeToFile(
+                if (onlyTopic(userTopicsOf(signInClient), "users/e2e-session-user")) {
+                    "Push user sign-in session topic:passed"
+                } else {
+                    "Push user sign-in session topic:failed"
+                },
+            )
+
             // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
             // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
             // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
@@ -955,6 +978,49 @@ class ServiceTest {
                 },
             )
             notifications.cancelAll()
+
+            // Taps on background notifications: one before anything listens (as when it launched
+            // the app) is reported once by getInitialNotification, and later ones reach
+            // onNotificationOpened until it is stopped. The app opens with the tap's extras.
+            org.robolectric.Shadows.shadowOf(context.packageManager).addResolveInfoForIntent(
+                android.content.Intent(android.content.Intent.ACTION_MAIN)
+                    .addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+                    .setPackage(context.packageName),
+                android.content.pm.ResolveInfo().apply {
+                    activityInfo = android.content.pm.ActivityInfo().apply {
+                        name = android.app.Activity::class.java.name
+                        packageName = context.packageName
+                    }
+                },
+            )
+            val tapPayload = org.json.JSONObject().put("data", org.json.JSONObject().put("saleId", "42")).toString()
+            val tap = {
+                val intent = android.content.Intent(context, io.appwrite.services.PushOpenActivity::class.java)
+                    .putExtra(Push.EXTRA_TOPIC, "e2e-push")
+                    .putExtra(Push.EXTRA_PAYLOAD, tapPayload)
+                org.robolectric.Robolectric.buildActivity(io.appwrite.services.PushOpenActivity::class.java, intent).setup().get()
+            }
+            val tapPush = Push(pushClient().setSession(e2eSession), context)
+            val launchedBy = org.robolectric.Shadows.shadowOf(tap()).nextStartedActivity
+            val launched = tapPush.getInitialNotification()
+            val launchedAgain = tapPush.getInitialNotification()
+            val tapped = mutableListOf<io.appwrite.services.PushNotificationOpened>()
+            val stopTaps = tapPush.onNotificationOpened { tapped.add(it) }
+            tap()
+            stopTaps()
+            tap()
+            val heldAfterStop = tapPush.getInitialNotification()
+            writeToFile(
+                if (launched?.topic == "e2e-push" && launched.data["saleId"] == "42" && launchedAgain == null &&
+                    launchedBy?.getStringExtra(Push.EXTRA_PAYLOAD) == tapPayload &&
+                    tapped.size == 1 && tapped[0].data["saleId"] == "42" && heldAfterStop?.data?.get("saleId") == "42"
+                ) {
+                    "Push notification opened:passed"
+                } else {
+                    "Push notification opened:failed (launched: $launched, again: $launchedAgain, tapped: $tapped, after stop: $heldAfterStop)"
+                },
+            )
+            tapPush.close()
 
             // Opting out of a saved background subscription: after a restart, the app subscribes to
             // the same topic with background off and then unsubscribes. When the app opens again,

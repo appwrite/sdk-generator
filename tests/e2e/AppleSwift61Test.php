@@ -60,6 +60,7 @@ final class AppleSwift61Test extends Base
         ...Base::CHANNEL_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES,
         ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_SIGN_IN_SESSION_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
         ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
         ...Base::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,

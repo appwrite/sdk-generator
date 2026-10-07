@@ -28,23 +28,30 @@ internal data class PushTap(val topic: String, val payload: String)
 
 internal object PushTaps {
     private var pending: PushTap? = null
-    private var listener: ((PushTap) -> Unit)? = null
+    private val listeners = mutableListOf<(PushTap) -> Unit>()
 
     fun record(tap: PushTap) {
         val deliver = synchronized(this) {
-            listener ?: run {
-                pending = tap
-                null
+            listeners.toList().also {
+                if (it.isEmpty()) {
+                    pending = tap
+                }
             }
         }
-        deliver?.invoke(tap)
+        deliver.forEach { it(tap) }
     }
 
     @Synchronized
     fun take(): PushTap? = pending.also { pending = null }
 
-    @Synchronized
-    fun listen(onTap: ((PushTap) -> Unit)?) {
-        listener = onTap
+    fun listen(onTap: (PushTap) -> Unit): () -> Unit {
+        synchronized(this) {
+            listeners.add(onTap)
+        }
+        return {
+            synchronized(this) {
+                listeners.remove(onTap)
+            }
+        }
     }
 }

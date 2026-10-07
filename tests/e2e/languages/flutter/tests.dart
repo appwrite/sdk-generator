@@ -624,6 +624,33 @@ void main() async {
       ? 'Push user no credential:passed'
       : 'Push user no credential:failed');
 
+  // Signed in through the client: with no JWT or session set on it, the user comes from the
+  // session its sign-in saved in the cookie store.
+  final signInClient = Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883');
+  try {
+    final signInIO = signInClient as ClientIO;
+    // Client() starts initialising on its own: wait for it before using the cookie store.
+    while (!signInIO.initialized && signInIO.initProgress) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+    if (!signInIO.initialized) {
+      await signInIO.init();
+    }
+    await signInIO.cookieJar.saveFromResponse(
+      Uri.parse(signInIO.endPoint),
+      [Cookie('a_session_console', Uri.encodeComponent(e2eSession))],
+    );
+    final signInTopics = await userTopicsOf(signInClient);
+    print(onlyTopic(signInTopics, 'users/e2e-session-user')
+        ? 'Push user sign-in session topic:passed'
+        : 'Push user sign-in session topic:failed');
+  } catch (e) {
+    print('Push user sign-in session topic:failed ($e)');
+  }
+
   // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
   // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
   // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).

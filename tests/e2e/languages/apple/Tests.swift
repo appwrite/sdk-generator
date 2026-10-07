@@ -611,6 +611,19 @@ class Tests: XCTestCase {
         anonymousPush.close()
         print(noCredentialRejected ? "Push user no credential:passed" : "Push user no credential:failed")
 
+        // Signed in through the client: with no JWT or session set on it, the user comes from the
+        // session its sign-in saved with the client's cookies.
+        let signInClient = Client()
+            .setProject("console")
+            .setSelfSigned()
+            .setPushEndpoint("mqtt://mqtt:1883")
+        let signInHost = URL(string: signInClient.endPoint)!.host!
+        let encodedSession = e2eSession.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? e2eSession
+        UserDefaults.standard.set(["a_session_console=\(encodedSession); Path=/; HttpOnly"], forKey: signInHost)
+        let signInTopics = (try? await userTopicsOf(signInClient)) ?? []
+        UserDefaults.standard.removeObject(forKey: signInHost)
+        print(onlyTopic(signInTopics, "users/e2e-session-user") ? "Push user sign-in session topic:passed" : "Push user sign-in session topic:failed")
+
         // Broker errors reach onError: a refused CONNECT (the mock refuses a "deny:<reason>" credential with <reason>)
         // and a server-initiated DISCONNECT (the mock disconnects clients that subscribe to
         // "e2e-disconnect/<reason>" with <reason>). MQTTNIO does not expose the broker's reason string, so Apple checks

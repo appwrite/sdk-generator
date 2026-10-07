@@ -15,6 +15,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.appwrite.flutter.AppwritePushPlugin
 import io.appwrite.services.PushBackground
 import io.appwrite.services.PushMessage
+import io.appwrite.services.PushOpenActivity
 import io.appwrite.services.PushReceiver
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
@@ -24,6 +25,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.io.File
@@ -223,6 +225,45 @@ class Tests {
             },
         )
         call(METHODS, "stop", null)
+
+        // Taps on background notifications, read the way the Dart side reads them: a tap before
+        // Dart listens, as when it launched the app, is reported once, and a tap while Dart
+        // listens arrives as an event.
+        shadowOf(context.packageManager).addResolveInfoForIntent(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(context.packageName),
+            ResolveInfo().apply {
+                activityInfo = ActivityInfo().apply {
+                    name = android.app.Activity::class.java.name
+                    packageName = context.packageName
+                }
+            },
+        )
+        val tapPayload = JSONObject().put("data", JSONObject().put("saleId", "42")).toString()
+        val tap = {
+            val intent = Intent(context, PushOpenActivity::class.java)
+                .putExtra(PushBackground.EXTRA_TOPIC, "e2e-push")
+                .putExtra(PushBackground.EXTRA_PAYLOAD, tapPayload)
+            Robolectric.buildActivity(PushOpenActivity::class.java, intent).setup().get()
+        }
+        tap()
+        val launched = call(METHODS, "getInitialNotification", null).getOrNull() as? Map<*, *>
+        val launchedAgain = call(METHODS, "getInitialNotification", null).getOrNull()
+        dart.events.clear()
+        call(METHODS, "listenOpened", mapOf("listening" to true))
+        tap()
+        shadowOf(Looper.getMainLooper()).idle()
+        val opened = dart.events.firstOrNull { it["type"] == "opened" }
+        val heldWhileListening = call(METHODS, "getInitialNotification", null).getOrNull()
+        call(METHODS, "listenOpened", mapOf("listening" to false))
+        writeToFile(
+            if (launched?.get("topic") == "e2e-push" && launched["payload"] == tapPayload && launchedAgain == null &&
+                opened?.get("topic") == "e2e-push" && opened["payload"] == tapPayload && heldWhileListening == null
+            ) {
+                "Push notification opened:passed"
+            } else {
+                "Push notification opened:failed (launched: $launched, again: $launchedAgain, opened: $opened, held: $heldWhileListening)"
+            },
+        )
     }
 
     private fun messages(): List<Map<*, *>> = dart.events.filter { it["type"] == "message" }
