@@ -737,6 +737,21 @@ class ServiceTest {
                 },
             )
 
+            // Background delivery asks for POST_NOTIFICATIONS on its own, from the visible activity.
+            val permissionActivity = org.robolectric.Robolectric.buildActivity(android.app.Activity::class.java).setup().get()
+            val permissionPush = Push(pushClient().setSession(e2eSession), ApplicationProvider.getApplicationContext())
+            permissionPush.subscribe("e2e-permission", background = true) { }
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+            val requestedPermissions = org.robolectric.Shadows.shadowOf(permissionActivity).lastRequestedPermission?.requestedPermissions?.toList()
+            permissionPush.close()
+            writeToFile(
+                if (requestedPermissions == listOf(android.Manifest.permission.POST_NOTIFICATIONS)) {
+                    "Push notification permission:passed"
+                } else {
+                    "Push notification permission:failed (requested: $requestedPermissions)"
+                },
+            )
+
             // Background delivery, used the way an app does: subscribe with background on and a
             // PushReceiver declared, then the process dies, and the scheduled wake-up brings the
             // next message to the receiver and a notification. Sign-out stops it.

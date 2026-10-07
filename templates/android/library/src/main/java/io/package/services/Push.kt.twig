@@ -2,10 +2,12 @@ package {{ sdk.namespace | caseDot }}.services
 
 import android.Manifest
 import android.app.Activity
+import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -19,6 +21,7 @@ import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import java.lang.ref.WeakReference
 import java.net.URI
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -190,6 +193,7 @@ class Push(
     private val appContext: Context = context.applicationContext
 
     init {
+        NotificationPermissionPrompt.track(appContext)
         // Resume saved background delivery now, instead of at the next scheduled run, with the
         // credential set on the client: a rotated session of the same user replaces the saved one.
         val auth = runCatching { resolvePushAuth(client) }.getOrNull()
@@ -318,8 +322,8 @@ class Push(
     /**
      * Subscribe to a single topic. Returns a [PushSubscription] handle.
      *
-     * Request the `POST_NOTIFICATIONS` runtime permission with [requestNotificationPermission]
-     * before subscribing with `background = true` on Android 13+.
+     * On Android 13+ the first `background = true` subscription asks for the
+     * `POST_NOTIFICATIONS` runtime permission; see [requestNotificationPermission].
      */
     @JvmOverloads
     fun subscribe(
@@ -546,6 +550,7 @@ class Push(
     // Relocate the connection into the background host and sync it with the current
     // subscription set (filters, per-sub callbacks/titles), saving the background ones.
     private fun hostInBackground() {
+        NotificationPermissionPrompt.ask(appContext)
         dropClient()
         subscriptions.values.forEach { it.client = null }
         PushBackground.errorHandler = { deliverBackgroundError(it) }
@@ -821,8 +826,9 @@ class Push(
             PushBackground.requestIgnoreBatteryOptimizations(context)
 
         /**
-         * Request the `POST_NOTIFICATIONS` runtime permission (Android 13+). Call from an
-         * Activity before subscribing with `background = true`; on older versions it is a no-op.
+         * Request the `POST_NOTIFICATIONS` runtime permission (Android 13+) from [activity]. The
+         * first `background = true` subscription asks on its own, from the visible activity; call
+         * this to ask at a moment of your choosing instead. On older versions it is a no-op.
          */
         @JvmStatic
         @JvmOverloads
@@ -891,4 +897,83 @@ internal fun resolvePushUserId(client: Client): String {
         )
     }
     return userId
+}
+
+// Asks once per process for POST_NOTIFICATIONS (Android 13+) when background delivery starts, from
+// the app's visible activity, or from the next one to resume when none is.
+private object NotificationPermissionPrompt {
+    private const val REQUEST_CODE = 9412
+
+    private var tracking = false
+    private var asked = false
+    private var waiting = false
+    private var visible: WeakReference<Activity>? = null
+
+    fun track(context: Context) {
+        val app = context.applicationContext as? Application ?: return
+        synchronized(this) {
+            if (tracking) {
+                return
+            }
+            tracking = true
+        }
+        app.registerActivityLifecycleCallbacks(
+            object : Application.ActivityLifecycleCallbacks {
+                override fun onActivityResumed(activity: Activity) {
+                    val ask = synchronized(this@NotificationPermissionPrompt) {
+                        visible = WeakReference(activity)
+                        waiting.also { waiting = false }
+                    }
+                    if (ask) {
+                        request(activity)
+                    }
+                }
+
+                override fun onActivityPaused(activity: Activity) {
+                    synchronized(this@NotificationPermissionPrompt) {
+                        if (visible?.get() === activity) {
+                            visible = null
+                        }
+                    }
+                }
+
+                override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+
+                override fun onActivityStarted(activity: Activity) = Unit
+
+                override fun onActivityStopped(activity: Activity) = Unit
+
+                override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+                override fun onActivityDestroyed(activity: Activity) = Unit
+            },
+        )
+    }
+
+    fun ask(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || granted(context)) {
+            return
+        }
+        val activity = synchronized(this) {
+            if (asked) {
+                return
+            }
+            asked = true
+            visible?.get().also {
+                if (it == null) {
+                    waiting = true
+                }
+            }
+        } ?: return
+        activity.runOnUiThread { request(activity) }
+    }
+
+    private fun granted(context: Context): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+    private fun request(activity: Activity) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !granted(activity)) {
+            ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_CODE)
+        }
+    }
 }
