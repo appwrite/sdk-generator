@@ -324,11 +324,13 @@ class Flutter extends Dart
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/analytics_observer.dart',
+                'requires'      => 'analytics',
                 'template'      => 'flutter/lib/src/analytics_observer.dart.twig',
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/lib/src/analytics_tracking.dart',
+                'requires'      => 'analytics',
                 'template'      => 'flutter/lib/src/analytics_tracking.dart.twig',
             ],
             [

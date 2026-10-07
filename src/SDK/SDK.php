@@ -1012,6 +1012,13 @@ class SDK
                 continue;
             }
 
+            // A companion template that references a generated service must not
+            // ship when the spec carries no such service, or it names a class
+            // the SDK never generates and the package stops compiling.
+            if (isset($file['requires']) && !isset($filteredServices[$file['requires']])) {
+                continue;
+            }
+
             if (!\in_array($file['scope'], ['copy', 'download'], true)) {
                 $template = $this->twig->load($file['template']); /* @var $template TemplateWrapper */
             }
