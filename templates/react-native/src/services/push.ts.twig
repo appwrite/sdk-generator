@@ -149,6 +149,7 @@ export class Push extends Service {
     private readonly native: NativePush | null = nativePush();
     /** Whether the subscriptions currently live on the native module's connection. */
     private nativeActive = false;
+    private nativeOpen = false;
     /** Bumped when the subscriptions move to the native host, superseding an open() in flight. */
     private connectionEpoch = 0;
     /** Bumped by close(), so a subscribe that was waiting on a connection stops instead of reopening it. */
@@ -879,18 +880,37 @@ export class Push extends Service {
             }
         }
         this.joinNative(native);
-        return enqueueNative(() => this.sendToNative(native));
+        return enqueueNative(() => this.sendToNative(native)).then((hosted) => {
+            if (hosted) {
+                for (const push of nativeHosts) {
+                    push.nativeConnection(true);
+                }
+            }
+        });
+    }
+
+    /** This Push's view of the native host's connection, reported once per change. */
+    private nativeConnection(open: boolean): void {
+        if (!this.nativeActive || this.nativeOpen === open) {
+            return;
+        }
+        this.nativeOpen = open;
+        if (open) {
+            this.onOpenCb?.();
+        } else {
+            this.onCloseCb?.();
+        }
     }
 
     /** Host every native host's subscriptions with this Push's credential. */
-    private async sendToNative(native: NativePush): Promise<void> {
+    private async sendToNative(native: NativePush): Promise<boolean> {
         // Host what is subscribed when this runs, so a close() or an unsubscribe queued
         // meanwhile is not undone by an older request.
         const subscriptions = [...nativeHosts].flatMap((push) =>
             push.nativeEntries(),
         );
         if (subscriptions.length === 0) {
-            return;
+            return false;
         }
         if ([...nativeHosts].some((push) => push.hasBackgroundSubs())) {
             requestNotificationPermission();
@@ -919,6 +939,7 @@ export class Push extends Service {
             JSON.stringify(config),
             JSON.stringify(subscriptions),
         );
+        return true;
     }
 
     /** Move this Push's subscriptions onto the native host, closing its own connection. */
@@ -933,6 +954,9 @@ export class Push extends Service {
         this.everConnected = false;
         this.listenNative(native);
         nativeHosts.add(this);
+        if (!this.nativeActive) {
+            this.nativeOpen = false;
+        }
         this.nativeActive = true;
     }
 
@@ -1060,7 +1084,7 @@ export class Push extends Service {
             emitter.addListener(
                 '{{spec.info.title | caseUcfirst}}PushConnection',
                 (event: { connected: boolean }) =>
-                    event.connected ? this.onOpenCb?.() : this.onCloseCb?.(),
+                    this.nativeConnection(event.connected),
             ),
         ];
     }

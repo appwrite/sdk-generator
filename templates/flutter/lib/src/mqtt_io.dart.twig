@@ -101,6 +101,7 @@ class PushIO implements Push {
   final PushNative? _native = PushNative.instance;
   // Whether the subscriptions currently live on the native plugin's connection.
   bool _nativeActive = false;
+  bool _nativeOpen = false;
   // Bumped when the subscriptions move to the native host, or the credential changes,
   // superseding an _open in flight.
   int _connectionEpoch = 0;
@@ -481,18 +482,33 @@ class PushIO implements Push {
       }
     }
     _joinNative(native);
-    return _enqueueNative(() => _sendToNative(native));
+    return _enqueueNative(() => _sendToNative(native)).then((hosted) {
+      if (hosted) {
+        for (final push in _nativeHosts.toList()) {
+          push._nativeConnection(true);
+        }
+      }
+    });
+  }
+
+  // This Push's view of the native host's connection, reported once per change.
+  void _nativeConnection(bool open) {
+    if (!_nativeActive || _nativeOpen == open) {
+      return;
+    }
+    _nativeOpen = open;
+    open ? _onOpen?.call() : _onClose?.call();
   }
 
   // Host every native host's subscriptions with this Push's credential.
-  Future<void> _sendToNative(PushNative native) async {
+  Future<bool> _sendToNative(PushNative native) async {
     // Host what is subscribed when this runs, so a close() or an unsubscribe queued meanwhile
     // is not undone by an older request.
     final subscriptions = [
       for (final push in _nativeHosts) ...push._nativeEntries,
     ];
     if (subscriptions.isEmpty) {
-      return;
+      return false;
     }
     if (!_notificationPermissionRequested &&
         _nativeHosts.any((push) => push._backgroundWanted)) {
@@ -520,6 +536,7 @@ class PushIO implements Push {
       _nativeHosts.any((push) => push._onError != null),
     );
     await native.host(jsonEncode(config), jsonEncode(subscriptions));
+    return true;
   }
 
   // Move this Push's subscriptions onto the native host, closing its own connection.
@@ -548,10 +565,12 @@ class PushIO implements Push {
         unawaited(native.ack(message.ackToken).catchError(_report));
       },
       onError: (message) => _report({{spec.info.title | caseUcfirst}}Exception(message)),
-      onConnection: (connected) =>
-          connected ? _onOpen?.call() : _onClose?.call(),
+      onConnection: _nativeConnection,
     );
     _nativeHosts.add(this);
+    if (!_nativeActive) {
+      _nativeOpen = false;
+    }
     _nativeActive = true;
   }
 
