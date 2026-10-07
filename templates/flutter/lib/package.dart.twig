@@ -30,8 +30,10 @@ export 'src/upload_progress.dart';
 export 'src/realtime_subscription.dart';
 export 'src/realtime_message.dart';
 export 'src/input_file.dart';
+{% if services['analytics'] is defined %}
 export 'src/analytics_observer.dart';
 export 'src/analytics_tracking.dart';
+{% endif %}
 
 part 'query.dart';
 part 'permission.dart';

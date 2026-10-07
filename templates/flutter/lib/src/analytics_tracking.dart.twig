@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import 'analytics_observer.dart';
@@ -123,12 +125,19 @@ class AnalyticsTracking with WidgetsBindingObserver {
     int? engagementTime,
   }) {
     try {
-      _emit(
+      // The emitter usually returns the request future; without catching it a
+      // rejected request surfaces as an unhandled async error in the host app.
+      final pending = _emit(
         name,
         props: props,
         propertyId: propertyId,
         engagementTime: engagementTime,
       );
+      if (pending is Future) {
+        // `catchError` on a typed future must return that future's type, so an
+        // empty handler would itself throw. Narrow to `Future<void>` first.
+        unawaited(pending.then<void>((_) {}).catchError((Object _) {}));
+      }
     } catch (_) {
       // Silent — see class docs.
     }
@@ -177,6 +186,13 @@ class AnalyticsTracking with WidgetsBindingObserver {
         );
         break;
       case AppLifecycleState.resumed:
+        // `inactive` -> `resumed` (notification shade, app switcher preview)
+        // never reaches `hidden`/`paused`, so the interval is still open.
+        // Restarting it would discard the engagement accrued before the
+        // interruption and emit a foreground event for no background.
+        if (_foregroundSince != null) {
+          break;
+        }
         _foregroundSince = DateTime.now();
         event('app_foregrounded');
         break;
