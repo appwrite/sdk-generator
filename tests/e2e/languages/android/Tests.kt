@@ -737,9 +737,10 @@ class ServiceTest {
                 },
             )
 
-            // Background delivery asks for POST_NOTIFICATIONS on its own, from the visible activity.
-            val permissionActivity = org.robolectric.Robolectric.buildActivity(android.app.Activity::class.java).setup().get()
-            val permissionPush = Push(pushClient().setSession(e2eSession), ApplicationProvider.getApplicationContext())
+            // Background delivery asks for POST_NOTIFICATIONS on its own, from the visible activity:
+            // here the screen Push is created on, whose resume the lifecycle callbacks never saw.
+            val permissionActivity = org.robolectric.Robolectric.buildActivity(android.app.Activity::class.java).create().start().get()
+            val permissionPush = Push(pushClient().setSession(e2eSession), permissionActivity)
             permissionPush.subscribe("e2e-permission", background = true) { }
             org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
             val requestedPermissions = org.robolectric.Shadows.shadowOf(permissionActivity).lastRequestedPermission?.requestedPermissions?.toList()
