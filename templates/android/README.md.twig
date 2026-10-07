@@ -96,15 +96,38 @@ notification is posted unless the subscription passes `notifyInForeground = true
 messages that arrive while no callback is listening in code, subclass `PushReceiver` and declare
 it with the `{{ sdk.namespace | caseDot }}.push.MESSAGE` action (see its docs).
 
-Doze delays the scheduled runs. They are more punctual when your app may schedule exact
-alarms (`SCHEDULE_EXACT_ALARM`) or is exempt from battery optimisation; both are your app's
-choice and subject to Google Play policy, and the SDK uses them when granted. Check what delivery
-can rely on with `Push.backgroundStatus(context)`: when `bestEffort` is true, messages can arrive
-late while the app is closed. Explain why to the user, then ask from a user action with
-`Push.requestExactAlarms(context)` or `Push.requestIgnoreBatteryOptimizations(context)`, which
-return false when there is nothing to ask (including when your manifest does not declare the
-permission). The SDK never opens these screens on its own. For immediate delivery even after a kill and
-during Doze, call `push.setForeground(true)` from the foreground: it adds a foreground service
+#### Delivery while the app is closed
+
+Messages sent while the app is closed arrive at the next scheduled wake-up: about every 15
+seconds, or about every 60 seconds once exact alarms are allowed. Without exact alarms the
+wake-ups are inexact, so Doze and battery saver can defer them by minutes. For immediate delivery
+use `push.setForeground(true)` (see below).
+
+The SDK uses exact alarms on its own whenever the app may schedule them. To allow it:
+
+1. Declare the permissions in your app's `AndroidManifest.xml`. Both are optional and subject to
+   Google Play policy: `SCHEDULE_EXACT_ALARM` needs a declaration in the Play Console, and
+   `USE_EXACT_ALARM` is reserved for alarm, clock and calendar apps (the SDK does not use it).
+
+   ```xml
+   <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+   <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+   ```
+
+2. On Android 13 and later the user has to allow exact alarms, under Settings > Apps > Special app
+   access > Alarms & reminders. Android 12 grants a declared `SCHEDULE_EXACT_ALARM`
+   automatically, and older versions need nothing. Check with `Push.backgroundStatus(context)`: when `bestEffort` is
+   true, explain why to the user, then from a user action open that screen with `Push.requestExactAlarms(context)`, or
+   ask for the battery-optimisation exemption with `Push.requestIgnoreBatteryOptimizations(context)`. Both return false when there is
+   nothing to ask, including when the permission is not declared. The SDK never opens these
+   screens on its own.
+
+If the user force-stops the app (Settings > Force stop, and on some devices swiping it away from
+recents), Android cancels its alarms and jobs: nothing is delivered until the app is opened
+again, and the broker then replays what was sent meanwhile.
+
+For immediate delivery even after a kill and during Doze, call `push.setForeground(true)` from
+the foreground: it adds a foreground service
 with a quiet ongoing notification. If you never enable it, you can remove the service from
 your merged manifest, so the Play Console does not ask you to declare it:
 
