@@ -23,6 +23,7 @@ import io.appwrite.reactnative.AppwriteCookiesModule
 import io.appwrite.reactnative.AppwritePushModule
 import io.appwrite.services.PushBackground
 import io.appwrite.services.PushMessage
+import io.appwrite.services.PushOpenActivity
 import io.appwrite.services.PushReceiver
 import io.appwrite.services.PushStore
 import org.json.JSONArray
@@ -318,26 +319,50 @@ class Tests {
         call { module.stop(it) }
     }
 
-    // Taps on the notifications background delivery posts, read the way push.ts reads them: the tap
-    // that launched the app is reported once, and a tap while the app runs arrives as an event.
+    // Taps on the notifications background delivery posts, read the way push.ts reads them: a tap
+    // before JS listens, as when it launched the app, is reported once by getInitialNotification,
+    // and a tap while JS listens arrives as an event. The app opens with the tap's extras.
     private fun notificationOpened() {
         val payload = JSONObject().put("data", JSONObject().put("saleId", "42")).toString()
-        val tap = { Intent(Intent.ACTION_MAIN).putExtra(PushBackground.EXTRA_TOPIC, "e2e-push").putExtra(PushBackground.EXTRA_PAYLOAD, payload) }
-        val activity = Robolectric.buildActivity(Activity::class.java, tap()).setup().get()
-        reactContext.onHostResume(activity)
+        shadowOf(context.packageManager).addResolveInfoForIntent(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(context.packageName),
+            ResolveInfo().apply {
+                activityInfo = ActivityInfo().apply {
+                    name = Activity::class.java.name
+                    packageName = context.packageName
+                }
+            },
+        )
+        val tap = {
+            val intent = Intent(context, PushOpenActivity::class.java)
+                .putExtra(PushBackground.EXTRA_TOPIC, "e2e-push")
+                .putExtra(PushBackground.EXTRA_PAYLOAD, payload)
+            Robolectric.buildActivity(PushOpenActivity::class.java, intent).setup().get()
+        }
+        val launchedBy = shadowOf(tap()).nextStartedActivity
         val launched = call { module.getInitialNotification(it) }.getOrNull() as? String
         val again = call { module.getInitialNotification(it) }.getOrNull()
         val initial = launched?.let { JSONObject(it) }
         events.clear()
-        reactContext.onNewIntent(activity, tap())
+        call { module.listenOpened(true, it) }
+        tap()
         val opened = events.firstOrNull { it.first == AppwritePushModule.OPENED_EVENT }?.second
+        val heldWhileListening = call { module.getInitialNotification(it) }.getOrNull()
+        call { module.listenOpened(false, it) }
+        events.clear()
+        tap()
+        val emittedAfterStop = events.any { it.first == AppwritePushModule.OPENED_EVENT }
+        val heldAfterStop = call { module.getInitialNotification(it) }.getOrNull() as? String
         writeToFile(
             if (initial?.optString("topic") == "e2e-push" && initial.optString("payload") == payload && again == null &&
-                opened?.get("topic") == "e2e-push" && opened["payload"] == payload
+                launchedBy?.getStringExtra(PushBackground.EXTRA_PAYLOAD) == payload &&
+                opened?.get("topic") == "e2e-push" && opened["payload"] == payload && heldWhileListening == null &&
+                !emittedAfterStop && heldAfterStop?.let { JSONObject(it).optString("payload") } == payload
             ) {
                 "Push notification opened:passed"
             } else {
-                "Push notification opened:failed (launched: $launched, again: $again, opened: $opened)"
+                "Push notification opened:failed (launched: $launched, again: $again, by: ${launchedBy?.extras}, opened: $opened, " +
+                    "held: $heldWhileListening, after stop: $emittedAfterStop/$heldAfterStop)"
             },
         )
     }

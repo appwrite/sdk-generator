@@ -1,0 +1,50 @@
+{%- set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) -%}
+package {{ pushNamespace }}.services
+
+import android.app.Activity
+import android.content.Intent
+import android.os.Bundle
+
+class PushOpenActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val topic = intent.getStringExtra(PushBackground.EXTRA_TOPIC)
+        val payload = intent.getStringExtra(PushBackground.EXTRA_PAYLOAD)
+        if (topic != null && payload != null) {
+            PushTaps.record(PushTap(topic, payload))
+        }
+        packageManager.getLaunchIntentForPackage(packageName)?.let { launch ->
+            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            if (topic != null && payload != null) {
+                launch.putExtra(PushBackground.EXTRA_TOPIC, topic).putExtra(PushBackground.EXTRA_PAYLOAD, payload)
+            }
+            startActivity(launch)
+        }
+        finish()
+    }
+}
+
+internal data class PushTap(val topic: String, val payload: String)
+
+internal object PushTaps {
+    private var pending: PushTap? = null
+    private var listener: ((PushTap) -> Unit)? = null
+
+    fun record(tap: PushTap) {
+        val deliver = synchronized(this) {
+            listener ?: run {
+                pending = tap
+                null
+            }
+        }
+        deliver?.invoke(tap)
+    }
+
+    @Synchronized
+    fun take(): PushTap? = pending.also { pending = null }
+
+    @Synchronized
+    fun listen(onTap: ((PushTap) -> Unit)?) {
+        listener = onTap
+    }
+}

@@ -248,6 +248,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushOpenActivity.kt',
+                'template'      => 'android/library/src/main/java/io/package/services/PushOpenActivity.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushBridge.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushBridge.kt.twig',
             ],

@@ -204,6 +204,10 @@ async function main() {
         defaultClientId: async () => 'e2e-install',
         getInitialNotification: async () =>
             JSON.stringify({ topic: 'news', payload: JSON.stringify({ data: { saleId: '42' } }) }),
+        listening: [],
+        listenOpened: async (listening) => {
+            NativeModules.AppwritePush.listening.push(listening);
+        },
         addListener: () => {},
         removeListeners: () => {},
     };
@@ -223,6 +227,7 @@ async function main() {
     const stopOpened = firstUser.onNotificationOpened((opened) => tapped.push(opened));
     NativeModules.AppwritePush.emitter.emit('AppwritePushOpened', { topic: 'news', payload: JSON.stringify({ data: { saleId: '7' } }) });
     stopOpened();
+    stopOpened();
     NativeModules.AppwritePush.emitter.emit('AppwritePushOpened', { topic: 'news', payload: 'not json' });
     // Background status and the requests reach the native module, and the saved delivery resumed
     // with the session set on the client, which is never taken for a sign-out.
@@ -231,7 +236,7 @@ async function main() {
     const askedBattery = await firstUser.requestIgnoreBatteryOptimizations();
     const resumed = NativeModules.AppwritePush.resumed.find((args) => args[0] === 'appwrite-session');
     console.log(status?.bestEffort === true && askedExact === true && askedBattery === false && resumed?.[1] === e2eSession && resumed?.[2] === false ? 'Push background status JS:passed' : 'Push background status JS:failed');
-    console.log(launched?.topic === 'news' && launched.data.saleId === '42' && tapped.length === 1 && tapped[0].data.saleId === '7' ? 'Push notification opened JS:passed' : 'Push notification opened JS:failed');
+    console.log(launched?.topic === 'news' && launched.data.saleId === '42' && tapped.length === 1 && tapped[0].data.saleId === '7' && NativeModules.AppwritePush.listening.join() === 'true,false' ? 'Push notification opened JS:passed' : 'Push notification opened JS:failed');
 
     // The same taps outside Android, where expo-notifications posted the notification: the launching
     // response is read and cleared, notifications the SDK did not post are ignored, and later taps

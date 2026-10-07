@@ -369,13 +369,23 @@ export class Push extends Service {
             if (!this.native) {
                 return () => undefined;
             }
-            const emitter = new NativeEventEmitter(this.native);
+            const native = this.native;
+            const emitter = new NativeEventEmitter(native);
             const subscription = emitter.addListener(
                 '{{spec.info.title | caseUcfirst}}PushOpened',
                 (event: NativeOpened) =>
                     callback(toOpened(event.topic, event.payload)),
             );
-            return () => subscription.remove();
+            native.listenOpened(true).catch((err) => this.report(err));
+            let listening = true;
+            return () => {
+                if (!listening) {
+                    return;
+                }
+                listening = false;
+                subscription.remove();
+                native.listenOpened(false).catch((err) => this.report(err));
+            };
         }
         const notifications = expoNotifications();
         if (!notifications) {
@@ -1578,6 +1588,7 @@ interface NativePush {
     defaultClientId(authMethod: string, credential: string): Promise<string>;
     /** The tapped notification that launched the app, as {@link NativeOpened} JSON. */
     getInitialNotification(): Promise<string | null>;
+    listenOpened(listening: boolean): Promise<void>;
     addListener(eventName: string): void;
     removeListeners(count: number): void;
 }

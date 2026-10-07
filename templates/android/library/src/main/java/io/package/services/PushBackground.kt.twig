@@ -940,14 +940,13 @@ internal object PushBackground {
             builder.setLargeIcon(image)
                 .setStyle(NotificationCompat.BigPictureStyle().bigPicture(image).bigLargeIcon(null as Bitmap?).setSummaryText(body))
         }
-        context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { launch ->
-            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                .putExtra(EXTRA_TOPIC, message.topic)
-                .putExtra(EXTRA_PAYLOAD, message.data)
-            builder.setContentIntent(
-                PendingIntent.getActivity(context, id, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
-            )
-        }
+        val open = Intent(context, PushOpenActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+            .putExtra(EXTRA_TOPIC, message.topic)
+            .putExtra(EXTRA_PAYLOAD, message.data)
+        builder.setContentIntent(
+            PendingIntent.getActivity(context, id, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
+        )
         try {
             manager.notify(id, builder.build())
         } catch (e: SecurityException) {
