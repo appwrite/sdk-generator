@@ -161,6 +161,11 @@ internal object PushBackground {
     @Volatile
     var errorHandler: ((Throwable) -> Boolean)? = null
 
+    // Tells the Push instance that hosts its subscriptions here when the connection opens (true)
+    // or closes (false).
+    @Volatile
+    var connectionHandler: ((Boolean) -> Unit)? = null
+
     @Volatile
     var serviceRunning = false
 
@@ -300,6 +305,7 @@ internal object PushBackground {
      * the app's current credential. A rotated session of the same user replaces the saved one; a
      * different user drops the saved subscriptions, as does no credential when
      * [signedOutWhenMissing] (the caller read the session store, so none means signed out).
+     * While a live Push hosts subscriptions here, it does nothing: that Push owns the connection.
      */
     fun resume(context: Context, authMethod: String? = null, credential: String? = null, signedOutWhenMissing: Boolean = false) {
         val app = context.applicationContext
@@ -308,6 +314,9 @@ internal object PushBackground {
             val current = config
             when {
                 !isActive() || current == null -> null
+                // A live Push hosts here and owns the connection and its credential; resuming only
+                // reconciles saved delivery, so it leaves a live host alone.
+                listeners.isNotEmpty() -> null
                 // No credential: signed out when the caller can tell, else possibly not set yet.
                 authMethod == null || credential == null -> if (signedOutWhenMissing) false else null
                 current.authMethod == authMethod && current.credential == credential -> true
@@ -495,6 +504,7 @@ internal object PushBackground {
             loaded = false
         }
         errorHandler = null
+        connectionHandler = null
         unregisterNetworkCallback(context.applicationContext)
         worker.submit { disconnect() }.get()
     }
@@ -660,6 +670,12 @@ internal object PushBackground {
         val retired = AtomicBoolean(false)
         val client = buildPushClient(
             config.copy(keepAlive = KEEP_ALIVE_SECONDS),
+            onConnected = { connectionHandler?.invoke(true) },
+            onDisconnected = {
+                if (!retired.get()) {
+                    connectionHandler?.invoke(false)
+                }
+            },
             onError = { error ->
                 if (!quiet || connected.get()) {
                     report(error)
@@ -882,10 +898,12 @@ internal object PushBackground {
             val handled = matching.isEmpty() && deliverToReceivers(context, message)
             val content = notificationContent(message)
             // Background subscriptions notify while the app is not visible; on screen, only those
-            // that opted in with notifyInForeground do, since the app shows the message itself.
+            // that opted in with notifyInForeground do, since the app shows the message itself. A
+            // message no live callback received still notifies, as the app has not shown it.
             val foreground = appInForeground()
+            val shown = foreground && matching.isNotEmpty()
             val titles = matching.filter { it.background && (!foreground || it.notifyInForeground) }.map { it.title ?: message.topic } +
-                if (handled) emptyList() else entries.filter { !foreground || it.notifyInForeground }.map { it.title ?: message.topic }
+                if (handled) emptyList() else entries.filter { !shown || it.notifyInForeground }.map { it.title ?: message.topic }
             // A title the server sent replaces every subscription's, so one notification is posted.
             titles.map { content.title ?: it }.distinct().forEach { notify(context, message, it, content) }
         } finally {
@@ -940,14 +958,13 @@ internal object PushBackground {
             builder.setLargeIcon(image)
                 .setStyle(NotificationCompat.BigPictureStyle().bigPicture(image).bigLargeIcon(null as Bitmap?).setSummaryText(body))
         }
-        context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { launch ->
-            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                .putExtra(EXTRA_TOPIC, message.topic)
-                .putExtra(EXTRA_PAYLOAD, message.data)
-            builder.setContentIntent(
-                PendingIntent.getActivity(context, id, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
-            )
-        }
+        val open = Intent(context, PushOpenActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+            .putExtra(EXTRA_TOPIC, message.topic)
+            .putExtra(EXTRA_PAYLOAD, message.data)
+        builder.setContentIntent(
+            PendingIntent.getActivity(context, id, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
+        )
         try {
             manager.notify(id, builder.build())
         } catch (e: SecurityException) {

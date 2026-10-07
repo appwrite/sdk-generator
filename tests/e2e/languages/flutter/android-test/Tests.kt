@@ -150,7 +150,9 @@ class Tests {
         val message = messages().firstOrNull()
         message?.let { call(METHODS, "ack", mapOf("token" to it["ackToken"])) }
         writeToFile(
-            if (hosted.isSuccess && message?.get("id") == "sub-1" && String(message["payload"] as ByteArray) == "push-payload") {
+            if (hosted.isSuccess && message?.get("id") == "sub-1" && String(message["payload"] as ByteArray) == "push-payload" &&
+                dart.events.any { it["type"] == "connection" && it["connected"] == true }
+            ) {
                 "Push background message:passed"
             } else {
                 "Push background message:failed"

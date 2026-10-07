@@ -149,6 +149,7 @@ export class Push extends Service {
     private readonly native: NativePush | null = nativePush();
     /** Whether the subscriptions currently live on the native module's connection. */
     private nativeActive = false;
+    private nativeOpen = false;
     /** Bumped when the subscriptions move to the native host, superseding an open() in flight. */
     private connectionEpoch = 0;
     /** Bumped by close(), so a subscribe that was waiting on a connection stops instead of reopening it. */
@@ -369,13 +370,23 @@ export class Push extends Service {
             if (!this.native) {
                 return () => undefined;
             }
-            const emitter = new NativeEventEmitter(this.native);
+            const native = this.native;
+            const emitter = new NativeEventEmitter(native);
             const subscription = emitter.addListener(
                 '{{spec.info.title | caseUcfirst}}PushOpened',
                 (event: NativeOpened) =>
                     callback(toOpened(event.topic, event.payload)),
             );
-            return () => subscription.remove();
+            native.listenOpened(true).catch((err) => this.report(err));
+            let listening = true;
+            return () => {
+                if (!listening) {
+                    return;
+                }
+                listening = false;
+                subscription.remove();
+                native.listenOpened(false).catch((err) => this.report(err));
+            };
         }
         const notifications = expoNotifications();
         if (!notifications) {
@@ -869,18 +880,37 @@ export class Push extends Service {
             }
         }
         this.joinNative(native);
-        return enqueueNative(() => this.sendToNative(native));
+        return enqueueNative(() => this.sendToNative(native)).then((hosted) => {
+            if (hosted) {
+                for (const push of nativeHosts) {
+                    push.nativeConnection(true);
+                }
+            }
+        });
+    }
+
+    /** This Push's view of the native host's connection, reported once per change. */
+    private nativeConnection(open: boolean): void {
+        if (!this.nativeActive || this.nativeOpen === open) {
+            return;
+        }
+        this.nativeOpen = open;
+        if (open) {
+            this.onOpenCb?.();
+        } else {
+            this.onCloseCb?.();
+        }
     }
 
     /** Host every native host's subscriptions with this Push's credential. */
-    private async sendToNative(native: NativePush): Promise<void> {
+    private async sendToNative(native: NativePush): Promise<boolean> {
         // Host what is subscribed when this runs, so a close() or an unsubscribe queued
         // meanwhile is not undone by an older request.
         const subscriptions = [...nativeHosts].flatMap((push) =>
             push.nativeEntries(),
         );
         if (subscriptions.length === 0) {
-            return;
+            return false;
         }
         if ([...nativeHosts].some((push) => push.hasBackgroundSubs())) {
             requestNotificationPermission();
@@ -909,6 +939,7 @@ export class Push extends Service {
             JSON.stringify(config),
             JSON.stringify(subscriptions),
         );
+        return true;
     }
 
     /** Move this Push's subscriptions onto the native host, closing its own connection. */
@@ -923,6 +954,9 @@ export class Push extends Service {
         this.everConnected = false;
         this.listenNative(native);
         nativeHosts.add(this);
+        if (!this.nativeActive) {
+            this.nativeOpen = false;
+        }
         this.nativeActive = true;
     }
 
@@ -1046,6 +1080,11 @@ export class Push extends Service {
                 '{{spec.info.title | caseUcfirst}}PushError',
                 (event: { message: string }) =>
                     this.report(new Error(event.message)),
+            ),
+            emitter.addListener(
+                '{{spec.info.title | caseUcfirst}}PushConnection',
+                (event: { connected: boolean }) =>
+                    this.nativeConnection(event.connected),
             ),
         ];
     }
@@ -1532,7 +1571,7 @@ export class Push extends Service {
             qos: packet.qos,
         };
         const serverTitle = notificationContent(message).title;
-        let postedServerTitle = false;
+        const postedTitles = new Set<string>();
         // While the app is on screen it shows the message itself: only subscriptions that
         // opted in with notifyInForeground also post a notification then.
         const foreground = AppState.currentState === 'active';
@@ -1540,17 +1579,15 @@ export class Push extends Service {
             if (matches(sub.topic, message.topic)) {
                 await sub.callback(message);
                 // Notification is per-subscription: only subs that opted in post one, each
-                // with its own title. A title the server sent replaces theirs, so it posts once.
+                // title once. A title the server sent replaces theirs, so it posts once.
+                const title = serverTitle ?? sub.title ?? message.topic;
                 if (
                     sub.background &&
                     (!foreground || sub.notifyInForeground) &&
-                    !postedServerTitle
+                    !postedTitles.has(title)
                 ) {
-                    postedServerTitle = serverTitle !== undefined;
-                    await this.notify(
-                        message,
-                        serverTitle ?? sub.title ?? message.topic,
-                    );
+                    postedTitles.add(title);
+                    await this.notify(message, title);
                 }
             }
         }
@@ -1578,6 +1615,7 @@ interface NativePush {
     defaultClientId(authMethod: string, credential: string): Promise<string>;
     /** The tapped notification that launched the app, as {@link NativeOpened} JSON. */
     getInitialNotification(): Promise<string | null>;
+    listenOpened(listening: boolean): Promise<void>;
     addListener(eventName: string): void;
     removeListeners(count: number): void;
 }

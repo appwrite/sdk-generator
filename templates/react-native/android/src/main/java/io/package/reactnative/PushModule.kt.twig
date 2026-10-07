@@ -1,6 +1,5 @@
 package io.{{ spec.info.title | caseLower }}.reactnative
 
-import android.content.Intent
 import android.util.Base64
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -8,9 +7,10 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.modules.core.DeviceEventManagerModule
-import io.{{ spec.info.title | caseLower }}.services.PushBackground
 import io.{{ spec.info.title | caseLower }}.services.PushBridge
 import io.{{ spec.info.title | caseLower }}.services.PushMessage
+import io.{{ spec.info.title | caseLower }}.services.PushTap
+import io.{{ spec.info.title | caseLower }}.services.PushTaps
 import org.json.JSONObject
 
 /**
@@ -49,16 +49,12 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
             )
 
             override fun onError(message: String) = emit(ERROR_EVENT, mapOf("message" to message))
+
+            override fun onConnection(connected: Boolean) = emit(CONNECTION_EVENT, mapOf("connected" to connected))
         },
     )
 
-    private val intents = {{ spec.info.title | caseUcfirst }}PushIntentListener { intent ->
-        opened(intent)?.let { emit(OPENED_EVENT, it) }
-    }
-
-    init {
-        reactContext.addActivityEventListener(intents)
-    }
+    private var openedListeners = 0
 
     override fun getName(): String = NAME
 
@@ -66,11 +62,19 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
     // once, or null.
     @ReactMethod
     fun getInitialNotification(promise: Promise) = settle(promise) {
-        reactContext.currentActivity?.intent?.let { opened(it) }?.let { JSONObject(it).toString() }
+        PushTaps.take()?.let { JSONObject(opened(it)).toString() }
+    }
+
+    // Emits each tap while JS listens for them; until then a tap waits for getInitialNotification.
+    @ReactMethod
+    fun listenOpened(listening: Boolean, promise: Promise) = settle(promise) {
+        openedListeners = (openedListeners + if (listening) 1 else -1).coerceAtLeast(0)
+        PushTaps.listen(if (openedListeners > 0) { tap -> emit(OPENED_EVENT, opened(tap)) } else null)
+        null
     }
 
     override fun invalidate() {
-        reactContext.removeActivityEventListener(intents)
+        PushTaps.listen(null)
         super.invalidate()
     }
 
@@ -143,14 +147,7 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
     @ReactMethod
     fun removeListeners(count: Double) = Unit
 
-    // The tapped notification's topic and payload, taken off [intent] so the tap is reported once.
-    private fun opened(intent: Intent): Map<String, Any?>? {
-        val topic = intent.getStringExtra(PushBackground.EXTRA_TOPIC) ?: return null
-        val payload = intent.getStringExtra(PushBackground.EXTRA_PAYLOAD) ?: return null
-        intent.removeExtra(PushBackground.EXTRA_TOPIC)
-        intent.removeExtra(PushBackground.EXTRA_PAYLOAD)
-        return mapOf("topic" to topic, "payload" to payload)
-    }
+    private fun opened(tap: PushTap): Map<String, Any?> = mapOf("topic" to tap.topic, "payload" to tap.payload)
 
     private fun settle(promise: Promise, block: () -> Any?) {
         try {
@@ -165,6 +162,7 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
         const val MESSAGE_EVENT = "{{ spec.info.title | caseUcfirst }}PushMessage"
         const val ERROR_EVENT = "{{ spec.info.title | caseUcfirst }}PushError"
         const val OPENED_EVENT = "{{ spec.info.title | caseUcfirst }}PushOpened"
+        const val CONNECTION_EVENT = "{{ spec.info.title | caseUcfirst }}PushConnection"
         private const val ERROR_CODE = "{{ spec.info.title | caseLower }}_push"
     }
 }

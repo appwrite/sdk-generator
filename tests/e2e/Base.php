@@ -287,6 +287,7 @@ abstract class Base extends TestCase
     ];
 
     protected const REACT_NATIVE_PUSH_OPENED_RESPONSES = [
+        'Push native connection JS:passed',
         'Push background status JS:passed',
         'Push notification opened JS:passed',
         'Push notification opened expo:passed',

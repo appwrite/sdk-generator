@@ -737,7 +737,8 @@ class ServiceTest {
                     },
                 ),
             )
-            val backgroundPush = Push(pushClient().setSession(e2eSession), context)
+            val backgroundOpened = java.util.concurrent.CountDownLatch(1)
+            val backgroundPush = Push(pushClient().setSession(e2eSession), context).onOpen { backgroundOpened.countDown() }
             val liveLatch = java.util.concurrent.CountDownLatch(1)
             backgroundPush.subscribe("e2e-push", background = true, title = "E2E title") { message ->
                 if (message.data == "push-payload") {
@@ -745,7 +746,9 @@ class ServiceTest {
                 }
             }
             writeToFile(
-                if (liveLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                if (liveLatch.await(10, java.util.concurrent.TimeUnit.SECONDS) &&
+                    backgroundOpened.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                ) {
                     "Push background message:passed"
                 } else {
                     "Push background message:failed"
@@ -784,6 +787,17 @@ class ServiceTest {
             io.appwrite.services.PushBackground.dropProcessState(context)
             notifications.cancelAll()
             E2EPushReceiver.messages.clear()
+            // The app comes on screen before it has subscribed again: the saved
+            // subscription has no live callback, so its message is still posted as a notification.
+            val processes = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.ActivityManager::class.java))
+            processes.setProcesses(
+                listOf(
+                    android.app.ActivityManager.RunningAppProcessInfo().apply {
+                        pid = android.os.Process.myPid()
+                        importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                    },
+                ),
+            )
             // Android fires the wake-up the SDK scheduled. This test runs without a manifest, so
             // register the alarm's receiver the way the merged manifest declares it.
             val wakeUp = alarms.nextScheduledAlarm?.operation
@@ -814,6 +828,14 @@ class ServiceTest {
             val posted = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()
             val postedTitle = posted?.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
             val postedText = posted?.extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
+            processes.setProcesses(
+                listOf(
+                    android.app.ActivityManager.RunningAppProcessInfo().apply {
+                        pid = android.os.Process.myPid()
+                        importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED
+                    },
+                ),
+            )
             writeToFile(
                 if (E2EPushReceiver.messages.toList() == listOf("push-payload") && postedTitle == "E2E title" && postedText == "push-payload") {
                     "Push background restore:passed"
@@ -960,24 +982,32 @@ class ServiceTest {
             // Two in-process subscriptions on one topic share the broker filter, so unsubscribing
             // one keeps the filter. Its callback must still stop: every SUBSCRIBE makes the mock
             // publish to e2e-push, and only the remaining subscription may receive the next one.
+            // Both callbacks of one publish run one after the other, so wait for both counts.
             val sharedPush = Push(pushClient().setSession(e2eSession), context)
             val removedReceived = java.util.concurrent.atomic.AtomicInteger(0)
-            val keptLatch = java.util.concurrent.atomic.AtomicReference(java.util.concurrent.CountDownLatch(1))
+            val keptReceivedCount = java.util.concurrent.atomic.AtomicInteger(0)
+            val waitUntil = { condition: () -> Boolean ->
+                val until = System.currentTimeMillis() + 10_000
+                while (!condition() && System.currentTimeMillis() < until) {
+                    Thread.sleep(50)
+                }
+                condition()
+            }
             val removedSub = sharedPush.subscribe("e2e-push", background = false) { removedReceived.incrementAndGet() }
-            val keptSub = sharedPush.subscribe("e2e-push", background = false) { keptLatch.get().countDown() }
-            val bothReceived = keptLatch.get().await(10, java.util.concurrent.TimeUnit.SECONDS) && removedReceived.get() > 0
+            val keptSub = sharedPush.subscribe("e2e-push", background = false) { keptReceivedCount.incrementAndGet() }
+            val bothReceived = waitUntil { keptReceivedCount.get() > 0 && removedReceived.get() > 0 }
             removedSub.unsubscribe()
             Thread.sleep(500)
             removedReceived.set(0)
-            keptLatch.set(java.util.concurrent.CountDownLatch(1))
+            val keptBefore = keptReceivedCount.get()
             val triggerSub = sharedPush.subscribe("e2e-trigger", background = false) { }
-            val keptReceived = keptLatch.get().await(10, java.util.concurrent.TimeUnit.SECONDS)
+            val keptReceived = waitUntil { keptReceivedCount.get() > keptBefore }
             Thread.sleep(500)
             writeToFile(
                 if (bothReceived && keptReceived && removedReceived.get() == 0) {
                     "Push shared topic unsubscribe:passed"
                 } else {
-                    "Push shared topic unsubscribe:failed"
+                    "Push shared topic unsubscribe:failed (both: $bothReceived, kept: $keptReceived, removed after: ${removedReceived.get()})"
                 },
             )
             triggerSub.unsubscribe()

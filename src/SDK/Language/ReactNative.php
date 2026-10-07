@@ -114,6 +114,11 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushOpenActivity.kt',
+                'template'      => 'android/library/src/main/java/io/package/services/PushOpenActivity.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushBridge.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushBridge.kt.twig',
             ],
@@ -131,11 +136,6 @@ class ReactNative extends Web
                 'scope'         => 'default',
                 'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/{{ spec.info.title | caseUcfirst }}PushPackage.kt',
                 'template'      => 'react-native/android/src/main/java/io/package/reactnative/PushPackage.kt.twig',
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/{{ spec.info.title | caseUcfirst }}PushIntentListener.java',
-                'template'      => 'react-native/android/src/main/java/io/package/reactnative/PushIntentListener.java.twig',
             ],
             [
                 'scope'         => 'default',
