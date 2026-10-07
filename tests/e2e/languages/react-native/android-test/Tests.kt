@@ -147,16 +147,27 @@ class Tests {
         val message = messages().firstOrNull()
         message?.let { module.ack(it["ackToken"] as String) }
         // A second Push constructed with another credential resumes saved delivery; it leaves the
-        // live subscriptions hosted here alone.
+        // live subscriptions hosted here alone, so the next message still reaches sub-1. Hosting
+        // one more subscription makes the mock publish again; the original set is then restored.
+        val opened = events.any { it.first == AppwritePushModule.CONNECTION_EVENT && it.second["connected"] == true }
         call { module.resume("appwrite-session", "another-session", true, it) }
-        val keptLive = PushBackground.listeners.isNotEmpty()
+        events.clear()
+        val withExtra = JSONArray(subscriptions)
+            .put(JSONObject().put("id", "sub-2").put("topic", "e2e-after-resume").put("background", false).put("retry", true))
+            .toString()
+        call { module.host(config("appwrite-session", SESSION), withExtra, it) }
+        waitFor { messages().any { it["id"] == "sub-1" } }
+        val afterResume = messages().firstOrNull { it["id"] == "sub-1" }
+        messages().forEach { module.ack(it["ackToken"] as String) }
+        call { module.host(config("appwrite-session", SESSION), subscriptions, it) }
+        val keptLive = afterResume != null && decode(afterResume["payload"]) == "push-payload"
         writeToFile(
             if (hosted.isSuccess && message?.get("id") == "sub-1" && decode(message["payload"]) == "push-payload" &&
-                events.any { it.first == AppwritePushModule.CONNECTION_EVENT && it.second["connected"] == true } && keptLive
+                opened && keptLive
             ) {
                 "Push background message:passed"
             } else {
-                "Push background message:failed"
+                "Push background message:failed (hosted: ${hosted.isSuccess}, opened: $opened, after resume: $afterResume)"
             },
         )
 
