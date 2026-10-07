@@ -102,11 +102,23 @@ function notifications(string $package): array
     return $titles;
 }
 
+// Why the last screen dump failed, for a failing scenario's detail.
+$dumpError = '';
+
 /** The on-screen elements: [label, centre x, centre y], labels from text and content descriptions. */
 function screen(): array
 {
-    adb('shell uiautomator dump /sdcard/ui.xml');
-    $xml = adb('shell cat /sdcard/ui.xml');
+    global $dumpError;
+    $xml = '';
+    // A dump fails while the screen is changing ("could not get idle state"); try again.
+    for ($attempt = 0; $attempt < 3 && !str_contains($xml, '<hierarchy'); $attempt++) {
+        $output = (string) shell_exec('adb shell uiautomator dump /sdcard/ui.xml 2>&1');
+        $xml = adb('shell cat /sdcard/ui.xml');
+        $dumpError = str_contains($xml, '<hierarchy') ? '' : trim($output);
+        if ($dumpError !== '') {
+            sleep(1);
+        }
+    }
     $nodes = [];
     preg_match_all('/<node [^>]*>/', $xml, $matches);
     foreach ($matches[0] as $node) {
@@ -122,6 +134,14 @@ function screen(): array
     }
 
     return $nodes;
+}
+
+/** What is on screen, and why the last dump failed: for a failing scenario's detail. */
+function seen(): array
+{
+    global $dumpError;
+
+    return ['screen' => array_slice(array_column(screen(), 0), 0, 20), 'dumpError' => $dumpError];
 }
 
 function tap(string $pattern): bool
@@ -210,7 +230,7 @@ $scenarios = [
         sleep(2);
         $granted = str_contains(adb("shell dumpsys package {$package}"), 'POST_NOTIFICATIONS: granted=true');
 
-        return [$subscribed && hasEvent('connected') && $prompted && $granted, json_encode(['events' => events(), 'prompted' => $prompted, 'granted' => $granted])];
+        return [$subscribed && hasEvent('connected') && $prompted && $granted, json_encode(['events' => events(), 'prompted' => $prompted, 'granted' => $granted, ...seen()])];
     },
 
     // On screen, a message reaches the callback and posts no notification.
@@ -236,7 +256,7 @@ $scenarios = [
         tap('/^Check background status$/i');
         $reported = waitFor(fn (): bool => (bool) preg_grep('/^status: exact=true/', events()), 10);
 
-        return [$asked && $settings && $allowed && $reported, json_encode(['asked' => $asked, 'settings' => $settings, 'allowed' => $allowed, 'events' => events()])];
+        return [$asked && $settings && $allowed && $reported, json_encode(['asked' => $asked, 'settings' => $settings, 'allowed' => $allowed, 'events' => events(), ...seen()])];
     },
 
     // The battery-optimisation exemption: the request shows the system dialog; once allowed, the
@@ -249,7 +269,7 @@ $scenarios = [
         tap('/^Check background status$/i');
         $reported = waitFor(fn (): bool => (bool) preg_grep('/^status: .*battery=true/', events()), 10);
 
-        return [$asked && $allowed && $reported, json_encode(['asked' => $asked, 'allowed' => $allowed, 'events' => events()])];
+        return [$asked && $allowed && $reported, json_encode(['asked' => $asked, 'allowed' => $allowed, 'events' => events(), ...seen()])];
     },
 
     // In the background: a notification is posted, and tapping it reaches onNotificationOpened.
@@ -315,7 +335,8 @@ $scenarios = [
     },
 
     // Force-stopped: Android cancels the app's wake-ups, so nothing arrives; opening the app
-    // again replays what was sent meanwhile.
+    // again replays what was sent meanwhile, to the callback, or as a notification when the
+    // saved background delivery resumes before the app has subscribed again.
     'force-stopped' => function () use ($package): array {
         adb("shell am force-stop {$package}");
         publish('Device stopped', 'stopped');
@@ -323,9 +344,9 @@ $scenarios = [
         $whileStopped = in_array('Device stopped', notifications($package), true);
         clearEvents();
         launch($package);
-        $replayed = waitFor(fn (): bool => hasEvent('message: Device stopped'), 60);
+        $replayed = waitFor(fn (): bool => hasEvent('message: Device stopped') || in_array('Device stopped', notifications($package), true), 60);
 
-        return [!$whileStopped && $replayed, json_encode(['whileStopped' => $whileStopped, 'events' => events()])];
+        return [!$whileStopped && $replayed, json_encode(['whileStopped' => $whileStopped, 'events' => events(), 'notifications' => notifications($package)])];
     },
 ];
 
