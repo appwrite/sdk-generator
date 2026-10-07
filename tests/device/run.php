@@ -112,6 +112,7 @@ function screen(): array
     $xml = '';
     // A dump fails while the screen is changing ("could not get idle state"); try again.
     for ($attempt = 0; $attempt < 3 && !str_contains($xml, '<hierarchy'); $attempt++) {
+        adb('shell rm -f /sdcard/ui.xml');
         $output = (string) shell_exec('adb shell uiautomator dump /sdcard/ui.xml 2>&1');
         $xml = adb('shell cat /sdcard/ui.xml');
         $dumpError = str_contains($xml, '<hierarchy') ? '' : trim($output);
@@ -139,15 +140,20 @@ function screen(): array
 /** What is on screen, and why the last dump failed: for a failing scenario's detail. */
 function seen(): array
 {
-    global $dumpError;
+    global $dumpError, $tapped;
 
-    return ['screen' => array_slice(array_column(screen(), 0), 0, 20), 'dumpError' => $dumpError];
+    return ['tapped' => $tapped, 'top' => topActivity(), 'screen' => array_slice(array_column(screen(), 0), 0, 20), 'dumpError' => $dumpError];
 }
+
+// The last element tap() tapped, for a failing scenario's detail.
+$tapped = '';
 
 function tap(string $pattern): bool
 {
+    global $tapped;
     foreach (screen() as [$label, $x, $y]) {
         if (preg_match($pattern, (string) $label)) {
+            $tapped = "{$label} at {$x},{$y}";
             adb("shell input tap {$x} {$y}");
 
             return true;
@@ -249,14 +255,18 @@ $scenarios = [
         clearEvents();
         $asked = tap('/^Allow exact alarms$/i');
         $settings = waitFor(fn (): bool => str_contains(topActivity(), 'com.android.settings'), 10);
-        $allowed = waitFor(fn (): bool => tap('/^Allow setting alarms/i'), 10);
+        $afterTap = seen();
+        $allowed = $settings && waitFor(fn (): bool => tap('/^Allow setting alarms/i'), 10);
         sleep(2);
-        adb('shell input keyevent KEYCODE_BACK');
-        sleep(2);
+        // Back to the app only from Settings: from the app, Back would leave it.
+        if ($settings) {
+            adb('shell input keyevent KEYCODE_BACK');
+            sleep(2);
+        }
         tap('/^Check background status$/i');
         $reported = waitFor(fn (): bool => (bool) preg_grep('/^status: exact=true/', events()), 10);
 
-        return [$asked && $settings && $allowed && $reported, json_encode(['asked' => $asked, 'settings' => $settings, 'allowed' => $allowed, 'events' => events(), ...seen()])];
+        return [$asked && $settings && $allowed && $reported, json_encode(['asked' => $asked, 'settings' => $settings, 'allowed' => $allowed, 'events' => events(), 'afterTap' => $afterTap])];
     },
 
     // The battery-optimisation exemption: the request shows the system dialog; once allowed, the

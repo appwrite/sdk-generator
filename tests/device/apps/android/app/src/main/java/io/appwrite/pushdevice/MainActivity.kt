@@ -35,11 +35,17 @@ class MainActivity : AppCompatActivity() {
         lines = TextView(this)
         exactAlarms = Button(this).apply {
             text = "Allow exact alarms"
-            setOnClickListener { log("asked exact: ${Push.requestExactAlarms(context)}") }
+            setOnClickListener {
+                log("tapped exact")
+                log("asked exact: ${Push.requestExactAlarms(context)}")
+            }
         }
         battery = Button(this).apply {
             text = "Ignore battery optimisation"
-            setOnClickListener { log("asked battery: ${Push.requestIgnoreBatteryOptimizations(context)}") }
+            setOnClickListener {
+                log("tapped battery")
+                log("asked battery: ${Push.requestIgnoreBatteryOptimizations(context)}")
+            }
         }
         val status = Button(this).apply {
             text = "Check background status"
