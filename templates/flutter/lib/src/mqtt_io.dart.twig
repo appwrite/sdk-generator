@@ -8,6 +8,7 @@ import 'package:mqtt5_client/mqtt5_client.dart';
 import 'package:mqtt5_client/mqtt5_server_client.dart';
 import 'package:typed_data/typed_data.dart' as typed;
 import 'client.dart';
+import 'client_io.dart';
 import 'exception.dart';
 import 'mqtt.dart';
 import 'mqtt_foreground.dart';
@@ -178,8 +179,40 @@ class PushIO implements Push {
     // user replaces the saved one, and another user drops the saved subscriptions.
     final native = _native;
     if (native != null) {
-      final (authMethod, credential) = _currentCredential();
-      unawaited(native.resume(authMethod, credential).catchError(_report));
+      unawaited(
+        _readCookieSession()
+            .then((_) {
+              final (authMethod, credential) = _currentCredential();
+              return native.resume(authMethod, credential);
+            })
+            .catchError(_report),
+      );
+    }
+  }
+
+  // The session the app signed in with (an email, OAuth or other sign-in through this client),
+  // read from the client's cookie store; used when no JWT or session was set on the client.
+  String? _cookieSession;
+
+  Future<void> _readCookieSession() async {
+    final client = this.client;
+    if (client is! ClientIO) {
+      return;
+    }
+    try {
+      await client.init();
+      final name = 'a_session_${client.config['project'] ?? ''}';
+      final cookies = await client.cookieJar.loadForRequest(
+        Uri.parse(client.endPoint),
+      );
+      final session =
+          cookies
+              .where((cookie) => cookie.name == name && cookie.value.isNotEmpty)
+              .map((cookie) => Uri.decodeComponent(cookie.value))
+              .firstOrNull;
+      _cookieSession = session;
+    } catch (_) {
+      // No cookie store yet: the client has not signed in or made a request.
     }
   }
 
@@ -296,6 +329,35 @@ class PushIO implements Push {
     await _native?.setForeground(enabled);
   }
 
+  @override
+  Future<PushNotificationOpened?> getInitialNotification() async {
+    final native = _native;
+    if (native == null) {
+      return localNotificationLaunch();
+    }
+    final tap = await native.getInitialNotification();
+    return tap == null
+        ? null
+        : PushNotificationOpened.fromPayload(
+          tap['topic'] as String,
+          tap['payload'] as String,
+        );
+  }
+
+  @override
+  void Function() onNotificationOpened(
+    void Function(PushNotificationOpened opened) callback,
+  ) {
+    final native = _native;
+    if (native == null) {
+      return listenLocalNotificationTaps(callback);
+    }
+    return native.listenOpened(
+      (topic, payload) =>
+          callback(PushNotificationOpened.fromPayload(topic, payload)),
+    );
+  }
+
   // Errors already handed to onError, so one failure reaching it through two paths (a
   // refused CONNACK that also fails the subscribe waiting on it) is reported once.
   final Expando<bool> _reported = Expando<bool>();
@@ -351,9 +413,10 @@ class PushIO implements Push {
     bool retry = true,
     bool notifyInForeground = false,
   }) async {
+    await _readCookieSession();
     final List<String> topicList;
     try {
-      topicList = _topicList(client, topics);
+      topicList = _topicList(client, topics, _cookieSession);
     } catch (e) {
       _notify(e);
       rethrow;
@@ -1007,7 +1070,8 @@ class PushIO implements Push {
     }
   }
 
-  // The credential set on the client (via Client.setJWT / setSession), as (method, credential).
+  // The credential set on the client (via Client.setJWT / setSession), else the session it
+  // signed in with, as (method, credential).
   (String, String) _credential() {
     final jwt = client.config['jwt'] ?? client.config['jWT'];
     final session = client.config['session'];
@@ -1017,8 +1081,12 @@ class PushIO implements Push {
     if (session != null && session.isNotEmpty) {
       return ('appwrite-session', session);
     }
+    final cookieSession = _cookieSession;
+    if (cookieSession != null && cookieSession.isNotEmpty) {
+      return ('appwrite-session', cookieSession);
+    }
     throw {{spec.info.title | caseUcfirst}}Exception(
-      'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+      'No credential: sign in with this client, or call Client.setJWT() or Client.setSession() first.',
     );
   }
 
@@ -1360,9 +1428,9 @@ bool _matches(String filter, String topic) {
 
 /// Resolve [Push.subscribe]'s `topics`: a String, Topic or ResolvedTopic, or a List of
 /// them, or null for the signed-in user's own `users/<userId>` topic.
-List<String> _topicList(Client client, Object? topics) {
+List<String> _topicList(Client client, Object? topics, String? cookieSession) {
   if (topics == null) {
-    return <String>[_userTopic(client)];
+    return <String>[_userTopic(client, cookieSession)];
   }
   // A topic is a String or a Topic / ResolvedTopic builder (via toString()).
   return topics is List
@@ -1371,10 +1439,13 @@ List<String> _topicList(Client client, Object? topics) {
 }
 
 /// The signed-in user's own topic, `users/<userId>`, read off the client's
-/// credential (JWT first, then session) without a network call.
-String _userTopic(Client client) {
+/// credential (JWT first, then session, then the session it signed in with) without a network
+/// call.
+String _userTopic(Client client, String? cookieSession) {
   final jwt = client.config['jwt'] ?? client.config['jWT'];
-  final session = client.config['session'];
+  final configured = client.config['session'];
+  final session =
+      configured != null && configured.isNotEmpty ? configured : cookieSession;
   // The credential the connection authenticates with: the JWT when one is set (never the
   // session, which could belong to a different user), else the session.
   final userId =
@@ -1383,7 +1454,7 @@ String _userTopic(Client client) {
           : _userIdFromSession(session);
   if (userId == null) {
     throw {{spec.info.title | caseUcfirst}}Exception(
-      'subscribe() without a topic needs a signed-in user: set a JWT or session on the client',
+      'subscribe() without a topic needs a signed-in user: sign in with this client, or set a JWT or session on it',
     );
   }
   return 'users/$userId';

@@ -462,6 +462,21 @@ class PushWeb implements Push {
   @override
   Future<bool> requestIgnoreBatteryOptimizations() async => false;
 
+  // Taps on the notifications this page shows, while it is open.
+  static final StreamController<PushNotificationOpened> _opened =
+      StreamController<PushNotificationOpened>.broadcast();
+
+  @override
+  Future<PushNotificationOpened?> getInitialNotification() async => null;
+
+  @override
+  void Function() onNotificationOpened(
+    void Function(PushNotificationOpened opened) callback,
+  ) {
+    final subscription = _opened.stream.listen(callback);
+    return () => unawaited(subscription.cancel());
+  }
+
   @override
   void close() {
     _mqtt?.disconnect();
@@ -512,10 +527,11 @@ class PushWeb implements Push {
     return connecting.then((_) => _mqtt!);
   }
 
-  // The credential set on the client (via Client.setJWT / setSession), as (method, credential).
+  // The credential set on the client (via Client.setJWT / setSession), else the session it
+  // signed in with, as (method, credential).
   (String, String) _credential() {
     final jwt = client.config['jwt'] ?? client.config['jWT'];
-    final session = client.config['session'];
+    final session = _clientSession(client);
     if (jwt != null && jwt.isNotEmpty) {
       return ('appwrite-jwt', jwt);
     }
@@ -523,7 +539,7 @@ class PushWeb implements Push {
       return ('appwrite-session', session);
     }
     throw {{spec.info.title | caseUcfirst}}Exception(
-      'No credential set on the client; call Client.setJWT() or Client.setSession() first.',
+      'No credential: sign in with this client, or call Client.setJWT() or Client.setSession() first.',
     );
   }
 
@@ -670,7 +686,14 @@ class PushWeb implements Push {
               html.Notification.supported &&
               html.Notification.permission == 'granted' &&
               shownTitles.add(title)) {
-            html.Notification(title, body: content.bodyFor(message));
+            html.Notification(
+              title,
+              body: content.bodyFor(message),
+            ).onClick.listen((_) {
+              _opened.add(
+                PushNotificationOpened.fromPayload(topic, message.data),
+              );
+            });
           }
         }
       }
@@ -895,11 +918,29 @@ List<String> _topicList(Client client, Object? topics) {
       : <String>[topics.toString()];
 }
 
+/// The session set on the client, else the one it signed in with when the browser keeps it in
+/// localStorage (`cookieFallback`).
+String? _clientSession(Client client) {
+  final session = client.config['session'];
+  if (session != null && session.isNotEmpty) {
+    return session;
+  }
+  try {
+    final fallback =
+        jsonDecode(html.window.localStorage['cookieFallback'] ?? '{}')
+            as Map<String, dynamic>;
+    final value = fallback['a_session_${client.config['project'] ?? ''}'];
+    return value is String && value.isNotEmpty ? value : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 /// The signed-in user's own topic, `users/<userId>`, read off the client's
 /// credential (JWT first, then session) without a network call.
 String _userTopic(Client client) {
   final jwt = client.config['jwt'] ?? client.config['jWT'];
-  final session = client.config['session'];
+  final session = _clientSession(client);
   // The credential the connection authenticates with: the JWT when one is set (never the
   // session, which could belong to a different user), else the session.
   final userId =
@@ -908,7 +949,7 @@ String _userTopic(Client client) {
           : _userIdFromSession(session);
   if (userId == null) {
     throw {{spec.info.title | caseUcfirst}}Exception(
-      'subscribe() without a topic needs a signed-in user: set a JWT or session on the client',
+      'subscribe() without a topic needs a signed-in user: sign in with this client, or set a JWT or session on it',
     );
   }
   return 'users/$userId';

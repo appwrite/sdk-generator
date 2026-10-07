@@ -125,6 +125,22 @@ Set the notification icon with
 `<meta-data android:name="io.{{ spec.info.title | caseLower }}.push.notification_icon" android:resource="@drawable/..." />` in your
 `<application>`; without it a generic icon is used.
 
+### Opening a tapped notification
+
+Read the `data` sent with `createPush` when the user taps a background notification:
+
+```dart
+// The tap that launched the app (reported once, so call it at startup).
+final opened = await push.getInitialNotification();
+if (opened != null) openSale(opened.data['saleId']);
+
+// Taps while the app is running, including in the background.
+final stop = push.onNotificationOpened((opened) => openSale(opened.data['saleId']));
+```
+
+On Android the SDK's native plugin reports the taps, on iOS `flutter_local_notifications`, and
+on the web the notification's click while the page is open.
+
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|raw }}

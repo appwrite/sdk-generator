@@ -123,6 +123,43 @@ class PushNative {
       }) ??
       '';
 
+  /// The tapped notification that launched the app as `{topic, payload}`, once, or null.
+  Future<Map<Object?, Object?>?> getInitialNotification() =>
+      _methods.invokeMethod<Map<Object?, Object?>>('getInitialNotification');
+
+  /// Call [onOpened] with the topic and payload of each notification tap while listening.
+  /// Until something listens, a tap waits for [getInitialNotification]. Returns a function
+  /// that stops listening.
+  void Function() listenOpened(
+    void Function(String topic, String payload) onOpened,
+  ) {
+    final stream =
+        _stream ??=
+            _events
+                .receiveBroadcastStream()
+                .map((event) => event as Map<Object?, Object?>)
+                .asBroadcastStream();
+    final subscription = stream.listen((event) {
+      if (event['type'] == 'opened') {
+        onOpened(event['topic'] as String, event['payload'] as String);
+      }
+    });
+    unawaited(
+      _methods.invokeMethod<void>('listenOpened', {'listening': true}),
+    );
+    var listening = true;
+    return () {
+      if (!listening) {
+        return;
+      }
+      listening = false;
+      unawaited(subscription.cancel());
+      unawaited(
+        _methods.invokeMethod<void>('listenOpened', {'listening': false}),
+      );
+    };
+  }
+
   /// Listen to the plugin's messages, errors and connection changes.
   StreamSubscription<Map<Object?, Object?>> listen({
     required void Function(NativePushMessage message) onMessage,
