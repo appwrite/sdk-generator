@@ -146,9 +146,13 @@ class Tests {
         waitFor { messages().isNotEmpty() }
         val message = messages().firstOrNull()
         message?.let { module.ack(it["ackToken"] as String) }
+        // A second Push constructed with another credential resumes saved delivery; it leaves the
+        // live subscriptions hosted here alone.
+        call { module.resume("appwrite-session", "another-session", true, it) }
+        val keptLive = PushBackground.listeners.isNotEmpty()
         writeToFile(
             if (hosted.isSuccess && message?.get("id") == "sub-1" && decode(message["payload"]) == "push-payload" &&
-                events.any { it.first == AppwritePushModule.CONNECTION_EVENT && it.second["connected"] == true }
+                events.any { it.first == AppwritePushModule.CONNECTION_EVENT && it.second["connected"] == true } && keptLive
             ) {
                 "Push background message:passed"
             } else {

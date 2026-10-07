@@ -787,6 +787,17 @@ class ServiceTest {
             io.appwrite.services.PushBackground.dropProcessState(context)
             notifications.cancelAll()
             E2EPushReceiver.messages.clear()
+            // The app comes on screen before it has subscribed again: the saved
+            // subscription has no live callback, so its message is still posted as a notification.
+            val processes = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.ActivityManager::class.java))
+            processes.setProcesses(
+                listOf(
+                    android.app.ActivityManager.RunningAppProcessInfo().apply {
+                        pid = android.os.Process.myPid()
+                        importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                    },
+                ),
+            )
             // Android fires the wake-up the SDK scheduled. This test runs without a manifest, so
             // register the alarm's receiver the way the merged manifest declares it.
             val wakeUp = alarms.nextScheduledAlarm?.operation
@@ -817,6 +828,14 @@ class ServiceTest {
             val posted = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()
             val postedTitle = posted?.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
             val postedText = posted?.extras?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
+            processes.setProcesses(
+                listOf(
+                    android.app.ActivityManager.RunningAppProcessInfo().apply {
+                        pid = android.os.Process.myPid()
+                        importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED
+                    },
+                ),
+            )
             writeToFile(
                 if (E2EPushReceiver.messages.toList() == listOf("push-payload") && postedTitle == "E2E title" && postedText == "push-payload") {
                     "Push background restore:passed"
