@@ -225,6 +225,13 @@ abstract class Base extends TestCase
     protected const WEB_PUSH_CONNECTION_RESPONSES = [
         'Push concurrent refused:passed',
         'Push tab client id:passed',
+        'Push notification opened web:passed',
+    ];
+
+    // Android, Apple, Flutter and Web: a topic-less subscribe uses the session the client signed
+    // in with when no JWT or session is set on it.
+    protected const PUSH_SIGN_IN_SESSION_RESPONSES = [
+        'Push user sign-in session topic:passed',
     ];
 
     protected const PUSH_SESSION_COOKIE_RESPONSES = [
@@ -326,6 +333,7 @@ abstract class Base extends TestCase
 
     protected const ANDROID_PUSH_NOTIFICATION_RESPONSES = [
         'Push notification content:passed',
+        'Push notification opened:passed',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [

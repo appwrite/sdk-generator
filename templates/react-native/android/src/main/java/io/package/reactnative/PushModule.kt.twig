@@ -55,6 +55,7 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
     )
 
     private var openedListeners = 0
+    private var stopOpened: (() -> Unit)? = null
 
     override fun getName(): String = NAME
 
@@ -69,12 +70,18 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
     @ReactMethod
     fun listenOpened(listening: Boolean, promise: Promise) = settle(promise) {
         openedListeners = (openedListeners + if (listening) 1 else -1).coerceAtLeast(0)
-        PushTaps.listen(if (openedListeners > 0) { tap -> emit(OPENED_EVENT, opened(tap)) } else null)
+        if (openedListeners > 0 && stopOpened == null) {
+            stopOpened = PushTaps.listen { tap -> emit(OPENED_EVENT, opened(tap)) }
+        } else if (openedListeners == 0) {
+            stopOpened?.invoke()
+            stopOpened = null
+        }
         null
     }
 
     override fun invalidate() {
-        PushTaps.listen(null)
+        stopOpened?.invoke()
+        stopOpened = null
         super.invalidate()
     }
 

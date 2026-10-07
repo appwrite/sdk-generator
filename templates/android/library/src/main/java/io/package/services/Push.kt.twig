@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -15,6 +16,9 @@ import {{ sdk.namespace | caseDot }}.ResolvedTopic
 import {{ sdk.namespace | caseDot }}.Service
 import {{ sdk.namespace | caseDot }}.Topic
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 import java.net.URI
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -22,6 +26,34 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val LOG_TAG = "{{ spec.info.title | caseUcfirst }}Push"
+
+/** A background notification the user tapped. */
+data class PushNotificationOpened(
+    /** The topic the message was published to. */
+    val topic: String,
+    /** The `data` sent with the message (e.g. `createPush`), parsed; empty when it had none. */
+    val data: Map<String, Any?>,
+) {
+    internal companion object {
+        fun of(tap: PushTap): PushNotificationOpened {
+            val data = try {
+                JSONObject(tap.payload).optJSONObject("data")?.toMap()
+            } catch (e: JSONException) {
+                null
+            }
+            return PushNotificationOpened(tap.topic, data ?: emptyMap())
+        }
+
+        private fun JSONObject.toMap(): Map<String, Any?> = keys().asSequence().associateWith { jsonValue(get(it)) }
+
+        private fun jsonValue(value: Any?): Any? = when (value) {
+            JSONObject.NULL -> null
+            is JSONObject -> value.toMap()
+            is JSONArray -> (0 until value.length()).map { jsonValue(value.get(it)) }
+            else -> value
+        }
+    }
+}
 
 /**
  * Handle for a live subscription created with [Push.subscribe].
@@ -66,11 +98,12 @@ class PushSubscription internal constructor(
  * share its connection.
  *
  * Background delivery reconnects with the credential saved at subscribe time, so use a session
- * (`Client.setSession`) for it: a JWT expires after minutes. A refused credential stops
+ * (the app's sign-in session, or `Client.setSession`) for it: a JWT expires after minutes. A refused credential stops
  * background delivery and reaches [onError], also when it was registered later.
  *
- * The credential is read off the client — set a JWT or session on it
- * (`Client.setJWT` / `Client.setSession`), the same way every other service reads auth.
+ * The credential is read off the client: a JWT or session set on it (`Client.setJWT` /
+ * `Client.setSession`), else the session the app signed in with through it (e.g.
+ * `Account.createEmailPasswordSession`).
  *
  * The connection always keeps its session (clean start off) so the broker can redeliver
  * missed messages, and reliability is chosen per subscription via [subscribe]'s
@@ -235,11 +268,35 @@ class Push(
     }
 
     /**
+     * The background notification whose tap launched the app, or null. Reported once; call it
+     * when the app starts, e.g. to open the screen the message is about.
+     *
+     * ```kotlin
+     * push.getInitialNotification()?.let { openSale(it.data["saleId"]) }
+     * ```
+     */
+    fun getInitialNotification(): PushNotificationOpened? = PushTaps.take()?.let { PushNotificationOpened.of(it) }
+
+    /**
+     * Call [callback] on the main thread each time the user taps a background notification while
+     * the app is running, including in the background. Returns a function that stops listening.
+     * The tap that launched the app comes from [getInitialNotification] instead, as does a tap
+     * made while nothing listens.
+     *
+     * ```kotlin
+     * val stop = push.onNotificationOpened { openSale(it.data["saleId"]) }
+     * ```
+     */
+    fun onNotificationOpened(callback: (PushNotificationOpened) -> Unit): () -> Unit =
+        PushTaps.listen { callback(PushNotificationOpened.of(it)) }
+
+    /**
      * Subscribe to the signed-in user's own topic, `users/<userId>` — "messages for me"
      * without knowing any topic, e.g. `push.subscribe { message -> ... }`.
      *
-     * The user id is read locally from the credential set on the client: the `userId` claim of
-     * the JWT (`Client.setJWT`), else the `id` in the session secret (`Client.setSession`).
+     * The user id is read locally from the client's credential: the `userId` claim of the JWT
+     * (`Client.setJWT`), else the `id` in the session (`Client.setSession`, or the session the app
+     * signed in with through the client).
      * Throws when neither yields one. Like FCM/APNs delivery, it defaults to [background] `true`
      * (keeps delivering while the app is backgrounded or closed) and [retry]
      * `true` (QoS 1); pass either to override. Otherwise the options and the returned
@@ -786,15 +843,31 @@ class Push(
     }
 }
 
-/** Read the credential set on the client (via Client.setJWT / setSession). */
+/**
+ * The session set on the client (Client.setSession), else the one the app signed in with through it
+ * (e.g. Account.createEmailPasswordSession), read from its cookie store.
+ */
+internal fun pushSession(client: Client): String? {
+    client.config["session"]?.takeIf { it.isNotEmpty() }?.let { return it }
+    val name = "a_session_${client.config["project"] ?: ""}"
+    return try {
+        client.getCookies(client.endpoint)
+            .firstOrNull { it.name == name && it.value.isNotEmpty() }
+            ?.let { Uri.decode(it.value) }
+    } catch (e: IllegalArgumentException) {
+        null
+    }
+}
+
+/** Read the credential set on the client (via Client.setJWT / setSession), else its sign-in session. */
 internal fun resolvePushAuth(client: Client): Pair<String, String> {
     val jwt = client.config["jwt"] ?: client.config["jWT"]
-    val session = client.config["session"]
+    val session = pushSession(client)
     return when {
         !jwt.isNullOrEmpty() -> "appwrite-jwt" to jwt
         !session.isNullOrEmpty() -> "appwrite-session" to session
         else -> throw {{ spec.info.title | caseUcfirst }}Exception(
-            "No credential set on the client; call Client.setJWT() or Client.setSession() first.",
+            "No credential: sign in with this client, or call Client.setJWT() or Client.setSession() first.",
         )
     }
 }
@@ -806,7 +879,7 @@ internal fun resolvePushAuth(client: Client): Pair<String, String> {
  */
 internal fun resolvePushUserId(client: Client): String {
     val jwt = client.config["jwt"] ?: client.config["jWT"]
-    val session = client.config["session"]
+    val session = pushSession(client)
     val userId = when {
         !jwt.isNullOrEmpty() -> userIdFromJwt(jwt)
         !session.isNullOrEmpty() -> userIdFromSession(session)
@@ -814,7 +887,7 @@ internal fun resolvePushUserId(client: Client): String {
     }
     if (userId.isEmpty()) {
         throw {{ spec.info.title | caseUcfirst }}Exception(
-            "subscribe() without a topic needs a signed-in user: set a JWT or session on the client",
+            "subscribe() without a topic needs a signed-in user: sign in with this client, or set a JWT or session on it",
         )
     }
     return userId
