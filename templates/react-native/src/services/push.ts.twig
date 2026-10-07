@@ -1057,6 +1057,11 @@ export class Push extends Service {
                 (event: { message: string }) =>
                     this.report(new Error(event.message)),
             ),
+            emitter.addListener(
+                '{{spec.info.title | caseUcfirst}}PushConnection',
+                (event: { connected: boolean }) =>
+                    event.connected ? this.onOpenCb?.() : this.onCloseCb?.(),
+            ),
         ];
     }
 

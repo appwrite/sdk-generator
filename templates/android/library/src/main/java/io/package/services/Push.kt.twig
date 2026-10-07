@@ -492,6 +492,7 @@ class Push(
         dropClient()
         subscriptions.values.forEach { it.client = null }
         PushBackground.errorHandler = { deliverBackgroundError(it) }
+        PushBackground.connectionHandler = { open -> if (open) onOpen?.invoke() else onClose?.invoke() }
         PushBackground.host(appContext, buildConfig(), currentListeners())
         backgroundActive = true
     }
@@ -545,6 +546,7 @@ class Push(
         } else if (backgroundActive) {
             // Relocate back in-process.
             backgroundActive = false
+            PushBackground.connectionHandler = null
             PushBackground.release(appContext)
             ensureInProcessSubscribed()
         }
@@ -632,6 +634,7 @@ class Push(
         dropClient()
         subscriptions.clear()
         backgroundActive = false
+        PushBackground.connectionHandler = null
         PushBackground.stop(appContext)
     }
 
@@ -642,6 +645,7 @@ class Push(
         subscriptions.clear()
         if (backgroundActive) {
             backgroundActive = false
+            PushBackground.connectionHandler = null
             PushBackground.release(appContext)
         }
     }

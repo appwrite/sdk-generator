@@ -49,6 +49,8 @@ class {{ spec.info.title | caseUcfirst }}PushPlugin :
                 )
 
                 override fun onError(message: String) = send(mapOf("type" to "error", "message" to message))
+
+                override fun onConnection(connected: Boolean) = send(mapOf("type" to "connection", "connected" to connected))
             },
         )
         methods = MethodChannel(binding.binaryMessenger, METHOD_CHANNEL).also { it.setMethodCallHandler(this) }

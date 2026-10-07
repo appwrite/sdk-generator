@@ -147,7 +147,9 @@ class Tests {
         val message = messages().firstOrNull()
         message?.let { module.ack(it["ackToken"] as String) }
         writeToFile(
-            if (hosted.isSuccess && message?.get("id") == "sub-1" && decode(message["payload"]) == "push-payload") {
+            if (hosted.isSuccess && message?.get("id") == "sub-1" && decode(message["payload"]) == "push-payload" &&
+                events.any { it.first == AppwritePushModule.CONNECTION_EVENT && it.second["connected"] == true }
+            ) {
                 "Push background message:passed"
             } else {
                 "Push background message:failed"

@@ -161,6 +161,11 @@ internal object PushBackground {
     @Volatile
     var errorHandler: ((Throwable) -> Boolean)? = null
 
+    // Tells the Push instance that hosts its subscriptions here when the connection opens (true)
+    // or closes (false).
+    @Volatile
+    var connectionHandler: ((Boolean) -> Unit)? = null
+
     @Volatile
     var serviceRunning = false
 
@@ -495,6 +500,7 @@ internal object PushBackground {
             loaded = false
         }
         errorHandler = null
+        connectionHandler = null
         unregisterNetworkCallback(context.applicationContext)
         worker.submit { disconnect() }.get()
     }
@@ -660,6 +666,12 @@ internal object PushBackground {
         val retired = AtomicBoolean(false)
         val client = buildPushClient(
             config.copy(keepAlive = KEEP_ALIVE_SECONDS),
+            onConnected = { connectionHandler?.invoke(true) },
+            onDisconnected = {
+                if (!retired.get()) {
+                    connectionHandler?.invoke(false)
+                }
+            },
             onError = { error ->
                 if (!quiet || connected.get()) {
                     report(error)

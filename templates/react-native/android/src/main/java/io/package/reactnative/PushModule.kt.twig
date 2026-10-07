@@ -49,6 +49,8 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
             )
 
             override fun onError(message: String) = emit(ERROR_EVENT, mapOf("message" to message))
+
+            override fun onConnection(connected: Boolean) = emit(CONNECTION_EVENT, mapOf("connected" to connected))
         },
     )
 
@@ -160,6 +162,7 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
         const val MESSAGE_EVENT = "{{ spec.info.title | caseUcfirst }}PushMessage"
         const val ERROR_EVENT = "{{ spec.info.title | caseUcfirst }}PushError"
         const val OPENED_EVENT = "{{ spec.info.title | caseUcfirst }}PushOpened"
+        const val CONNECTION_EVENT = "{{ spec.info.title | caseUcfirst }}PushConnection"
         private const val ERROR_CODE = "{{ spec.info.title | caseLower }}_push"
     }
 }

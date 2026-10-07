@@ -123,10 +123,11 @@ class PushNative {
       }) ??
       '';
 
-  /// Listen to the plugin's messages and errors.
+  /// Listen to the plugin's messages, errors and connection changes.
   StreamSubscription<Map<Object?, Object?>> listen({
     required void Function(NativePushMessage message) onMessage,
     required void Function(String message) onError,
+    required void Function(bool connected) onConnection,
   }) {
     final stream =
         _stream ??=
@@ -147,6 +148,8 @@ class PushNative {
         );
       } else if (event['type'] == 'error') {
         onError(event['message'] as String? ?? 'Background push failed');
+      } else if (event['type'] == 'connection') {
+        onConnection(event['connected'] == true);
       }
     });
   }

@@ -25,6 +25,8 @@ class PushBridge(context: Context, private val events: Events) {
         fun onMessage(subscriptionId: String, message: PushMessage, ackToken: String)
 
         fun onError(message: String)
+
+        fun onConnection(connected: Boolean)
     }
 
     private val appContext = context.applicationContext
@@ -37,6 +39,8 @@ class PushBridge(context: Context, private val events: Events) {
     // credential is kept for the next registration.
     @Volatile
     private var errorCallback = false
+
+    private var connected: Boolean? = null
 
     /**
      * Host the subscriptions in [subscriptionsJson] on the background connection described by
@@ -93,9 +97,23 @@ class PushBridge(context: Context, private val events: Events) {
             }
             errorCallback
         }
+        PushBackground.connectionHandler = { connection(it) }
         PushBackground.host(appContext, config, listeners) { error ->
+            if (error == null) {
+                connection(true)
+            }
             done(error?.let { it.message ?: it.toString() })
         }
+    }
+
+    private fun connection(open: Boolean) {
+        synchronized(this) {
+            if (connected == open) {
+                return
+            }
+            connected = open
+        }
+        events.onConnection(open)
     }
 
     /** Acknowledge a message once the SDK's callback for it has run. */
@@ -104,10 +122,23 @@ class PushBridge(context: Context, private val events: Events) {
     }
 
     /** Stop hosting the live subscriptions, keeping the ones saved by an earlier run. */
-    fun release() = PushBackground.release(appContext)
+    fun release() {
+        forgetConnection()
+        PushBackground.release(appContext)
+    }
 
     /** Stop background delivery and forget every saved subscription (sign-out). */
-    fun stop() = PushBackground.stop(appContext)
+    fun stop() {
+        forgetConnection()
+        PushBackground.stop(appContext)
+    }
+
+    private fun forgetConnection() {
+        PushBackground.connectionHandler = null
+        synchronized(this) {
+            connected = null
+        }
+    }
 
     /** Run background delivery in a foreground service; saved across restarts. */
     fun setForeground(enabled: Boolean) = PushBackground.setForeground(appContext, enabled)

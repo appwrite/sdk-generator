@@ -737,7 +737,8 @@ class ServiceTest {
                     },
                 ),
             )
-            val backgroundPush = Push(pushClient().setSession(e2eSession), context)
+            val backgroundOpened = java.util.concurrent.CountDownLatch(1)
+            val backgroundPush = Push(pushClient().setSession(e2eSession), context).onOpen { backgroundOpened.countDown() }
             val liveLatch = java.util.concurrent.CountDownLatch(1)
             backgroundPush.subscribe("e2e-push", background = true, title = "E2E title") { message ->
                 if (message.data == "push-payload") {
@@ -745,7 +746,9 @@ class ServiceTest {
                 }
             }
             writeToFile(
-                if (liveLatch.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                if (liveLatch.await(10, java.util.concurrent.TimeUnit.SECONDS) &&
+                    backgroundOpened.await(5, java.util.concurrent.TimeUnit.SECONDS)
+                ) {
                     "Push background message:passed"
                 } else {
                     "Push background message:failed"

@@ -548,6 +548,8 @@ class PushIO implements Push {
         unawaited(native.ack(message.ackToken).catchError(_report));
       },
       onError: (message) => _report({{spec.info.title | caseUcfirst}}Exception(message)),
+      onConnection: (connected) =>
+          connected ? _onOpen?.call() : _onClose?.call(),
     );
     _nativeHosts.add(this);
     _nativeActive = true;
