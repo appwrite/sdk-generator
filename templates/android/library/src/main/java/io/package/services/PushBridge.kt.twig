@@ -99,12 +99,15 @@ class PushBridge(context: Context, private val events: Events) {
         }
         PushBackground.connectionHandler = { connection(it) }
         PushBackground.host(appContext, config, listeners) { error ->
-            if (error == null) {
+            if (error == null && PushBackground.isConnected) {
                 connection(true)
             }
             done(error?.let { it.message ?: it.toString() })
         }
     }
+
+    /** Whether the background connection is open now. */
+    fun isConnected(): Boolean = PushBackground.isConnected
 
     private fun connection(open: Boolean) {
         synchronized(this) {
@@ -135,8 +138,11 @@ class PushBridge(context: Context, private val events: Events) {
 
     private fun forgetConnection() {
         PushBackground.connectionHandler = null
-        synchronized(this) {
-            connected = null
+        val wasOpen = synchronized(this) {
+            (connected == true).also { connected = null }
+        }
+        if (wasOpen) {
+            events.onConnection(false)
         }
     }
 

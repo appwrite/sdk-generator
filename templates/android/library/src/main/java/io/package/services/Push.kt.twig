@@ -547,6 +547,15 @@ class Push(
         mqtt = null
     }
 
+    // Stop listening to the background host, reporting its open connection closing first, as the
+    // in-process connection reports its own close.
+    private fun leaveBackgroundHost() {
+        PushBackground.connectionHandler = null
+        if (PushBackground.isConnected) {
+            onClose?.invoke()
+        }
+    }
+
     // Relocate the connection into the background host and sync it with the current
     // subscription set (filters, per-sub callbacks/titles), saving the background ones.
     private fun hostInBackground() {
@@ -555,6 +564,10 @@ class Push(
         subscriptions.values.forEach { it.client = null }
         PushBackground.errorHandler = { deliverBackgroundError(it) }
         PushBackground.connectionHandler = { open -> if (open) onOpen?.invoke() else onClose?.invoke() }
+        // Joining a connection a background run already opened: report it open now.
+        if (!backgroundActive && PushBackground.isConnected) {
+            onOpen?.invoke()
+        }
         PushBackground.host(appContext, buildConfig(), currentListeners())
         backgroundActive = true
     }
@@ -608,7 +621,7 @@ class Push(
         } else if (backgroundActive) {
             // Relocate back in-process.
             backgroundActive = false
-            PushBackground.connectionHandler = null
+            leaveBackgroundHost()
             PushBackground.release(appContext)
             ensureInProcessSubscribed()
         }
@@ -696,7 +709,7 @@ class Push(
         dropClient()
         subscriptions.clear()
         backgroundActive = false
-        PushBackground.connectionHandler = null
+        leaveBackgroundHost()
         PushBackground.stop(appContext)
     }
 
@@ -707,7 +720,7 @@ class Push(
         subscriptions.clear()
         if (backgroundActive) {
             backgroundActive = false
-            PushBackground.connectionHandler = null
+            leaveBackgroundHost()
             PushBackground.release(appContext)
         }
     }
@@ -903,7 +916,7 @@ internal fun resolvePushUserId(client: Client): String {
 // Asks once per process for POST_NOTIFICATIONS (Android 13+) when background delivery starts, from
 // the app's visible activity, or from the next one to resume when none is. An activity Push is
 // created with counts as visible, since it resumed before the lifecycle callbacks were registered.
-internal object NotificationPermissionPrompt {
+private object NotificationPermissionPrompt {
     private const val REQUEST_CODE = 9412
 
     private var tracking = false

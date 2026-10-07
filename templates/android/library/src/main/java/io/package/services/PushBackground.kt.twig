@@ -166,6 +166,11 @@ internal object PushBackground {
     @Volatile
     var connectionHandler: ((Boolean) -> Unit)? = null
 
+    // Whether the live connection (not a retired one) is open.
+    @Volatile
+    var isConnected = false
+        private set
+
     @Volatile
     var serviceRunning = false
 
@@ -670,9 +675,15 @@ internal object PushBackground {
         val retired = AtomicBoolean(false)
         val client = buildPushClient(
             config.copy(keepAlive = KEEP_ALIVE_SECONDS),
-            onConnected = { connectionHandler?.invoke(true) },
+            onConnected = {
+                if (!retired.get()) {
+                    isConnected = true
+                    connectionHandler?.invoke(true)
+                }
+            },
             onDisconnected = {
                 if (!retired.get()) {
+                    isConnected = false
                     connectionHandler?.invoke(false)
                 }
             },
@@ -788,6 +799,11 @@ internal object PushBackground {
     private fun disconnect() {
         mqttRetired?.set(true)
         mqttRetired = null
+        // A retired client's own disconnect is not reported, so report the live one closing here.
+        if (isConnected) {
+            isConnected = false
+            connectionHandler?.invoke(false)
+        }
         mqtt?.disconnect()
         mqtt = null
         connectedConfig = null

@@ -95,7 +95,7 @@ class {{ spec.info.title | caseUcfirst }}PushPlugin :
                 bridge.host(call.argument<String>("config")!!, call.argument<String>("subscriptions")!!) { error ->
                     main.post {
                         if (error == null) {
-                            result.success(null)
+                            result.success(bridge.isConnected())
                         } else {
                             result.error(ERROR_CODE, error, null)
                         }
