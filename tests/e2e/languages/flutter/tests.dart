@@ -760,6 +760,32 @@ void main() async {
         : 'Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending)',
   );
 
+  // close() while the connection is still being set up (the mock accepts a "slow:" credential
+  // after 500 ms): the subscribe fails with the close, and the connection never opens after it.
+  var closingOpened = 0;
+  final closingPush = Push(Client()
+          .setSelfSigned()
+          .setProject('console')
+          .setPushEndpoint('mqtt://mqtt:1883')
+          .setJWT('slow:closing'))
+      .onOpen(() => closingOpened++);
+  final closingOutcome = closingPush.subscribe(['e2e-switch'], (_) {}).then(
+        (_) => '',
+        onError: (Object e) => e is AppwriteException ? e.message ?? '' : e.toString(),
+      );
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+  closingPush.close();
+  final closedOutcome = await closingOutcome.timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => 'timeout',
+  );
+  await Future<void>.delayed(const Duration(seconds: 1));
+  print(
+    closedOutcome == 'Push was closed before the subscription was established' && closingOpened == 0
+        ? 'Push close while connecting:passed'
+        : 'Push close while connecting:failed ($closedOutcome, opened: $closingOpened)',
+  );
+
   // Background delivery on Android through the public API. The SDK's native Android plugin needs
   // a device, so a stand-in answers on its channels, as the mock server stands in for the broker;
   // the plugin itself is exercised over the same channels by the Robolectric run.
