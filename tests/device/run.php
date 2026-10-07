@@ -349,6 +349,9 @@ $scenarios = [
     // saved background delivery resumes before the app has subscribed again.
     'force-stopped' => function () use ($package): array {
         adb("shell am force-stop {$package}");
+        // The stopped process may still hold its connection for a moment; publish once it is gone.
+        waitFor(fn (): bool => trim(adb("shell pidof {$package}")) === '', 10);
+        sleep(2);
         publish('Device stopped', 'stopped');
         sleep(45);
         $whileStopped = in_array('Device stopped', notifications($package), true);

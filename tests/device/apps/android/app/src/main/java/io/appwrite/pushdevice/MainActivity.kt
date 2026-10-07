@@ -55,6 +55,8 @@ class MainActivity : AppCompatActivity() {
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(32, 32, 32, 32)
+                // Keep the buttons clear of the system bars (apps draw edge to edge on Android 15+).
+                fitsSystemWindows = true
                 addView(exactAlarms)
                 addView(battery)
                 addView(status)
