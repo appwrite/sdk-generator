@@ -111,6 +111,18 @@ public struct PushNotificationOpened {
             }
         }
 
+        // Every other delegate method (e.g. `openSettingsFor`) goes to the delegate this one replaced.
+        override func responds(to aSelector: Selector!) -> Bool {
+            super.responds(to: aSelector) || (forwarded?.responds(to: aSelector) ?? false)
+        }
+
+        override func forwardingTarget(for aSelector: Selector!) -> Any? {
+            if let forwarded, forwarded.responds(to: aSelector) {
+                return forwarded
+            }
+            return super.forwardingTarget(for: aSelector)
+        }
+
         func userNotificationCenter(
             _ center: UNUserNotificationCenter,
             didReceive response: UNNotificationResponse,
