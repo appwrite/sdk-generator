@@ -903,7 +903,7 @@ internal fun resolvePushUserId(client: Client): String {
 // Asks once per process for POST_NOTIFICATIONS (Android 13+) when background delivery starts, from
 // the app's visible activity, or from the next one to resume when none is. An activity Push is
 // created with counts as visible, since it resumed before the lifecycle callbacks were registered.
-private object NotificationPermissionPrompt {
+internal object NotificationPermissionPrompt {
     private const val REQUEST_CODE = 9412
 
     private var tracking = false

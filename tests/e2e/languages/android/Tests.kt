@@ -737,11 +737,18 @@ class ServiceTest {
                 },
             )
 
-            // Background delivery asks for POST_NOTIFICATIONS on its own, from the visible activity:
-            // here the screen Push is created on, whose resume the lifecycle callbacks never saw.
+            // Background delivery asks for POST_NOTIFICATIONS on its own (Android 13+), from the
+            // visible activity: here the screen Push is created on, whose resume the lifecycle
+            // callbacks never saw. These tests run at an older API, so the prompt runs as on 13.
             val permissionActivity = org.robolectric.Robolectric.buildActivity(android.app.Activity::class.java).create().start().get()
             val permissionPush = Push(pushClient().setSession(e2eSession), permissionActivity)
-            permissionPush.subscribe("e2e-permission", background = true) { }
+            val testedSdk = android.os.Build.VERSION.SDK_INT
+            org.robolectric.util.ReflectionHelpers.setStaticField(android.os.Build.VERSION::class.java, "SDK_INT", android.os.Build.VERSION_CODES.TIRAMISU)
+            try {
+                io.appwrite.services.NotificationPermissionPrompt.ask(permissionActivity)
+            } finally {
+                org.robolectric.util.ReflectionHelpers.setStaticField(android.os.Build.VERSION::class.java, "SDK_INT", testedSdk)
+            }
             org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
             val requestedPermissions = org.robolectric.Shadows.shadowOf(permissionActivity).lastRequestedPermission?.requestedPermissions?.toList()
             permissionPush.close()
