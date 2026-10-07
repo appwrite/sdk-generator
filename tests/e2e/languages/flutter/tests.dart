@@ -632,7 +632,13 @@ void main() async {
       .setPushEndpoint('mqtt://mqtt:1883');
   try {
     final signInIO = signInClient as ClientIO;
-    await signInIO.init();
+    // Client() starts initialising on its own: wait for it before using the cookie store.
+    while (!signInIO.initialized && signInIO.initProgress) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+    if (!signInIO.initialized) {
+      await signInIO.init();
+    }
     await signInIO.cookieJar.saveFromResponse(
       Uri.parse(signInIO.endPoint),
       [Cookie('a_session_console', Uri.encodeComponent(e2eSession))],
@@ -641,8 +647,8 @@ void main() async {
     print(onlyTopic(signInTopics, 'users/e2e-session-user')
         ? 'Push user sign-in session topic:passed'
         : 'Push user sign-in session topic:failed');
-  } catch (_) {
-    print('Push user sign-in session topic:failed');
+  } catch (e) {
+    print('Push user sign-in session topic:failed ($e)');
   }
 
   // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
