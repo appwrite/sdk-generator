@@ -13,7 +13,9 @@ export { {{service.name | caseUcfirst}} } from './services/{{service.name | case
 {% endfor %}
 export { Realtime } from './services/realtime';
 export { Push } from './services/push';
+{% if services['analytics'] is defined %}
 export { AnalyticsTracking } from './services/analytics-tracking';
+{% endif %}
 export type {
     Models,
     Payload,
@@ -27,6 +29,7 @@ export type {
     SubscribeOptions,
     MessageCallback,
 } from './services/push';
+{% if services['analytics'] is defined %}
 export type {
     AnalyticsEventEmitter,
     AnalyticsEventOptions,
@@ -34,6 +37,7 @@ export type {
     DownloadTrackingOptions,
     OutboundTrackingOptions,
 } from './services/analytics-tracking';
+{% endif %}
 export type { QueryTypes, QueryTypesList } from './query';
 export { Permission } from './permission';
 export { Role } from './role';

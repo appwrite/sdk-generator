@@ -164,7 +164,9 @@ class AnalyticsObserver extends NavigatorObserver {
       // rejected request surfaces as an unhandled async error in the host app.
       final pending = emit(eventName, props: props, propertyId: propertyId);
       if (pending is Future) {
-        unawaited(pending.catchError((Object _) {}));
+        // `catchError` on a typed future must return that future's type, so an
+        // empty handler would itself throw. Narrow to `Future<void>` first.
+        unawaited(pending.then<void>((_) {}).catchError((Object _) {}));
       }
     } catch (_) {
       // Emitter failures must never propagate into the navigator stack —
