@@ -982,24 +982,32 @@ class ServiceTest {
             // Two in-process subscriptions on one topic share the broker filter, so unsubscribing
             // one keeps the filter. Its callback must still stop: every SUBSCRIBE makes the mock
             // publish to e2e-push, and only the remaining subscription may receive the next one.
+            // Both callbacks of one publish run one after the other, so wait for both counts.
             val sharedPush = Push(pushClient().setSession(e2eSession), context)
             val removedReceived = java.util.concurrent.atomic.AtomicInteger(0)
-            val keptLatch = java.util.concurrent.atomic.AtomicReference(java.util.concurrent.CountDownLatch(1))
+            val keptReceivedCount = java.util.concurrent.atomic.AtomicInteger(0)
+            val waitUntil = { condition: () -> Boolean ->
+                val until = System.currentTimeMillis() + 10_000
+                while (!condition() && System.currentTimeMillis() < until) {
+                    Thread.sleep(50)
+                }
+                condition()
+            }
             val removedSub = sharedPush.subscribe("e2e-push", background = false) { removedReceived.incrementAndGet() }
-            val keptSub = sharedPush.subscribe("e2e-push", background = false) { keptLatch.get().countDown() }
-            val bothReceived = keptLatch.get().await(10, java.util.concurrent.TimeUnit.SECONDS) && removedReceived.get() > 0
+            val keptSub = sharedPush.subscribe("e2e-push", background = false) { keptReceivedCount.incrementAndGet() }
+            val bothReceived = waitUntil { keptReceivedCount.get() > 0 && removedReceived.get() > 0 }
             removedSub.unsubscribe()
             Thread.sleep(500)
             removedReceived.set(0)
-            keptLatch.set(java.util.concurrent.CountDownLatch(1))
+            val keptBefore = keptReceivedCount.get()
             val triggerSub = sharedPush.subscribe("e2e-trigger", background = false) { }
-            val keptReceived = keptLatch.get().await(10, java.util.concurrent.TimeUnit.SECONDS)
+            val keptReceived = waitUntil { keptReceivedCount.get() > keptBefore }
             Thread.sleep(500)
             writeToFile(
                 if (bothReceived && keptReceived && removedReceived.get() == 0) {
                     "Push shared topic unsubscribe:passed"
                 } else {
-                    "Push shared topic unsubscribe:failed"
+                    "Push shared topic unsubscribe:failed (both: $bothReceived, kept: $keptReceived, removed after: ${removedReceived.get()})"
                 },
             )
             triggerSub.unsubscribe()
