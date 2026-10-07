@@ -282,29 +282,34 @@ class Tests {
         events.clear()
         call { module.host(config("appwrite-session", SESSION), subscriptions, it) }
         waitFor { messages().isNotEmpty() }
+        val firstDeliveryAt = System.currentTimeMillis()
         val pendingToken = messages().firstOrNull()?.get("ackToken") as? String
         val pendingRun = CompletableFuture<Long>()
         PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { pendingRun.complete(System.currentTimeMillis()) }
         Thread.sleep(4_000)
         val heldWhilePending = !pendingRun.isDone
-        // Acknowledge each delivery as it arrives, as JS does once its callback has run; the run must
-        // then end within the quiet window, well before the ten-second acknowledgement timeout.
+        // Acknowledge each delivery as it arrives, as JS does once its callback has run. The run must
+        // then end after the quiet window, before the ten-second acknowledgement timeout could have
+        // settled the first delivery, so only an explicit acknowledgement can end it in time.
         val acknowledgedAt = System.currentTimeMillis()
         val acknowledged = mutableSetOf<String>()
-        while (!pendingRun.isDone && System.currentTimeMillis() - acknowledgedAt < 8_000) {
+        while (!pendingRun.isDone && System.currentTimeMillis() - acknowledgedAt < 4_500) {
             messages().mapNotNull { it["ackToken"] as? String }.filter { acknowledged.add(it) }.forEach { module.ack(it) }
             Thread.sleep(100)
         }
         val endedAfterAck = if (pendingRun.isDone) pendingRun.get() - acknowledgedAt else null
+        val endedAfterDelivery = if (pendingRun.isDone) pendingRun.get() - firstDeliveryAt else null
         val quietRun = CompletableFuture<Long>()
         val quietStart = System.currentTimeMillis()
         PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { quietRun.complete(System.currentTimeMillis()) }
         val quietTook = runCatching { quietRun.get(12, TimeUnit.SECONDS) - quietStart }.getOrNull()
         writeToFile(
-            if (pendingToken != null && heldWhilePending && endedAfterAck != null && quietTook != null && quietTook in 1_500L..8_000L) {
+            if (pendingToken != null && heldWhilePending && endedAfterAck != null && endedAfterAck <= 4_500L &&
+                endedAfterDelivery != null && endedAfterDelivery < 9_000L && quietTook != null && quietTook in 1_500L..8_000L
+            ) {
                 "Push background drain:passed"
             } else {
-                "Push background drain:failed (held: $heldWhilePending, after ack: $endedAfterAck, quiet: $quietTook)"
+                "Push background drain:failed (held: $heldWhilePending, after ack: $endedAfterAck, after delivery: $endedAfterDelivery, quiet: $quietTook)"
             },
         )
         call { module.stop(it) }
