@@ -111,6 +111,13 @@ rescue => e
 end
 
 begin
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_string("\0" * (5 * 1024 * 1024), filename: 'boundary.bin', mime_type: 'application/octet-stream'))
+    puts response.result
+rescue => e
+    puts e
+end
+
+begin
     response = general.upload_generic(file: InputFile.from_path('./tests/resources/file.png'))
     puts response.prefs.data['result']
 rescue => e

@@ -268,6 +268,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/mqtt_notification.dart',
+                'template'      => 'flutter/lib/src/mqtt_notification.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/realtime.dart',
                 'template'      => 'flutter/lib/src/realtime.dart.twig',
             ],

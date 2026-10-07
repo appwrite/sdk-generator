@@ -14,4 +14,15 @@ class NativeEventEmitter {
     }
 }
 
-module.exports = { Platform: { OS: 'android' }, NativeModules: {}, NativeEventEmitter };
+// PermissionsAndroid records each permission requested and answers that it was granted.
+const PermissionsAndroid = {
+    PERMISSIONS: { POST_NOTIFICATIONS: 'android.permission.POST_NOTIFICATIONS' },
+    requested: [],
+    check: async () => false,
+    request: async (permission) => {
+        PermissionsAndroid.requested.push(permission);
+        return 'granted';
+    },
+};
+
+module.exports = { Platform: { OS: 'android', Version: 34 }, NativeModules: {}, NativeEventEmitter, PermissionsAndroid };

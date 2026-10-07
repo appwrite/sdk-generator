@@ -436,7 +436,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             var offset = 0L;
             var result = new Dictionary<string, object?>();
 
-            if (size < ChunkSize || typeof(T) == typeof(string))
+            if (size <= ChunkSize || typeof(T) == typeof(string))
             {
                 byte[] buffer;
                 switch (input.SourceType)
