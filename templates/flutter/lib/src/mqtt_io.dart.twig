@@ -477,6 +477,11 @@ class PushIO implements Push {
             await _subscribeInProcess(ids);
             break;
           } on _Superseded {
+            if (generation != _closeGeneration) {
+              throw {{spec.info.title | caseUcfirst}}Exception(
+                'Push was closed before the subscription was established',
+              );
+            }
             // Another Push moved this one's subscriptions to the native host meanwhile: this
             // subscribe goes there too.
             if (_nativeActive) {
@@ -564,8 +569,9 @@ class PushIO implements Push {
       }
     }
     _joinNative(native);
-    return _enqueueNative(() => _sendToNative(native)).then((hosted) {
-      if (hosted) {
+    // Instances that joined an open connection hear onOpen now; the others when it opens.
+    return _enqueueNative(() => _sendToNative(native)).then((open) {
+      if (open) {
         for (final push in _nativeHosts.toList()) {
           push._nativeConnection(true);
         }
@@ -582,7 +588,8 @@ class PushIO implements Push {
     open ? _onOpen?.call() : _onClose?.call();
   }
 
-  // Host every native host's subscriptions with this Push's credential.
+  // Host every native host's subscriptions with this Push's credential. Completes with whether the
+  // connection is open (false when there was nothing to host).
   Future<bool> _sendToNative(PushNative native) async {
     // Host what is subscribed when this runs, so a close() or an unsubscribe queued meanwhile
     // is not undone by an older request.
@@ -617,8 +624,7 @@ class PushIO implements Push {
     await native.setErrorCallback(
       _nativeHosts.any((push) => push._onError != null),
     );
-    await native.host(jsonEncode(config), jsonEncode(subscriptions));
-    return true;
+    return native.host(jsonEncode(config), jsonEncode(subscriptions));
   }
 
   // Move this Push's subscriptions onto the native host, closing its own connection.
@@ -1041,6 +1047,10 @@ class PushIO implements Push {
   // Close the in-process connection (and the isolate host) and drop the live subscriptions.
   void _teardown() {
     _livePushes.remove(this);
+    // A connection still being set up sees the new epoch and gives up instead of connecting.
+    _connectionEpoch++;
+    _openCancel?.complete();
+    _openCancel = null;
     _mqtt?.disconnect();
     _mqtt = null;
     _connecting = null;
