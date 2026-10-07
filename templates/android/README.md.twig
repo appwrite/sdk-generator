@@ -89,7 +89,9 @@ While the app is not on screen, each message is also posted as a notification th
 your launch activity with `Push.EXTRA_TOPIC` and `Push.EXTRA_PAYLOAD` in its extras. It shows the
 title, body and image sent with `createPush`, falling back to the subscription's `title` and the
 raw payload for other messages. On Android 13 and later it needs the `POST_NOTIFICATIONS`
-permission: call `Push.requestNotificationPermission(activity)` before subscribing. Set its
+permission: the first background subscription asks for it from the visible activity (the one
+`Push` is created with, else the next one to resume), or call
+`Push.requestNotificationPermission(activity)` to ask yourself. Set its
 icon with `<meta-data android:name="{{ sdk.namespace | caseDot }}.push.notification_icon" android:resource="@drawable/..." />`
 in your `<application>`. While the app is on screen your callback shows the message, so no
 notification is posted unless the subscription passes `notifyInForeground = true`. To handle

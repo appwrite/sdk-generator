@@ -880,8 +880,9 @@ export class Push extends Service {
             }
         }
         this.joinNative(native);
-        return enqueueNative(() => this.sendToNative(native)).then((hosted) => {
-            if (hosted) {
+        // Instances that joined an open connection hear onOpen now; the others when it opens.
+        return enqueueNative(() => this.sendToNative(native)).then((open) => {
+            if (open) {
                 for (const push of nativeHosts) {
                     push.nativeConnection(true);
                 }
@@ -902,7 +903,10 @@ export class Push extends Service {
         }
     }
 
-    /** Host every native host's subscriptions with this Push's credential. */
+    /**
+     * Host every native host's subscriptions with this Push's credential. Resolves with whether
+     * the connection is open (false when there was nothing to host).
+     */
     private async sendToNative(native: NativePush): Promise<boolean> {
         // Host what is subscribed when this runs, so a close() or an unsubscribe queued
         // meanwhile is not undone by an older request.
@@ -935,11 +939,11 @@ export class Push extends Service {
         await native.setErrorCallback(
             [...nativeHosts].some((push) => push.onErrorCb !== undefined),
         );
-        await native.host(
+        const open = await native.host(
             JSON.stringify(config),
             JSON.stringify(subscriptions),
         );
-        return true;
+        return open === true;
     }
 
     /** Move this Push's subscriptions onto the native host, closing its own connection. */
@@ -1596,7 +1600,8 @@ export class Push extends Service {
 
 /** The SDK's native Android module (see android/), which hosts background delivery. */
 interface NativePush {
-    host(config: string, subscriptions: string): Promise<void>;
+    /** Resolves with whether the connection is open once every filter is subscribed. */
+    host(config: string, subscriptions: string): Promise<boolean | null>;
     ack(token: string): void;
     release(): Promise<void>;
     stop(): Promise<void>;

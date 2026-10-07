@@ -186,7 +186,7 @@ async function main() {
     // not. A stand-in answers for the SDK's native module, which needs an Android device.
     NativeModules.AppwritePush = {
         emitter: new EventEmitter(),
-        host: async () => {},
+        host: async () => true,
         ack: () => {},
         release: async () => {},
         stop: async () => {},
