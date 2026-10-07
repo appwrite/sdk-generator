@@ -824,18 +824,18 @@ open class Push: Service {
             payload: [UInt8](publish.payload.readableBytesView),
             qos: Int(publish.qos.rawValue)
         )
-        // Notification is per-subscription: only subs that opted in post one, each with its
-        // own title. A title the server sent replaces theirs, so it is posted once.
+        // Notification is per-subscription: only subs that opted in post one, each title once, as
+        // their callbacks return. A title the server sent replaces theirs, so it is posted once.
         let matched = sync.sync {
             subscriptions.values.filter { matches(filter: $0.filter, topic: publish.topicName) }
         }
         let notification = PushNotificationContent(message: pushMessage)
-        var postedServerTitle = false
+        var postedTitles = Set<String>()
         for entry in matched {
             entry.callback(pushMessage)
-            if entry.background && !postedServerTitle {
-                postedServerTitle = notification.title != nil
-                notify(pushMessage, title: notification.title ?? entry.title ?? pushMessage.topic, notification: notification)
+            let title = notification.title ?? entry.title ?? pushMessage.topic
+            if entry.background && postedTitles.insert(title).inserted {
+                notify(pushMessage, title: title, notification: notification)
             }
         }
     }
@@ -862,7 +862,7 @@ open class Push: Service {
 
     #if canImport(UserNotifications)
         /// The file extension a notification attachment needs for each image type it supports, by MIME type: the
-        /// attachment's type comes from the extension, not the URL's.
+        /// attachment's type comes from the file's extension.
         private static let imageExtensions = [
             "image/jpeg": "jpg",
             "image/jpg": "jpg",
@@ -884,7 +884,7 @@ open class Push: Service {
         /// not an image type notifications show.
         private static func downloadAttachment(_ url: URL, completion: @escaping (UNNotificationAttachment?) -> Void) {
             URLSession.shared.downloadTask(with: URLRequest(url: url, timeoutInterval: 10)) { location, response, _ in
-                guard let location, let fileExtension = imageExtensions[response?.mimeType?.lowercased() ?? ""] else {
+                guard let location, let fileExtension = attachmentExtension(url, mimeType: response?.mimeType) else {
                     completion(nil)
                     return
                 }
@@ -898,6 +898,16 @@ open class Push: Service {
                     completion(nil)
                 }
             }.resume()
+        }
+
+        /// The extension for an image attachment: from its MIME type, else (an image served without an image MIME
+        /// type) from the URL when that names a supported image type. The attachment then validates the file.
+        private static func attachmentExtension(_ url: URL, mimeType: String?) -> String? {
+            if let fileExtension = imageExtensions[mimeType?.lowercased() ?? ""] {
+                return fileExtension
+            }
+            let urlExtension = url.pathExtension.lowercased()
+            return Set(imageExtensions.values).union(["jpeg"]).contains(urlExtension) ? urlExtension : nil
         }
     #endif
 

@@ -1571,7 +1571,7 @@ export class Push extends Service {
             qos: packet.qos,
         };
         const serverTitle = notificationContent(message).title;
-        let postedServerTitle = false;
+        const postedTitles = new Set<string>();
         // While the app is on screen it shows the message itself: only subscriptions that
         // opted in with notifyInForeground also post a notification then.
         const foreground = AppState.currentState === 'active';
@@ -1579,17 +1579,15 @@ export class Push extends Service {
             if (matches(sub.topic, message.topic)) {
                 await sub.callback(message);
                 // Notification is per-subscription: only subs that opted in post one, each
-                // with its own title. A title the server sent replaces theirs, so it posts once.
+                // title once. A title the server sent replaces theirs, so it posts once.
+                const title = serverTitle ?? sub.title ?? message.topic;
                 if (
                     sub.background &&
                     (!foreground || sub.notifyInForeground) &&
-                    !postedServerTitle
+                    !postedTitles.has(title)
                 ) {
-                    postedServerTitle = serverTitle !== undefined;
-                    await this.notify(
-                        message,
-                        serverTitle ?? sub.title ?? message.topic,
-                    );
+                    postedTitles.add(title);
+                    await this.notify(message, title);
                 }
             }
         }
