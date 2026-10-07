@@ -24,7 +24,7 @@ import type { Models } from '../models';
 {% set typeImports = typeImports | merge(['Payload']) %}
 import type { {{ typeImports | join(', ') }} } from '../client';
 {% if usesUpload %}
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 {% endif %}
 {% if usesChunkedUpload %}
 import { Platform as RNPlatform } from 'react-native';
