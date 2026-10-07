@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Push Device React Native",
+    "slug": "push-device-react-native",
+    "version": "1.0.0",
+    "android": {
+      "package": "io.appwrite.pushdevice.reactnative",
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
+      ]
+    }
+  }
+}

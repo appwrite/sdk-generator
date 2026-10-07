@@ -1,0 +1,20 @@
+{
+  "name": "push-device-react-native",
+  "version": "1.0.0",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "expo": "~57.0.27",
+    "expo-file-system": "~57.0.7",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-appwrite": "file:../../../../examples/react-native/react-native-appwrite.tgz",
+    "react-native-tcp-socket": "^6.4.3",
+    "react-native-url-polyfill": "^4.0.0"
+  },
+  "overrides": {
+    "react-native-appwrite": {
+      "expo-file-system": "$expo-file-system"
+    }
+  }
+}
