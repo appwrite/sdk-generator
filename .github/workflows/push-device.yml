@@ -49,11 +49,12 @@ jobs:
         with:
           node-version: '22'
 
+      # Cloned rather than set up with an action: the Flutter actions pull in unpinned actions.
       - name: Setup Flutter
         if: matrix.sdk == 'flutter'
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          channel: stable
+        run: |
+          git clone --depth 1 --branch stable https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
 
       - name: Install
         run: composer install
