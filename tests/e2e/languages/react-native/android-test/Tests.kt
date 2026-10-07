@@ -279,6 +279,9 @@ class Tests {
 
         // A scheduled run stays up while a delivery is pending (JS has not acknowledged it yet) and
         // ends shortly after it settles; with nothing pending it ends once deliveries are quiet.
+        // Deliveries the earlier sections never acknowledged stay pending until their ten-second
+        // acknowledgement timeout: let them settle first so only this section's deliveries count.
+        Thread.sleep(11_000)
         events.clear()
         call { module.host(config("appwrite-session", SESSION), subscriptions, it) }
         waitFor { messages().isNotEmpty() }
