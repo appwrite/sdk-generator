@@ -236,7 +236,10 @@ $scenarios = [
         sleep(2);
         $granted = str_contains(adb("shell dumpsys package {$package}"), 'POST_NOTIFICATIONS: granted=true');
 
-        return [$subscribed && hasEvent('connected') && $prompted && $granted, json_encode(['events' => events(), 'prompted' => $prompted, 'granted' => $granted, ...seen()])];
+        // A freshly booted emulator can take a moment to reach the broker; the SDK retries.
+        $connected = waitFor(fn (): bool => hasEvent('connected'), 60);
+
+        return [$subscribed && $connected && $prompted && $granted, json_encode(['events' => events(), 'prompted' => $prompted, 'granted' => $granted, ...seen()])];
     },
 
     // On screen, a message reaches the callback and posts no notification.
