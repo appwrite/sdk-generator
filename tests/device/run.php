@@ -102,6 +102,32 @@ function notifications(string $package): array
     return $titles;
 }
 
+/** Title => text of the notifications $package has posted. */
+function notificationTexts(string $package): array
+{
+    $texts = [];
+    $record = null;
+    $title = null;
+    foreach (explode("\n", adb('shell dumpsys notification --noredact')) as $line) {
+        if (str_contains($line, 'NotificationRecord(')) {
+            $record = str_contains($line, 'pkg=' . $package . ' ');
+            $title = null;
+        } elseif ($record && preg_match('/android\.title=\w+ \((.*)\)/', $line, $match)) {
+            $title = $match[1];
+            $texts[$title] ??= '';
+        } elseif ($record && $title !== null && preg_match('/android\.text=\w+ \((.*)\)/', $line, $match)) {
+            $texts[$title] = $match[1];
+        }
+    }
+
+    return $texts;
+}
+
+function bootCompleted(): bool
+{
+    return trim(adb('shell getprop sys.boot_completed')) === '1';
+}
+
 // Why the last screen dump failed, for a failing scenario's detail.
 $dumpError = '';
 
@@ -285,16 +311,34 @@ $scenarios = [
         return [$asked && $allowed && $reported, json_encode(['asked' => $asked, 'allowed' => $allowed, 'events' => events(), ...seen()])];
     },
 
+    // A lost network while the app is open: onClose, then onOpen once the SDK has reconnected on
+    // its own (with the project, which the broker requires), and messages arrive again.
+    'reconnect while running' => function (): array {
+        clearEvents();
+        network(false);
+        $closed = waitFor(fn (): bool => hasEvent('disconnected'), 60);
+        sleep(5);
+        network(true);
+        $reopened = waitFor(fn (): bool => in_array('connected', array_slice(events(), (int) array_search('disconnected', events(), true)), true), 120);
+        publish('Device reconnect', 'reconnect');
+        $received = waitFor(fn (): bool => hasEvent('message: Device reconnect'), 30);
+        $refused = array_values(preg_grep('/not authori[sz]ed/i', events()));
+
+        return [$closed && $reopened && $received && $refused === [], json_encode(['closed' => $closed, 'reopened' => $reopened, 'received' => $received, 'refused' => $refused, 'events' => events()])];
+    },
+
     // In the background: a notification is posted, and tapping it reaches onNotificationOpened.
     'background tap' => function () use ($package): array {
         home();
         clearEvents();
         publish('Device background', 'background');
         $posted = waitFor(fn (): bool => in_array('Device background', notifications($package), true), 30);
+        // The notification shows the push's title and body, not the raw payload.
+        $text = notificationTexts($package)['Device background'] ?? null;
         $tapped = $posted && tapNotification('Device background');
         $opened = waitFor(fn (): bool => hasEvent('opened: background'), 20);
 
-        return [$posted && $tapped && $opened, json_encode(['posted' => $posted, 'tapped' => $tapped, 'events' => events()])];
+        return [$posted && $text === 'Sale background' && $tapped && $opened, json_encode(['posted' => $posted, 'text' => $text, 'tapped' => $tapped, 'events' => events()])];
     },
 
     // Killed but still in recents: a scheduled wake-up posts the message, and the tap that starts
@@ -328,6 +372,24 @@ $scenarios = [
         return [$removed && $posted && $tapped && $launched, json_encode(['removed' => $removed, 'posted' => $posted, 'tapped' => $tapped, 'events' => events()])];
     },
 
+    // The scheduled wake-ups keep going: with the app closed, a second message a minute after the
+    // first arrives too, from a later wake-up.
+    'repeated wake-ups' => function () use ($package): array {
+        home();
+        removeFromRecents($package);
+        adb("shell am kill {$package}");
+        sleep(2);
+        publish('Device wake 1', 'wake-1');
+        $first = waitFor(fn (): bool => in_array('Device wake 1', notifications($package), true), 150);
+        sleep(60);
+        adb("shell am kill {$package}");
+        sleep(2);
+        publish('Device wake 2', 'wake-2');
+        $second = waitFor(fn (): bool => in_array('Device wake 2', notifications($package), true), 150);
+
+        return [$first && $second, json_encode(['first' => $first, 'second' => $second, 'notifications' => notifications($package)])];
+    },
+
     // Killed while offline: nothing arrives without a network, and everything sent meanwhile is
     // replayed once it is back.
     'offline replay' => function () use ($package): array {
@@ -345,6 +407,27 @@ $scenarios = [
         $replayed = waitFor(fn (): bool => count(preg_grep('/^Device offline/', notifications($package))) === 3, 180);
 
         return [$whileOffline === [] && $replayed, json_encode(['whileOffline' => $whileOffline, 'after' => notifications($package)])];
+    },
+
+    // Doze (screen off, idle) defers the wake-ups: a message sent meanwhile is not lost, and arrives
+    // once the device leaves Doze.
+    'doze' => function () use ($package): array {
+        home();
+        removeFromRecents($package);
+        adb("shell am kill {$package}");
+        sleep(2);
+        adb('shell input keyevent KEYCODE_SLEEP');
+        adb('shell dumpsys deviceidle force-idle');
+        $idle = str_contains(adb('shell dumpsys deviceidle get deep'), 'IDLE');
+        publish('Device doze', 'doze');
+        sleep(30);
+        $duringDoze = in_array('Device doze', notifications($package), true);
+        adb('shell dumpsys deviceidle unforce');
+        adb('shell input keyevent KEYCODE_WAKEUP');
+        adb('shell wm dismiss-keyguard');
+        $arrived = waitFor(fn (): bool => in_array('Device doze', notifications($package), true), 180);
+
+        return [$idle && $arrived, json_encode(['idle' => $idle, 'duringDoze' => $duringDoze, 'arrived' => $arrived])];
     },
 
     // Force-stopped: Android cancels the app's wake-ups, so nothing arrives; opening the app
@@ -369,6 +452,22 @@ $scenarios = [
         $replayed = waitFor(fn (): bool => hasEvent('message: Device stopped') || in_array('Device stopped', notifications($package), true), 60);
 
         return [!$whileStopped && $replayed, json_encode(['whileStopped' => $whileStopped, 'pidBefore' => $pidBefore, 'gone' => $gone, 'stoppedFlag' => $flagged, 'pidAfter' => $pidAfter, 'started' => array_slice($started, 0, 5), 'events' => events(), 'notifications' => notifications($package)])];
+    },
+
+    // After a reboot, background delivery resumes without the app being opened.
+    'reboot' => function () use ($package): array {
+        home();
+        adb('reboot');
+        adb('wait-for-device');
+        $booted = waitFor('bootCompleted', 300);
+        sleep(10);
+        adb('shell input keyevent KEYCODE_WAKEUP');
+        adb('shell wm dismiss-keyguard');
+        network(true);
+        publish('Device reboot', 'reboot');
+        $arrived = waitFor(fn (): bool => in_array('Device reboot', notifications($package), true), 240);
+
+        return [$booted && $arrived, json_encode(['booted' => $booted, 'arrived' => $arrived, 'notifications' => notifications($package)])];
     },
 ];
 

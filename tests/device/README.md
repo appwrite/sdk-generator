@@ -10,11 +10,18 @@ Scenarios that need a real Android system, run on an emulator in CI
 | on screen | a message reaches the callback and posts no notification |
 | exact alarms | `requestExactAlarms()` opens the system screen; once allowed, `backgroundStatus()` reports it |
 | battery exemption | `requestIgnoreBatteryOptimizations()` shows the dialog; once allowed, the status reports it |
-| background tap | a notification is posted, and its tap reaches `onNotificationOpened` |
+| reconnect while running | a lost network reports `onClose`, the SDK reconnects on its own (`onOpen`, no refused credential), and messages arrive again |
+| background tap | a notification with the push's title and body (not the raw payload) is posted, and its tap reaches `onNotificationOpened` |
 | killed in recents | a scheduled wake-up posts the message; the tap that restarts the app reaches `getInitialNotification` |
 | removed from recents | the same with no task left |
+| repeated wake-ups | with the app closed, a second message a minute later arrives from a later wake-up |
 | offline replay | nothing arrives without a network; everything sent meanwhile arrives once it is back |
+| doze | a message sent while the device is in Doze is not lost and arrives once it leaves Doze |
 | force-stopped | nothing arrives; opening the app again replays it |
+| reboot | after a reboot, delivery resumes without opening the app |
+
+The checks wait for what they assert with generous deadlines rather than fixed delays, so a
+failure means a wake-up, the notification path or the connection broke, not that CI was slow.
 
 Each SDK has a test app in `apps/` (native Android, React Native, Flutter) built against the SDK
 generated from the test spec. The apps use the mock broker (`mock-server`) as the
