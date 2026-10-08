@@ -264,11 +264,8 @@ try {
 
     $cliExcludes = [
         'services' => [
-            ['name' => 'assistant'],
             ['name' => 'avatars'],
-            ['name' => 'compute'],
             ['name' => 'apps'],
-            ['name' => 'oauth'],
             ['name' => 'organizations'],
             ['name' => 'console'],
             ['name' => 'projects'],
