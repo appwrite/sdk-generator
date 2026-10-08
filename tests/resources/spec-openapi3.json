@@ -2491,7 +2491,7 @@
       }
     },
     "\/mock\/tests\/general\/upload-generic": {
-      "post": {
+      "put": {
         "summary": "Upload Generic",
         "operationId": "generalUploadGeneric",
         "tags": [

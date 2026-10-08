@@ -203,6 +203,12 @@ namespace AppwriteTests
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             LogResult(mock.Result);
 
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromBytes(new byte[5 * 1024 * 1024], "boundary.bin", "application/octet-stream"));
+            LogResult(mock.Result);
+
+            var profile = await general.UploadGeneric(InputFile.FromPath("../../../resources/file.png"));
+            LogResult(profile.Prefs.Data["result"]);
+
             // Download test
             var downloadResult = await general.Download();
             if (downloadResult != null)

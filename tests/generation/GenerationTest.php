@@ -293,6 +293,76 @@ final class GenerationTest extends TestCase
         }
     }
 
+    /**
+     * The analytics tracking helpers are hand-written companions to a generated
+     * service. Shipping them into an SDK whose spec has no analytics service
+     * leaves files, and entry-point exports, naming a class that is never
+     * generated — which is what broke appwrite/sdk-for-flutter#336.
+     */
+    public function testAnalyticsCompanionsFollowTheService(): void
+    {
+        $companions = [
+            'flutter' => ['lib/src/tracking.dart', 'lib/src/tracking_observer.dart'],
+            'web' => ['src/services/analytics-tracking.ts'],
+        ];
+        $entrypoints = [
+            'flutter' => ['lib/packageName.dart', 'src/tracking'],
+            'web' => ['src/index.ts', 'analytics-tracking'],
+        ];
+
+        foreach ($companions as $name => $paths) {
+            // The shared fixture carries no analytics service.
+            $without = $this->generate($name, 'client');
+            foreach ($paths as $path) {
+                $this->assertArrayNotHasKey($path, $without, "{$name} shipped {$path} without the analytics service");
+            }
+            [$entry, $token] = $entrypoints[$name];
+            $this->assertArrayHasKey($entry, $without, "{$name} did not generate {$entry}");
+            $this->assertStringNotContainsString($token, $without[$entry], "{$name} {$entry} exports a companion it did not generate");
+
+            $with = $this->generateWithAnalytics($name);
+            foreach ($paths as $path) {
+                $this->assertArrayHasKey($path, $with, "{$name} did not ship {$path} alongside the analytics service");
+            }
+            $this->assertStringContainsString($token, $with[$entry], "{$name} {$entry} does not export the companion");
+        }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function generateWithAnalytics(string $name): array
+    {
+        $dir = self::OUTPUT . '/' . $name . '/analytics';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $operation = clone $document->paths->{'/ping'}->get;
+        $operation->tags = ['analytics'];
+        $operation->operationId = 'analyticsCreateEvent';
+        $document->paths->{'/analytics/event'} = (object) ['get' => $operation];
+        $document->tags[] = (object) ['name' => 'analytics', 'description' => 'Analytics'];
+
+        $sdk = new SDK($this->language($name), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('client')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $files[\substr((string) $file->getPathname(), \strlen($dir) + 1)] = \strtolower((string) \file_get_contents($file->getPathname()));
+            }
+        }
+
+        return $files;
+    }
+
     public function testJavascriptClientOwnership(): void
     {
         $targets = [

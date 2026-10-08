@@ -7,6 +7,9 @@ jobs:
   publish:
     name: Release build and publish
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Exchanged for a short-lived NuGet API key (trusted publishing)
     steps:
       - name: Check out code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -24,5 +27,11 @@ jobs:
           dotnet build -c Release
           dotnet pack -c Release
 
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: {{ '${{ vars.NUGET_USER }}' }}
+
       - name: Publish nuget
-        run: dotnet nuget push ./Appwrite/bin/Release/*.nupkg --api-key {{ '${{ secrets.NUGET_TOKEN }}' }} --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push ./Appwrite/bin/Release/*.nupkg --api-key {{ '${{ steps.login.outputs.NUGET_API_KEY }}' }} --source https://api.nuget.org/v3/index.json

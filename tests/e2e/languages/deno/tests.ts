@@ -146,6 +146,11 @@ async function start() {
   // @ts-ignore
   console.log(response.result);
 
+  const profile = await general.uploadGeneric<{ result: string }>(
+    appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png")
+  );
+  console.log(profile.prefs.result);
+
   console.log(new TextDecoder().decode(await general.download()));
 
   response = await general.enum(appwrite.MockType.First);

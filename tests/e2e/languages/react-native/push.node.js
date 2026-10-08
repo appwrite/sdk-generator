@@ -9,7 +9,8 @@
 // (as in Expo Go), so background delivery is unavailable and the topic-less subscribe's
 // default falls back to the foreground.
 import { EventEmitter } from 'events';
-import { NativeModules } from 'react-native';
+import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
+import { __test as expoNotifications } from 'expo-notifications';
 import { Client } from './src/client';
 import { Push } from './src/services/push';
 import { Topic } from './src/topic';
@@ -185,15 +186,28 @@ async function main() {
     // not. A stand-in answers for the SDK's native module, which needs an Android device.
     NativeModules.AppwritePush = {
         emitter: new EventEmitter(),
-        host: async () => {},
+        host: async () => true,
         ack: () => {},
         release: async () => {},
         stop: async () => {},
         setForeground: async () => {},
         hasSaved: async () => false,
-        resume: async () => {},
+        resumed: [],
+        resume: async (...args) => {
+            NativeModules.AppwritePush.resumed.push(args);
+        },
+        backgroundStatus: async () =>
+            JSON.stringify({ exactAlarms: false, ignoringBatteryOptimizations: false, foregroundService: false, bestEffort: true }),
+        requestExactAlarms: async () => true,
+        requestIgnoreBatteryOptimizations: async () => false,
         setErrorCallback: async () => null,
         defaultClientId: async () => 'e2e-install',
+        getInitialNotification: async () =>
+            JSON.stringify({ topic: 'news', payload: JSON.stringify({ data: { saleId: '42' } }) }),
+        listening: [],
+        listenOpened: async (listening) => {
+            NativeModules.AppwritePush.listening.push(listening);
+        },
         addListener: () => {},
         removeListeners: () => {},
     };
@@ -201,13 +215,111 @@ async function main() {
     const secondErrors = [];
     const firstUser = new Push(sessionClient).onError((error) => firstErrors.push(error));
     await firstUser.subscribe(['news'], () => {}, { background: true });
-    const secondUser = new Push(client).onError((error) => secondErrors.push(error));
+    const firstClosed = [];
+    firstUser.onClose(() => firstClosed.push(true));
+    const secondOpened = [];
+    const secondClosed = [];
+    const secondUser = new Push(client)
+        .onError((error) => secondErrors.push(error))
+        .onOpen(() => secondOpened.push(true))
+        .onClose(() => secondClosed.push(true));
     await secondUser.subscribe(['news'], () => {}, { background: true });
     await timeout(200);
+    // A Push joining the connected native host hears onOpen once hosting completes, without a
+    // second onOpen for the one already there; a close reaches the hosted ones only.
+    const thirdOpened = [];
+    const thirdClosed = [];
+    const thirdUser = new Push(client)
+        .onOpen(() => thirdOpened.push(true))
+        .onClose(() => thirdClosed.push(true));
+    await thirdUser.subscribe(['sports'], () => {}, { background: true });
+    const firstClosedBefore = firstClosed.length;
+    NativeModules.AppwritePush.emitter.emit('AppwritePushConnection', { connected: false });
+    NativeModules.AppwritePush.emitter.emit('AppwritePushConnection', { connected: false });
+    const nativeConnection =
+        secondOpened.length === 1 && thirdOpened.length === 1 && secondClosed.length === 1 && thirdClosed.length === 1 &&
+        firstClosed.length === firstClosedBefore
+            ? 'Push native connection JS:passed'
+            : `Push native connection JS:failed (opened: ${secondOpened.length}/${thirdOpened.length}, closed: ${secondClosed.length}/${thirdClosed.length}, displaced: ${firstClosed.length - firstClosedBefore})`;
+    thirdUser.close();
     console.log(firstErrors.some((e) => e.message.includes('Background delivery stopped')) && secondErrors.length === 0 ? 'Push native displaced:passed' : 'Push native displaced:failed');
+    console.log(PermissionsAndroid.requested.length === 1 && PermissionsAndroid.requested[0] === 'android.permission.POST_NOTIFICATIONS' ? 'Push notification permission:passed' : 'Push notification permission:failed');
+    // Taps on background notifications: the launching one is parsed to its data, and later ones
+    // reach onNotificationOpened until it is stopped.
+    const launched = await firstUser.getInitialNotification();
+    const tapped = [];
+    const stopOpened = firstUser.onNotificationOpened((opened) => tapped.push(opened));
+    NativeModules.AppwritePush.emitter.emit('AppwritePushOpened', { topic: 'news', payload: JSON.stringify({ data: { saleId: '7' } }) });
+    stopOpened();
+    stopOpened();
+    NativeModules.AppwritePush.emitter.emit('AppwritePushOpened', { topic: 'news', payload: 'not json' });
+    // Background status and the requests reach the native module, and the saved delivery resumed
+    // with the session set on the client, which is never taken for a sign-out.
+    const status = await firstUser.backgroundStatus();
+    const askedExact = await firstUser.requestExactAlarms();
+    const askedBattery = await firstUser.requestIgnoreBatteryOptimizations();
+    const resumed = NativeModules.AppwritePush.resumed.find((args) => args[0] === 'appwrite-session');
+    console.log(nativeConnection);
+    console.log(status?.bestEffort === true && askedExact === true && askedBattery === false && resumed?.[1] === e2eSession && resumed?.[2] === false ? 'Push background status JS:passed' : 'Push background status JS:failed');
+    console.log(launched?.topic === 'news' && launched.data.saleId === '42' && tapped.length === 1 && tapped[0].data.saleId === '7' && NativeModules.AppwritePush.listening.join() === 'true,false' ? 'Push notification opened JS:passed' : 'Push notification opened JS:failed');
+
+    // The same taps outside Android, where expo-notifications posted the notification: the launching
+    // response is read and cleared, notifications the SDK did not post are ignored, and later taps
+    // reach onNotificationOpened until it is stopped.
+    const expoResponse = (data) => ({ notification: { request: { content: { data } } } });
+    const expoTap = (saleId) => expoResponse({ topic: 'news', payload: JSON.stringify({ data: { saleId } }) });
+    Platform.OS = 'ios';
+    const iosPush = new Push(sessionClient);
+    expoNotifications.lastResponse = expoTap('1');
+    const iosLaunched = await iosPush.getInitialNotification();
+    const iosCleared = expoNotifications.lastResponse === null;
+    expoNotifications.lastResponse = expoResponse({ screen: 'other-library' });
+    const iosForeign = await iosPush.getInitialNotification();
+    const iosTapped = [];
+    const stopIos = iosPush.onNotificationOpened((opened) => iosTapped.push(opened));
+    expoNotifications.respond(expoResponse({ screen: 'other-library' }));
+    expoNotifications.respond(expoTap('2'));
+    stopIos();
+    expoNotifications.respond(expoTap('3'));
+    iosPush.close();
+    Platform.OS = 'android';
+    console.log(iosLaunched?.data.saleId === '1' && iosCleared && iosForeign === null && iosTapped.length === 1 && iosTapped[0].data.saleId === '2' ? 'Push notification opened expo:passed' : 'Push notification opened expo:failed');
     firstUser.close();
     secondUser.close();
     delete NativeModules.AppwritePush;
+
+    const closingPush = new Push(
+        new Client().setProject('console').setPushEndpoint(ENDPOINT).setJWT('slow:closing'),
+    );
+    const closingOutcome = closingPush.subscribe(['e2e-switch'], () => {}).then(
+        () => '',
+        (e) => (e instanceof Error ? e.message : String(e)),
+    );
+    await timeout(100);
+    closingPush.close();
+    const closedOutcome = await Promise.race([closingOutcome, timeout(5000, 'timeout')]);
+    console.log(
+        closedOutcome === 'Push was closed before the subscription was established'
+            ? 'Push close while connecting:passed'
+            : `Push close while connecting:failed (${closedOutcome})`,
+    );
+
+    const quickPush = new Push(new Client().setProject('console').setPushEndpoint(ENDPOINT).setSession(e2eSession));
+    let quickOpened = false;
+    quickPush.onOpen(() => (quickOpened = true));
+    const quickOutcome = quickPush.subscribe(['e2e-switch'], () => {}).then(
+        () => '',
+        (e) => (e instanceof Error ? e.message : String(e)),
+    );
+    quickPush.close();
+    const quickClosed = await Promise.race([quickOutcome, timeout(5000, 'timeout')]);
+    await timeout(200);
+    console.log(
+        quickClosed === 'Push was closed before the subscription was established' && !quickOpened
+            ? 'Push close right after subscribe:passed'
+            : `Push close right after subscribe:failed (${quickClosed}, opened: ${quickOpened})`,
+    );
+    quickPush.close();
 
     // mqtt.js keepalive timers would otherwise hold the event loop open.
     process.exit(0);
