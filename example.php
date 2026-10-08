@@ -32,7 +32,7 @@ use Appwrite\SDK\Language\ZedExtension;
 
 final class Config
 {
-    public const string VERSION = '2.3.x';
+    public const string VERSION = '2.4.x';
     public const string SWAGGER2_VERSION = '1.8.x';
     public const string SPECS_URL = 'https://raw.githubusercontent.com/appwrite/specs/main/specs';
     public const string TITLE = 'Appwrite';
@@ -266,18 +266,13 @@ try {
         'services' => [
             ['name' => 'assistant'],
             ['name' => 'avatars'],
-            ['name' => 'advisor'],
             ['name' => 'compute'],
             ['name' => 'apps'],
             ['name' => 'oauth'],
             ['name' => 'organizations'],
             ['name' => 'console'],
             ['name' => 'projects'],
-            ['name' => 'waf'],
             ['name' => 'manager'],
-            ['name' => 'mysql'],
-            ['name' => 'postgresql'],
-            ['name' => 'mongo'],
             ['name' => 'usage'],
         ],
         'methods' => [
@@ -301,6 +296,20 @@ try {
             ['name' => 'listStages'],
             ['name' => 'updateStage'],
             ['name' => 'approve'],
+            // Passkeys are not in the released Go SDK yet
+            ['service' => 'account', 'name' => 'listPasskeys'],
+            ['service' => 'account', 'name' => 'createPasskey'],
+            ['service' => 'account', 'name' => 'getPasskey'],
+            ['service' => 'account', 'name' => 'updatePasskey'],
+            ['service' => 'account', 'name' => 'deletePasskey'],
+            ['service' => 'account', 'name' => 'updatePasskeyVerification'],
+            ['service' => 'account', 'name' => 'createPasskeyToken'],
+            ['service' => 'account', 'name' => 'updatePasskeyToken'],
+            ['service' => 'project', 'name' => 'updatePasskeyPolicy'],
+            ['service' => 'users', 'name' => 'listPasskeys'],
+            ['service' => 'users', 'name' => 'getPasskey'],
+            ['service' => 'users', 'name' => 'updatePasskey'],
+            ['service' => 'users', 'name' => 'deletePasskey'],
         ],
     ];
 
