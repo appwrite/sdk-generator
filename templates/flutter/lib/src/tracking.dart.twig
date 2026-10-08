@@ -35,7 +35,7 @@ import '../{{ language.params.packageName }}.dart' show Analytics;
 ///
 /// ```dart
 /// final tracking = Tracking(Analytics(client), '<PROPERTY_ID>');
-/// tracking.enableAllAutoTracking();
+/// tracking.start();
 ///
 /// runApp(MaterialApp(
 ///   navigatorObservers: [TrackingObserver(tracking)],
@@ -69,9 +69,10 @@ class Tracking with WidgetsBindingObserver {
               ? Uri.base.origin
               : 'app://${defaultTargetPlatform.name.toLowerCase()}');
 
-  /// Enable the opinionated default auto-tracking set. Currently this covers
-  /// lifecycle events; route tracking is opt-in via [TrackingObserver].
-  void enableAllAutoTracking() {
+  /// Start the default auto-tracking set: app-lifecycle events, as
+  /// [enableAutoLifecycleEvents]. Route tracking is opt-in via
+  /// [TrackingObserver].
+  void start() {
     enableAutoLifecycleEvents();
   }
 

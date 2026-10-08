@@ -7,7 +7,7 @@ import type { Analytics } from './analytics';
  *
  * ```ts
  * const tracking = new Tracking(new Analytics(client), '<PROPERTY_ID>');
- * tracking.enableAllAutoTracking();
+ * tracking.start();
  * ```
  *
  * All helpers respect `navigator.doNotTrack === '1'` by default; opt out with
@@ -185,12 +185,12 @@ export class Tracking {
     }
 
     /**
-     * Enable the opinionated default auto-tracking set: pageviews, outbound
-     * links, scroll depth and active engagement time. Downloads must be opted
-     * into separately via `enableAutoDownloadTracking()` because the extension
-     * list is application-specific.
+     * Start the default auto-tracking set: pageviews, outbound links, scroll
+     * depth and active engagement time. Downloads are opt-in via
+     * `enableAutoDownloadTracking()` because the extension list is
+     * application-specific.
      */
-    public enableAllAutoTracking(): void {
+    public start(): void {
         this.enableAutoPageviews();
         this.enableAutoOutboundTracking();
         this.enableAutoScrollDepth();
