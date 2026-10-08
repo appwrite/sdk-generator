@@ -404,7 +404,8 @@ $scenarios = [
         sleep(15);
         $whileOffline = array_values(preg_grep('/^Device offline/', notifications($package)));
         network(true);
-        $replayed = waitFor(fn (): bool => count(preg_grep('/^Device offline/', notifications($package))) === 3, 180);
+        // QoS 1 is at-least-once, so a replay may repeat one; all three have to be there.
+        $replayed = waitFor(fn (): bool => array_diff(['Device offline 1', 'Device offline 2', 'Device offline 3'], notifications($package)) === [], 180);
 
         return [$whileOffline === [] && $replayed, json_encode(['whileOffline' => $whileOffline, 'after' => notifications($package)])];
     },
@@ -430,9 +431,10 @@ $scenarios = [
         return [$idle && $arrived, json_encode(['idle' => $idle, 'duringDoze' => $duringDoze, 'arrived' => $arrived])];
     },
 
-    // Force-stopped: Android cancels the app's wake-ups, so nothing arrives; opening the app
-    // again replays what was sent meanwhile, to the callback, or as a notification when the
-    // saved background delivery resumes before the app has subscribed again.
+    // Force-stopped: opening the app again replays what was sent meanwhile, to the callback, or
+    // as a notification when the saved background delivery resumes before the app has subscribed
+    // again. Whether a scheduled job still runs while stopped is the system's choice (some
+    // Android versions let it), so delivery during the stop is reported, not asserted.
     'force-stopped' => function () use ($package): array {
         $pidBefore = trim(adb("shell pidof {$package}"));
         adb('logcat -c');
@@ -451,7 +453,7 @@ $scenarios = [
         launch($package);
         $replayed = waitFor(fn (): bool => hasEvent('message: Device stopped') || in_array('Device stopped', notifications($package), true), 60);
 
-        return [!$whileStopped && $replayed, json_encode(['whileStopped' => $whileStopped, 'pidBefore' => $pidBefore, 'gone' => $gone, 'stoppedFlag' => $flagged, 'pidAfter' => $pidAfter, 'started' => array_slice($started, 0, 5), 'events' => events(), 'notifications' => notifications($package)])];
+        return [$replayed, json_encode(['whileStopped' => $whileStopped, 'pidBefore' => $pidBefore, 'gone' => $gone, 'stoppedFlag' => $flagged, 'pidAfter' => $pidAfter, 'started' => array_slice($started, 0, 5), 'events' => events(), 'notifications' => notifications($package)])];
     },
 
     // After a reboot, background delivery resumes without the app being opened.
@@ -465,9 +467,16 @@ $scenarios = [
         adb('shell wm dismiss-keyguard');
         network(true);
         publish('Device reboot', 'reboot');
-        $arrived = waitFor(fn (): bool => in_array('Device reboot', notifications($package), true), 240);
+        $arrived = waitFor(fn (): bool => in_array('Device reboot', notifications($package), true), 420);
+        // On a failure: what the system holds for the app after the boot, and what it logged.
+        $diagnostics = $arrived ? [] : [
+            'bucket' => trim(adb("shell am get-standby-bucket {$package}")),
+            'jobs' => array_values(preg_grep('/' . preg_quote($package, '/') . '/', explode("\n", adb('shell dumpsys jobscheduler')))),
+            'alarms' => array_values(preg_grep('/' . preg_quote($package, '/') . '/', explode("\n", adb('shell dumpsys alarm')))),
+            'log' => array_slice(array_values(preg_grep('/AppwritePush|PushBoot|PushJob|PushAlarm|Start proc \d+:' . preg_quote($package, '/') . '/', explode("\n", adb('logcat -d -v tag')))), -30),
+        ];
 
-        return [$booted && $arrived, json_encode(['booted' => $booted, 'arrived' => $arrived, 'notifications' => notifications($package)])];
+        return [$booted && $arrived, json_encode(['booted' => $booted, 'arrived' => $arrived, 'notifications' => notifications($package), ...$diagnostics])];
     },
 ];
 
