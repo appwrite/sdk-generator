@@ -683,6 +683,27 @@ App::get('/v1/mock/tests/general/empty')
         $response->noContent();
     });
 
+App::delete('/v1/mock/tests/general/bodyless')
+    ->desc('Delete Bodyless')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'deleteBodyless')
+    ->label('sdk.description', 'Mock a delete request without params.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->inject('request')
+    ->action(function (Request $request) {
+        $body = $request->getRawPayload();
+
+        if ($body !== '') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Unexpected request body: ' . $body);
+        }
+    });
+
 App::get('/v1/mock/tests/general/list-rows')
     ->desc('List Rows')
     ->groups(['mock'])
