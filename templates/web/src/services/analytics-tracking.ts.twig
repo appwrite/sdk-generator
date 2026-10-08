@@ -1,39 +1,14 @@
+import type { Analytics } from './analytics';
+
 /**
- * Analytics auto-tracking helpers.
- *
- * These are hand-written companions to the generated `Analytics` service.
- * The generated service exposes `createEvent(params)` for arbitrary events;
- * this module wires up common auto-tracking behaviours (pageviews, outbound
- * links, downloads, scroll depth, active engagement) on top of it.
- *
- * The tracking helpers accept a plain event-emitter function so they do not
- * hard-couple to the generated `Analytics` class. The emitter adapts this
- * module's option shape to `createEvent`: `url` is required there, and `props`
- * is a flat alternating key/value list rather than an object.
+ * Auto-tracking helpers for the generated `Analytics` service: pageviews,
+ * outbound links, downloads, scroll depth and active engagement, all sent
+ * through `Analytics.createEvent`.
  *
  * ```ts
- * const analytics = new Analytics(client);
- * const tracking = new AnalyticsTracking(
- *     (name, options) => analytics.createEvent({
- *         propertyId: options?.propertyId ?? '<PROPERTY_ID>',
- *         name,
- *         url: options?.url ?? window.location.href,
- *         referrer: options?.referrer,
- *         scrollDepth: options?.scrollDepth,
- *         engagementTime: options?.engagementTime,
- *         props: Object.entries(options?.props ?? {}).flatMap(
- *             ([key, value]) => [key, String(value)],
- *         ),
- *     }),
- *     { propertyId: '<PROPERTY_ID>' }
- * );
- * tracking.enableAllAutoTracking();
+ * const tracking = new Tracking(new Analytics(client), '<PROPERTY_ID>');
+ * tracking.start();
  * ```
- *
- * `propertyId` is optional: when set it is merged into the options of every
- * emitted event, so an emitter that forwards `options.propertyId` (as above)
- * picks it up instead of every caller hand-rolling it into the closure.
- * Per-event `propertyId` always wins over the configured default.
  *
  * All helpers respect `navigator.doNotTrack === '1'` by default; opt out with
  * `respectDoNotTrack: false` in the constructor options.
@@ -49,33 +24,20 @@
  * themselves.
  */
 
-export type AnalyticsEventOptions = {
+export type TrackingEventOptions = {
     props?: Record<string, unknown>;
-    url?: string;
+    url?: string; // defaults to the current page URL
     referrer?: string;
-    propertyId?: string; // analytics property (or snippet) ID; forwarded to cloud endpoint as top-level param
-    scrollDepth?: number; // 0-100 percentage; forwarded to cloud endpoint as top-level param
-    engagementTime?: number; // seconds since the previous flush; forwarded to cloud endpoint as top-level param
+    scrollDepth?: number; // 0-100 percentage
+    engagementTime?: number; // seconds since the previous flush
 };
 
-export type AnalyticsEventEmitter = (
-    name: string,
-    options?: AnalyticsEventOptions,
-) => unknown;
-
-export type AnalyticsTrackingOptions = {
+export type TrackingOptions = {
     /**
      * When true (default) the tracker becomes a no-op if `navigator.doNotTrack`
      * is set to `'1'`. Set to false to always fire regardless of the DNT signal.
      */
     respectDoNotTrack?: boolean;
-
-    /**
-     * Analytics property (or snippet) ID to attach to every emitted event.
-     * Optional — omit it when the emitter closure already supplies one. A
-     * `propertyId` passed on an individual event takes precedence.
-     */
-    propertyId?: string;
 };
 
 export type OutboundTrackingOptions = {
@@ -188,10 +150,10 @@ const SCROLL_DEPTH_THROTTLE_MS = 200;
 
 type Cleanup = () => void;
 
-export class AnalyticsTracking {
-    private readonly emit: AnalyticsEventEmitter;
+export class Tracking {
+    private readonly analytics: Analytics;
+    private readonly propertyId: string;
     private readonly respectDoNotTrack: boolean;
-    private readonly propertyId?: string;
 
     private pageviewCleanups: Cleanup[] = [];
     private outboundCleanup?: Cleanup;
@@ -208,22 +170,27 @@ export class AnalyticsTracking {
     private engagementAccumulatedMs = 0;
     private engagementActive = false;
 
+    /**
+     * @param analytics - The generated `Analytics` service events are sent through.
+     * @param propertyId - Analytics property every event is recorded against.
+     */
     constructor(
-        emit: AnalyticsEventEmitter,
-        options: AnalyticsTrackingOptions = {},
+        analytics: Analytics,
+        propertyId: string,
+        options: TrackingOptions = {},
     ) {
-        this.emit = emit;
+        this.analytics = analytics;
+        this.propertyId = propertyId;
         this.respectDoNotTrack = options.respectDoNotTrack !== false;
-        this.propertyId = options.propertyId;
     }
 
     /**
-     * Enable the opinionated default auto-tracking set: pageviews, outbound
-     * links, scroll depth and active engagement time. Downloads must be opted
-     * into separately via `enableAutoDownloadTracking()` because the extension
-     * list is application-specific.
+     * Start the default auto-tracking set: pageviews, outbound links, scroll
+     * depth and active engagement time. Downloads are opt-in via
+     * `enableAutoDownloadTracking()` because the extension list is
+     * application-specific.
      */
-    public enableAllAutoTracking(): void {
+    public start(): void {
         this.enableAutoPageviews();
         this.enableAutoOutboundTracking();
         this.enableAutoScrollDepth();
@@ -231,17 +198,35 @@ export class AnalyticsTracking {
     }
 
     /**
-     * Track an event manually. Respects the DNT setting and swallows emitter
-     * exceptions so tracking failures never surface to the host page.
+     * Track an event manually. Respects the DNT setting and swallows request
+     * failures so tracking never surfaces errors to the host page.
      */
-    public track(name: string, options?: AnalyticsEventOptions): void {
+    public track(name: string, options: TrackingEventOptions = {}): void {
         if (!this.canTrack()) {
             return;
         }
         try {
-            this.emit(name, this.withPropertyId(options));
+            // Missing required params throw synchronously rather than rejecting.
+            this.analytics
+                .createEvent({
+                    propertyId: this.propertyId,
+                    name,
+                    url: options.url ?? this.currentPageUrl(),
+                    referrer: options.referrer,
+                    scrollDepth: options.scrollDepth,
+                    engagementTime: options.engagementTime,
+                    // The endpoint takes props as a flat alternating key/value list.
+                    props: options.props
+                        ? Object.entries(options.props).flatMap(
+                              ([key, value]) => [key, String(value)],
+                          )
+                        : undefined,
+                })
+                .catch((error) => {
+                    console.warn('Tracking: failed to send event', error);
+                });
         } catch (error) {
-            console.warn('AnalyticsTracking: emitter threw', error);
+            console.warn('Tracking: failed to send event', error);
         }
     }
 
@@ -634,24 +619,6 @@ export class AnalyticsTracking {
         this.engagementStart = 0;
     }
 
-    /**
-     * Merge the configured `propertyId` into an event's options. Returns the
-     * caller's object untouched when no default is configured (or the event
-     * already carries one), so emitters written against the pre-`propertyId`
-     * shape keep receiving exactly what they received before.
-     */
-    private withPropertyId(
-        options?: AnalyticsEventOptions,
-    ): AnalyticsEventOptions | undefined {
-        if (
-            this.propertyId === undefined ||
-            options?.propertyId !== undefined
-        ) {
-            return options;
-        }
-        return { ...(options ?? {}), propertyId: this.propertyId };
-    }
-
     private canTrack(): boolean {
         if (!this.respectDoNotTrack) {
             return true;
@@ -778,8 +745,6 @@ export class AnalyticsTracking {
         // fraction of a second to rounding on every one of them.
         const seconds = Math.floor(this.engagementAccumulatedMs / 1000);
         if (seconds > 0) {
-            // Deduct before emitting so a synchronous emitter that re-enters
-            // (or throws) can never bill the same seconds again.
             this.engagementAccumulatedMs -= seconds * 1000;
             this.track('engagement_time', {
                 url,
