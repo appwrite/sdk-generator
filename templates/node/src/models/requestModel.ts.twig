@@ -1,16 +1,21 @@
-{%~ set importedEnums = [] %}
-{%~ set importedSchemas = [] %}
-{%~ for property in requestModel.properties %}
-{%~ if (property | enumValues) is not empty and (property | enumName) not in importedEnums %}
+{% set importedEnums = [] %}
+{% set importedSchemas = [] %}
+{% set imports %}
+{% for property in requestModel.properties %}
+{% if (property | enumValues) is not empty and (property | enumName) not in importedEnums %}
 import { {{ (property | enumName) | caseUcfirst }} } from '../enums/{{ (property | enumName) | caseKebab }}';
-{%~ set importedEnums = importedEnums | merge([(property | enumName)]) %}
-{%~ endif %}
-{%~ if (property | schemaModel) and (property | schemaModel) not in importedSchemas %}
-import { {{ (property | schemaModel) | caseUcfirst }}, {{ (property | schemaModel) | caseCamel }}ToMap } from './{{ (property | schemaModel) | caseKebab }}';
-{%~ set importedSchemas = importedSchemas | merge([(property | schemaModel)]) %}
-{%~ endif %}
-{%~ endfor %}
+{% set importedEnums = importedEnums | merge([(property | enumName)]) %}
+{% endif %}
+{% if (property | schemaModel) and (property | schemaModel) not in importedSchemas %}
+{{ ['type ' ~ ((property | schemaModel) | caseUcfirst), ((property | schemaModel) | caseCamel) ~ 'ToMap'] | jsImport('./' ~ ((property | schemaModel) | caseKebab)) | raw }}
+{% set importedSchemas = importedSchemas | merge([(property | schemaModel)]) %}
+{% endif %}
+{% endfor %}
+{% endset %}
+{% if imports | trim is not empty %}
+{{ imports | trim | raw }}
 
+{% endif %}
 /**
  * {{ requestModel.description }}
  */
@@ -19,17 +24,26 @@ export interface {{ requestModelName | caseUcfirst }} {
     /**
      * {{ property.description }}
      */
-    {{ (property | schemaName) | escapeKeyword }}{% if not (property | schemaRequired) %}?{% endif %}: {{ property | getPropertyType(spec) }};
+    {{ (((property | schemaName) | escapeKeyword) ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty(((property | getPropertyType(spec)) | replace({'Models.': ''})), 4) | raw }}
     {%~ endfor %}
 }
 
 /**
  * Helper function to convert {{ requestModelName | caseUcfirst }} to a plain object
  */
-export function {{ requestModelName | caseCamel }}ToMap(model: {{ requestModelName | caseUcfirst }}): Record<string, unknown> {
+{{ ('export function ' ~ (requestModelName | caseCamel) ~ 'ToMap') | tsSignature(['model: ' ~ (requestModelName | caseUcfirst)], 'Record<string, unknown>', 0, ' {') | raw }}
     return {
         {%~ for property in requestModel.properties %}
-        '{{ (property | schemaName) }}': {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}model.{{ (property | schemaName) | escapeKeyword }}{% if not (property | schemaRequired) %}?{% endif %}.map(item => {{ (property | schemaModel) | caseCamel }}ToMap(item)){% else %}model.{{ (property | schemaName) | escapeKeyword }} ? {{ (property | schemaModel) | caseCamel }}ToMap(model.{{ (property | schemaName) | escapeKeyword }}) : undefined{% endif %}{% elseif (property | enumValues) is not empty %}model.{{ (property | schemaName) | escapeKeyword }}{% else %}model.{{ (property | schemaName) | escapeKeyword }}{% endif %},
+        {%~ set value = 'model.' ~ ((property | schemaName) | escapeKeyword) %}
+        {%~ if (property | schemaModel) %}
+        {%~ set mapper = ((property | schemaModel) | caseCamel) ~ 'ToMap' %}
+        {%~ if (property | schemaType) == 'array' %}
+        {%~ set value = value ~ ((property | schemaRequired) ? '' : '?') ~ '.map(' ~ mapper ~ ')' %}
+        {%~ else %}
+        {%~ set value = value ~ ' ? ' ~ mapper ~ '(' ~ value ~ ') : undefined' %}
+        {%~ endif %}
+        {%~ endif %}
+        {{ (property | schemaName) | jsKey | raw }}: {{ value | raw }},
         {%~ endfor %}
     };
 }

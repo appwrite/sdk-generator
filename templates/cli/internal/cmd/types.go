@@ -213,7 +213,7 @@ func runTypes(command *cobra.Command, rawOutput, requested string, strict bool) 
 		directory, singleFile = filepath.Dir(rawOutput), rawOutput
 	}
 
-	collections, kind, err := collectionsForTypes(config.LocalFileName)
+	collections, kind, err := collectionsForTypes(config.LocalPathOr(config.LocalFileName))
 	if err != nil {
 		return err
 	}

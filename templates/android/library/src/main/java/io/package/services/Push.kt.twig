@@ -1,0 +1,1018 @@
+package {{ sdk.namespace | caseDot }}.services
+
+import android.Manifest
+import android.app.Activity
+import android.app.Application
+import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.util.Log
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.hivemq.client.mqtt.datatypes.MqttQos
+import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
+import {{ sdk.namespace | caseDot }}.Client
+import {{ sdk.namespace | caseDot }}.ResolvedTopic
+import {{ sdk.namespace | caseDot }}.Service
+import {{ sdk.namespace | caseDot }}.Topic
+import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
+import java.lang.ref.WeakReference
+import java.net.URI
+import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
+
+private const val LOG_TAG = "{{ spec.info.title | caseUcfirst }}Push"
+
+/** A background notification the user tapped. */
+data class PushNotificationOpened(
+    /** The topic the message was published to. */
+    val topic: String,
+    /** The `data` sent with the message (e.g. `createPush`), parsed; empty when it had none. */
+    val data: Map<String, Any?>,
+) {
+    internal companion object {
+        fun of(tap: PushTap): PushNotificationOpened {
+            val data = try {
+                JSONObject(tap.payload).optJSONObject("data")?.toMap()
+            } catch (e: JSONException) {
+                null
+            }
+            return PushNotificationOpened(tap.topic, data ?: emptyMap())
+        }
+
+        private fun JSONObject.toMap(): Map<String, Any?> = keys().asSequence().associateWith { jsonValue(get(it)) }
+
+        private fun jsonValue(value: Any?): Any? = when (value) {
+            JSONObject.NULL -> null
+            is JSONObject -> value.toMap()
+            is JSONArray -> (0 until value.length()).map { jsonValue(value.get(it)) }
+            else -> value
+        }
+    }
+}
+
+/**
+ * Handle for a live subscription created with [Push.subscribe].
+ *
+ * Unlike the realtime service's bare unsubscribe callable, a push subscription carries
+ * per-subscription state (background delivery, notification title), so [Push.subscribe]
+ * returns this handle: [unsubscribe] drops it (and closes the connection once the last one
+ * is gone) and [update] toggles its options live without resubscribing.
+ */
+class PushSubscription internal constructor(
+    private val unsubscribeAction: () -> Unit,
+    private val updateAction: (Boolean?, String?, Boolean?, Boolean?) -> Unit,
+) {
+    /** Drop this subscription. Closes the connection once the last one is gone. */
+    fun unsubscribe() = unsubscribeAction()
+
+    /**
+     * Live-update this subscription's background delivery, notification title, `retry` (QoS)
+     * and/or `notifyInForeground`. Only the arguments you pass change; the rest stay as they
+     * were. Changing `retry` re-subscribes this subscription's topics at the new QoS.
+     */
+    @JvmOverloads
+    fun update(background: Boolean? = null, title: String? = null, retry: Boolean? = null, notifyInForeground: Boolean? = null) =
+        updateAction(background, title, retry, notifyInForeground)
+}
+
+/**
+ * {{ spec.info.title | caseUcfirst }} native push service — the realtime analog delivered over an MQTT broker,
+ * without FCM or APNS.
+ *
+ * While the app process is alive the connection stays open and each message is handed to
+ * your callback. A subscription can also opt into background delivery (`background = true`):
+ * it is saved, and keeps delivering while the app is backgrounded, after the process is
+ * killed, and after a reboot or an app update, until it is unsubscribed or [close] is called
+ * (e.g. on sign-out). No service is kept running for it: a scheduled job and alarm wake the
+ * process every 15 to 60 seconds to reconnect, and the broker keeps the messages sent in
+ * between and replays them (for `retry = true`). While the process is alive, messages arrive
+ * immediately. [setForeground] adds a foreground service for immediate delivery even after a kill
+ * and during Doze. Messages no in-app callback receives (the process was started in the
+ * background) go to a declared [PushReceiver], and are posted as a notification that opens
+ * the app unless it handles them. While any background subscription exists, all subscriptions
+ * share its connection.
+ *
+ * Background delivery reconnects with the credential saved at subscribe time, so use a session
+ * (the app's sign-in session, or `Client.setSession`) for it: a JWT expires after minutes. A refused credential stops
+ * background delivery and reaches [onError], also when it was registered later.
+ *
+ * The credential is read off the client: a JWT or session set on it (`Client.setJWT` /
+ * `Client.setSession`), else the session the app signed in with through it (e.g.
+ * `Account.createEmailPasswordSession`).
+ *
+ * The connection always keeps its session (clean start off) so the broker can redeliver
+ * missed messages, and reliability is chosen per subscription via [subscribe]'s
+ * `retry`. The broker owns the replay window server-side (no MQTT session-expiry
+ * is set). The client id defaults to one per user and install, so replay resumes across
+ * restarts; `Client.setPushClientId(...)` overrides it. TLS (and skipping cert verification via a `?tlsInsecure=true` query flag) is
+ * derived from the endpoint, so the whole connection is described in one place.
+ *
+ * ```kotlin
+ * val client = Client().setEndpoint("...").setProject("...").setJWT(jwt)
+ * val push = Push(client, context)
+ * val sub = push.subscribe("user/123/#") { message ->
+ *     println("${'$'}{message.topic}: ${'$'}{message.data}")
+ * }
+ * // ...later
+ * sub.unsubscribe()
+ *
+ * // Or, with no topic, the signed-in user's own topic (`users/<userId>`):
+ * push.subscribe { message -> println(message.data) }
+ * ```
+ */
+class Push(
+    client: Client,
+    context: Context,
+) : Service(client) {
+
+    // The broker location is taken from Client.setPushEndpoint() when set (e.g.
+    // "mqtts://host:8883"), otherwise from the regular endpoint.
+    private val pushEndpoint: String = client.endpointPush ?: client.endpoint
+
+    // When no explicit push endpoint is set, default to a `push.` host on the regular endpoint
+    // (mirroring how realtime derives from the endpoint, on the push subdomain).
+    private val host: String =
+        (runCatching { URI(pushEndpoint).host }.getOrNull() ?: "localhost")
+            .let { if (client.endpointPush != null) it else "push.$it" }
+
+    // Secure by default: TLS on when the endpoint scheme is secure (https/wss/mqtts/ssl), so
+    // the credential in the CONNECT packet is not sent in the clear.
+    private val tls: Boolean =
+        runCatching { URI(pushEndpoint).scheme }.getOrNull()?.lowercase() in listOf("https", "wss", "mqtts", "ssl")
+
+    // Take the port from the push endpoint only (a regular http/https endpoint's port is the
+    // API port, not the broker's); otherwise fall back to the MQTT default for the TLS mode.
+    private val port: Int =
+        client.endpointPush?.let { runCatching { URI(it).port.takeIf { p -> p != -1 } }.getOrNull() }
+            ?: (if (tls) 8883 else 1883)
+
+    // Skip TLS cert verification (self-signed brokers / testing) via a query flag on the push
+    // endpoint, e.g. "mqtts://host:8883?tlsInsecure=true" — so the whole connection is
+    // described by one URL, not a second config knob.
+    private val tlsInsecure: Boolean =
+        client.endpointPush?.let {
+            runCatching {
+                val query = URI(it).query ?: ""
+                query.split("&").any { p -> p == "tlsInsecure=true" || p == "tlsInsecure=1" }
+            }.getOrDefault(false)
+        } ?: false
+
+    // Read on the MQTT client's threads to tell a closed/replaced client's failures apart.
+    @Volatile
+    private var mqtt: Mqtt5AsyncClient? = null
+
+    // Set when [mqtt] is replaced or closed, so that client never reconnects in the background.
+    private var mqttRetired: AtomicBoolean? = null
+
+    private var connectedConfig: PushConfig? = null
+    private val connectLock = Any()
+
+    @Volatile
+    private var connectionEpoch = 0
+
+    // Local id -> subscription (filter + callback + per-sub options). The id is never sent to
+    // the broker; it only lets the same topic carry more than one callback. HiveMQ callbacks
+    // look their subscription up by id on delivery, because a callback stays attached to its
+    // filter until the filter itself is unsubscribed, which waits for the filter's last sub.
+    private val subscriptions = ConcurrentHashMap<String, Sub>()
+
+    // Whether the connection currently lives in the process-wide background host (its own MQTT
+    // client) rather than here. It moves there while any subscription, live or saved by an
+    // earlier run, wants background, and back here once none do — one connection either way.
+    private var backgroundActive = false
+
+    // For background delivery: its saved state, scheduled runs, service and notifications.
+    private val appContext: Context = context.applicationContext
+
+    init {
+        NotificationPermissionPrompt.track(context)
+        // Resume saved background delivery now, instead of at the next scheduled run, with the
+        // credential set on the client: a rotated session of the same user replaces the saved one.
+        val auth = runCatching { resolvePushAuth(client) }.getOrNull()
+        PushBackground.resume(appContext, auth?.first, auth?.second)
+    }
+
+    private var onOpen: (() -> Unit)? = null
+    private var onClose: (() -> Unit)? = null
+    private var onError: ((Throwable) -> Unit)? = null
+
+    private class Sub(
+        val filter: String,
+        val callback: (PushMessage) -> Unit,
+        var background: Boolean,
+        var title: String?,
+        var retry: Boolean,
+        var notifyInForeground: Boolean,
+    ) {
+        @Volatile
+        var client: Mqtt5AsyncClient? = null
+    }
+
+    // The broker subscription for a filter uses the highest QoS any subscription on it wants,
+    // so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
+    private fun effectiveQos(filter: String): MqttQos =
+        if (subscriptions.values.any { it.filter == filter && it.retry }) {
+            MqttQos.AT_LEAST_ONCE
+        } else {
+            MqttQos.AT_MOST_ONCE
+        }
+
+    /** Register a callback invoked when the connection opens. */
+    fun onOpen(callback: () -> Unit): Push {
+        onOpen = callback
+        return this
+    }
+
+    /** Register a callback invoked when the connection closes. */
+    fun onClose(callback: () -> Unit): Push {
+        onClose = callback
+        return this
+    }
+
+    /**
+     * Register a callback invoked on every error the push service hits: a failed connect or
+     * automatic reconnect, a lost connection, a broker DISCONNECT, a rejected SUBSCRIBE or
+     * UNSUBSCRIBE, a foreground-service failure, and the failure of a [subscribe],
+     * [PushSubscription.update] or [PushSubscription.unsubscribe] call (which still throws to
+     * its caller). When the broker explains a refused connection or a DISCONNECT with an MQTT 5
+     * Reason String, that is the error's message.
+     *
+     * Errors outside a call (on the MQTT client's or the foreground service's threads) are never
+     * thrown, so they cannot crash the app: with no callback registered they are logged. A
+     * failing call still throws to its caller.
+     */
+    fun onError(callback: (Throwable) -> Unit): Push {
+        onError = callback
+        PushBackground.errorHandler = { deliverBackgroundError(it) }
+        // A refused credential that stopped background delivery while no onError was registered.
+        PushStore.takeStoppedError(appContext)?.let { report({{ spec.info.title | caseUcfirst }}Exception(it)) }
+        return this
+    }
+
+    /**
+     * Run background delivery in a foreground service (with a quiet ongoing
+     * notification), for immediate delivery even after the process is killed and during Doze,
+     * instead of only the scheduled runs. Saved, so it applies after restarts too; call it from
+     * the foreground (Android 12+ refuses to start the service from the background). Apps that
+     * never enable it can remove the service from their merged manifest. It only affects
+     * `background = true` subscriptions; `background = false` ones still deliver only while the
+     * app process is alive.
+     */
+    fun setForeground(enabled: Boolean): Push {
+        PushBackground.setForeground(appContext, enabled)
+        return this
+    }
+
+    /**
+     * The background notification whose tap launched the app, or null. Reported once; call it
+     * when the app starts, e.g. to open the screen the message is about.
+     *
+     * ```kotlin
+     * push.getInitialNotification()?.let { openSale(it.data["saleId"]) }
+     * ```
+     */
+    fun getInitialNotification(): PushNotificationOpened? = PushTaps.take()?.let { PushNotificationOpened.of(it) }
+
+    /**
+     * Call [callback] on the main thread each time the user taps a background notification while
+     * the app is running, including in the background. Returns a function that stops listening.
+     * The tap that launched the app comes from [getInitialNotification] instead, as does a tap
+     * made while nothing listens.
+     *
+     * ```kotlin
+     * val stop = push.onNotificationOpened { openSale(it.data["saleId"]) }
+     * ```
+     */
+    fun onNotificationOpened(callback: (PushNotificationOpened) -> Unit): () -> Unit =
+        PushTaps.listen { callback(PushNotificationOpened.of(it)) }
+
+    /**
+     * Subscribe to the signed-in user's own topic, `users/<userId>` — "messages for me"
+     * without knowing any topic, e.g. `push.subscribe { message -> ... }`.
+     *
+     * The user id is read locally from the client's credential: the `userId` claim of the JWT
+     * (`Client.setJWT`), else the `id` in the session (`Client.setSession`, or the session the app
+     * signed in with through the client).
+     * Throws when neither yields one. Like FCM/APNs delivery, it defaults to [background] `true`
+     * (keeps delivering while the app is backgrounded or closed) and [retry]
+     * `true` (QoS 1); pass either to override. Otherwise the options and the returned
+     * [PushSubscription] behave exactly as when subscribing to that topic; see the
+     * `List<String>` overload.
+     */
+    @JvmOverloads
+    fun subscribe(
+        background: Boolean = true,
+        title: String? = null,
+        retry: Boolean = true,
+        notifyInForeground: Boolean = false,
+        callback: (PushMessage) -> Unit,
+    ): PushSubscription {
+        val userId = reporting { resolvePushUserId(client) }
+        return subscribe(Topic.path(listOf("users", userId)), background, title, retry, notifyInForeground, callback)
+    }
+
+    /**
+     * Subscribe to a single topic. Returns a [PushSubscription] handle.
+     *
+     * On Android 13+ the first `background = true` subscription asks for the
+     * `POST_NOTIFICATIONS` runtime permission; see [requestNotificationPermission].
+     */
+    @JvmOverloads
+    fun subscribe(
+        topic: String,
+        background: Boolean = false,
+        title: String? = null,
+        retry: Boolean = true,
+        notifyInForeground: Boolean = false,
+        callback: (PushMessage) -> Unit,
+    ): PushSubscription =
+        subscribe(listOf(topic), background, title, retry, notifyInForeground, callback)
+
+    /**
+     * Subscribe to a single topic built with [{{ sdk.namespace | caseDot }}.Topic], e.g.
+     * `push.subscribe(Topic.path(listOf("user", userId)).any()) { message -> ... }`.
+     * Returns a [PushSubscription] handle; see the `List<String>` overload for the options.
+     */
+    @JvmOverloads
+    fun subscribe(
+        topic: Topic,
+        background: Boolean = false,
+        title: String? = null,
+        retry: Boolean = true,
+        notifyInForeground: Boolean = false,
+        callback: (PushMessage) -> Unit,
+    ): PushSubscription =
+        subscribe(listOf(topic.toString()), background, title, retry, notifyInForeground, callback)
+
+    /**
+     * Subscribe to a single topic ended with `all()`, e.g.
+     * `push.subscribe(Topic.path(listOf("user", userId)).all()) { message -> ... }`.
+     * Returns a [PushSubscription] handle; see the `List<String>` overload for the options.
+     */
+    @JvmOverloads
+    fun subscribe(
+        topic: ResolvedTopic,
+        background: Boolean = false,
+        title: String? = null,
+        retry: Boolean = true,
+        notifyInForeground: Boolean = false,
+        callback: (PushMessage) -> Unit,
+    ): PushSubscription =
+        subscribe(listOf(topic.toString()), background, title, retry, notifyInForeground, callback)
+
+    /**
+     * Subscribe to a list mixing raw strings and topics built with [{{ sdk.namespace | caseDot }}.Topic], e.g.
+     * `push.subscribe(listOf("news", Topic.path(listOf("chat")).any())) { message -> ... }`.
+     * Each element must be a `String`, `Topic` or `ResolvedTopic` (Kotlin has no common type for
+     * them, so this is checked at runtime). Returns a [PushSubscription] handle; see the
+     * `List<String>` overload for the options.
+     */
+    @JvmOverloads
+    @JvmName("subscribeTopics")
+    fun subscribe(
+        topics: List<Any>,
+        background: Boolean = false,
+        title: String? = null,
+        retry: Boolean = true,
+        notifyInForeground: Boolean = false,
+        callback: (PushMessage) -> Unit,
+    ): PushSubscription {
+        val filters = topics.mapIndexed { index, topic ->
+            require(topic is String || topic is Topic || topic is ResolvedTopic) {
+                "topics[$index] must be a String, Topic or ResolvedTopic, got ${topic::class.simpleName}"
+            }
+            topic.toString()
+        }
+        return subscribe(filters, background, title, retry, notifyInForeground, callback)
+    }
+
+    /**
+     * Subscribe to one or more topics. Returns a [PushSubscription] handle.
+     *
+     * Topics are MQTT filters: pass raw strings, or build them with [{{ sdk.namespace | caseDot }}.Topic]
+     * through the `Topic` overloads, e.g. `push.subscribe(Topic.path(listOf("user")).any()) { ... }`.
+     *
+     * For a foreground subscription this blocks until the broker has acknowledged every
+     * SUBSCRIBE (SUBACK): the broker only starts routing a topic once its subscription is
+     * registered, so publishing before the ack races the message ahead of the subscription
+     * and it is dropped (no retained replay on MQTT).
+     *
+     * Set [background] to keep receiving while the app is backgrounded or closed, also after the
+     * process is killed or the device restarts, and post a notification per matching message
+     * with [title] (defaulting to the message topic) while the app is not on screen; set
+     * [notifyInForeground] to also post one while it is. See the class docs. [retry] chooses this
+     * subscription's QoS
+     * (`true` -> QoS 1 default, `false` -> QoS 0). Toggle any of these later with
+     * [PushSubscription.update].
+     *
+     * Note: a `background` subscription hands the connection to the background host, which
+     * connects and subscribes asynchronously and retries failures on its next run — so it
+     * returns once the host has been handed the subscription, **not** after SUBACK (the SUBACK
+     * guarantee above holds for foreground subscriptions). [onOpen]/[onClose] observe only the
+     * in-process (foreground) connection, not the background one; [onError] observes both.
+     */
+    @JvmOverloads
+    fun subscribe(
+        topics: List<String>,
+        background: Boolean = false,
+        title: String? = null,
+        retry: Boolean = true,
+        notifyInForeground: Boolean = false,
+        callback: (PushMessage) -> Unit,
+    ): PushSubscription = reporting {
+        val ids = mutableListOf<String>()
+        for (topic in topics) {
+            val id = UUID.randomUUID().toString()
+            ids.add(id)
+            subscriptions[id] = Sub(topic, callback, background, title, retry, notifyInForeground)
+        }
+
+        // If any SUBSCRIBE fails, roll this call's registrations back and return to a
+        // consistent host for whatever subscriptions remain, then rethrow.
+        try {
+            if (hostedInBackground()) {
+                hostInBackground()
+            } else {
+                subscribeInProcess(ids)
+            }
+        } catch (e: Exception) {
+            for (id in ids) {
+                subscriptions.remove(id)
+            }
+            if (subscriptions.isEmpty()) {
+                releaseAll()
+            } else {
+                reconcile()
+            }
+            throw e
+        }
+
+        PushSubscription(
+            { reporting { unsubscribeIds(ids) } },
+            { bg, t, rd, nf -> reporting { updateIds(ids, bg, t, rd, nf) } },
+        )
+    }
+
+    // Every error the service hits goes through here: to onError when one is registered. It is
+    // never thrown from here (these errors arrive on HiveMQ's or the service's threads, where a
+    // throw would crash the app), so with no onError it is logged, like Realtime does.
+    private fun report(error: Throwable) {
+        val callback = onError
+        if (callback == null) {
+            Log.e(LOG_TAG, "Push error", error)
+            return
+        }
+        try {
+            callback(error)
+        } catch (callbackError: Exception) {
+            Log.e(LOG_TAG, "Push onError threw", callbackError)
+        }
+    }
+
+    // Run a call that fails by throwing to its caller: the failure also reaches onError when one
+    // is registered, and is still thrown to the caller, who can catch it.
+    private fun <T> reporting(block: () -> T): T = try {
+        block()
+    } catch (e: Exception) {
+        if (onError != null) {
+            report(e)
+        }
+        throw e
+    }
+
+    // report() for an error raised on the MQTT client's (or the background host's) thread.
+    private fun reportAsync(error: Throwable) = report(error)
+
+    // A background host error, for its errorHandler: delivered to onError when one is registered.
+    // Returns false when none is, so the host logs it (and keeps a refusal for a later onError).
+    private fun deliverBackgroundError(error: Throwable): Boolean {
+        if (onError == null) {
+            return false
+        }
+        report(error)
+        return true
+    }
+
+    // Report a fire-and-forget request's failure (e.g. a SUBACK/UNSUBACK error code) unless
+    // [client] was closed or replaced meanwhile, which fails its pending requests on purpose.
+    private fun CompletableFuture<*>.reportFailure(client: Mqtt5AsyncClient) {
+        whenComplete { _, error ->
+            if (error != null && mqtt === client) {
+                reportAsync(error)
+            }
+        }
+    }
+
+    // In-process host: connect and register this call's new filters, blocking on each SUBACK.
+    private fun subscribeInProcess(ids: List<String>) {
+        while (true) {
+            val (client, epoch) = synchronized(connectLock) { connect() to connectionEpoch }
+            try {
+                for (id in ids) {
+                    val sub = subscriptions[id] ?: continue
+                    if (sub.client === client) {
+                        continue
+                    }
+                    client.subscribeWith()
+                        .topicFilter(sub.filter)
+                        .qos(effectiveQos(sub.filter))
+                        .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
+                        .send()
+                        .get()
+                    sub.client = client
+                }
+                return
+            } catch (e: Exception) {
+                if (epoch == connectionEpoch) {
+                    throw e
+                }
+            }
+        }
+    }
+
+    // Close the in-process client for good: retired first, so one still reconnecting in the
+    // background does not come back as a second connection for the same client id.
+    private fun dropClient() {
+        mqttRetired?.set(true)
+        mqttRetired = null
+        mqtt?.disconnect()
+        mqtt = null
+    }
+
+    // Whether this Push reported the background host's connection open.
+    @Volatile
+    private var backgroundOpen = false
+
+    // The background host's connection opened or closed: report it once per change.
+    private fun backgroundConnection(open: Boolean) {
+        if (backgroundOpen == open) {
+            return
+        }
+        backgroundOpen = open
+        try {
+            if (open) onOpen?.invoke() else onClose?.invoke()
+        } catch (e: Exception) {
+            Log.e(LOG_TAG, "Push connection callback threw", e)
+        }
+    }
+
+    // Stop listening to the background host, reporting its connection closing when this Push
+    // reported it open, as the in-process connection reports its own close.
+    private fun leaveBackgroundHost() {
+        PushBackground.connectionHandler = null
+        backgroundConnection(false)
+    }
+
+    // Relocate the connection into the background host and sync it with the current
+    // subscription set (filters, per-sub callbacks/titles), saving the background ones.
+    private fun hostInBackground() {
+        NotificationPermissionPrompt.ask(appContext)
+        dropClient()
+        subscriptions.values.forEach { it.client = null }
+        PushBackground.errorHandler = { deliverBackgroundError(it) }
+        PushBackground.connectionHandler = { open -> backgroundConnection(open) }
+        // Joining a connection a background run already opened: report it open now.
+        if (PushBackground.isConnected) {
+            backgroundConnection(true)
+        }
+        PushBackground.host(appContext, buildConfig(), currentListeners())
+        backgroundActive = true
+    }
+
+    // Bring the in-process connection up and (re)register every filter — used when the last
+    // background subscription goes away and the connection relocates back in-process.
+    private fun ensureInProcessSubscribed() {
+        val client = connect()
+        for ((id, sub) in subscriptions) {
+            if (sub.client === client) {
+                continue
+            }
+            client.subscribeWith()
+                .topicFilter(sub.filter)
+                .qos(effectiveQos(sub.filter))
+                .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
+                .send()
+                .reportFailure(client)
+            sub.client = client
+        }
+    }
+
+    // Re-subscribe a filter in-process at its new effective QoS. Unsubscribe first so the
+    // per-subscribe HiveMQ callbacks are not duplicated, then re-add one per sub on the filter.
+    private fun resubscribeFilterInProcess(filter: String) {
+        val client = mqtt ?: return
+        client.unsubscribeWith().topicFilter(filter).send().reportFailure(client)
+        val qos = effectiveQos(filter)
+        for ((id, sub) in subscriptions.filter { it.value.filter == filter }) {
+            client.subscribeWith()
+                .topicFilter(filter)
+                .qos(qos)
+                .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
+                .send()
+                .reportFailure(client)
+            sub.client = client
+        }
+    }
+
+    // Ensure the correct host (in-process vs service) for whatever subscriptions remain, and
+    // sync it. Called after an unsubscribe/update may have flipped whether background is wanted.
+    // Only acts on a host change; an in-process update that changes QoS is applied by the
+    // caller (so an unchanged in-process host is not needlessly resubscribed).
+    private fun reconcile() {
+        if (subscriptions.isEmpty()) {
+            return
+        }
+        if (hostedInBackground()) {
+            // Relocate to (or re-sync) the background host, which applies added/removed/QoS-changed topics.
+            hostInBackground()
+        } else if (backgroundActive) {
+            // Relocate back in-process.
+            backgroundActive = false
+            leaveBackgroundHost()
+            PushBackground.release(appContext)
+            ensureInProcessSubscribed()
+        }
+    }
+
+    private fun unsubscribeIds(ids: List<String>) {
+        val wasService = backgroundActive
+        val maybeDowngrade = mutableSetOf<String>()
+        for (id in ids) {
+            val entry = subscriptions.remove(id)
+            val filter = entry?.filter
+            if (entry?.retry == true && filter != null) {
+                maybeDowngrade.add(filter)
+            }
+            // In-process only: drop the broker filter once its last local callback is gone.
+            if (!wasService && filter != null && subscriptions.values.none { it.filter == filter }) {
+                mqtt?.let { client -> client.unsubscribeWith().topicFilter(filter).send().reportFailure(client) }
+            }
+        }
+        if (subscriptions.isEmpty()) {
+            releaseAll()
+            return
+        }
+        // A removed sub may have been the last background one (relocate in-process) or just
+        // change the service's topic/QoS set (the service re-sync applies the new QoS).
+        if (wasService) {
+            reconcile()
+            return
+        }
+        // In-process, a filter that lost its last QoS-1 sub but still has QoS-0 subs must be
+        // re-subscribed lower, or the broker keeps replaying to at-most-once subs.
+        for (filter in maybeDowngrade) {
+            if (subscriptions.values.any { it.filter == filter } && effectiveQos(filter) == MqttQos.AT_MOST_ONCE) {
+                resubscribeFilterInProcess(filter)
+            }
+        }
+    }
+
+    private fun updateIds(ids: List<String>, background: Boolean?, title: String?, retry: Boolean?, notifyInForeground: Boolean?) {
+        val changedFilters = mutableSetOf<String>()
+        for (id in ids) {
+            val sub = subscriptions[id] ?: continue
+            if (background != null) {
+                sub.background = background
+            }
+            if (title != null) {
+                sub.title = title
+            }
+            if (notifyInForeground != null) {
+                sub.notifyInForeground = notifyInForeground
+            }
+            if (retry != null && retry != sub.retry) {
+                sub.retry = retry
+                changedFilters.add(sub.filter)
+            }
+        }
+        val wasService = backgroundActive
+        // Handle any host change (relocation); a relocated host resubscribes everything fresh.
+        reconcile()
+        // Apply QoS changes to a host that did not relocate: the service re-sync above already
+        // covers the service host, so only the steady in-process host needs an explicit resub.
+        if (!hostedInBackground() && !wasService) {
+            for (filter in changedFilters) {
+                resubscribeFilterInProcess(filter)
+            }
+        }
+    }
+
+    // The connection lives in the background host while any live subscription wants background,
+    // or an earlier run saved background subscriptions that are still delivered: two connections
+    // with the same client id would take over each other's broker session.
+    private fun hostedInBackground(): Boolean =
+        subscriptions.values.any { it.background } || PushBackground.hasSaved(appContext)
+
+    private fun currentListeners(): List<PushListener> =
+        subscriptions.values.map {
+            PushListener(setOf(it.filter), it.callback, it.background, it.title, it.retry, notifyInForeground = it.notifyInForeground)
+        }
+
+    /**
+     * Tear down the connection and drop all subscriptions, including the background ones saved
+     * by an earlier run, and stop background delivery. Call it on sign-out.
+     */
+    fun close() {
+        dropClient()
+        subscriptions.clear()
+        backgroundActive = false
+        leaveBackgroundHost()
+        PushBackground.stop(appContext)
+    }
+
+    // The last live subscription is gone: close the connection, keeping any background
+    // subscriptions saved by an earlier run.
+    private fun releaseAll() {
+        dropClient()
+        subscriptions.clear()
+        if (backgroundActive) {
+            backgroundActive = false
+            leaveBackgroundHost()
+            PushBackground.release(appContext)
+        }
+    }
+
+    private fun connect(): Mqtt5AsyncClient = synchronized(connectLock) {
+        val config = buildConfig()
+        // Reuse the existing client even while it is mid automatic-reconnect. Building a second
+        // client here would give two clients the same stable id, so they would fight over the
+        // broker session and callbacks could stay attached to the abandoned one.
+        mqtt?.let { existing ->
+            if (config == connectedConfig) {
+                return existing
+            }
+            connectionEpoch++
+            dropClient()
+        }
+
+        // The listeners surface the lifecycle to onOpen/onClose and every connection error to
+        // onError, except a refused initial CONNECT: pushConnect throws that one, and the
+        // failing call reports it.
+        val retired = AtomicBoolean(false)
+        val client = buildPushClient(
+            config,
+            onConnected = { onOpen?.invoke() },
+            onDisconnected = { onClose?.invoke() },
+            onError = { reportAsync(it) },
+            retired = retired,
+        )
+        mqtt = client
+        mqttRetired = retired
+        connectedConfig = config
+
+        try {
+            client.pushConnect(config)
+        } catch (e: Exception) {
+            retired.set(true)
+            client.disconnect()
+            if (mqtt === client) {
+                mqtt = null
+                connectedConfig = null
+            }
+            throw e
+        }
+
+        for ((id, sub) in subscriptions) {
+            if (sub.client == null || sub.client === client) {
+                continue
+            }
+            client.subscribeWith()
+                .topicFilter(sub.filter)
+                .qos(effectiveQos(sub.filter))
+                .callback { publish -> subscriptions[id]?.callback?.invoke(publish.toPushMessage()) }
+                .send()
+                .reportFailure(client)
+            sub.client = client
+        }
+
+        client
+    }
+
+    private fun buildConfig(): PushConfig {
+        val (authMethod, credential) = resolvePushAuth(client)
+        return PushConfig(
+            host = host,
+            port = port,
+            tls = tls,
+            tlsInsecure = tlsInsecure,
+            // HiveMQ cannot connect with an empty id (it expects the broker to assign one), so
+            // when the app did not call Client.setPushClientId() derive a stable id per user and
+            // install. The broker keeps the replay position per user and client id, so each
+            // device resumes its own backlog across restarts, and two devices of one user do not
+            // take over each other's session.
+            clientId = client.pushClientId?.takeIf { it.isNotEmpty() }
+                ?: defaultPushClientId(appContext, authMethod, credential),
+            keepAlive = KEEP_ALIVE_SECONDS,
+            authMethod = authMethod,
+            credential = credential,
+            project = client.config["project"] ?: "",
+        )
+    }
+
+    companion object {
+        // Fixed keep-alive (PINGREQ interval) in seconds — not exposed as an option.
+        private const val KEEP_ALIVE_SECONDS = 60
+
+        /** The notification tap intent's extra holding the message topic. */
+        const val EXTRA_TOPIC = PushBackground.EXTRA_TOPIC
+
+        /** The notification tap intent's extra holding the message payload as a string. */
+        const val EXTRA_PAYLOAD = PushBackground.EXTRA_PAYLOAD
+
+        /**
+         * What background delivery can rely on: exact alarms, battery-optimisation exemption and
+         * foreground mode. When [PushBackgroundStatus.bestEffort] is true, wake-ups are inexact and
+         * messages can arrive late while the app is closed; explain why before asking with
+         * [requestExactAlarms] or [requestIgnoreBatteryOptimizations].
+         */
+        @JvmStatic
+        fun backgroundStatus(context: Context): PushBackgroundStatus = PushBackground.backgroundStatus(context)
+
+        /**
+         * Open the system screen where the user allows exact alarms (Android 12+), for punctual
+         * background wake-ups. Call it from a user action. Returns false when there is nothing to
+         * ask: already allowed, older Android, or the app does not declare `SCHEDULE_EXACT_ALARM`.
+         */
+        @JvmStatic
+        fun requestExactAlarms(context: Context): Boolean = PushBackground.requestExactAlarms(context)
+
+        /**
+         * Ask the user to exempt the app from battery optimisation. Call it from a user action.
+         * Returns false when there is nothing to ask: already exempt, or the app does not declare
+         * `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`.
+         */
+        @JvmStatic
+        fun requestIgnoreBatteryOptimizations(context: Context): Boolean =
+            PushBackground.requestIgnoreBatteryOptimizations(context)
+
+        /**
+         * Request the `POST_NOTIFICATIONS` runtime permission (Android 13+) from [activity]. The
+         * first `background = true` subscription asks on its own, from the visible activity (the
+         * one `Push` was created with, else the next one to resume); call this to ask at a moment
+         * of your choosing instead. On older versions it is a no-op.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun requestNotificationPermission(activity: Activity, requestCode: Int = 9412) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                return
+            }
+            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    activity,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    requestCode,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The session set on the client (Client.setSession), else the one the app signed in with through it
+ * (e.g. Account.createEmailPasswordSession), read from its cookie store.
+ */
+internal fun pushSession(client: Client): String? {
+    client.config["session"]?.takeIf { it.isNotEmpty() }?.let { return it }
+    val name = "a_session_${client.config["project"] ?: ""}"
+    return try {
+        client.getCookies(client.endpoint)
+            .firstOrNull { it.name == name && it.value.isNotEmpty() }
+            ?.let { Uri.decode(it.value) }
+    } catch (e: IllegalArgumentException) {
+        null
+    }
+}
+
+/** Read the credential set on the client (via Client.setJWT / setSession), else its sign-in session. */
+internal fun resolvePushAuth(client: Client): Pair<String, String> {
+    val jwt = client.config["jwt"] ?: client.config["jWT"]
+    val session = pushSession(client)
+    return when {
+        !jwt.isNullOrEmpty() -> "appwrite-jwt" to jwt
+        !session.isNullOrEmpty() -> "appwrite-session" to session
+        else -> throw {{ spec.info.title | caseUcfirst }}Exception(
+            "No credential: sign in with this client, or call Client.setJWT() or Client.setSession() first.",
+        )
+    }
+}
+
+/**
+ * The signed-in user's id for the topic-less [Push.subscribe], read locally in the same order as
+ * [resolvePushAuth]: the JWT's `userId` claim, else the `id` in the session secret (standard
+ * base64 of `{"id": ..., "secret": ...}`). Throws when neither yields one.
+ */
+internal fun resolvePushUserId(client: Client): String {
+    val jwt = client.config["jwt"] ?: client.config["jWT"]
+    val session = pushSession(client)
+    val userId = when {
+        !jwt.isNullOrEmpty() -> userIdFromJwt(jwt)
+        !session.isNullOrEmpty() -> userIdFromSession(session)
+        else -> ""
+    }
+    if (userId.isEmpty()) {
+        throw {{ spec.info.title | caseUcfirst }}Exception(
+            "subscribe() without a topic needs a signed-in user: sign in with this client, or set a JWT or session on it",
+        )
+    }
+    return userId
+}
+
+// Asks once per process for POST_NOTIFICATIONS (Android 13+) when background delivery starts, from
+// the app's visible activity, or from the next one to resume when none is. An activity Push is
+// created with counts as visible, since it resumed before the lifecycle callbacks were registered.
+private object NotificationPermissionPrompt {
+    private const val REQUEST_CODE = 9412
+
+    private var tracking = false
+    private var asked = false
+    private var waiting = false
+    private var visible: WeakReference<Activity>? = null
+
+    fun track(context: Context) {
+        if (context is Activity && !context.isFinishing) {
+            val ask = synchronized(this) {
+                visible = WeakReference(context)
+                waiting.also { waiting = false }
+            }
+            if (ask) {
+                context.runOnUiThread { request(context) }
+            }
+        }
+        val app = context.applicationContext as? Application ?: return
+        synchronized(this) {
+            if (tracking) {
+                return
+            }
+            tracking = true
+        }
+        app.registerActivityLifecycleCallbacks(
+            object : Application.ActivityLifecycleCallbacks {
+                override fun onActivityResumed(activity: Activity) {
+                    val ask = synchronized(this@NotificationPermissionPrompt) {
+                        visible = WeakReference(activity)
+                        waiting.also { waiting = false }
+                    }
+                    if (ask) {
+                        request(activity)
+                    }
+                }
+
+                override fun onActivityPaused(activity: Activity) {
+                    synchronized(this@NotificationPermissionPrompt) {
+                        if (visible?.get() === activity) {
+                            visible = null
+                        }
+                    }
+                }
+
+                override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+
+                override fun onActivityStarted(activity: Activity) = Unit
+
+                override fun onActivityStopped(activity: Activity) = Unit
+
+                override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+                override fun onActivityDestroyed(activity: Activity) = Unit
+            },
+        )
+    }
+
+    fun ask(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || granted(context)) {
+            return
+        }
+        val activity = synchronized(this) {
+            if (asked) {
+                return
+            }
+            asked = true
+            visible?.get().also {
+                if (it == null) {
+                    waiting = true
+                }
+            }
+        } ?: return
+        activity.runOnUiThread { request(activity) }
+    }
+
+    private fun granted(context: Context): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+    private fun request(activity: Activity) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !granted(activity)) {
+            ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_CODE)
+        }
+    }
+}

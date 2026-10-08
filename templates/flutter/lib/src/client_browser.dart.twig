@@ -99,6 +99,18 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }
 
   @override
+  ClientBrowser setPushEndpoint(String endPoint) {
+    config['endpointPush'] = endPoint;
+    return this;
+  }
+
+  @override
+  ClientBrowser setPushClientId(String pushClientId) {
+    config['pushClientId'] = pushClientId;
+    return this;
+  }
+
+  @override
   ClientBrowser addHeader(String key, String value) {
     _headers![key] = value;
 
@@ -125,7 +137,19 @@ class ClientBrowser extends ClientBase with ClientMixin {
     required String idParamName,
     required Map<String, String> headers,
     Function(UploadProgress)? onProgress,
+    ResponseType? responseType,
+    HttpMethod method = HttpMethod.post,
   }) async {
+    if (params[paramName] == null) {
+      return call(
+        method,
+        path: path,
+        params: params,
+        headers: headers,
+        responseType: responseType,
+      );
+    }
+
     InputFile file = params[paramName];
     if (file.bytes == null) {
       throw {{spec.info.title | caseUcfirst}}Exception("File bytes must be provided for Flutter web");
@@ -134,17 +158,18 @@ class ClientBrowser extends ClientBase with ClientMixin {
     int size = file.bytes!.length;
 
     late Response res;
-    if (size <= chunkSize) {
+    if (size <= chunkSize || responseType == ResponseType.plain) {
       params[paramName] = http.MultipartFile.fromBytes(
         paramName,
         file.bytes!,
         filename: file.filename,
       );
       return call(
-        HttpMethod.post,
+        method,
         path: path,
         params: params,
         headers: headers,
+        responseType: responseType,
       );
     }
 
@@ -192,7 +217,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       chunkHeaders['content-range'] = 'bytes $start-${end - 1}/$size';
 
       return call(
-        HttpMethod.post,
+        method,
         path: path,
         headers: chunkHeaders,
         params: chunkParams,
@@ -281,21 +306,13 @@ class ClientBrowser extends ClientBase with ClientMixin {
   }) async {
     await init();
 
-    // Combine headers to check for dev key
-    final combinedHeaders = {..._headers!, ...headers};
-
-    // Only include credentials when dev key is not set
-    if (combinedHeaders['X-Appwrite-Dev-Key'] == null) {
-      _httpClient.withCredentials = true;
-    } else {
-      _httpClient.withCredentials = false;
-    }
+    _httpClient.withCredentials = true;
 
     late http.Response res;
     http.BaseRequest request = prepareRequest(
       method,
       uri: Uri.parse(_endPoint + path),
-      headers: combinedHeaders,
+      headers: {..._headers!, ...headers},
       params: params,
     );
     try {

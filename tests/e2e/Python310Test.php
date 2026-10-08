@@ -27,6 +27,7 @@ final class Python310Test extends Base
         'cp tests/e2e/languages/python/tests.py tests/e2e/sdks/python/test.py',
         'echo "" > tests/e2e/sdks/python/__init__.py',
         'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/e2e/sdks/python/vendor python:3.10-alpine pip install -r tests/e2e/sdks/python/requirements.txt --upgrade',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/python --env PYTHONPATH=vendor python:3.10-alpine python -m unittest discover -s test -t .',
     ];
     #[Override]
     protected string $command =
@@ -38,7 +39,13 @@ final class Python310Test extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
+        ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::BOUNDARY_UPLOAD_RESPONSES,
+        ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
@@ -47,6 +54,7 @@ final class Python310Test extends Base
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES
     ];
 }

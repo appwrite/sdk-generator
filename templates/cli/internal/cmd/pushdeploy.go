@@ -482,8 +482,6 @@ type deployable struct {
 	// blank rather than sent as "", because blank means "unchanged" for them.
 	// Not every field: an empty `schedule` really does mean "unschedule it".
 	OmitWhenEmpty []string
-	// ConsoleURL renders the deployment's console page.
-	ConsoleURL func(base, slug, resourceID, deploymentID string) string
 }
 
 var deployables = []deployable{
@@ -510,10 +508,6 @@ var deployables = []deployable{
 		},
 		DeploymentKeys: []string{"entrypoint", "commands"},
 		OmitWhenEmpty:  []string{"entrypoint"},
-		ConsoleURL: func(base, slug, resourceID, deploymentID string) string {
-			return fmt.Sprintf("%s/console/%s/functions/function-%s/deployment-%s",
-				base, slug, resourceID, deploymentID)
-		},
 	},
 	{
 		resourceIdentity: siteIdentity,
@@ -537,10 +531,6 @@ var deployables = []deployable{
 			"vars",
 		},
 		DeploymentKeys: []string{"installCommand", "buildCommand", "outputDirectory"},
-		ConsoleURL: func(base, slug, resourceID, deploymentID string) string {
-			return fmt.Sprintf("%s/console/%s/sites/site-%s/deployments/deployment-%s",
-				base, slug, resourceID, deploymentID)
-		},
 	},
 }
 
@@ -1972,9 +1962,12 @@ func functionDomainForTarget(domains []string, target string) (string, error) {
 // Appwrite Network edge suffix is deliberately left unchanged.
 func (c *pushContext) ruleDomains(resource deployable, variables *jsonx.Object) []string {
 	configured := variables.GetString("_APP_DOMAIN_" + strings.ToUpper(resource.Label))
-	if resource.Name == "function" {
-		// Prefer the Sites suffix for edge Functions. A regional Cloud response
-		// may also expose a region-prefixed appwrite.network Functions suffix.
+	if _, cloud := config.CloudBaseHost(c.api.Endpoint); cloud && resource.Name == "function" {
+		// On Cloud the Sites suffix is appwrite.network, which is also the
+		// Functions edge suffix, so it leads for functionDomainForTarget. A
+		// regional Cloud response may also expose a region-prefixed
+		// appwrite.network Functions suffix. Self-hosted installs give the two
+		// products unrelated domains, so there the Functions suffix stands alone.
 		configured = variables.GetString("_APP_DOMAIN_SITES") + "," + configured
 	}
 
@@ -2037,65 +2030,7 @@ func (c *pushContext) deploymentConsoleURL(
 	resource deployable,
 	id, deploymentID string,
 ) string {
-	endpoint := c.api.Endpoint
-	projectID := c.local.Data.GetString("projectId")
-
-	return resource.ConsoleURL(
-		consoleBaseURL(config.NormalizeCloudConsoleEndpoint(endpoint)),
-		c.consoleProjectSlug(endpoint, projectID),
-		id, deploymentID)
-}
-
-// consoleProjectSlug is the project segment of a console URL. A self-hosted
-// project needs its region, which only the console can answer.
-func (c *pushContext) consoleProjectSlug(endpoint, projectID string) string {
-	parsed, err := url.Parse(endpoint)
-	if err != nil {
-		return "project-" + projectID
-	}
-
-	if _, cloud := config.CloudBaseHost(endpoint); !cloud {
-		region := c.projectRegion(projectID)
-		if region == "" {
-			region = "default"
-		}
-
-		return "project-" + region + "-" + projectID
-	}
-
-	if label, _, _ := strings.Cut(parsed.Hostname(), "."); len(label) == 3 {
-		return "project-" + label + "-" + projectID
-	}
-
-	return "project-" + projectID
-}
-
-// projectRegion reads a self-hosted project's region from the console.
-//
-// A failure is not an error: the region only shapes a link, and a push that
-// worked should not report a failure because a URL is less precise.
-func (c *pushContext) projectRegion(projectID string) string {
-	console, _, err := consoleClient()
-	if err != nil {
-		return ""
-	}
-
-	// Best effort, like the rest of this function: io.Discard because the
-	// "resolved from project" notice belongs to the command the user ran, not
-	// to a lookup done to decorate a URL.
-	organizationID, err := resolveOrganizationID(
-		io.Discard, console, c.local.Data.GetString("organizationId"), projectID)
-	if err != nil {
-		return ""
-	}
-
-	project := jsonx.NewObject()
-	err = console.Clone().WithoutResponseFormat().
-		SetOrganization(organizationID).
-		Call("GET", pathProjects+"/"+url.PathEscape(projectID), nil, project)
-	if err != nil {
-		return ""
-	}
-
-	return project.GetString("region")
+	return fmt.Sprintf("%s/projects/%s%s/deployments/%s",
+		consoleBaseURL(c.api.Endpoint), c.local.Data.GetString("projectId"),
+		resource.itemPath(id), deploymentID)
 }

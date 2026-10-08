@@ -78,6 +78,36 @@ void main() async {
   print((await general.validatePath(id: '0', plain: '0')).result);
   print((await general.validatePath(id: null, plain: '0')).result);
 
+  final String zone = await Plaintext(client).getZone();
+  print(zone);
+  final mixed = await general.getMixed();
+  print(mixed.result);
+  final plaintext = Plaintext(client);
+  var imported = await plaintext.importZone(records: 'www 3600 IN A 192.0.2.1');
+  print(imported);
+  imported = await plaintext.importZone(
+    records: 'www 3600 IN A 192.0.2.1',
+    zone: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'),
+  );
+  print(imported);
+
+  const message = 'conversation without a required file';
+  var optional = await general.optionalUpload(message: message);
+  print(optional.result);
+  optional = await general.optionalUpload(
+    message: message,
+    attachment: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'),
+  );
+  print(optional.result);
+  optional = await general.optionalUpload(message: message, metadata: {'source': 'sdk', 'uri': 'café'});
+  print(optional.result);
+  optional = await general.optionalUpload(
+    message: message,
+    attachment: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'),
+    metadata: {'source': 'sdk', 'uri': 'café'},
+  );
+  print(optional.result);
+
   var file = InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
@@ -97,6 +127,9 @@ void main() async {
   file = InputFile.fromBytes(bytes: bytes, filename: 'large_file.mp4');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
+
+  final profile = await general.uploadGeneric(file: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'));
+  print(profile.prefs.data['result']);
 
   final download = await general.download();
   print(utf8.decode(download));
@@ -252,6 +285,30 @@ void main() async {
   // ID helper tests
   print(ID.unique());
   print(ID.custom('custom_id'));
+
+  // Topic helper tests
+  print(Topic.path(['user', '123', 'notification']).toString());
+  print(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
+  print(Topic.path(['user']).any().path(['notification']).toString());
+  print(Topic.path(['chat']).any().any().path(['message']).toString());
+  print(Topic.path(['org']).any().path(['logs']).all().toString());
+  print(Topic.any().path(['notification']).toString());
+  print(Topic.all().toString());
+  final topicCases = <String, List<String>>{
+    'empty path': [],
+    'empty level': ['user', ''],
+    'slash': ['user/123'],
+    'plus': ['user', 'a+b'],
+    'hash': ['user', '#'],
+  };
+  topicCases.forEach((name, levels) {
+    try {
+      Topic.path(levels);
+      print('Topic $name:failed');
+    } catch (e) {
+      print('Topic $name:passed');
+    }
+  });
 
   // Operator helper tests
   print(Operator.increment(1));

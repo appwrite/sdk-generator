@@ -24,9 +24,10 @@ final class Node20Test extends Base
     protected string $class = Node::class;
     #[Override]
     protected array $build = [
-        'cp tests/e2e/languages/node/test.js tests/e2e/sdks/node/test.js',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:20-alpine npm install',
-        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:20-alpine npm run build'
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:20-alpine npm run build',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:20-alpine npm test',
+        'cp tests/e2e/languages/node/test.js tests/e2e/sdks/node/test.js',
     ];
     #[Override]
     protected string $command =
@@ -42,11 +43,16 @@ final class Node20Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
+        ...Base::OPTIONAL_UPLOAD_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES, // Large file uploads
+        ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
@@ -56,6 +62,7 @@ final class Node20Test extends Base
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES
     ];
 }

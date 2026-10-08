@@ -1,4 +1,4 @@
-{%~ set requiredStringPathParameters = (method | parameters('path')) | filter(parameter => parameter.required and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty and (parameter.extensions['x-sdk-source']|default('')) != 'security') %}
+{%~ set requiredStringPathParameters = (method | parameters('path')) | filter(parameter => parameter.required and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty and not (parameter | configKey(method))) %}
 {%~ for parameter in requiredStringPathParameters %}
         if {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | schemaNullable) %}?.isEmpty == true{% else %}.isEmpty{% endif %} {
             throw {{ spec.info.title | caseUcfirst }}Error(message: "Missing required parameter: \"{{ parameter.name | caseCamel | escapeSwiftKeyword }}\"")
@@ -9,7 +9,7 @@
 {%~ endif %}
         let apiPath: String = "{{ method.path }}"
         {%~ for parameter in (method | parameters('path')) %}
-            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name }}{{ '}' }}", with: {% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}client.config["{{ parameter.extensions['x-sdk-config'] | caseCamel }}"] ?? ""{% else %}{{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | enumValues) is not empty %}.rawValue{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %} ?? "null"{% endif %}{% endif %})
+            .replacingOccurrences(of: "{{ '{' }}{{ parameter.name }}{{ '}' }}", with: {% if (parameter | configKey(method)) %}client.config["{{ (parameter | configKey(method)) | caseCamel }}"] ?? ""{% else %}{{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | enumValues) is not empty %}.rawValue{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %} ?? "null"{% endif %}{% endif %})
         {%~ endfor %}
         {%~ for security in (method | securityQueries) %}
             + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=\(client.config["{{ security.name | caseCamel }}"]?.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
@@ -22,12 +22,12 @@
         {%- else -%} let
         {%- endif %} apiParams: [String: Any?] = [
         {%~ for parameter in (method | parameters('query')) | merge((method | parameters('body'))) %}
-            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | enumValues) is not empty %}{% if (parameter | schemaType) == 'array' %}{% if not parameter.required %}?{% endif %}.map { $0.rawValue }{% else %}{% if not parameter.required %}?{% endif %}.rawValue{% endif %}{% endif %}{% if not loop.last or ((method | parameters('query')) | merge((method | parameters('body')))) | length > 1 or ((method | methodType) == 'webAuth' and [(method | securitySchemes)] | length > 0) %},{% endif %}
+            "{{ parameter.name }}": {{ parameter.name | caseCamel | escapeSwiftKeyword }}{% if (parameter | enumValues) is not empty %}{% if (parameter | schemaType) == 'array' %}{% if not parameter.required %}?{% endif %}.map { $0.rawValue }{% else %}{% if not parameter.required %}?{% endif %}.rawValue{% endif %}{% endif %}{% if not loop.last or ((method | parameters('query')) | merge((method | parameters('body')))) | length > 1 or ((method | methodType) == 'webAuth' and [(method | locationSchemes)] | length > 0) %},{% endif %}
 
         {%~ endfor %}
         {%~ if (method | methodType) == 'webAuth' %}
-        {%~ if [(method | securitySchemes)] | length > 0 %}
-        {%~ for node in [(method | securitySchemes)] %}
+        {%~ if [(method | locationSchemes)] | length > 0 %}
+        {%~ for node in [(method | locationSchemes)] %}
         {%~ for key,header in node | keys %}
             "{{ header | caseLower }}": client.config["{{ header | caseLower }}"]{% if not loop.last or ((method | parameters('query')) | merge((method | parameters('body')))) | length > 0 or (node | keys) | length > 1 %},{% endif %}
 

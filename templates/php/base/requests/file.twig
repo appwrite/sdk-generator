@@ -4,16 +4,61 @@
 {% set responseModels = method | getResponseModels(spec) %}
 {% set hasResponseDiscriminator = (method | responseDiscriminator) is not empty %}
 {% set responseDiscriminator = (method | responseDiscriminator) %}
-        $size = 0;
-        $mimeType = null;
-        $postedName = null;
+{% set textResponse = method | textResponse %}
+{% if not parameter.required %}
+        if (!${{ parameter.name | caseCamel }} instanceof InputFile) {
+            $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, $apiHeaders, $apiParams);
+{% if responseModels | length > 0 %}
+{% if responseModels | length > 1 and hasResponseDiscriminator %}
+            if (!is_array($response)) {
+                throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+            }
+{% for modelName, conditions in responseDiscriminator %}
+            if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                return \{{ namespace | caseNamespace }}\Models\{{ modelName | caseUcfirst }}::from($response);
+            }
+{% endfor %}
+            throw new \UnexpectedValueException('Unable to match response to any expected response model.');
+{% else %}
+            if (!is_array($response)) {
+                throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
+            }
+
+            return {{ responseModels | first }}::from($response);
+{% endif %}
+{% elseif textResponse %}
+            if (!is_string($response)) {
+                throw new \UnexpectedValueException('Expected text response.');
+            }
+
+            return $response;
+{% else %}
+            return $response;
+{% endif %}
+        }
+
+{% endif %}
+{% if textResponse %}
+        if (empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
+            $apiParams['{{ parameter.name }}'] = Part::body('{{ parameter.name }}', ${{ parameter.name | caseCamel }}->getData(), ${{ parameter.name | caseCamel }}->getFilename(), ${{ parameter.name | caseCamel }}->getMimeType());
+        } else {
+            $apiParams['{{ parameter.name }}'] = Part::file('{{ parameter.name }}', ${{ parameter.name | caseCamel }}->getPath(), ${{ parameter.name | caseCamel }}->getFilename() ?? basename(${{ parameter.name | caseCamel }}->getPath()), ${{ parameter.name | caseCamel }}->getMimeType() ?? mime_content_type(${{ parameter.name | caseCamel }}->getPath()));
+        }
+
+        $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, $apiHeaders, $apiParams);
+        if (!is_string($response)) {
+            throw new \UnexpectedValueException('Expected text response.');
+        }
+
+        return $response;
+{% else %}
         if (empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
             $size = strlen(${{ parameter.name | caseCamel }}->getData());
             $mimeType = ${{ parameter.name | caseCamel }}->getMimeType();
             $postedName = ${{ parameter.name | caseCamel }}->getFilename();
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name | caseCamel }}'] = Part::body('{{ parameter.name | caseCamel }}', ${{ parameter.name | caseCamel }}->getData(), $postedName, $mimeType);
-                $response = $this->client->call(Client::METHOD_POST, $apiPath, [
+                $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, [
     {% for param in (method | parameters('header')) %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
     {% endfor %}
@@ -189,7 +234,7 @@
                 $chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = $currentUploadId;
             }
 
-            return $this->client->call(Client::METHOD_POST, $apiPath, $chunkHeaders, $chunkParams);
+            return $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, $chunkHeaders, $chunkParams);
         };
 
         $isUploadComplete = function ($chunkResponse) use ($totalChunks): bool {
@@ -261,6 +306,7 @@
 {% endif %}
 {% else %}
         return $response;
+{% endif %}
 {% endif %}
 {% endif %}
 {% endfor %}

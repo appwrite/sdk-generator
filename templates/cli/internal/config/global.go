@@ -331,6 +331,18 @@ func NormalizeCloudConsoleEndpoint(endpoint string) string {
 	return "https://" + base + "/v1"
 }
 
+// CloudConsoleURL returns the console origin behind a Cloud endpoint, and false
+// when the endpoint is self-hosted. The console is served from the base host
+// without its `cloud.` label: appwrite.io, or staging.appwrite.io.
+func CloudConsoleURL(endpoint string) (string, bool) {
+	base, cloud := CloudBaseHost(endpoint)
+	if !cloud {
+		return "", false
+	}
+
+	return "https://" + strings.TrimPrefix(base, "cloud."), true
+}
+
 // IsCloudLoginEndpoint reports whether an endpoint signs in through the browser
 // rather than with an email and a password. localhost is treated as
 // self-hosted, since there is no feature-flag registry here to say otherwise.

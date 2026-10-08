@@ -192,59 +192,6 @@ class Dart extends Language
         };
     }
 
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type       = $this->getSchemaType($param);
-        $default    = $this->getSchemaDefault($param);
-        $required   = ($param instanceof Parameter && $param->required);
-
-        if ($required) {
-            return '';
-        }
-
-        $output = ' = ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_OBJECT:
-                    $output .= 'const {}';
-                    break;
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= '0';
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= 'false';
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= 'const []';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
-                case self::TYPE_OBJECT:
-                case self::TYPE_ARRAY:
-                    $output .= 'const ' . $default;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$default}'";
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
         $type       = $this->getSchemaType($param);
@@ -264,16 +211,21 @@ class Dart extends Language
         }
 
         return match ($type) {
-            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $this->escapeInterpolation((string) $example),
             self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($decoded = json_decode((string) $example, true)) !== null
             ? (empty($decoded) && $example === '{}'
                 ? '{}'
-                : preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT)))
-            : $example,
-            self::TYPE_STRING => "'{$example}'",
+                : $this->escapeInterpolation((string) preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT))))
+            : $this->escapeInterpolation((string) $example),
+            self::TYPE_STRING => "'" . $this->escapeInterpolation((string) $example) . "'",
         };
+    }
+
+    private function escapeInterpolation(string $value): string
+    {
+        return str_replace('$', '\$', str_replace('\$', '$', $value));
     }
 
     public function getModelToMapValue(Schema $property, string $propertyName, bool $required): string
@@ -381,6 +333,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/topic.dart',
+                'template'      => 'dart/lib/topic.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/query.dart',
                 'template'      => 'dart/lib/query.dart.twig',
             ],
@@ -476,6 +433,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/topic_test.dart',
+                'template'      => 'dart/test/topic_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/permission_test.dart',
                 'template'      => 'dart/test/permission_test.dart.twig',
             ],
@@ -513,6 +475,11 @@ class Dart extends Language
                 'scope'         => 'default',
                 'destination'   => '/test/src/input_file_test.dart',
                 'template'      => 'dart/test/src/input_file_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/client_io_test.dart',
+                'template'      => 'dart/test/src/client_io_test.dart.twig',
             ],
             [
                 'scope'         => 'default',

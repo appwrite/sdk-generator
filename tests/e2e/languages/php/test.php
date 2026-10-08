@@ -14,12 +14,14 @@ use Appwrite\Query;
 use Appwrite\Permission;
 use Appwrite\Role;
 use Appwrite\ID;
+use Appwrite\Topic;
 use Appwrite\Operator;
 use Appwrite\Condition;
 use Appwrite\Enums\MockType;
 use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
 use Appwrite\Services\General;
+use Appwrite\Services\Plaintext;
 
 readonly class AdditionalPropsDataOnly
 {
@@ -182,6 +184,13 @@ foreach ([['', '0'], ['0', '']] as [$id, $plain]) {
 }
 echo $general->validatePath('0', '0')->result . "\n";
 
+$zone = new Plaintext($client)->getZone();
+echo $zone . "\n";
+echo $general->getMixed()->result . "\n";
+$plaintext = new Plaintext($client);
+echo $plaintext->importZone('www 3600 IN A 192.0.2.1') . "\n";
+echo $plaintext->importZone('www 3600 IN A 192.0.2.1', InputFile::withPath(__DIR__ . '/../../../resources/file.png')) . "\n";
+
 $response = $general->getUnion();
 echo $response->result . "\n";
 
@@ -213,6 +222,12 @@ foreach (['boolean', 'missing'] as $scenario) {
 }
 echo "compound invalid response: passed\n";
 
+$message = 'conversation without a required file';
+echo $general->optionalUpload($message)->result . "\n";
+echo $general->optionalUpload($message, InputFile::withPath(__DIR__ . '/../../../resources/file.png'))->result . "\n";
+echo $general->optionalUpload($message, metadata: ['source' => 'sdk', 'uri' => 'café'])->result . "\n";
+echo $general->optionalUpload($message, InputFile::withPath(__DIR__ . '/../../../resources/file.png'), ['source' => 'sdk', 'uri' => 'café'])->result . "\n";
+
 $data = file_get_contents(__DIR__ . '/../../../resources/file.png');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));
 echo $response->result . "\n";
@@ -226,6 +241,9 @@ echo $response->result . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../../resources/large_file.mp4'));
 echo $response->result . "\n";
+
+$response = $general->uploadGeneric(InputFile::withPath(__DIR__ . '/../../../resources/file.png'));
+echo $response->prefs->data['result'] . "\n";
 
 echo $general->download() . "\n";
 
@@ -382,6 +400,29 @@ echo Permission::create(Role::label('admin')) . "\n";
 // ID helper tests
 echo ID::unique() . "\n";
 echo ID::custom('custom_id') . "\n";
+
+// Topic helper tests
+echo Topic::path(['user', '123', 'notification']) . "\n";
+echo Topic::path(['org', '42', 'user', '123'])->path(['notification']) . "\n";
+echo Topic::path(['user'])->any()->path(['notification']) . "\n";
+echo Topic::path(['chat'])->any()->any()->path(['message']) . "\n";
+echo Topic::path(['org'])->any()->path(['logs'])->all() . "\n";
+echo Topic::any()->path(['notification']) . "\n";
+echo Topic::all() . "\n";
+foreach ([
+    ['empty path', []],
+    ['empty level', ['user', '']],
+    ['slash', ['user/123']],
+    ['plus', ['user', 'a+b']],
+    ['hash', ['user', '#']],
+] as [$name, $levels]) {
+    try {
+        Topic::path($levels);
+        echo "Topic {$name}:failed\n";
+    } catch (InvalidArgumentException) {
+        echo "Topic {$name}:passed\n";
+    }
+}
 
 // additionalProperties round-trip tests
 $preferences = AdditionalPropsDataOnly::from([

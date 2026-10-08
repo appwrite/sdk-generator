@@ -26,11 +26,14 @@ final class Android16Java17Test extends Base
     protected array $build = [
         'mkdir -p tests/e2e/sdks/android/library/src/test/java',
         'cp tests/e2e/languages/android/Tests.kt tests/e2e/sdks/android/library/src/test/java/Tests.kt',
+        'cp tests/e2e/languages/android/r8-rules.pro tests/e2e/sdks/android/library/r8-rules.pro',
+        'cat tests/e2e/languages/android/r8.gradle.kts >> tests/e2e/sdks/android/library/build.gradle.kts',
+        'cat tests/e2e/languages/android/lint.gradle.kts >> tests/e2e/sdks/android/library/build.gradle.kts',
         'chmod +x tests/e2e/sdks/android/gradlew',
     ];
     #[Override]
     protected string $command =
-        'docker run --rm --network="mockapi" -v $(pwd):/app -w /app/tests/e2e/sdks/android alvrme/alpine-android:android-CinnamonBun-jdk17 sh -c "./gradlew :library:testDebugUnitTest --stacktrace 1>&2 && cat library/result.txt"';
+        'docker run --rm --network="mockapi" -v $(pwd):/app -w /app/tests/e2e/sdks/android alvrme/alpine-android:android-CinnamonBun-jdk17 sh -c "./gradlew :library:lintDebug :library:testR8UnitTest --stacktrace 1>&2 && cat library/result.txt"';
 
     #[Override]
     protected array $expectedOutput = [
@@ -40,7 +43,13 @@ final class Android16Java17Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
+        ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::BOUNDARY_UPLOAD_RESPONSES,
+        ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
@@ -50,7 +59,18 @@ final class Android16Java17Test extends Base
         ...Base::QUERY_HELPER_RESPONSES,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::CHANNEL_HELPER_RESPONSES,
-        ...Base::OPERATOR_HELPER_RESPONSES
+        ...Base::OPERATOR_HELPER_RESPONSES,
+        ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_SIGN_IN_SESSION_RESPONSES,
+        ...Base::PUSH_ERROR_RESPONSES,
+        ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
+        ...Base::PUSH_NOTIFICATION_PERMISSION_RESPONSES,
+        ...Base::ANDROID_PUSH_BACKGROUND_RESPONSES,
+        ...Base::ANDROID_PUSH_NOTIFICATION_RESPONSES,
+        ...Base::ANDROID_PUSH_OPT_OUT_RESPONSES,
+        ...Base::ANDROID_PUSH_SHARED_TOPIC_RESPONSES,
+        ...Base::ANDROID_COOKIE_STORE_RESPONSES,
     ];
 }

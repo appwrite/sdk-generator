@@ -71,7 +71,7 @@ class {{ service.name | caseUcfirst }} extends Service
     public function {{ (method | methodName) | caseCamel }}({{ method | methodParameters }}): {{ method | getReturn(spec) }}
     {
 {% for parameter in (method | parameters('path')) %}
-{% if parameter.required and (parameter.extensions['x-sdk-source']|default('')) != 'security' and (parameter | schemaType) == 'string' and not (parameter | usesEnumType) %}
+{% if parameter.required and not (parameter | configKey(method)) and (parameter | schemaType) == 'string' and not (parameter | usesEnumType) %}
         if (${{ parameter.name | caseCamel | escapeKeyword }} === '') {
             throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception('Missing required parameter: "{{ parameter.name | caseCamel }}"');
         }
@@ -80,7 +80,7 @@ class {{ service.name | caseUcfirst }} extends Service
 {% endfor %}
         $apiPath = str_replace(
             [{% for parameter in (method | parameters('path')) %}'{{ '{' }}{{ parameter.name }}{{ '}' }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-            [{% for parameter in (method | parameters('path')) %}{% if (parameter.extensions['x-sdk-source']|default('')) == 'security' %}$this->client->getConfig('{{ parameter.extensions['x-sdk-config'] | caseLower }}'){% else %}{% if parameter | usesEnumType %}(string) {% endif %}${{ parameter.name | caseCamel | escapeKeyword }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}],
+            [{% for parameter in (method | parameters('path')) %}{% if (parameter | configKey(method)) %}$this->client->getConfig('{{ (parameter | configKey(method)) | caseLower }}'){% else %}{% if parameter | usesEnumType %}(string) {% endif %}${{ parameter.name | caseCamel | escapeKeyword }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}],
             '{{ method.path }}'
         );
         {%~ for security in (method | securityQueries) %}
