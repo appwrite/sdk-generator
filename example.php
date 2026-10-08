@@ -263,33 +263,7 @@ try {
         |_|   |_|                                                ";
 
     $cliExcludes = [
-        'services' => [
-            ['name' => 'organizations'],
-            ['name' => 'console'],
-            ['name' => 'projects'],
-            ['name' => 'manager'],
-            ['name' => 'usage'],
-        ],
         'methods' => [
-            ['name' => 'createBillingAddress'],
-            ['name' => 'createPaymentMethod'],
-            ['name' => 'deleteBillingAddress'],
-            ['name' => 'deletePaymentMethod'],
-            ['name' => 'getBillingAddress'],
-            ['name' => 'getCoupon'],
-            ['name' => 'getPaymentMethod'],
-            ['name' => 'listBillingAddresses'],
-            ['name' => 'listInvoices'],
-            ['name' => 'listPaymentMethods'],
-            ['name' => 'updateBillingAddress'],
-            ['name' => 'updateConsoleAccess'],
-            ['name' => 'updatePaymentMethod'],
-            ['name' => 'updatePaymentMethodMandateOptions'],
-            ['name' => 'updatePaymentMethodProvider'],
-            ['name' => 'createPlanEstimation'],
-            // Not yet available in the released @appwrite.io/console package
-            ['name' => 'listStages'],
-            ['name' => 'updateStage'],
             // Passkeys are not in the released Go SDK yet
             ['service' => 'account', 'name' => 'listPasskeys'],
             ['service' => 'account', 'name' => 'createPasskey'],
