@@ -67,6 +67,9 @@ void main() async {
   final res = await general.redirect();
   print(res['result']);
 
+  response = await general.deleteBodyless();
+  print(response.result);
+
   for (final ids in [['', '0'], ['0', '']]) {
     try {
       await general.validatePath(id: ids[0], plain: ids[1]);

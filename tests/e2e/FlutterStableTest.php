@@ -58,6 +58,7 @@ final class FlutterStableTest extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
+        ...Base::BODYLESS_DELETE_RESPONSE,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
         ...Base::TEXT_RESPONSES,
