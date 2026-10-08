@@ -1,3 +1,9 @@
+{% for parameter in (method | parameters('all')) %}
+{% if (parameter | schemaType) == 'array' and ((parameter | arraySchema) | schemaType) == 'string' %}
+        $this->validateStringList('{{ parameter.name | caseCamel }}', ${{ parameter.name | caseCamel | escapeKeyword }}{% if (parameter | arraySchema) | schemaNullable %}, nullableItems: true{% endif %});
+
+{% endif %}
+{% endfor %}
         $apiParams = [];
 {% if (method | parameters('all')) | length %}
 {% for parameter in (method | parameters('all')) %}

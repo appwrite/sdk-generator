@@ -36,6 +36,8 @@ final class PHP85Test extends Base
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
+        ...Base::ARRAY_PARAMETER_RESPONSES,
+        ...Base::STRING_LIST_VALIDATION_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::TEXT_RESPONSES,
         ...Base::TEXT_UPLOAD_RESPONSES,

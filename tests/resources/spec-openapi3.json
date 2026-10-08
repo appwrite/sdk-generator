@@ -652,6 +652,15 @@
                     "items": {
                       "type": "object"
                     }
+                  },
+                  "labels": {
+                    "type": "array",
+                    "nullable": true,
+                    "description": "Optional labels, including null values.",
+                    "items": {
+                      "type": "string",
+                      "nullable": true
+                    }
                   }
                 },
                 "required": [
