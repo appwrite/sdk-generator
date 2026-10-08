@@ -302,11 +302,11 @@ final class GenerationTest extends TestCase
     public function testAnalyticsCompanionsFollowTheService(): void
     {
         $companions = [
-            'flutter' => ['lib/src/analytics_observer.dart', 'lib/src/analytics_tracking.dart'],
+            'flutter' => ['lib/src/tracking.dart', 'lib/src/tracking_observer.dart'],
             'web' => ['src/services/analytics-tracking.ts'],
         ];
         $entrypoints = [
-            'flutter' => ['lib/packageName.dart', 'analytics_observer.dart'],
+            'flutter' => ['lib/packageName.dart', 'src/tracking'],
             'web' => ['src/index.ts', 'analytics-tracking'],
         ];
 

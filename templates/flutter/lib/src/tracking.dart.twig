@@ -1,22 +1,20 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-import 'analytics_observer.dart';
+import '../{{ language.params.packageName }}.dart' show Analytics;
 
-export 'analytics_observer.dart' show AnalyticsEventEmitter, AnalyticsObserver, ScreenNameExtractor;
-
-/// Companion class for the generated `Analytics` service that wires up the
-/// mobile-idiomatic auto-tracking primitives: app-lifecycle events (backgrounded
-/// / foregrounded) and manual `screenView` calls.
+/// Auto-tracking helpers for the generated [Analytics] service: app-lifecycle
+/// events (backgrounded / foregrounded) and manual `screenView` / `event`
+/// calls, all sent through `Analytics.createEvent`.
 ///
-/// Auto-emitted event names follow `snake_case` + lowercase (`pageview`,
-/// `screen_view`, `app_backgrounded`, `app_foregrounded`, etc.). Prop keys use
-/// camelCase to match the endpoint's parameter naming.
+/// Auto-emitted event names follow `snake_case` + lowercase (`screen_view`,
+/// `app_backgrounded`, `app_foregrounded`, etc.). Prop keys use camelCase to
+/// match the endpoint's parameter naming.
 ///
-/// Attach an [AnalyticsObserver] to your `MaterialApp` for automatic route
-/// tracking; use [AnalyticsTracking] on top for lifecycle events and the
-/// convenience `screenView` / `event` shortcuts.
+/// Attach a [TrackingObserver] to your `MaterialApp` for automatic route
+/// tracking.
 ///
 /// [enableAutoLifecycleEvents] calls [WidgetsFlutterBinding.ensureInitialized]
 /// internally, so it is safe to invoke before [runApp] without wiring up the
@@ -36,38 +34,24 @@ export 'analytics_observer.dart' show AnalyticsEventEmitter, AnalyticsObserver, 
 /// Typical wiring:
 ///
 /// ```dart
-/// final analytics = Analytics(client);
-///
-/// // `createEvent` requires `url` and takes `props` as a flat alternating
-/// // key/value list, so the emitter adapts this module's option shape.
-/// void emit(String name, {Map<String, dynamic>? props, String? propertyId, int? engagementTime}) =>
-///     analytics.createEvent(
-///       propertyId: propertyId ?? '<PROPERTY_ID>',
-///       name: name,
-///       url: '<APP_URL>',
-///       engagementTime: engagementTime,
-///       props: (props ?? const {})
-///           .entries
-///           .expand((entry) => [entry.key, '${entry.value}'])
-///           .toList(),
-///     );
-///
-/// final tracking = AnalyticsTracking(emit, propertyId: '<PROPERTY_ID>');
+/// final tracking = Tracking(Analytics(client), '<PROPERTY_ID>');
 /// tracking.enableAllAutoTracking();
 ///
 /// runApp(MaterialApp(
-///   navigatorObservers: [
-///     AnalyticsObserver(emit, propertyId: '<PROPERTY_ID>'),
-///   ],
+///   navigatorObservers: [TrackingObserver(tracking)],
 ///   home: MyApp(),
 /// ));
 /// ```
-class AnalyticsTracking with WidgetsBindingObserver {
-  final AnalyticsEventEmitter _emit;
+class Tracking with WidgetsBindingObserver {
+  final Analytics _analytics;
 
-  /// Analytics property (or snippet) ID forwarded with every emitted event.
-  /// Optional — leave null when the emitter closure already supplies one.
-  final String? propertyId;
+  /// Analytics property every event is recorded against.
+  final String propertyId;
+
+  /// Base URL events are reported under; screen names resolve against it.
+  /// Defaults to the page origin on Flutter web and `app://<platform>`
+  /// elsewhere, since the endpoint only accepts absolute URLs.
+  final String url;
 
   bool _lifecycleAttached = false;
   DateTime? _foregroundSince;
@@ -77,10 +61,16 @@ class AnalyticsTracking with WidgetsBindingObserver {
   /// fraction of a second to truncation on every one of them.
   Duration _engagementCarry = Duration.zero;
 
-  AnalyticsTracking(AnalyticsEventEmitter emit, {this.propertyId}) : _emit = emit;
+  Tracking(Analytics analytics, this.propertyId, {String? url})
+    : _analytics = analytics,
+      url =
+          url ??
+          (kIsWeb
+              ? Uri.base.origin
+              : 'app://${defaultTargetPlatform.name.toLowerCase()}');
 
   /// Enable the opinionated default auto-tracking set. Currently this covers
-  /// lifecycle events; route tracking is opt-in via [AnalyticsObserver].
+  /// lifecycle events; route tracking is opt-in via [TrackingObserver].
   void enableAllAutoTracking() {
     enableAutoLifecycleEvents();
   }
@@ -117,35 +107,42 @@ class AnalyticsTracking with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
   }
 
-  /// Emit an ad-hoc analytics event. Emitter exceptions are swallowed so
-  /// analytics failures never surface to the host app.
+  /// Emit an ad-hoc analytics event. [url] may be absolute or a path resolved
+  /// against [Tracking.url]. Request failures are swallowed so analytics never
+  /// surface errors to the host app.
   void event(
     String name, {
+    String? url,
     Map<String, dynamic>? props,
     int? engagementTime,
   }) {
     try {
-      // The emitter usually returns the request future; without catching it a
-      // rejected request surfaces as an unhandled async error in the host app.
-      final pending = _emit(
-        name,
-        props: props,
-        propertyId: propertyId,
-        engagementTime: engagementTime,
+      unawaited(
+        _analytics
+            .createEvent(
+              propertyId: propertyId,
+              name: name,
+              url:
+                  url == null
+                      ? this.url
+                      : Uri.parse(this.url).resolve(url).toString(),
+              engagementTime: engagementTime,
+              // The endpoint takes props as a flat alternating key/value list.
+              props:
+                  props?.entries
+                      .expand((entry) => [entry.key, '${entry.value}'])
+                      .toList(),
+            )
+            .catchError((Object _) {}),
       );
-      if (pending is Future) {
-        // `catchError` on a typed future must return that future's type, so an
-        // empty handler would itself throw. Narrow to `Future<void>` first.
-        unawaited(pending.then<void>((_) {}).catchError((Object _) {}));
-      }
     } catch (_) {
-      // Silent — see class docs.
+      // A malformed [url] throws before the request starts.
     }
   }
 
   /// Mobile-idiomatic screen-view shortcut. Renders as a `screen_view`
   /// analytics event with `screen`, optional `screenClass` and any
-  /// caller-supplied properties.
+  /// caller-supplied properties. [name] is also the event URL's path.
   void screenView(
     String name, {
     String? className,
@@ -158,7 +155,7 @@ class AnalyticsTracking with WidgetsBindingObserver {
     if (props != null) {
       merged.addAll(props);
     }
-    event('screen_view', props: merged);
+    event('screen_view', url: name, props: merged);
   }
 
   @override
