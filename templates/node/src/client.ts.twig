@@ -226,6 +226,10 @@ class Client {
      * @return {this}
      */
     set{{headerKey | caseUcfirst}}(value: string): this {
+        if (typeof value !== 'string') {
+            {{ 'console.warn' | tsCall('`set' ~ (headerKey | caseUcfirst) ~ " received ${value === null ? 'null' : typeof value} instead of a string.`", ';', 12) | raw }}
+        }
+
         {%~ if (headerKey != 'Project') %}
         this.headers['{{ header.name }}'] = {% if header.scheme == 'bearer' %}`Bearer ${value}`{% else %}value{% endif %};
         {%~ endif %}
