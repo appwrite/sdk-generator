@@ -25,9 +25,10 @@
  *    "e2e-replay", live to the clients subscribed now and queued for the ones that subscribed on
  *    an earlier connection and are offline, which get it when they subscribe again.
  *  - "users/e2e-device*" topics (the device tests' users) keep a persistent session per project and
- *    client id, like the real broker: a client PUBLISH to one reaches the clients subscribed now,
- *    and is queued for client ids that subscribed on an earlier connection and are offline, which
- *    get it when they subscribe again. The device tests publish through it as a server would.
+ *    client id, like the real broker: a client PUBLISH to one is sent to the subscribed clients
+ *    connected now and kept for every subscribed client id until it acknowledges it, so a client
+ *    that was offline, or whose connection died before its PUBACK, gets it when it subscribes
+ *    again. The device tests publish through it as a server would.
  *  - SUBSCRIBE grants every filter at the requested QoS (capped at QoS 1) and then, mirroring
  *    real server-initiated push, publishes the test message to the fixed topic "e2e-push"
  *    through the broker's subscription index/fan-out — so a client receives it only if its
@@ -93,8 +94,10 @@ class MockHandler implements Handler
     /** @var array<string, Connection> project|client id => its connection, while connected */
     private array $deviceOnline = [];
 
-    /** @var array<string, list<array{0: string, 1: string}>> project|client id => [topic, payload] queued while offline */
-    private array $deviceQueues = [];
+    /** @var array<string, array<int, array{0: string, 1: string}>> project|client id => sequence => [topic, payload] not acknowledged yet */
+    private array $devicePending = [];
+
+    private int $deviceSequence = 0;
 
     public function onConnect(Connect $connect, Connection $connection): Connack|Auth
     {
@@ -201,15 +204,14 @@ class MockHandler implements Handler
                 $key = $connection->prefix . '|' . $connection->getClientId();
                 $this->deviceSubscriptions[$key][$filter->topic] = true;
                 $this->deviceOnline[$key] = $connection;
-                // Delivered after the SUBACK; kept when the client went offline in between.
+                // After the SUBACK, everything not acknowledged yet: sent while it was offline, or into
+                // a connection that died before the PUBACK. Kept until acknowledged.
                 \Swoole\Timer::after(100, function () use ($key, $connection) {
                     if (($this->deviceOnline[$key] ?? null) !== $connection) {
                         return;
                     }
-                    $queued = $this->deviceQueues[$key] ?? [];
-                    $this->deviceQueues[$key] = [];
-                    foreach ($queued as [$topic, $payload]) {
-                        $connection->publish($topic, $payload, qos: Packet::QOS_1);
+                    foreach ($this->devicePending[$key] ?? [] as $sequence => [$topic, $payload]) {
+                        $connection->publish($topic, $payload, qos: Packet::QOS_1, sequence: $sequence);
                     }
                 });
             }
@@ -293,18 +295,20 @@ class MockHandler implements Handler
      */
     public function onPublish(Publish $publish, Connection $connection, iterable $subscribers): void
     {
-        $delivered = [];
-        foreach ($subscribers as [$subscriber, $grantedQos]) {
-            $subscriber->publish($publish->topic, $publish->payload, qos: \min($publish->qos, $grantedQos));
-            $delivered[$subscriber->prefix . '|' . $subscriber->getClientId()] = true;
-        }
-
-        // A device topic's message waits for the client ids that subscribed earlier and are offline.
         if (\str_starts_with($publish->topic, self::DEVICE_TOPIC_PREFIX)) {
+            // A device topic's message is kept for every client id subscribed to it until that client
+            // acknowledges it, and sent now to the ones connected.
             foreach ($this->deviceSubscriptions as $key => $topics) {
-                if (\str_starts_with($key, $connection->prefix . '|') && isset($topics[$publish->topic]) && !isset($delivered[$key])) {
-                    $this->deviceQueues[$key][] = [$publish->topic, $publish->payload];
+                if (!\str_starts_with($key, $connection->prefix . '|') || !isset($topics[$publish->topic])) {
+                    continue;
                 }
+                $sequence = ++$this->deviceSequence;
+                $this->devicePending[$key][$sequence] = [$publish->topic, $publish->payload];
+                $this->deviceOnline[$key]?->publish($publish->topic, $publish->payload, qos: Packet::QOS_1, sequence: $sequence);
+            }
+        } else {
+            foreach ($subscribers as [$subscriber, $grantedQos]) {
+                $subscriber->publish($publish->topic, $publish->payload, qos: \min($publish->qos, $grantedQos));
             }
         }
 
@@ -318,7 +322,10 @@ class MockHandler implements Handler
 
     public function onPuback(Puback $puback, Connection $connection): void
     {
-        $connection->acknowledge($puback->packetId);
+        $delivery = $connection->acknowledge($puback->packetId);
+        if ($delivery !== null && \str_starts_with($delivery['topic'], self::DEVICE_TOPIC_PREFIX)) {
+            unset($this->devicePending[$connection->prefix . '|' . $connection->getClientId()][$delivery['sequence']]);
+        }
     }
 
     public function onDisconnect(?Disconnect $disconnect, Connection $connection): void
