@@ -14,7 +14,8 @@ import (
 // swapped into the built bundle, and every other entry must come through as
 // built. A Python build links its virtual environment's interpreter into the
 // image, and a lost mode makes an executable helper script non-executable;
-// either way the container fails to start.
+// either way the container fails to start. A replaced source keeps its built
+// mode for the same reason, since a build step may have made it executable.
 func TestReplaceKeepsTheRestOfTheBundle(t *testing.T) {
 	bundle := filepath.Join(t.TempDir(), "build.tar.gz")
 	file, err := os.Create(bundle)
@@ -30,6 +31,7 @@ func TestReplaceKeepsTheRestOfTheBundle(t *testing.T) {
 		{tar.Header{Name: "./runtime-env/bin/python", Typeflag: tar.TypeSymlink, Linkname: "/usr/local/bin/python3"}, ""},
 		{tar.Header{Name: "./bin/run.sh", Typeflag: tar.TypeReg, Mode: 0o755, Size: 10}, "#!/bin/sh\n"},
 		{tar.Header{Name: "./src/main.py", Typeflag: tar.TypeReg, Mode: 0o644, Size: 3}, "old"},
+		{tar.Header{Name: "./src/start.sh", Typeflag: tar.TypeReg, Mode: 0o755, Size: 3}, "old"},
 	} {
 		if err := writer.WriteHeader(&entry.header); err != nil {
 			t.Fatal(err)
@@ -50,8 +52,9 @@ func TestReplaceKeepsTheRestOfTheBundle(t *testing.T) {
 
 	source := t.TempDir()
 	writeFile(t, filepath.Join(source, "src", "main.py"), "new", 0o644)
+	writeFile(t, filepath.Join(source, "src", "start.sh"), "new", 0o644)
 
-	if err := ReplaceTarGzFiles(bundle, source, []string{"src/main.py"}); err != nil {
+	if err := ReplaceTarGzFiles(bundle, source, []string{"src/main.py", "src/start.sh"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -95,6 +98,9 @@ func TestReplaceKeepsTheRestOfTheBundle(t *testing.T) {
 	}
 	if contents["src/main.py"] != "new" {
 		t.Errorf("src/main.py = %q, want %q", contents["src/main.py"], "new")
+	}
+	if header := headers["src/start.sh"]; header == nil || header.Mode != 0o755 || contents["src/start.sh"] != "new" {
+		t.Errorf("src/start.sh = %+v with %q, want mode 0755 with %q", header, contents["src/start.sh"], "new")
 	}
 }
 
