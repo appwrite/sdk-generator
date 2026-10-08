@@ -14,6 +14,7 @@ import NIO
 public class WebAuthComponent {
 
     private static var callbacks = [String: (Result<String, {{ spec.info.title | caseUcfirst}}Error>) -> Void]()
+    private static var currentAuthId: UUID?
     #if canImport(AuthenticationServices)
         private static var currentAuthSession: ASWebAuthenticationSession?
     #endif
@@ -37,6 +38,13 @@ public class WebAuthComponent {
         callbackScheme: String,
         onComplete: @escaping (Result<String, {{ spec.info.title | caseUcfirst}}Error>) -> Void
     ) {
+        guard callbacks.isEmpty else {
+            onComplete(.failure({{ spec.info.title | caseUcfirst}}Error(message: "An OAuth2 login is already in progress.")))
+            return
+        }
+
+        let authId = UUID()
+        currentAuthId = authId
         callbacks[callbackScheme] = onComplete
 
         #if canImport(AuthenticationServices)
@@ -44,11 +52,14 @@ public class WebAuthComponent {
                 url: url,
                 callbackURLScheme: callbackScheme
             ) { callbackURL, error in
-                if error != nil {
-                    cleanUp()
-                } else if let callbackURL = callbackURL {
+                guard currentAuthId == authId else {
+                    return
+                }
+                if error == nil, let callbackURL = callbackURL {
                     // handle cookies here itself!
                     WebAuthComponent.handleIncomingCookie(from: callbackURL)
+                }
+                if currentAuthId == authId {
                     cleanUp()
                 }
             }
@@ -57,9 +68,11 @@ public class WebAuthComponent {
                 /// Indicates that the session should be a private session.
                 session.prefersEphemeralWebBrowserSession = true
                 session.presentationContextProvider = PresentationContextProvider.shared
-                session.start()
+                if !session.start() {
+                    cleanUp()
+                }
             } else {
-                print("Failed to create ASWebAuthenticationSession")
+                cleanUp()
             }
         #endif
     }
@@ -142,19 +155,28 @@ public class WebAuthComponent {
     ///
     public static func onCallback(scheme: String? = nil, url: URL? = nil) {
         if let scheme = scheme, let url = url {
-            callbacks.removeValue(forKey: scheme)?(.success(url.absoluteString))
+            let callback = callbacks.removeValue(forKey: scheme)
+            cleanUp()
+            callback?(.success(url.absoluteString))
+        } else {
+            cleanUp()
         }
-        cleanUp()
     }
 
     private static func cleanUp() {
-        callbacks.forEach { (_, callback) in
-            callback(.failure({{ spec.info.title | caseUcfirst}}Error(message: "User cancelled login.")))
-        }
+        let pending = callbacks
+        callbacks.removeAll()
+        currentAuthId = nil
 
         #if canImport(AuthenticationServices)
+            let session = currentAuthSession
             currentAuthSession = nil
+            session?.cancel()
         #endif
+
+        pending.forEach { (_, callback) in
+            callback(.failure({{ spec.info.title | caseUcfirst}}Error(message: "User cancelled login.")))
+        }
     }
 }
 
