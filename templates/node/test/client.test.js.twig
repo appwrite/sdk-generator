@@ -43,6 +43,24 @@ describe('Client', () => {
             client.setSelfSigned(false);
         }
     });
+
+    test.each([
+        ['undefined', undefined],
+        ['null', null],
+        ['object', Buffer.from('secret')],
+    ])('warns that setKey received %s instead of a string', (type, value) => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+        try {
+            new Client().setKey(value);
+
+            expect(warn).toHaveBeenCalledWith(
+                `setKey received ${type} instead of a string.`,
+            );
+        } finally {
+            warn.mockRestore();
+        }
+    });
 });
 
 describe('Client.chunkedUpload', () => {
