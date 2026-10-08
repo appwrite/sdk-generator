@@ -264,8 +264,6 @@ try {
 
     $cliExcludes = [
         'services' => [
-            ['name' => 'avatars'],
-            ['name' => 'apps'],
             ['name' => 'organizations'],
             ['name' => 'console'],
             ['name' => 'projects'],
@@ -292,7 +290,6 @@ try {
             // Not yet available in the released @appwrite.io/console package
             ['name' => 'listStages'],
             ['name' => 'updateStage'],
-            ['name' => 'approve'],
             // Passkeys are not in the released Go SDK yet
             ['service' => 'account', 'name' => 'listPasskeys'],
             ['service' => 'account', 'name' => 'createPasskey'],
