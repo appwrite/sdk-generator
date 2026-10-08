@@ -140,6 +140,8 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
 
     test_general_upload(client, string_in_array).await?;
     test_large_upload(client, string_in_array).await?;
+    let profile = general.upload_generic(InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?).await?;
+    println!("{}", profile.prefs().get::<String>("result").unwrap_or_default());
 
     // Extended General Responses
     test_general_download(client).await?;

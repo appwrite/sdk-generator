@@ -65,6 +65,7 @@ final class FlutterStableTest extends Base
         ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
         ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
@@ -78,10 +79,14 @@ final class FlutterStableTest extends Base
         ...Base::CHANNEL_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES,
         ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_SIGN_IN_SESSION_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
         ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
+        ...Base::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,
         ...Base::FLUTTER_PUSH_NATIVE_RESPONSES,
         ...Base::PUSH_NATIVE_DISPLACED_RESPONSES,
-        ...Base::PUSH_BACKGROUND_RESPONSES
+        ...Base::PUSH_NOTIFICATION_PERMISSION_RESPONSES,
+        ...Base::PUSH_BACKGROUND_RESPONSES,
+        ...Base::PUSH_NOTIFICATION_OPENED_RESPONSES
     ];
 }

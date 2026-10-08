@@ -11,7 +11,7 @@ jobs:
     name: ${{ matrix.sdk }} (${{ matrix.platform }})
     runs-on: ubuntu-latest
     env:
-      FLUTTER_VERSION: '3.35.7'
+      FLUTTER_VERSION: '3.38.10'
       KTLINT_VERSION: '1.8.0'
       KTLINT_SHA256: 'a3fd620207d5c40da6ca789b95e7f823c54e854b7fade7f613e91096a3706d75'
       RUBOCOP_VERSION: '1.90.0'

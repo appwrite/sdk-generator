@@ -15,6 +15,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.appwrite.flutter.AppwritePushPlugin
 import io.appwrite.services.PushBackground
 import io.appwrite.services.PushMessage
+import io.appwrite.services.PushOpenActivity
 import io.appwrite.services.PushReceiver
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
@@ -24,6 +25,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.io.File
@@ -106,6 +108,16 @@ class Tests {
         AppwritePushPlugin().onAttachedToEngine(binding)
         call(EVENTS, "listen", null)
 
+        // The app is not on screen, so background subscriptions post their notifications.
+        shadowOf(context.getSystemService(android.app.ActivityManager::class.java)).setProcesses(
+            listOf(
+                android.app.ActivityManager.RunningAppProcessInfo().apply {
+                    pid = android.os.Process.myPid()
+                    importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED
+                },
+            ),
+        )
+
         val host = System.getenv("PUSH_HOST") ?: "mqtt"
         val config = { authMethod: String, credential: String ->
             JSONObject()
@@ -140,7 +152,9 @@ class Tests {
         val message = messages().firstOrNull()
         message?.let { call(METHODS, "ack", mapOf("token" to it["ackToken"])) }
         writeToFile(
-            if (hosted.isSuccess && message?.get("id") == "sub-1" && String(message["payload"] as ByteArray) == "push-payload") {
+            if (hosted.isSuccess && message?.get("id") == "sub-1" && String(message["payload"] as ByteArray) == "push-payload" &&
+                dart.events.any { it["type"] == "connection" && it["connected"] == true }
+            ) {
                 "Push background message:passed"
             } else {
                 "Push background message:failed"
@@ -164,6 +178,14 @@ class Tests {
                 context.registerReceiver(receiver, filter)
             }
             wakeUp.send()
+            // On Android 12+ the alarm hands the run to an expedited job; run that job's work, as
+            // JobScheduler would (Robolectric does not run jobs).
+            shadowOf(android.os.Looper.getMainLooper()).idle()
+            val jobScheduler = context.getSystemService(android.app.job.JobScheduler::class.java)
+            if (jobScheduler.allPendingJobs.any { it.id == PushBackground.EXPEDITED_JOB_ID }) {
+                jobScheduler.cancel(PushBackground.EXPEDITED_JOB_ID)
+                PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) {}
+            }
         }
         waitFor { E2EPushReceiver.messages.isNotEmpty() }
         val posted = shadowOf(notifications).allNotifications.firstOrNull()
@@ -183,7 +205,7 @@ class Tests {
         notifications.cancelAll()
         E2EPushReceiver.messages.clear()
         dart.events.clear()
-        call(METHODS, "resume", null)
+        call(METHODS, "resume", mapOf("authMethod" to "appwrite-session", "credential" to SESSION))
         waitFor(3_000) { E2EPushReceiver.messages.isNotEmpty() || messages().isNotEmpty() }
         writeToFile(
             if (E2EPushReceiver.messages.isEmpty() && messages().isEmpty() && shadowOf(notifications).allNotifications.isEmpty()) {
@@ -203,6 +225,45 @@ class Tests {
             },
         )
         call(METHODS, "stop", null)
+
+        // Taps on background notifications, read the way the Dart side reads them: a tap before
+        // Dart listens, as when it launched the app, is reported once, and a tap while Dart
+        // listens arrives as an event.
+        shadowOf(context.packageManager).addResolveInfoForIntent(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(context.packageName),
+            ResolveInfo().apply {
+                activityInfo = ActivityInfo().apply {
+                    name = android.app.Activity::class.java.name
+                    packageName = context.packageName
+                }
+            },
+        )
+        val tapPayload = JSONObject().put("data", JSONObject().put("saleId", "42")).toString()
+        val tap = {
+            val intent = Intent(context, PushOpenActivity::class.java)
+                .putExtra(PushBackground.EXTRA_TOPIC, "e2e-push")
+                .putExtra(PushBackground.EXTRA_PAYLOAD, tapPayload)
+            Robolectric.buildActivity(PushOpenActivity::class.java, intent).setup().get()
+        }
+        tap()
+        val launched = call(METHODS, "getInitialNotification", null).getOrNull() as? Map<*, *>
+        val launchedAgain = call(METHODS, "getInitialNotification", null).getOrNull()
+        dart.events.clear()
+        call(METHODS, "listenOpened", mapOf("listening" to true))
+        tap()
+        shadowOf(Looper.getMainLooper()).idle()
+        val opened = dart.events.firstOrNull { it["type"] == "opened" }
+        val heldWhileListening = call(METHODS, "getInitialNotification", null).getOrNull()
+        call(METHODS, "listenOpened", mapOf("listening" to false))
+        writeToFile(
+            if (launched?.get("topic") == "e2e-push" && launched["payload"] == tapPayload && launchedAgain == null &&
+                opened?.get("topic") == "e2e-push" && opened["payload"] == tapPayload && heldWhileListening == null
+            ) {
+                "Push notification opened:passed"
+            } else {
+                "Push notification opened:failed (launched: $launched, again: $launchedAgain, opened: $opened, held: $heldWhileListening)"
+            },
+        )
     }
 
     private fun messages(): List<Map<*, *>> = dart.events.filter { it["type"] == "message" }

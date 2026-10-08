@@ -188,6 +188,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	testGeneralUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)
+	testGenericUpload(client)
 
 	// Extended General Responses
 	testGeneralDownload(client)
@@ -267,6 +268,25 @@ func testLargeUpload(client client.Client, stringInArray []string) {
 		fmt.Printf("general.Upload => error %v\n", err)
 	}
 	fmt.Printf("%s\n", response.Result)
+}
+
+func testGenericUpload(client client.Client) {
+	general := appwrite.NewGeneral(client)
+	inputFile := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+
+	response, err := general.UploadGeneric(inputFile)
+	if err != nil {
+		fmt.Printf("general.UploadGeneric => error %v\n", err)
+		return
+	}
+	var profile struct {
+		Prefs map[string]interface{} `json:"prefs"`
+	}
+	if err := response.Decode(&profile); err != nil {
+		fmt.Printf("general.UploadGeneric => decode error %v\n", err)
+		return
+	}
+	fmt.Printf("%s\n", profile.Prefs["result"])
 }
 
 func testQueries() {

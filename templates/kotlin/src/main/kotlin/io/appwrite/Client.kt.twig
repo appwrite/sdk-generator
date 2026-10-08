@@ -365,6 +365,7 @@ class Client @JvmOverloads constructor(
      * @param path
      * @param headers
      * @param params
+     * @param method HTTP method the upload endpoint is declared with; resuming by upload ID always uses GET
      *
      * @return [T]
      */
@@ -378,10 +379,11 @@ class Client @JvmOverloads constructor(
         paramName: String,
         idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
+        method: String = "POST",
     ): T {
         if (params[paramName] == null) {
             return call(
-                method = "POST",
+                method = method,
                 path,
                 headers,
                 params,
@@ -400,7 +402,7 @@ class Client @JvmOverloads constructor(
             else -> throw UnsupportedOperationException()
         }
 
-        if (size < CHUNK_SIZE || responseType == String::class.java) {
+        if (size <= CHUNK_SIZE || responseType == String::class.java) {
             val data = when (input.sourceType) {
                 "file", "path" -> File(input.path).asRequestBody()
                 "bytes" -> (input.data as ByteArray).toRequestBody(input.mimeType.toMediaType())
@@ -412,7 +414,7 @@ class Client @JvmOverloads constructor(
                 data
             )
             return call(
-                method = "POST",
+                method = method,
                 path,
                 headers,
                 params,
@@ -483,7 +485,7 @@ class Client @JvmOverloads constructor(
             )
 
             val chunkResult = call(
-                method = "POST",
+                method = method,
                 path,
                 chunkHeaders,
                 chunkParams,

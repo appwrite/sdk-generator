@@ -200,6 +200,9 @@ void main() async {
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
+  final profile = await general.uploadGeneric(file: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'));
+  print(profile.prefs.data['result']);
+
   final download = await general.download();
   print(utf8.decode(download));
 
@@ -621,6 +624,33 @@ void main() async {
       ? 'Push user no credential:passed'
       : 'Push user no credential:failed');
 
+  // Signed in through the client: with no JWT or session set on it, the user comes from the
+  // session its sign-in saved in the cookie store.
+  final signInClient = Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883');
+  try {
+    final signInIO = signInClient as ClientIO;
+    // Client() starts initialising on its own: wait for it before using the cookie store.
+    while (!signInIO.initialized && signInIO.initProgress) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+    if (!signInIO.initialized) {
+      await signInIO.init();
+    }
+    await signInIO.cookieJar.saveFromResponse(
+      Uri.parse(signInIO.endPoint),
+      [Cookie('a_session_console', Uri.encodeComponent(e2eSession))],
+    );
+    final signInTopics = await userTopicsOf(signInClient);
+    print(onlyTopic(signInTopics, 'users/e2e-session-user')
+        ? 'Push user sign-in session topic:passed'
+        : 'Push user sign-in session topic:failed');
+  } catch (e) {
+    print('Push user sign-in session topic:failed ($e)');
+  }
+
   // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
   // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
   // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
@@ -730,6 +760,32 @@ void main() async {
         : 'Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending)',
   );
 
+  // close() while the connection is still being set up (the mock accepts a "slow:" credential
+  // after 500 ms): the subscribe fails with the close, and the connection never opens after it.
+  var closingOpened = 0;
+  final closingPush = Push(Client()
+          .setSelfSigned()
+          .setProject('console')
+          .setPushEndpoint('mqtt://mqtt:1883')
+          .setJWT('slow:closing'))
+      .onOpen(() => closingOpened++);
+  final closingOutcome = closingPush.subscribe(['e2e-switch'], (_) {}).then(
+        (_) => '',
+        onError: (Object e) => e is AppwriteException ? e.message ?? '' : e.toString(),
+      );
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+  closingPush.close();
+  final closedOutcome = await closingOutcome.timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => 'timeout',
+  );
+  await Future<void>.delayed(const Duration(seconds: 1));
+  print(
+    closedOutcome == 'Push was closed before the subscription was established' && closingOpened == 0
+        ? 'Push close while connecting:passed'
+        : 'Push close while connecting:failed ($closedOutcome, opened: $closingOpened)',
+  );
+
   // Background delivery on Android through the public API. The SDK's native Android plugin needs
   // a device, so a stand-in answers on its channels, as the mock server stands in for the broker;
   // the plugin itself is exercised over the same channels by the Robolectric run.
@@ -797,6 +853,9 @@ void main() async {
   print(firstErrors.any((e) => e.toString().contains('Background delivery stopped')) && secondErrors.isEmpty
       ? 'Push native displaced:passed'
       : 'Push native displaced:failed');
+  print(plugin.calls.where((m) => m == 'requestNotificationPermission').length == 1
+      ? 'Push notification permission:passed'
+      : 'Push notification permission:failed');
   firstUser.close();
   secondUser.close();
   PushNative.debugInstance = null;
@@ -807,6 +866,7 @@ void main() async {
 class FakePushPlugin implements BinaryMessenger {
   static const codec = StandardMethodCodec();
   final subscribed = Completer<void>();
+  final calls = <String>[];
   final _hosted = <Map<String, dynamic>>[];
   MessageHandler? _events;
 
@@ -827,6 +887,7 @@ class FakePushPlugin implements BinaryMessenger {
   Future<ByteData?> send(String channel, ByteData? message) async {
     final call = codec.decodeMethodCall(message);
     final arguments = call.arguments as Map<Object?, Object?>?;
+    calls.add(call.method);
     switch (call.method) {
       case 'host':
         _hosted
@@ -839,6 +900,8 @@ class FakePushPlugin implements BinaryMessenger {
         return codec.encodeSuccessEnvelope(false);
       case 'defaultClientId':
         return codec.encodeSuccessEnvelope('e2e-session-user-install');
+      case 'requestNotificationPermission':
+        return codec.encodeSuccessEnvelope(true);
       default:
         return codec.encodeSuccessEnvelope(null);
     }

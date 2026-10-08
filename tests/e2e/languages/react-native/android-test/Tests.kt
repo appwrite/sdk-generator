@@ -1,3 +1,4 @@
+import android.app.Activity
 import android.app.AlarmManager
 import android.app.Application
 import android.app.Notification
@@ -22,11 +23,14 @@ import io.appwrite.reactnative.AppwriteCookiesModule
 import io.appwrite.reactnative.AppwritePushModule
 import io.appwrite.services.PushBackground
 import io.appwrite.services.PushMessage
+import io.appwrite.services.PushOpenActivity
 import io.appwrite.services.PushReceiver
+import io.appwrite.services.PushStore
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.io.File
@@ -95,10 +99,20 @@ class TestPromise : Promise {
 class Tests {
     private val context = ApplicationProvider.getApplicationContext<Application>()
     private val events = CopyOnWriteArrayList<Pair<String, Map<String, Any?>>>()
-    private val module = AppwritePushModule(BridgeReactContext(context)) { event, body -> events.add(event to body) }
+    private val reactContext = BridgeReactContext(context)
+    private val module = AppwritePushModule(reactContext) { event, body -> events.add(event to body) }
 
     @Test
     fun background() {
+        // The app is not on screen, so background subscriptions post their notifications.
+        shadowOf(context.getSystemService(android.app.ActivityManager::class.java)).setProcesses(
+            listOf(
+                android.app.ActivityManager.RunningAppProcessInfo().apply {
+                    pid = android.os.Process.myPid()
+                    importance = android.app.ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED
+                },
+            ),
+        )
         val host = System.getenv("PUSH_HOST") ?: "mqtt"
         val config = { authMethod: String, credential: String ->
             JSONObject()
@@ -132,11 +146,28 @@ class Tests {
         waitFor { messages().isNotEmpty() }
         val message = messages().firstOrNull()
         message?.let { module.ack(it["ackToken"] as String) }
+        // A second Push constructed with another credential resumes saved delivery; it leaves the
+        // live subscriptions hosted here alone, so the next message still reaches sub-1. Hosting
+        // one more subscription makes the mock publish again; the original set is then restored.
+        val opened = events.any { it.first == AppwritePushModule.CONNECTION_EVENT && it.second["connected"] == true }
+        call { module.resume("appwrite-session", "another-session", true, it) }
+        events.clear()
+        val withExtra = JSONArray(subscriptions)
+            .put(JSONObject().put("id", "sub-2").put("topic", "e2e-after-resume").put("background", false).put("retry", true))
+            .toString()
+        call { module.host(config("appwrite-session", SESSION), withExtra, it) }
+        waitFor { messages().any { it["id"] == "sub-1" } }
+        val afterResume = messages().firstOrNull { it["id"] == "sub-1" }
+        messages().forEach { module.ack(it["ackToken"] as String) }
+        call { module.host(config("appwrite-session", SESSION), subscriptions, it) }
+        val keptLive = afterResume != null && decode(afterResume["payload"]) == "push-payload"
         writeToFile(
-            if (hosted.isSuccess && message?.get("id") == "sub-1" && decode(message["payload"]) == "push-payload") {
+            if (hosted.isSuccess && message?.get("id") == "sub-1" && decode(message["payload"]) == "push-payload" &&
+                opened && keptLive
+            ) {
                 "Push background message:passed"
             } else {
-                "Push background message:failed"
+                "Push background message:failed (hosted: ${hosted.isSuccess}, opened: $opened, after resume: $afterResume)"
             },
         )
 
@@ -157,6 +188,14 @@ class Tests {
                 context.registerReceiver(receiver, filter)
             }
             wakeUp.send()
+            // On Android 12+ the alarm hands the run to an expedited job; run that job's work, as
+            // JobScheduler would (Robolectric does not run jobs).
+            shadowOf(android.os.Looper.getMainLooper()).idle()
+            val jobScheduler = context.getSystemService(android.app.job.JobScheduler::class.java)
+            if (jobScheduler.allPendingJobs.any { it.id == PushBackground.EXPEDITED_JOB_ID }) {
+                jobScheduler.cancel(PushBackground.EXPEDITED_JOB_ID)
+                PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) {}
+            }
         }
         waitFor { E2EPushReceiver.messages.isNotEmpty() }
         val posted = shadowOf(notifications).allNotifications.firstOrNull()
@@ -176,7 +215,7 @@ class Tests {
         notifications.cancelAll()
         E2EPushReceiver.messages.clear()
         events.clear()
-        call { module.resume(it) }
+        call { module.resume("appwrite-session", SESSION, true, it) }
         waitFor(3_000) { E2EPushReceiver.messages.isNotEmpty() || messages().isNotEmpty() }
         writeToFile(
             if (E2EPushReceiver.messages.isEmpty() && messages().isEmpty() && shadowOf(notifications).allNotifications.isEmpty()) {
@@ -197,6 +236,152 @@ class Tests {
         )
         call { module.stop(it) }
         sessionCookie()
+        notificationOpened()
+
+        // While no JS runs, background runs follow the session cookie the app signs in with: a
+        // rotated session of the same user replaces the saved one, and signing out stops delivery.
+        val cookieUrl = "http://$host/v1"
+        val cookies = android.webkit.CookieManager.getInstance()
+        val rotated = android.util.Base64.encodeToString(
+            JSONObject().put("id", "e2e-session-user").put("secret", "rotated").toString().toByteArray(),
+            android.util.Base64.NO_WRAP,
+        )
+        cookies.setCookie(cookieUrl, "a_session_console=$rotated")
+        val cookieConfig = JSONObject(config("appwrite-session", SESSION)).put("sessionCookieUrl", cookieUrl).toString()
+        call { module.host(cookieConfig, subscriptions, it) }
+        PushBackground.dropProcessState(context)
+        PushBackground.tick(context) {}
+        waitFor { PushStore.loadState(context)?.first?.credential == rotated }
+        val followed = PushStore.loadState(context)?.first?.credential == rotated
+        cookies.removeAllCookies(null)
+        PushBackground.tick(context) {}
+        waitFor { !PushBackground.hasSaved(context) }
+        val stoppedWhenSignedOut = !PushBackground.hasSaved(context)
+        writeToFile(
+            if (followed && stoppedWhenSignedOut) {
+                "Push background cookie refresh:passed"
+            } else {
+                "Push background cookie refresh:failed (followed: $followed, stopped: $stoppedWhenSignedOut)"
+            },
+        )
+        call { module.stop(it) }
+
+        // An automatic reconnect sends the session the app has now: the cookie rotates while the
+        // connection is up, the broker drops it, and the client reconnects on its own with the new
+        // session, which the broker echoes on "e2e-whoauth".
+        cookies.setCookie(cookieUrl, "a_session_console=$SESSION")
+        val reconnected = android.util.Base64.encodeToString(
+            JSONObject().put("id", "e2e-session-user").put("secret", "reconnected").toString().toByteArray(),
+            android.util.Base64.NO_WRAP,
+        )
+        val authSubscriptions = JSONArray()
+            .put(JSONObject().put("id", "auth").put("topic", "e2e-whoauth").put("background", true).put("retry", false))
+            .put(JSONObject().put("id", "drop").put("topic", "e2e-drop/1500").put("background", true).put("retry", false))
+            .toString()
+        val sentCredentials = {
+            messages().filter { it["id"] == "auth" }.map { decode(it["payload"]) }
+        }
+        events.clear()
+        call { module.host(cookieConfig, authSubscriptions, it) }
+        waitFor { SESSION in sentCredentials() }
+        cookies.setCookie(cookieUrl, "a_session_console=$reconnected")
+        waitFor(15_000) { reconnected in sentCredentials() }
+        writeToFile(
+            if (sentCredentials().firstOrNull() == SESSION && reconnected in sentCredentials()) {
+                "Push background reconnect credential:passed"
+            } else {
+                "Push background reconnect credential:failed (sent: ${sentCredentials()})"
+            },
+        )
+        call { module.stop(it) }
+
+        // A scheduled run stays up while a delivery is pending (JS has not acknowledged it yet) and
+        // ends shortly after it settles; with nothing pending it ends once deliveries are quiet.
+        // Deliveries the earlier sections never acknowledged stay pending until their ten-second
+        // acknowledgement timeout: let them settle first so only this section's deliveries count.
+        Thread.sleep(11_000)
+        events.clear()
+        call { module.host(config("appwrite-session", SESSION), subscriptions, it) }
+        waitFor { messages().isNotEmpty() }
+        val firstDeliveryAt = System.currentTimeMillis()
+        val pendingToken = messages().firstOrNull()?.get("ackToken") as? String
+        val pendingRun = CompletableFuture<Long>()
+        PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { pendingRun.complete(System.currentTimeMillis()) }
+        Thread.sleep(4_000)
+        val heldWhilePending = !pendingRun.isDone
+        // Acknowledge each delivery as it arrives, as JS does once its callback has run. The run must
+        // then end after the quiet window, before the ten-second acknowledgement timeout could have
+        // settled the first delivery, so only an explicit acknowledgement can end it in time.
+        val acknowledgedAt = System.currentTimeMillis()
+        val acknowledged = mutableSetOf<String>()
+        while (!pendingRun.isDone && System.currentTimeMillis() - acknowledgedAt < 4_500) {
+            messages().mapNotNull { it["ackToken"] as? String }.filter { acknowledged.add(it) }.forEach { module.ack(it) }
+            Thread.sleep(100)
+        }
+        val endedAfterAck = if (pendingRun.isDone) pendingRun.get() - acknowledgedAt else null
+        val endedAfterDelivery = if (pendingRun.isDone) pendingRun.get() - firstDeliveryAt else null
+        val quietRun = CompletableFuture<Long>()
+        val quietStart = System.currentTimeMillis()
+        PushBackground.tick(context, drainMs = PushBackground.JOB_DRAIN_MS) { quietRun.complete(System.currentTimeMillis()) }
+        val quietTook = runCatching { quietRun.get(12, TimeUnit.SECONDS) - quietStart }.getOrNull()
+        writeToFile(
+            if (pendingToken != null && heldWhilePending && endedAfterAck != null && endedAfterAck <= 4_500L &&
+                endedAfterDelivery != null && endedAfterDelivery < 9_000L && quietTook != null && quietTook in 1_500L..8_000L
+            ) {
+                "Push background drain:passed"
+            } else {
+                "Push background drain:failed (held: $heldWhilePending, after ack: $endedAfterAck, after delivery: $endedAfterDelivery, quiet: $quietTook)"
+            },
+        )
+        call { module.stop(it) }
+    }
+
+    // Taps on the notifications background delivery posts, read the way push.ts reads them: a tap
+    // before JS listens, as when it launched the app, is reported once by getInitialNotification,
+    // and a tap while JS listens arrives as an event. The app opens with the tap's extras.
+    private fun notificationOpened() {
+        val payload = JSONObject().put("data", JSONObject().put("saleId", "42")).toString()
+        shadowOf(context.packageManager).addResolveInfoForIntent(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(context.packageName),
+            ResolveInfo().apply {
+                activityInfo = ActivityInfo().apply {
+                    name = Activity::class.java.name
+                    packageName = context.packageName
+                }
+            },
+        )
+        val tap = {
+            val intent = Intent(context, PushOpenActivity::class.java)
+                .putExtra(PushBackground.EXTRA_TOPIC, "e2e-push")
+                .putExtra(PushBackground.EXTRA_PAYLOAD, payload)
+            Robolectric.buildActivity(PushOpenActivity::class.java, intent).setup().get()
+        }
+        val launchedBy = shadowOf(tap()).nextStartedActivity
+        val launched = call { module.getInitialNotification(it) }.getOrNull() as? String
+        val again = call { module.getInitialNotification(it) }.getOrNull()
+        val initial = launched?.let { JSONObject(it) }
+        events.clear()
+        call { module.listenOpened(true, it) }
+        tap()
+        val opened = events.firstOrNull { it.first == AppwritePushModule.OPENED_EVENT }?.second
+        val heldWhileListening = call { module.getInitialNotification(it) }.getOrNull()
+        call { module.listenOpened(false, it) }
+        events.clear()
+        tap()
+        val emittedAfterStop = events.any { it.first == AppwritePushModule.OPENED_EVENT }
+        val heldAfterStop = call { module.getInitialNotification(it) }.getOrNull() as? String
+        writeToFile(
+            if (initial?.optString("topic") == "e2e-push" && initial.optString("payload") == payload && again == null &&
+                launchedBy?.getStringExtra(PushBackground.EXTRA_PAYLOAD) == payload &&
+                opened?.get("topic") == "e2e-push" && opened["payload"] == payload && heldWhileListening == null &&
+                !emittedAfterStop && heldAfterStop?.let { JSONObject(it).optString("payload") } == payload
+            ) {
+                "Push notification opened:passed"
+            } else {
+                "Push notification opened:failed (launched: $launched, again: $again, by: ${launchedBy?.extras}, opened: $opened, " +
+                    "held: $heldWhileListening, after stop: $emittedAfterStop/$heldAfterStop)"
+            },
+        )
     }
 
     private fun sessionCookie() {

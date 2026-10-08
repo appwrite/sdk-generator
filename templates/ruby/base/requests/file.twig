@@ -18,6 +18,7 @@
                 param_name: param_name,
                 id_param_name: id_param_name,
                 on_progress: on_progress,
+                method: '{{ method.method.value | caseUpper }}',
             )
 
             unless response.is_a?(Hash)
@@ -39,6 +40,7 @@
                 param_name: param_name,
                 id_param_name: id_param_name,
                 on_progress: on_progress,
+                method: '{{ method.method.value | caseUpper }}',
 {% if (method | textResponse) %}
                 response_type: "text"
 {% elseif (method | responseModel) and (method | responseModel) != 'any' %}

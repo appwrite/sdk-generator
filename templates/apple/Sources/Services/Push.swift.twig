@@ -23,6 +23,134 @@ public struct PushMessage {
     }
 }
 
+/// A background notification the user tapped; see `Push.getInitialNotification()` and
+/// `Push.onNotificationOpened(_:)`.
+public struct PushNotificationOpened {
+    /// The topic the message was published to.
+    public let topic: String
+
+    /// The `data` sent with the message (e.g. `createPush`), parsed; empty when it had none.
+    public let data: [String: Any]
+
+    init(topic: String, payload: String) {
+        self.topic = topic
+        let object = (try? JSONSerialization.jsonObject(with: Data(payload.utf8))) as? [String: Any]
+        self.data = object?["data"] as? [String: Any] ?? [:]
+    }
+}
+
+#if canImport(UserNotifications)
+    /// Receives taps on the notifications `Push` posts. It becomes the notification center's
+    /// delegate when the first `Push` is created and forwards everything else to the delegate it
+    /// replaced. A tap while nothing listens waits for `Push.getInitialNotification()`.
+    final class PushNotificationTaps: NSObject, UNUserNotificationCenterDelegate {
+        static let shared = PushNotificationTaps()
+
+        private let lock = NSLock()
+        private var installed = false
+        private var pending: PushNotificationOpened?
+        private var listeners: [UUID: (PushNotificationOpened) -> Void] = [:]
+        private weak var forwarded: UNUserNotificationCenterDelegate?
+
+        func install() {
+            // The notification center needs an app bundle; command-line tools have none.
+            guard Bundle.main.bundleIdentifier != nil else {
+                return
+            }
+            lock.lock()
+            defer { lock.unlock() }
+            guard !installed else {
+                return
+            }
+            installed = true
+            let center = UNUserNotificationCenter.current()
+            forwarded = center.delegate
+            center.delegate = self
+        }
+
+        /// Report [response] when it is a tap on a notification `Push` posted; false otherwise.
+        func handle(_ response: UNNotificationResponse) -> Bool {
+            let info = response.notification.request.content.userInfo
+            guard response.actionIdentifier == UNNotificationDefaultActionIdentifier,
+                let topic = info["topic"] as? String,
+                let payload = info["payload"] as? String
+            else {
+                return false
+            }
+            let opened = PushNotificationOpened(topic: topic, payload: payload)
+            lock.lock()
+            let callbacks = Array(listeners.values)
+            if callbacks.isEmpty {
+                pending = opened
+            }
+            lock.unlock()
+            callbacks.forEach { $0(opened) }
+            return true
+        }
+
+        func take() -> PushNotificationOpened? {
+            lock.lock()
+            defer { lock.unlock() }
+            let opened = pending
+            pending = nil
+            return opened
+        }
+
+        func listen(_ callback: @escaping (PushNotificationOpened) -> Void) -> () -> Void {
+            let id = UUID()
+            lock.lock()
+            listeners[id] = callback
+            lock.unlock()
+            return { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.lock.lock()
+                self.listeners[id] = nil
+                self.lock.unlock()
+            }
+        }
+
+        // Every other delegate method (e.g. `openSettingsFor`) goes to the delegate this one replaced.
+        override func responds(to aSelector: Selector!) -> Bool {
+            super.responds(to: aSelector) || (forwarded?.responds(to: aSelector) ?? false)
+        }
+
+        override func forwardingTarget(for aSelector: Selector!) -> Any? {
+            if let forwarded, forwarded.responds(to: aSelector) {
+                return forwarded
+            }
+            return super.forwardingTarget(for: aSelector)
+        }
+
+        func userNotificationCenter(
+            _ center: UNUserNotificationCenter,
+            didReceive response: UNNotificationResponse,
+            withCompletionHandler completionHandler: @escaping () -> Void
+        ) {
+            if handle(response) {
+                completionHandler()
+            } else if let forwarded, forwarded.responds(to: #selector(UNUserNotificationCenterDelegate.userNotificationCenter(_:didReceive:withCompletionHandler:))) {
+                forwarded.userNotificationCenter?(center, didReceive: response, withCompletionHandler: completionHandler)
+            } else {
+                completionHandler()
+            }
+        }
+
+        func userNotificationCenter(
+            _ center: UNUserNotificationCenter,
+            willPresent notification: UNNotification,
+            withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+        ) {
+            if let forwarded, forwarded.responds(to: #selector(UNUserNotificationCenterDelegate.userNotificationCenter(_:willPresent:withCompletionHandler:))) {
+                forwarded.userNotificationCenter?(center, willPresent: notification, withCompletionHandler: completionHandler)
+            } else {
+                completionHandler([])
+            }
+        }
+    }
+#endif
+
 /// A topic as accepted by `Push.subscribe`: a raw `String`, a `Topic` or a `ResolvedTopic`.
 public protocol TopicValue {
     func toString() -> String
@@ -74,8 +202,9 @@ public final class PushSubscription {
 /// `subscribe`'s `retry`. TLS (and skipping cert verification via a
 /// `?tlsInsecure=true` query flag) is derived from the endpoint, so the whole connection is
 /// described in one place. `subscribe` opens the connection lazily and returns a
-/// `PushSubscription` handle. The credential is read off the client — set a JWT or session
-/// on it (`Client.setJWT` / `Client.setSession`), the same way every other service reads auth.
+/// `PushSubscription` handle. The credential is read off the client: a JWT or session set on it
+/// (`Client.setJWT` / `Client.setSession`), else the session the app signed in with through it
+/// (e.g. `Account.createEmailPasswordSession`).
 ///
 ///     let push = Push(client)
 ///     let sub = try await push.subscribe("user/123/#") { message in
@@ -104,6 +233,8 @@ open class Push: Service {
     private var connectionEpoch = 0
     private var resubscribeOnConnect = false
     private var retired = Set<ObjectIdentifier>()
+    private var closedClients = Set<ObjectIdentifier>()
+    private var closeGeneration = 0
 
     private var onOpenCb: (() -> Void)?
     private var onCloseCb: (() -> Void)?
@@ -149,6 +280,9 @@ open class Push: Service {
         let pushClientId = client.pushClientId
         self.resolvedClientId = (pushClientId?.isEmpty == false) ? pushClientId! : ""
         super.init(client)
+        #if canImport(UserNotifications)
+            PushNotificationTaps.shared.install()
+        #endif
     }
 
     // The broker subscription for a filter uses the highest QoS any local subscription on
@@ -183,6 +317,47 @@ open class Push: Service {
         onErrorCb = callback
         return self
     }
+
+    /// The background notification whose tap launched the app, or nil. Reported once. The tap
+    /// reaches the SDK just after launch, so create `Push` while the app launches and call this
+    /// once it is running, or register `onNotificationOpened(_:)` at launch, which receives it.
+    ///
+    ///     if let opened = push.getInitialNotification() {
+    ///         openSale(opened.data["saleId"])
+    ///     }
+    public func getInitialNotification() -> PushNotificationOpened? {
+        #if canImport(UserNotifications)
+            return PushNotificationTaps.shared.take()
+        #else
+            return nil
+        #endif
+    }
+
+    /// Call `callback` each time the user taps a background notification while the app is
+    /// running, including in the background. Returns a function that stops listening. A tap made
+    /// while nothing listens comes from `getInitialNotification()` instead.
+    ///
+    ///     let stop = push.onNotificationOpened { opened in
+    ///         openSale(opened.data["saleId"])
+    ///     }
+    @discardableResult
+    public func onNotificationOpened(_ callback: @escaping (PushNotificationOpened) -> Void) -> () -> Void {
+        #if canImport(UserNotifications)
+            return PushNotificationTaps.shared.listen(callback)
+        #else
+            return {}
+        #endif
+    }
+
+    #if canImport(UserNotifications)
+        /// For apps that set their own `UNUserNotificationCenter` delegate after creating `Push`:
+        /// pass each response from `userNotificationCenter(_:didReceive:withCompletionHandler:)`.
+        /// Returns true when it was a tap on a notification `Push` posted, which `Push` reports.
+        @discardableResult
+        public static func handleNotificationResponse(_ response: UNNotificationResponse) -> Bool {
+            PushNotificationTaps.shared.handle(response)
+        }
+    #endif
 
     /// Subscribe to the signed-in user's own topic, `users/<userId>`. Returns a `PushSubscription` handle.
     ///
@@ -252,10 +427,14 @@ open class Push: Service {
             requestNotificationAuthorization()
         }
 
+        let generation = sync.sync { closeGeneration }
         let mqtt: MQTTClient
         do {
             mqtt = try await connect()
         } catch is SupersededError {
+            if sync.sync(execute: { closeGeneration != generation }) {
+                throw Push.closedError()
+            }
             return try await subscribe(topics.map { $0 as TopicValue }, background: background, title: title, retry: retry, callback: callback)
         }
         let epoch = sync.sync { connectionEpoch }
@@ -281,6 +460,9 @@ open class Push: Service {
                 return true
             }
             if superseded {
+                if sync.sync(execute: { closeGeneration != generation }) {
+                    throw Push.closedError()
+                }
                 return try await subscribe(topics.map { $0 as TopicValue }, background: background, title: title, retry: retry, callback: callback)
             }
             // The SUBSCRIBE failed; roll this call's registrations back (and drop any broker
@@ -388,30 +570,47 @@ open class Push: Service {
     }
 
     /// Tear down the connection and drop all active subscriptions.
+    ///
+    /// Returns at once: the DISCONNECT and the client shutdown run on a background queue,
+    /// because a blocking wait is not allowed on the event loop that runs message callbacks,
+    /// and those callbacks may call `close()` or drop the last subscription. A connection
+    /// still being opened is abandoned, and any `subscribe` waiting on it throws.
     public func close() {
         let client = sync.sync { () -> MQTTClient? in
             // Mark this a deliberate close so the close listener does not reconnect.
             closing = true
+            connectionEpoch += 1
+            closeGeneration += 1
             let existing = mqtt
             mqtt = nil
             connecting?.cancel()
             connecting = nil
+            resubscribeOnConnect = false
             subscriptions.removeAll()
+            if let existing {
+                closedClients.insert(ObjectIdentifier(existing))
+            }
             return existing
         }
         guard let client else { return }
-        do {
-            try client.disconnect().wait()
-        } catch MQTTError.noConnection {
-            // Already disconnected (e.g. the broker dropped the connection); nothing to send.
-        } catch {
-            surface(Push.describe(error))
+        DispatchQueue.global().async { [weak self] in
+            do {
+                try client.disconnect().wait()
+            } catch MQTTError.noConnection {
+                // Already disconnected (e.g. the broker dropped the connection); nothing to send.
+            } catch {
+                self?.surface(Push.describe(error))
+            }
+            do {
+                try client.syncShutdownGracefully()
+            } catch {
+                self?.surface(error)
+            }
         }
-        do {
-            try client.syncShutdownGracefully()
-        } catch {
-            surface(error)
-        }
+    }
+
+    private static func closedError() -> Swift.Error {
+        {{ spec.info.title | caseUcfirst }}Error(message: "Push was closed before the subscription was established")
     }
 
     private func requestNotificationAuthorization() {
@@ -482,10 +681,31 @@ open class Push: Service {
         return try await task.value
     }
 
+    /// The session set on the client (`Client.setSession`), else the one the app signed in with
+    /// through it (e.g. `Account.createEmailPasswordSession`), read from the cookies it saved.
+    private func session() -> String {
+        if let session = client.config["session"], !session.isEmpty {
+            return session
+        }
+        let name = "a_session_\(client.config["project"] ?? "")="
+        guard let host = URL(string: client.endPoint)?.host,
+            let cookies = UserDefaults.standard.stringArray(forKey: host)
+        else {
+            return ""
+        }
+        for cookie in cookies {
+            let pair = cookie.split(separator: ";", maxSplits: 1).first.map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
+            if pair.hasPrefix(name) {
+                let value = String(pair.dropFirst(name.count))
+                return value.removingPercentEncoding ?? value
+            }
+        }
+        return ""
+    }
+
     private func credentialKey() -> String {
         let jwt = client.config["jwt"] ?? ""
-        let session = client.config["session"] ?? ""
-        let credential = jwt.isEmpty ? "appwrite-session|\(session)" : "appwrite-jwt|\(jwt)"
+        let credential = jwt.isEmpty ? "appwrite-session|\(session())" : "appwrite-jwt|\(jwt)"
         return [host, String(port), client.config["project"] ?? "", resolvedClientId, credential].joined(separator: "|")
     }
 
@@ -520,11 +740,11 @@ open class Push: Service {
         if let jwt = client.config["jwt"], !jwt.isEmpty {
             authMethod = "appwrite-jwt"
             credential = jwt
-        } else if let session = client.config["session"], !session.isEmpty {
+        } else if case let signedIn = session(), !signedIn.isEmpty {
             authMethod = "appwrite-session"
-            credential = session
+            credential = signedIn
         } else {
-            throw {{ spec.info.title | caseUcfirst }}Error(message: "No credential set on the client; call Client.setJWT() or Client.setSession() first.")
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "No credential: sign in with this client, or call Client.setJWT() or Client.setSession() first.")
         }
         let project = client.config["project"] ?? ""
         return MQTTProperties([
@@ -544,10 +764,10 @@ open class Push: Service {
             if let userId = userIdFromJwt(jwt) {
                 return userId
             }
-        } else if let session = client.config["session"], !session.isEmpty, let userId = userIdFromSession(session) {
+        } else if case let signedIn = session(), !signedIn.isEmpty, let userId = userIdFromSession(signedIn) {
             return userId
         }
-        throw {{ spec.info.title | caseUcfirst }}Error(message: "subscribe() without a topic needs a signed-in user: set a JWT or session on the client")
+        throw {{ spec.info.title | caseUcfirst }}Error(message: "subscribe() without a topic needs a signed-in user: sign in with this client, or set a JWT or session on it")
     }
 
     private func open() async throws -> MQTTClient {
@@ -603,6 +823,10 @@ open class Push: Service {
         // unexpected drop (a deliberate close() is skipped via the `closing` flag).
         mqtt.addCloseListener(named: "{{ spec.info.title | caseLower }}-push") { [weak self, weak mqtt] result in
             if let self, let mqtt, self.sync.sync(execute: { self.retired.remove(ObjectIdentifier(mqtt)) != nil }) {
+                return
+            }
+            if let self, let mqtt, self.sync.sync(execute: { self.closedClients.remove(ObjectIdentifier(mqtt)) != nil }) {
+                self.onCloseCb?()
                 return
             }
             if case .failure(let error) = result {
@@ -794,34 +1018,115 @@ open class Push: Service {
             payload: [UInt8](publish.payload.readableBytesView),
             qos: Int(publish.qos.rawValue)
         )
-        // Notification is per-subscription: only subs that opted in post one, each with its
-        // own title.
+        // Notification is per-subscription: only subs that opted in post one, each title once, as
+        // their callbacks return. A title the server sent replaces theirs, so it is posted once.
         let matched = sync.sync {
             subscriptions.values.filter { matches(filter: $0.filter, topic: publish.topicName) }
         }
+        let notification = PushNotificationContent(message: pushMessage)
+        var postedTitles = Set<String>()
         for entry in matched {
             entry.callback(pushMessage)
-            if entry.background {
-                notify(pushMessage, title: entry.title)
+            let title = notification.title ?? entry.title ?? pushMessage.topic
+            if entry.background && postedTitles.insert(title).inserted {
+                notify(pushMessage, title: title, notification: notification)
             }
         }
     }
 
-    private func notify(_ message: PushMessage, title: String?) {
+    private func notify(_ message: PushMessage, title: String, notification: PushNotificationContent) {
         #if canImport(UserNotifications)
             let content = UNMutableNotificationContent()
-            content.title = title ?? message.topic
-            content.body = message.data
+            content.title = title
+            content.body = notification.body ?? (notification.present ? "" : message.data)
             content.sound = .default
+            content.userInfo = ["topic": message.topic, "payload": message.data]
+            guard let image = notification.image.flatMap(URL.init(string:)) else {
+                post(content)
+                return
+            }
+            Push.downloadAttachment(image) { [weak self] attachment in
+                if let attachment {
+                    content.attachments = [attachment]
+                }
+                self?.post(content)
+            }
+        #endif
+    }
+
+    #if canImport(UserNotifications)
+        /// The file extension a notification attachment needs for each image type it supports, by MIME type: the
+        /// attachment's type comes from the file's extension.
+        private static let imageExtensions = [
+            "image/jpeg": "jpg",
+            "image/jpg": "jpg",
+            "image/png": "png",
+            "image/gif": "gif",
+            "image/heic": "heic",
+        ]
+
+        private func post(_ content: UNNotificationContent) {
             let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
             UNUserNotificationCenter.current().add(request) { [weak self] error in
                 if let error {
                     self?.surface(error)
                 }
             }
-        #endif
-    }
+        }
 
+        /// Download a notification image into a file a notification can attach, or nil when it cannot be fetched or is
+        /// not an image type notifications show.
+        private static func downloadAttachment(_ url: URL, completion: @escaping (UNNotificationAttachment?) -> Void) {
+            URLSession.shared.downloadTask(with: URLRequest(url: url, timeoutInterval: 10)) { location, response, _ in
+                guard let location, let fileExtension = attachmentExtension(url, mimeType: response?.mimeType) else {
+                    completion(nil)
+                    return
+                }
+                let file = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString)
+                    .appendingPathExtension(fileExtension)
+                do {
+                    try FileManager.default.moveItem(at: location, to: file)
+                    completion(try UNNotificationAttachment(identifier: "image", url: file))
+                } catch {
+                    completion(nil)
+                }
+            }.resume()
+        }
+
+        /// The extension for an image attachment: from its MIME type, else (an image served without an image MIME
+        /// type) from the URL when that names a supported image type. The attachment then validates the file.
+        private static func attachmentExtension(_ url: URL, mimeType: String?) -> String? {
+            if let fileExtension = imageExtensions[mimeType?.lowercased() ?? ""] {
+                return fileExtension
+            }
+            let urlExtension = url.pathExtension.lowercased()
+            return Set(imageExtensions.values).union(["jpeg"]).contains(urlExtension) ? urlExtension : nil
+        }
+    #endif
+
+}
+
+/// What a message's `notification` block asks a background notification to show: nils when the
+/// payload has none or is not JSON.
+struct PushNotificationContent {
+    let present: Bool
+    let title: String?
+    let body: String?
+    let image: String?
+
+    init(message: PushMessage) {
+        let json = (try? JSONSerialization.jsonObject(with: Data(message.payload))) as? [String: Any]
+        let notification = json?["notification"] as? [String: Any]
+        present = notification != nil
+        func field(_ name: String) -> String? {
+            guard let value = notification?[name] as? String, !value.isEmpty else { return nil }
+            return value
+        }
+        title = field("title")
+        body = field("body")
+        image = field("image")
+    }
 }
 
 /// The `userId` claim of a JWT's payload segment (base64url JSON), or nil when absent.

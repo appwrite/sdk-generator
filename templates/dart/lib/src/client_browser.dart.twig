@@ -102,10 +102,11 @@ class ClientBrowser extends ClientBase with ClientMixin {
     required Map<String, String> headers,
     Function(UploadProgress)? onProgress,
     ResponseType? responseType,
+    HttpMethod method = HttpMethod.post,
   }) async {
     if (params[paramName] == null) {
       return call(
-        HttpMethod.post,
+        method,
         path: path,
         params: params,
         headers: headers,
@@ -128,7 +129,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
         filename: file.filename,
       );
       return call(
-        HttpMethod.post,
+        method,
         path: path,
         params: params,
         headers: headers,
@@ -180,7 +181,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       chunkHeaders['content-range'] = 'bytes $start-${end - 1}/$size';
 
       return call(
-        HttpMethod.post,
+        method,
         path: path,
         headers: chunkHeaders,
         params: chunkParams,

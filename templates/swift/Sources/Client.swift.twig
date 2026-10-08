@@ -433,11 +433,12 @@ open class Client {
         paramName: String,
         idParamName: String? = nil,
         converter: ((Any) throws -> T)? = nil,
-        onProgress: ((UploadProgress) -> Void)? = nil
+        onProgress: ((UploadProgress) -> Void)? = nil,
+        method: String = "POST"
     ) async throws -> T {
         guard let input = params[paramName] as? InputFile else {
             return try await call(
-                method: "POST",
+                method: method,
                 path: path,
                 headers: headers,
                 params: params,
@@ -456,10 +457,10 @@ open class Client {
 
         let size = (input.data as! ByteBuffer).readableBytes
 
-        if size < Client.chunkSize || T.self == String.self {
+        if size <= Client.chunkSize || T.self == String.self {
             params[paramName] = input
             return try await call(
-                method: "POST",
+                method: method,
                 path: path,
                 headers: headers,
                 params: params,
@@ -522,7 +523,7 @@ open class Client {
             }
 
             let chunkResult = try await call(
-                method: "POST",
+                method: method,
                 path: path,
                 headers: chunkHeaders,
                 params: chunkParams,

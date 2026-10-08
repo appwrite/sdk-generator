@@ -419,6 +419,10 @@ App::post('/v1/mock/tests/general/upload')
                 throw new Exception(Exception::GENERAL_MOCK, 'Invalid content-range header');
             }
 
+            if ($start === 0 && $end === $size - 1 && $size === $chunkSize) {
+                throw new Exception(Exception::GENERAL_MOCK, 'A file of exactly the chunk size must be sent in one request');
+            }
+
             if ($start === 0 && !empty($id)) {
                 throw new Exception(Exception::GENERAL_MOCK, 'First chunked request cannot have id header');
             }
@@ -459,6 +463,14 @@ App::post('/v1/mock/tests/general/upload')
             $file['tmp_name'] = (\is_array($file['tmp_name'])) ? $file['tmp_name'][0] : $file['tmp_name'];
             $file['name'] = (\is_array($file['name'])) ? $file['name'][0] : $file['name'];
             $file['size'] = (\is_array($file['size'])) ? $file['size'][0] : $file['size'];
+
+            if ($file['name'] === 'boundary.bin') {
+                if ($file['size'] !== $chunkSize) {
+                    throw new Exception(Exception::GENERAL_MOCK, 'Wrong boundary file size');
+                }
+
+                return;
+            }
 
             if ($file['name'] !== 'file.png') {
                 throw new Exception(Exception::GENERAL_MOCK, 'Wrong file name');
@@ -525,6 +537,34 @@ App::post('/v1/mock/tests/general/optional-upload')
 
         $response->json([
             'result' => 'optional-upload:' . ($hasFile ? 'with-file' : 'without-file') . ($hasMetadata ? ':with-metadata' : ''),
+        ]);
+    });
+
+App::put('/v1/mock/tests/general/upload-generic')
+    ->desc('Upload Generic')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'uploadGeneric')
+    ->label('sdk.request.type', 'multipart/form-data')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.mock', true)
+    ->param('file', [], new File(), 'Sample file param', skipValidation: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (mixed $file, Request $request, UtopiaSwooleResponse $response) {
+        $file = $request->getFiles('file');
+        $tmpName = is_array($file['tmp_name'] ?? null) ? $file['tmp_name'][0] : ($file['tmp_name'] ?? '');
+        if ($tmpName === '' || md5(file_get_contents($tmpName)) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong file');
+        }
+
+        // The SDK must hydrate the free-form preferences, not drop them.
+        $response->json([
+            'name' => 'John Doe',
+            'prefs' => ['result' => 'PUT:/v1/mock/tests/general/upload-generic:passed'],
         ]);
     });
 
