@@ -351,18 +351,24 @@ $scenarios = [
     // again replays what was sent meanwhile, to the callback, or as a notification when the
     // saved background delivery resumes before the app has subscribed again.
     'force-stopped' => function () use ($package): array {
+        $pidBefore = trim(adb("shell pidof {$package}"));
+        adb('logcat -c');
         adb("shell am force-stop {$package}");
         // The stopped process may still hold its connection for a moment; publish once it is gone.
-        waitFor(fn (): bool => trim(adb("shell pidof {$package}")) === '', 10);
+        $gone = waitFor(fn (): bool => trim(adb("shell pidof {$package}")) === '', 10);
+        $flagged = str_contains(adb("shell dumpsys package {$package}"), 'stopped=true');
         sleep(2);
         publish('Device stopped', 'stopped');
         sleep(45);
         $whileStopped = in_array('Device stopped', notifications($package), true);
+        $pidAfter = trim(adb("shell pidof {$package}"));
+        // What started the app again while it was stopped, if anything did.
+        $started = array_values(preg_grep('/Start proc \d+:' . preg_quote($package, '/') . '|' . preg_quote($package, '/') . '.*(restart|Rescheduling|Scheduling restart)/i', explode("\n", adb('logcat -d -v tag'))));
         clearEvents();
         launch($package);
         $replayed = waitFor(fn (): bool => hasEvent('message: Device stopped') || in_array('Device stopped', notifications($package), true), 60);
 
-        return [!$whileStopped && $replayed, json_encode(['whileStopped' => $whileStopped, 'events' => events(), 'notifications' => notifications($package)])];
+        return [!$whileStopped && $replayed, json_encode(['whileStopped' => $whileStopped, 'pidBefore' => $pidBefore, 'gone' => $gone, 'stoppedFlag' => $flagged, 'pidAfter' => $pidAfter, 'started' => array_slice($started, 0, 5), 'events' => events(), 'notifications' => notifications($package)])];
     },
 ];
 
