@@ -220,7 +220,7 @@ function report(string $sdk, string $scenario, bool $passed, string $detail = ''
 {
     global $failed;
     $failed = $failed || !$passed;
-    echo "Push device {$sdk} {$scenario}:" . ($passed ? 'passed' : "failed ({$detail})") . "\n";
+    echo "Push device {$sdk} {$scenario}:" . ($passed ? 'passed' : 'failed') . " ({$detail})\n";
 }
 
 // Each scenario returns [passed, detail].
