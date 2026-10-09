@@ -1660,8 +1660,8 @@ extension Push {
             #if os(macOS)
                 swizzle(cls, didReceive, types: "v@:@@") { original in
                     let block: @convention(block) (AnyObject, AnyObject, NSDictionary) -> Void = { this, application, userInfo in
-                        let handled = Push.apnsHandle(userInfo as? [AnyHashable: Any] ?? [:], completion: nil)
-                        if let original, !handled {
+                        _ = Push.apnsHandle(userInfo as? [AnyHashable: Any] ?? [:], completion: nil)
+                        if let original {
                             unsafeBitCast(original, to: ReceiveFunction.self)(this, didReceive, application, userInfo)
                         }
                     }
@@ -1671,23 +1671,63 @@ extension Push {
                 swizzle(cls, didReceive, types: "v@:@@@?") { original in
                     let block: @convention(block) (AnyObject, AnyObject, NSDictionary, @escaping FetchCompletion) -> Void = {
                         this, application, userInfo, completion in
-                        // UIBackgroundFetchResult raw values: 0 newData, 1 noData.
+                        // The app's own method still runs for Appwrite's pushes. iOS gets one
+                        // completion, once both are done: Push's result, then the app's.
+                        let fetch = FetchResults(parts: original == nil ? 1 : 2, completion: completion)
                         let handled = Push.apnsHandle(userInfo as? [AnyHashable: Any] ?? [:]) { delivered in
-                            completion(delivered ? 0 : 1)
+                            fetch.finish(delivered ? FetchResults.newData : FetchResults.noData)
                         }
-                        if handled {
-                            return
+                        if !handled {
+                            fetch.finish(FetchResults.noData)
                         }
                         if let original {
-                            unsafeBitCast(original, to: ReceiveFunction.self)(this, didReceive, application, userInfo, completion)
-                        } else {
-                            completion(1)
+                            let appCompletion: FetchCompletion = { result in fetch.finish(result) }
+                            unsafeBitCast(original, to: ReceiveFunction.self)(this, didReceive, application, userInfo, appCompletion)
                         }
                     }
                     return imp_implementationWithBlock(block)
                 }
             #endif
         }
+
+        #if !os(macOS)
+            /// Joins the fetch completions of `Push` and the app into the one iOS expects: new data
+            /// when either had some, else failed when either failed, else no data.
+            private final class FetchResults {
+                // UIBackgroundFetchResult raw values.
+                static let newData: UInt = 0
+                static let noData: UInt = 1
+                static let failed: UInt = 2
+
+                private let lock = NSLock()
+                private var remaining: Int
+                private var results: [UInt] = []
+                private let completion: FetchCompletion
+
+                init(parts: Int, completion: @escaping FetchCompletion) {
+                    remaining = parts
+                    self.completion = completion
+                }
+
+                func finish(_ result: UInt) {
+                    lock.lock()
+                    guard remaining > 0 else {
+                        lock.unlock()
+                        return
+                    }
+                    results.append(result)
+                    remaining -= 1
+                    let done = remaining == 0
+                    let combined =
+                        results.contains(FetchResults.newData)
+                        ? FetchResults.newData : results.contains(FetchResults.failed) ? FetchResults.failed : FetchResults.noData
+                    lock.unlock()
+                    if done {
+                        completion(combined)
+                    }
+                }
+            }
+        #endif
 
         /// Point `selector` on `cls` at the implementation `make` builds from the original, which is
         /// nil when the class did not implement it.
