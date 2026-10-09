@@ -1147,6 +1147,106 @@ class CLI extends Go
                 'template'      => 'cli/internal/cmd/initpush_test.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/apns.go',
+                'template'      => 'cli/internal/apns/apns.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/apns_test.go',
+                'template'      => 'cli/internal/apns/apns_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/apnstest/apnstest.go',
+                'template'      => 'cli/internal/apns/apnstest/apnstest.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/adapter.go',
+                'template'      => 'cli/internal/apns/appwrite/adapter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/adapter_test.go',
+                'template'      => 'cli/internal/apns/appwrite/adapter_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/auth.go',
+                'template'      => 'cli/internal/apns/appwrite/auth.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/appwrite/jar.go',
+                'template'      => 'cli/internal/apns/appwrite/jar.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/portal.go',
+                'template'      => 'cli/internal/apns/appwrite/portal.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/appwrite/srp.go',
+                'template'      => 'cli/internal/apns/appwrite/srp.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/appwrite/srp_test.go',
+                'template'      => 'cli/internal/apns/appwrite/srp_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/expo/adapter.go',
+                'template'      => 'cli/internal/apns/expo/adapter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/expo/adapter_test.go',
+                'template'      => 'cli/internal/apns/expo/adapter_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/helper/helper.js',
+                'template'      => 'cli/internal/apns/expo/helper/helper.js',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/helper/package.json',
+                'template'      => 'cli/internal/apns/expo/helper/package.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/helper/package-lock.json',
+                'template'      => 'cli/internal/apns/expo/helper/package-lock.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/runtime.go',
+                'template'      => 'cli/internal/apns/expo/runtime.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/expo/runtime_test.go',
+                'template'      => 'cli/internal/apns/expo/runtime_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/fastlane/adapter.go',
+                'template'      => 'cli/internal/apns/fastlane/adapter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/fastlane/adapter_test.go',
+                'template'      => 'cli/internal/apns/fastlane/adapter_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/fastlane/helper/Fastfile',
+                'template'      => 'cli/internal/apns/fastlane/helper/Fastfile',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/pull.go',
                 'template'      => 'cli/internal/cmd/pull.go',
