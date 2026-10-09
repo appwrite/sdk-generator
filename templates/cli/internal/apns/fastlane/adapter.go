@@ -286,26 +286,31 @@ func (r runner) check(ctx context.Context) error {
 	}
 	upgrade := "brew upgrade fastlane, or gem update fastlane, depending on how it was installed"
 	if r.gemfile != "" {
-		upgrade = "cd " + shellQuote(filepath.Dir(r.gemfile), runtime.GOOS) + " && bundle update fastlane"
+		upgrade = bundlerUpgrade(filepath.Dir(r.gemfile), runtime.GOOS)
 	}
 
 	return supportedVersion(string(output), upgrade)
 }
 
-// shellQuote quotes path for the shell people paste a command into: single
-// quotes on Unix, with any single quote closed, escaped and reopened, and
-// double quotes on Windows, where paths cannot contain one. A path of only
-// safe characters is left as it is.
-func shellQuote(path, goos string) string {
-	safe := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/._-"
+// bundlerUpgrade says how to upgrade a project's Bundler fastlane. On Unix
+// it is one command to paste, with the folder quoted for a POSIX shell. On
+// Windows no quoting is safe in every shell (PowerShell expands $ inside
+// double quotes, cmd expands %, and Windows PowerShell has no &&), so the
+// folder is named rather than put in a command.
+func bundlerUpgrade(folder, goos string) string {
 	if goos == "windows" {
-		safe += ":\\"
+		return "bundle update fastlane, run from the folder " + folder
 	}
-	if path != "" && strings.Trim(path, safe) == "" {
+
+	return "cd " + shellQuote(folder) + " && bundle update fastlane"
+}
+
+// shellQuote quotes path for a POSIX shell: in single quotes, with any single
+// quote closed, escaped and reopened. A path of only safe characters is left
+// as it is.
+func shellQuote(path string) string {
+	if path != "" && strings.Trim(path, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/._-") == "" {
 		return path
-	}
-	if goos == "windows" {
-		return `"` + path + `"`
 	}
 
 	return "'" + strings.ReplaceAll(path, "'", `'\''`) + "'"

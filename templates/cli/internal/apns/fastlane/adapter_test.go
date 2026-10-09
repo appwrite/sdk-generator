@@ -398,17 +398,17 @@ func TestTheBundlerUpgradeCommandRuns(t *testing.T) {
 	}
 }
 
-func TestShellQuote(t *testing.T) {
-	for _, test := range []struct{ path, goos, want string }{
-		{"/Users/dev/app", "darwin", "/Users/dev/app"},
-		{"/Users/dev/My App", "darwin", "'/Users/dev/My App'"},
-		{"/Users/dev/it's", "linux", `'/Users/dev/it'\''s'`},
-		{`/Users/dev/back\slash`, "linux", `'/Users/dev/back\slash'`},
-		{`C:\Users\dev\app`, "windows", `C:\Users\dev\app`},
-		{`C:\Users\dev\My App`, "windows", `"C:\Users\dev\My App"`},
+func TestBundlerUpgrade(t *testing.T) {
+	for _, test := range []struct{ folder, goos, want string }{
+		{"/Users/dev/app", "darwin", "cd /Users/dev/app && bundle update fastlane"},
+		{"/Users/dev/My App", "darwin", "cd '/Users/dev/My App' && bundle update fastlane"},
+		{"/Users/dev/it's", "linux", `cd '/Users/dev/it'\''s' && bundle update fastlane`},
+		{`/Users/dev/back\slash`, "linux", `cd '/Users/dev/back\slash' && bundle update fastlane`},
+		{`/Users/dev/$(whoami)`, "linux", `cd '/Users/dev/$(whoami)' && bundle update fastlane`},
+		{`C:\Users\dev\$(Get-Date) App`, "windows", `bundle update fastlane, run from the folder C:\Users\dev\$(Get-Date) App`},
 	} {
-		if got := shellQuote(test.path, test.goos); got != test.want {
-			t.Errorf("shellQuote(%q, %s) = %s, want %s", test.path, test.goos, got, test.want)
+		if got := bundlerUpgrade(test.folder, test.goos); got != test.want {
+			t.Errorf("bundlerUpgrade(%q, %s) = %s, want %s", test.folder, test.goos, got, test.want)
 		}
 	}
 }
@@ -423,7 +423,7 @@ func TestTheQuotedCdRunsInAShell(t *testing.T) {
 	if err := os.Mkdir(folder, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	output, err := exec.Command("/bin/sh", "-c", "cd "+shellQuote(folder, runtime.GOOS)+" && pwd -P").Output()
+	output, err := exec.Command("/bin/sh", "-c", "cd "+shellQuote(folder)+" && pwd -P").Output()
 	resolved, _ := filepath.EvalSymlinks(folder)
 	if err != nil || strings.TrimSpace(string(output)) != resolved {
 		t.Errorf("cd landed in %q, %v; want %q", output, err, resolved)
