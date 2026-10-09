@@ -1,0 +1,54 @@
+# Creates a team-scoped APNs key for `appwrite init apns --create-key
+# --provider fastlane` with spaceship, fastlane's Apple Developer portal
+# client, so any fastlane installation (gem, Homebrew or bundler) can run it.
+#
+# spaceship asks for the two-factor code, and for a team when the account has
+# several, on the terminal. The Apple ID and password come from FASTLANE_USER
+# and FASTLANE_PASSWORD. fastlane logs to stdout, so the result is written as
+# JSON to the file named by out: instead.
+require 'json'
+
+lane :create_apns_key do |options|
+  result = begin
+    create_apns_key_with_spaceship(options)
+  rescue StandardError => error
+    kind = error.kind_of?(Spaceship::InvalidUserCredentialsError) ? 'invalid-credentials' : 'failed'
+    { error: kind, message: error.message }
+  end
+  File.open(options[:out], 'w', 0o600) { |file| file.write(JSON.generate(result)) }
+end
+
+def create_apns_key_with_spaceship(options)
+  require 'spaceship'
+
+  Spaceship::Portal.login(ENV.fetch('FASTLANE_USER', nil), ENV.fetch('FASTLANE_PASSWORD', nil))
+  team_id = options[:team_id].to_s
+  if team_id.empty?
+    Spaceship::Portal.select_team
+  else
+    Spaceship::Portal.select_team(team_id: team_id)
+  end
+  client = Spaceship::Portal.client
+
+  # Key.create always asks for every environment, so the client is called
+  # directly with the one requested.
+  environment = options[:environment].to_s.empty? ? 'all' : options[:environment].to_s
+  begin
+    created = client.create_key!(
+      name: options[:name],
+      service_configs: {
+        Spaceship::Portal::Key::APNS_ID => { scope: 'team', environment: environment, identifiers: {} }
+      }
+    )
+  rescue StandardError => error
+    raise unless error.message.include?('maximum allowed number of Keys')
+
+    keys = client.list_keys.map do |key|
+      { id: key['keyId'], name: key['keyName'], canRevoke: key['canRevoke'] == true }
+    end
+    return { error: 'max-keys', keys: keys }
+  end
+
+  key_id = created['keyId']
+  { keyId: key_id, teamId: client.team_id, p8: client.download_key(id: key_id) }
+end
