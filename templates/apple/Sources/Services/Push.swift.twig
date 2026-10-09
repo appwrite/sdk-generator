@@ -1,9 +1,21 @@
 import Foundation
 import MQTTNIO
 import NIOCore
+import ObjectiveC
 
+#if canImport(CryptoKit)
+    import CryptoKit
+#endif
+#if canImport(Security)
+    import Security
+#endif
 #if canImport(UserNotifications)
     import UserNotifications
+#endif
+#if os(iOS) || os(tvOS)
+    import UIKit
+#elseif os(macOS)
+    import AppKit
 #endif
 
 /// A message delivered on a subscribed topic — the MQTT push analog of a realtime event.
@@ -37,6 +49,11 @@ public struct PushNotificationOpened {
         let object = (try? JSONSerialization.jsonObject(with: Data(payload.utf8))) as? [String: Any]
         self.data = object?["data"] as? [String: Any] ?? [:]
     }
+
+    init(topic: String, data: [String: Any]) {
+        self.topic = topic
+        self.data = data
+    }
 }
 
 #if canImport(UserNotifications)
@@ -68,16 +85,21 @@ public struct PushNotificationOpened {
             center.delegate = self
         }
 
-        /// Report [response] when it is a tap on a notification `Push` posted; false otherwise.
+        /// Report [response] when it is a tap on a notification `Push` posted, or on an APNs push
+        /// Appwrite sent; false otherwise.
         func handle(_ response: UNNotificationResponse) -> Bool {
             let info = response.notification.request.content.userInfo
-            guard response.actionIdentifier == UNNotificationDefaultActionIdentifier,
-                let topic = info["topic"] as? String,
-                let payload = info["payload"] as? String
-            else {
+            guard response.actionIdentifier == UNNotificationDefaultActionIdentifier else {
                 return false
             }
-            let opened = PushNotificationOpened(topic: topic, payload: payload)
+            let opened: PushNotificationOpened
+            if let topic = info["topic"] as? String, let payload = info["payload"] as? String {
+                opened = PushNotificationOpened(topic: topic, payload: payload)
+            } else if let remote = Push.RemoteMessage(userInfo: info), !remote.wake {
+                opened = PushNotificationOpened(topic: remote.topic ?? "", data: remote.data)
+            } else {
+                return false
+            }
             lock.lock()
             let callbacks = Array(listeners.values)
             if callbacks.isEmpty {
@@ -142,7 +164,22 @@ public struct PushNotificationOpened {
             willPresent notification: UNNotification,
             withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
         ) {
-            if let forwarded, forwarded.responds(to: #selector(UNUserNotificationCenterDelegate.userNotificationCenter(_:willPresent:withCompletionHandler:))) {
+            let info = notification.request.content.userInfo
+            let forwards = forwarded?.responds(to: #selector(UNUserNotificationCenterDelegate.userNotificationCenter(_:willPresent:withCompletionHandler:))) ?? false
+            if Push.RemoteMessage(userInfo: info) != nil {
+                // An APNs push Appwrite sent: shows nothing when MQTT already delivered it, and is
+                // recorded otherwise, so MQTT does not deliver it again. The app's own delegate
+                // still decides how a new one is presented.
+                let delivered = Push.isDelivered(notification)
+                _ = Push.handleRemoteNotification(info)
+                if let forwarded, forwards {
+                    forwarded.userNotificationCenter?(center, willPresent: notification) { options in
+                        completionHandler(delivered ? [] : options)
+                    }
+                } else {
+                    completionHandler(delivered ? [] : [.banner, .list, .sound])
+                }
+            } else if let forwarded, forwards {
                 forwarded.userNotificationCenter?(center, willPresent: notification, withCompletionHandler: completionHandler)
             } else {
                 completionHandler([])
@@ -352,10 +389,54 @@ open class Push: Service {
     #if canImport(UserNotifications)
         /// For apps that set their own `UNUserNotificationCenter` delegate after creating `Push`:
         /// pass each response from `userNotificationCenter(_:didReceive:withCompletionHandler:)`.
-        /// Returns true when it was a tap on a notification `Push` posted, which `Push` reports.
+        /// Returns true when it was a tap on a notification `Push` posted, or on an APNs push
+        /// Appwrite sent, which `Push` reports.
         @discardableResult
         public static func handleNotificationResponse(_ response: UNNotificationResponse) -> Bool {
             PushNotificationTaps.shared.handle(response)
+        }
+
+        /// Whether this APNs push's message was already delivered over MQTT, so the app can skip
+        /// showing it again. False for anything else, including pushes that are not Appwrite's.
+        /// Only needed with `AppwritePushAutoRegistration = NO`, in
+        /// `userNotificationCenter(_:willPresent:withCompletionHandler:)`:
+        ///
+        ///     done(Push.isDelivered(notification) ? [] : [.banner, .sound])
+        public static func isDelivered(_ notification: UNNotification) -> Bool {
+            guard let id = RemoteMessage(userInfo: notification.request.content.userInfo)?.id else {
+                return false
+            }
+            return apnsDeliveries.contains(id)
+        }
+    #endif
+
+    /// Give `Push` the APNs device token. Required with `AppwritePushAutoRegistration = NO` in
+    /// Info.plist, from `application(_:didRegisterForRemoteNotificationsWithDeviceToken:)`;
+    /// otherwise `Push` catches the token itself. Registers this device with Appwrite for the
+    /// signed-in user and links it to each background subscription's topic.
+    public static func setDeviceToken(_ token: Data) {
+        apnsSetDeviceToken(token)
+    }
+
+    /// Take in a remote notification. Only needed with `AppwritePushAutoRegistration = NO`.
+    /// Returns true when the push was Appwrite's: its message reaches the subscriptions'
+    /// callbacks once. Returns false for any other push.
+    @discardableResult
+    public static func handleRemoteNotification(_ userInfo: [AnyHashable: Any]) -> Bool {
+        apnsHandle(userInfo, completion: nil)
+    }
+
+    #if os(iOS) || os(tvOS)
+        /// Take in a remote notification from
+        /// `application(_:didReceiveRemoteNotification:fetchCompletionHandler:)`. Only needed with
+        /// `AppwritePushAutoRegistration = NO`. Returns true when the push was Appwrite's: its
+        /// message reaches the subscriptions' callbacks once, and `completion` is called when
+        /// `Push` is done with it. Returns false, without calling `completion`, for any other push.
+        ///
+        ///     if Push.handleRemoteNotification(userInfo, completion: completionHandler) { return }
+        @discardableResult
+        public static func handleRemoteNotification(_ userInfo: [AnyHashable: Any], completion: @escaping (UIBackgroundFetchResult) -> Void) -> Bool {
+            apnsHandle(userInfo) { delivered in completion(delivered ? .newData : .noData) }
         }
     #endif
 
@@ -425,6 +506,9 @@ open class Push: Service {
 
         if background {
             requestNotificationAuthorization()
+            // Before any network work: a wake push that arrives while the SUBSCRIBE is in flight
+            // must already reach this push.
+            Push.apnsPrepare(self)
         }
 
         let generation = sync.sync { closeGeneration }
@@ -496,8 +580,13 @@ open class Push: Service {
             throw described
         }
 
+        if background {
+            Push.apnsEnable(self, topics: topics)
+        }
+
         let unsubscribe: () -> Void = { [weak self] in
             guard let self else { return }
+            let backgroundTopics = Set(self.sync.sync { ids.compactMap { self.subscriptions[$0] }.filter { $0.background }.map { $0.filter } })
             let (removed, downgrade) = self.sync.sync { () -> ([String], [MQTTSubscribeInfoV5]) in
                 var removedFilters: [String] = []
                 var maybeDowngrade = Set<String>()
@@ -528,6 +617,12 @@ open class Push: Service {
             if let client, !downgrade.isEmpty {
                 self.inBackground { try await self.brokerSubscribe(client, downgrade) }
             }
+            // A topic leaves APNs once no background subscription is left on it.
+            let stillBackground = Set(self.backgroundTopics())
+            let unlinked = backgroundTopics.subtracting(stillBackground)
+            if !unlinked.isEmpty {
+                Push.apnsDisable(self, topics: Array(unlinked))
+            }
             if self.sync.sync(execute: { self.subscriptions.isEmpty }) {
                 self.close()
             }
@@ -556,6 +651,14 @@ open class Push: Service {
             }
             if newBackground == true {
                 self.requestNotificationAuthorization()
+                Push.apnsEnable(self, topics: self.sync.sync { ids.compactMap { self.subscriptions[$0]?.filter } })
+            } else if newBackground == false {
+                let topics = self.sync.sync { ids.compactMap { self.subscriptions[$0]?.filter } }
+                let stillBackground = Set(self.backgroundTopics())
+                let unlinked = topics.filter { !stillBackground.contains($0) }
+                if !unlinked.isEmpty {
+                    Push.apnsDisable(self, topics: unlinked)
+                }
             }
             // Re-SUBSCRIBE the affected filters at their new effective QoS.
             if let client, !changed.isEmpty {
@@ -1018,17 +1121,27 @@ open class Push: Service {
             payload: [UInt8](publish.payload.readableBytesView),
             qos: Int(publish.qos.rawValue)
         )
+        // A message APNs already delivered (or a replay of one MQTT delivered) reaches the app
+        // once: skip it here.
+        if let id = RemoteMessage.id(payload: pushMessage.payload), !Push.apnsDeliveries.record(id) {
+            return
+        }
+        deliver(pushMessage)
+    }
+
+    // `notifyLocally` is false for a message APNs delivered: iOS already showed it.
+    private func deliver(_ pushMessage: PushMessage, notifyLocally: Bool = true) {
         // Notification is per-subscription: only subs that opted in post one, each title once, as
         // their callbacks return. A title the server sent replaces theirs, so it is posted once.
         let matched = sync.sync {
-            subscriptions.values.filter { matches(filter: $0.filter, topic: publish.topicName) }
+            subscriptions.values.filter { matches(filter: $0.filter, topic: pushMessage.topic) }
         }
         let notification = PushNotificationContent(message: pushMessage)
         var postedTitles = Set<String>()
         for entry in matched {
             entry.callback(pushMessage)
             let title = notification.title ?? entry.title ?? pushMessage.topic
-            if entry.background && postedTitles.insert(title).inserted {
+            if notifyLocally && entry.background && postedTitles.insert(title).inserted {
                 notify(pushMessage, title: title, notification: notification)
             }
         }
@@ -1172,3 +1285,667 @@ private func matches(filter: String, topic: String) -> Bool {
 }
 
 private struct SupersededError: Swift.Error {}
+
+// MARK: - APNs
+//
+// With `background: true`, `Push` also registers the device for APNs: it asks iOS for a device
+// token (caught by proxying the app delegate, as Firebase does), creates the push target for the
+// signed-in user, and a subscriber for each subscribed topic. APNs then delivers while the app is
+// in the background or not running; MQTT keeps delivering while it runs. Each message reaches the
+// app once, matched by its `messageId`.
+//
+// Set `AppwritePushAutoRegistration` to `NO` in Info.plist to turn the proxy off. The app then
+// passes the token with `Push.setDeviceToken(_:)` (required), and optionally pushes with
+// `Push.handleRemoteNotification(_:completion:)` and foreground checks with `Push.isDelivered(_:)`.
+extension Push {
+    static let autoRegistrationKey = "AppwritePushAutoRegistration"
+
+    private static let apnsLock = NSLock()
+    private static var apnsToken: String?
+    private static var apnsPushes: [ObjectIdentifier: WeakPush] = [:]
+    private static var apnsLinked: [String: Set<String>] = [:]
+    private static var apnsProxyInstalled = false
+    private static var apnsRegistrationRequested = false
+    static var apnsDeliveries = Deliveries(defaults: .standard)
+
+    private final class WeakPush {
+        weak var push: Push?
+        init(_ push: Push) { self.push = push }
+    }
+
+    /// Whether the app delegate proxy is on (Info.plist `AppwritePushAutoRegistration`, default YES).
+    static var autoRegistration: Bool {
+        (Bundle.main.object(forInfoDictionaryKey: autoRegistrationKey) as? Bool) ?? true
+    }
+
+    private static func apnsLocked<T>(_ body: () throws -> T) rethrows -> T {
+        apnsLock.lock()
+        defer { apnsLock.unlock() }
+        return try body()
+    }
+
+    /// The token as hex, the form APNs and Appwrite use.
+    static func hex(_ token: Data) -> String {
+        token.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// The device token `Push` last received, as hex.
+    static var apnsCurrentToken: String? {
+        apnsLocked { apnsToken }
+    }
+
+    // MARK: Lifecycle
+
+    /// Let `push` receive APNs pushes and install the app delegate proxy. Runs before the
+    /// subscription's network work, so nothing APNs delivers meanwhile is missed.
+    static func apnsPrepare(_ push: Push) {
+        apnsLocked { apnsPushes[ObjectIdentifier(push)] = WeakPush(push) }
+        if autoRegistration {
+            installProxy()
+        }
+    }
+
+    /// Start APNs for a push with background subscriptions on `topics`.
+    static func apnsEnable(_ push: Push, topics: [String]) {
+        apnsPrepare(push)
+        let token = apnsLocked { apnsToken }
+        if autoRegistration {
+            requestRegistration()
+        }
+        if let token {
+            Task { await register(push, token: token, topics: topics) }
+        }
+    }
+
+    /// Unlink `topics` from APNs once they have no background subscription left.
+    static func apnsDisable(_ push: Push, topics: [String]) {
+        guard let userId = push.remoteUserId() else {
+            return
+        }
+        let targetId = Ids.target(installation: Installation.id, userId: userId)
+        let linked = apnsLocked { apnsLinked[targetId] ?? [] }
+        Task {
+            for topic in topics where linked.contains(topic) {
+                await unlink(push, targetId: targetId, topic: topic)
+            }
+        }
+    }
+
+    static func apnsSetDeviceToken(_ token: Data) {
+        let hex = hex(token)
+        let (changed, pushes) = apnsLocked { () -> (Bool, [Push]) in
+            let changed = apnsToken != hex
+            apnsToken = hex
+            return (changed, apnsPushes.values.compactMap { $0.push })
+        }
+        guard changed else {
+            return
+        }
+        for push in pushes {
+            Task { await register(push, token: hex, topics: push.backgroundTopics()) }
+        }
+    }
+
+    static func apnsRegistrationFailed(_ error: Swift.Error) {
+        let pushes = apnsLocked { apnsPushes.values.compactMap { $0.push } }
+        let described = {{ spec.info.title | caseUcfirst }}Error(
+            message:
+                "APNs registration failed: \(error.localizedDescription). Run `appwrite init apns` to add the Push Notifications capability (aps-environment entitlement)."
+        )
+        for push in pushes {
+            push.surface(described)
+        }
+    }
+
+    // MARK: Target and subscribers
+
+    /// Create or update this device's push target for the push's user, then a subscriber for each
+    /// messaging topic. Failures go to `onError` (or the log) and are never thrown: MQTT keeps
+    /// delivering while the app runs.
+    static func register(_ push: Push, token: String, topics: [String]) async {
+        guard let userId = push.remoteUserId() else {
+            return
+        }
+        let targetId = Ids.target(installation: Installation.id, userId: userId)
+        do {
+            try await upsertTarget(push, targetId: targetId, token: token)
+        } catch {
+            push.surface(
+                {{ spec.info.title | caseUcfirst }}Error(
+                    message:
+                        "Could not register this device for APNs: \(error.localizedDescription). Run `appwrite init apns` so the project has an APNs provider for \(Bundle.main.bundleIdentifier ?? "this app") (\(Environment.current.rawValue))."
+                ))
+            return
+        }
+        apnsLocked { apnsLinked[targetId] = apnsLinked[targetId] ?? [] }
+        // A topic unsubscribed while the target request was in flight is not linked.
+        let wanted = Set(push.backgroundTopics())
+        for topic in topics where Ids.isMessagingTopic(topic) && wanted.contains(topic) {
+            await link(push, targetId: targetId, topic: topic)
+        }
+    }
+
+    private static func upsertTarget(_ push: Push, targetId: String, token: String) async throws {
+        // `environment` and `bundleId` let the server pick the APNs provider for this app and build.
+        // A server without that support ignores them.
+        let params: [String: Any?] = [
+            "targetId": targetId,
+            "identifier": token,
+            "environment": Environment.current.rawValue,
+            "bundleId": Bundle.main.bundleIdentifier,
+        ]
+        do {
+            let _: Any = try await push.client.call(
+                method: "POST",
+                path: "/account/targets/push",
+                headers: ["content-type": "application/json"],
+                params: params,
+                converter: { $0 }
+            )
+        } catch let error as {{ spec.info.title | caseUcfirst }}Error where error.code == 409 {
+            // This install already has a target for the user: point it at the current token, and
+            // the build's environment, which changes when the same install moves from a debug to
+            // a TestFlight build.
+            let _: Any = try await push.client.call(
+                method: "PUT",
+                path: "/account/targets/\(targetId)/push",
+                headers: ["content-type": "application/json"],
+                params: params.filter { $0.key != "targetId" },
+                converter: { $0 }
+            )
+        }
+    }
+
+    private static func link(_ push: Push, targetId: String, topic: String) async {
+        let already = apnsLocked { apnsLinked[targetId]?.contains(topic) ?? false }
+        guard !already else {
+            return
+        }
+        do {
+            _ = try await Messaging(push.client).createSubscriber(
+                topicId: topic,
+                subscriberId: Ids.subscriber(targetId: targetId, topic: topic),
+                targetId: targetId
+            )
+        } catch let error as {{ spec.info.title | caseUcfirst }}Error where error.code == 409 {
+            // Subscribed already.
+        } catch {
+            push.surface(error)
+            return
+        }
+        apnsLocked { _ = apnsLinked[targetId, default: []].insert(topic) }
+        // Unsubscribed while the subscriber was being created: `apnsDisable` found nothing to
+        // unlink then, so undo it here.
+        if !push.backgroundTopics().contains(topic) {
+            await unlink(push, targetId: targetId, topic: topic)
+        }
+    }
+
+    private static func unlink(_ push: Push, targetId: String, topic: String) async {
+        do {
+            _ = try await Messaging(push.client).deleteSubscriber(
+                topicId: topic,
+                subscriberId: Ids.subscriber(targetId: targetId, topic: topic)
+            )
+        } catch let error as {{ spec.info.title | caseUcfirst }}Error where error.code == 404 {
+            // Gone already.
+        } catch {
+            push.surface(error)
+        }
+        apnsLocked { _ = apnsLinked[targetId]?.remove(topic) }
+    }
+
+    // MARK: Delivery
+
+    /// Take in a push APNs delivered; false when it is not Appwrite's. A visible push is recorded,
+    /// so MQTT does not deliver it again, and reaches the subscriptions' callbacks once. A silent
+    /// wake reconnects MQTT so its messages are delivered.
+    static func apnsHandle(_ userInfo: [AnyHashable: Any], completion: ((Bool) -> Void)?) -> Bool {
+        guard let message = RemoteMessage(userInfo: userInfo) else {
+            return false
+        }
+        let pushes = apnsLocked { apnsPushes.values.compactMap { $0.push } }
+        if message.wake {
+            Task {
+                var woke = false
+                for push in pushes {
+                    if await push.wake() {
+                        woke = true
+                    }
+                }
+                completion?(woke)
+            }
+            return true
+        }
+        if let id = message.id, !apnsDeliveries.record(id) {
+            completion?(false)
+            return true
+        }
+        for push in pushes {
+            push.deliverRemote(message)
+        }
+        completion?(true)
+        return true
+    }
+
+    /// The topics this push has background subscriptions on.
+    func backgroundTopics() -> [String] {
+        sync.sync { Array(Set(subscriptions.values.filter { $0.background }.map { $0.filter })) }
+    }
+
+    /// The signed-in user's id, or nil without a credential.
+    func remoteUserId() -> String? {
+        try? currentUserId()
+    }
+
+    /// Deliver a message APNs brought to the subscriptions on its topic, without a local
+    /// notification: iOS already showed it.
+    func deliverRemote(_ message: RemoteMessage) {
+        guard let topic = message.topic else {
+            return
+        }
+        var body: [String: Any] = ["data": message.data]
+        if let id = message.id {
+            body["messageId"] = id
+        }
+        let payload = (try? JSONSerialization.data(withJSONObject: body)) ?? Data()
+        deliver(PushMessage(topic: topic, payload: [UInt8](payload), qos: 1), notifyLocally: false)
+    }
+
+    /// Reconnect MQTT for a silent wake, then give the broker a moment to replay the backlog.
+    /// True when it reconnected.
+    func wake() async -> Bool {
+        let (client, hasSubscriptions) = sync.sync { (mqtt, !subscriptions.isEmpty) }
+        guard hasSubscriptions, !(client?.isActive() ?? false) else {
+            return false
+        }
+        do {
+            let connected: MQTTClient
+            if let client {
+                _ = try await client.v5.connect(cleanStart: false, properties: try connectProperties())
+                connected = client
+            } else {
+                connected = try await connect()
+            }
+            let infos = sync.sync {
+                Set(subscriptions.values.map { $0.filter }).map { MQTTSubscribeInfoV5(topicFilter: $0, qos: effectiveQos($0)) }
+            }
+            if !infos.isEmpty {
+                try await brokerSubscribe(connected, infos)
+            }
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            return true
+        } catch {
+            surface(Push.describe(error))
+            return false
+        }
+    }
+
+    // MARK: App delegate proxy
+
+    private static func requestRegistration() {
+        let first = apnsLocked { () -> Bool in
+            defer { apnsRegistrationRequested = true }
+            return !apnsRegistrationRequested
+        }
+        guard first, Bundle.main.bundleIdentifier != nil else {
+            return
+        }
+        DispatchQueue.main.async {
+            #if os(iOS) || os(tvOS)
+                UIApplication.shared.registerForRemoteNotifications()
+            #elseif os(macOS)
+                NSApplication.shared.registerForRemoteNotifications()
+            #endif
+        }
+    }
+
+    /// Proxy the app delegate's remote-notification methods. SwiftUI apps set their delegate after
+    /// launch, so this waits for one to exist.
+    private static func installProxy(attempt: Int = 0) {
+        guard Bundle.main.bundleIdentifier != nil else {
+            return
+        }
+        DispatchQueue.main.async {
+            guard let delegate = applicationDelegate() else {
+                if attempt < 20 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { installProxy(attempt: attempt + 1) }
+                }
+                return
+            }
+            let install = apnsLocked { () -> Bool in
+                defer { apnsProxyInstalled = true }
+                return !apnsProxyInstalled
+            }
+            if install {
+                DelegateProxy.install(on: type(of: delegate))
+            }
+        }
+    }
+
+    private static func applicationDelegate() -> NSObject? {
+        #if os(iOS) || os(tvOS)
+            return UIApplication.shared.delegate as? NSObject
+        #elseif os(macOS)
+            return NSApplication.shared.delegate as? NSObject
+        #else
+            return nil
+        #endif
+    }
+
+    /// Replaces the app delegate's remote-notification methods with versions that tell `Push` first
+    /// and then call the app's own. Methods the app does not implement are added.
+    enum DelegateProxy {
+        static let didRegister = NSSelectorFromString("application:didRegisterForRemoteNotificationsWithDeviceToken:")
+        static let didFail = NSSelectorFromString("application:didFailToRegisterForRemoteNotificationsWithError:")
+        #if os(macOS)
+            static let didReceive = NSSelectorFromString("application:didReceiveRemoteNotification:")
+        #else
+            static let didReceive = NSSelectorFromString("application:didReceiveRemoteNotification:fetchCompletionHandler:")
+        #endif
+
+        private typealias TokenFunction = @convention(c) (AnyObject, Selector, AnyObject, NSData) -> Void
+        private typealias FailFunction = @convention(c) (AnyObject, Selector, AnyObject, NSError) -> Void
+        #if os(macOS)
+            private typealias ReceiveFunction = @convention(c) (AnyObject, Selector, AnyObject, NSDictionary) -> Void
+        #else
+            private typealias FetchCompletion = @convention(block) (UInt) -> Void
+            private typealias ReceiveFunction = @convention(c) (AnyObject, Selector, AnyObject, NSDictionary, FetchCompletion) -> Void
+        #endif
+
+        static func install(on cls: AnyClass) {
+            swizzle(cls, didRegister, types: "v@:@@") { original in
+                let block: @convention(block) (AnyObject, AnyObject, NSData) -> Void = { this, application, token in
+                    Push.apnsSetDeviceToken(token as Data)
+                    if let original {
+                        unsafeBitCast(original, to: TokenFunction.self)(this, didRegister, application, token)
+                    }
+                }
+                return imp_implementationWithBlock(block)
+            }
+            swizzle(cls, didFail, types: "v@:@@") { original in
+                let block: @convention(block) (AnyObject, AnyObject, NSError) -> Void = { this, application, error in
+                    Push.apnsRegistrationFailed(error)
+                    if let original {
+                        unsafeBitCast(original, to: FailFunction.self)(this, didFail, application, error)
+                    }
+                }
+                return imp_implementationWithBlock(block)
+            }
+            #if os(macOS)
+                swizzle(cls, didReceive, types: "v@:@@") { original in
+                    let block: @convention(block) (AnyObject, AnyObject, NSDictionary) -> Void = { this, application, userInfo in
+                        _ = Push.apnsHandle(userInfo as? [AnyHashable: Any] ?? [:], completion: nil)
+                        if let original {
+                            unsafeBitCast(original, to: ReceiveFunction.self)(this, didReceive, application, userInfo)
+                        }
+                    }
+                    return imp_implementationWithBlock(block)
+                }
+            #else
+                swizzle(cls, didReceive, types: "v@:@@@?") { original in
+                    let block: @convention(block) (AnyObject, AnyObject, NSDictionary, @escaping FetchCompletion) -> Void = {
+                        this, application, userInfo, completion in
+                        // The app's own method still runs for Appwrite's pushes. iOS gets one
+                        // completion, once both are done: Push's result, then the app's.
+                        let fetch = FetchResults(parts: original == nil ? 1 : 2, completion: completion)
+                        let handled = Push.apnsHandle(userInfo as? [AnyHashable: Any] ?? [:]) { delivered in
+                            fetch.finish(delivered ? FetchResults.newData : FetchResults.noData)
+                        }
+                        if !handled {
+                            fetch.finish(FetchResults.noData)
+                        }
+                        if let original {
+                            let appCompletion: FetchCompletion = { result in fetch.finish(result) }
+                            unsafeBitCast(original, to: ReceiveFunction.self)(this, didReceive, application, userInfo, appCompletion)
+                        }
+                    }
+                    return imp_implementationWithBlock(block)
+                }
+            #endif
+        }
+
+        #if !os(macOS)
+            /// Joins the fetch completions of `Push` and the app into the one iOS expects: new data
+            /// when either had some, else failed when either failed, else no data.
+            private final class FetchResults {
+                // UIBackgroundFetchResult raw values.
+                static let newData: UInt = 0
+                static let noData: UInt = 1
+                static let failed: UInt = 2
+
+                private let lock = NSLock()
+                private var remaining: Int
+                private var results: [UInt] = []
+                private let completion: FetchCompletion
+
+                init(parts: Int, completion: @escaping FetchCompletion) {
+                    remaining = parts
+                    self.completion = completion
+                }
+
+                func finish(_ result: UInt) {
+                    lock.lock()
+                    guard remaining > 0 else {
+                        lock.unlock()
+                        return
+                    }
+                    results.append(result)
+                    remaining -= 1
+                    let done = remaining == 0
+                    let combined =
+                        results.contains(FetchResults.newData)
+                        ? FetchResults.newData : results.contains(FetchResults.failed) ? FetchResults.failed : FetchResults.noData
+                    lock.unlock()
+                    if done {
+                        completion(combined)
+                    }
+                }
+            }
+        #endif
+
+        /// Point `selector` on `cls` at the implementation `make` builds from the original, which is
+        /// nil when the class did not implement it.
+        static func swizzle(_ cls: AnyClass, _ selector: Selector, types: String, make: (IMP?) -> IMP) {
+            if let method = class_getInstanceMethod(cls, selector) {
+                method_setImplementation(method, make(method_getImplementation(method)))
+            } else {
+                class_addMethod(cls, selector, make(nil), types)
+            }
+        }
+    }
+
+    // MARK: Helpers
+
+    /// The APNs server a device token belongs to. Debug builds get sandbox tokens and App Store or
+    /// TestFlight builds production ones, and Apple rejects a token sent to the other server.
+    enum Environment: String {
+        case sandbox
+        case production
+
+        /// Read off the app's provisioning profile: `aps-environment = development` means sandbox.
+        /// App Store builds carry no profile and always use production.
+        static var current: Environment {
+            for (name, ext) in [("embedded", "mobileprovision"), ("embedded", "provisionprofile")] {
+                if let url = Bundle.main.url(forResource: name, withExtension: ext), let data = try? Data(contentsOf: url) {
+                    return detect(profile: data)
+                }
+            }
+            return .production
+        }
+
+        /// The environment a provisioning profile grants. The profile is a signed container with its
+        /// plist inside as plain text, cut out between the XML header and the end tag.
+        static func detect(profile: Data) -> Environment {
+            let text = String(decoding: profile, as: UTF8.self)
+            guard let start = text.range(of: "<?xml"),
+                let end = text.range(of: "</plist>", range: start.upperBound..<text.endIndex),
+                let object = try? PropertyListSerialization.propertyList(from: Data(text[start.lowerBound..<end.upperBound].utf8), format: nil)
+                    as? [String: Any],
+                let entitlements = object["Entitlements"] as? [String: Any]
+            else {
+                return .production
+            }
+            let value = entitlements["aps-environment"] ?? entitlements["com.apple.developer.aps-environment"]
+            return (value as? String) == "development" ? .sandbox : .production
+        }
+    }
+
+    /// Message ids already delivered, by MQTT or APNs, so each message reaches the app once.
+    /// Bounded, and kept across launches.
+    final class Deliveries {
+        static let capacity = 500
+        static let key = "{{ spec.info.title | caseLower }}.push.delivered"
+
+        private let lock = NSLock()
+        private let defaults: UserDefaults
+        private var ids: [String]
+        private var lookup: Set<String>
+
+        init(defaults: UserDefaults) {
+            self.defaults = defaults
+            let saved = defaults.stringArray(forKey: Deliveries.key) ?? []
+            ids = saved
+            lookup = Set(saved)
+        }
+
+        /// Whether `id` was delivered before.
+        func contains(_ id: String) -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return lookup.contains(id)
+        }
+
+        /// Record `id`: true when it is new, false when it was delivered before.
+        @discardableResult
+        func record(_ id: String) -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            guard lookup.insert(id).inserted else {
+                return false
+            }
+            ids.append(id)
+            if ids.count > Deliveries.capacity {
+                ids.removeFirst(ids.count - Deliveries.capacity)
+                lookup = Set(ids)
+            }
+            defaults.set(ids, forKey: Deliveries.key)
+            return true
+        }
+    }
+
+    /// Appwrite's part of a message, read the same way from an APNs push and an MQTT payload.
+    struct RemoteMessage {
+        let id: String?
+        let topic: String?
+        let data: [String: Any]
+        /// A silent push sent only to wake the app; its content follows over MQTT.
+        let wake: Bool
+
+        /// From an APNs `userInfo`: Appwrite's data under the top-level `appwrite` key, or as top-level
+        /// (or `aps.data`) `messageId`/`type` keys from servers before that. Nil when it is not Appwrite's.
+        init?(userInfo: [AnyHashable: Any]) {
+            if let appwrite = userInfo["appwrite"] as? [String: Any] {
+                id = appwrite["messageId"] as? String
+                topic = appwrite["topic"] as? String
+                data = appwrite["data"] as? [String: Any] ?? [:]
+                wake = (appwrite["type"] as? String) == "wake"
+                return
+            }
+            let aps = userInfo["aps"] as? [String: Any]
+            let fields = (aps?["data"] as? [String: Any]) ?? (userInfo as? [String: Any] ?? [:])
+            guard let messageId = fields["messageId"] as? String, !messageId.isEmpty else {
+                return nil
+            }
+            id = messageId
+            topic = fields["topic"] as? String
+            data = fields["data"] as? [String: Any] ?? [:]
+            wake = (fields["type"] as? String) == "wake"
+        }
+
+        /// The id in an MQTT payload, when the server sent one (`messageId` or `appwrite.messageId`).
+        static func id(payload: [UInt8]) -> String? {
+            guard let json = (try? JSONSerialization.jsonObject(with: Data(payload))) as? [String: Any] else {
+                return nil
+            }
+            if let id = json["messageId"] as? String, !id.isEmpty {
+                return id
+            }
+            return (json["appwrite"] as? [String: Any])?["messageId"] as? String
+        }
+    }
+
+    /// A stable id for this app install, kept in the Keychain so it survives app updates and, on
+    /// iOS, reinstalls. Falls back to `UserDefaults` where the Keychain is not available.
+    enum Installation {
+        private static let service = "{{ spec.info.title | caseLower }}.push"
+        private static let account = "installation"
+
+        static var id: String {
+            if let saved = read() {
+                return saved
+            }
+            save(UUID().uuidString.lowercased())
+            return read() ?? UUID().uuidString.lowercased()
+        }
+
+        private static func read() -> String? {
+            #if canImport(Security)
+                let query: [String: Any] = [
+                    kSecClass as String: kSecClassGenericPassword,
+                    kSecAttrService as String: service,
+                    kSecAttrAccount as String: account,
+                    kSecReturnData as String: true,
+                    kSecMatchLimit as String: kSecMatchLimitOne,
+                ]
+                var result: AnyObject?
+                if SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data {
+                    return String(data: data, encoding: .utf8)
+                }
+            #endif
+            return UserDefaults.standard.string(forKey: "\(service).\(account)")
+        }
+
+        private static func save(_ id: String) {
+            #if canImport(Security)
+                let item: [String: Any] = [
+                    kSecClass as String: kSecClassGenericPassword,
+                    kSecAttrService as String: service,
+                    kSecAttrAccount as String: account,
+                    kSecValueData as String: Data(id.utf8),
+                    kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+                ]
+                if SecItemAdd(item as CFDictionary, nil) == errSecSuccess {
+                    return
+                }
+            #endif
+            UserDefaults.standard.set(id, forKey: "\(service).\(account)")
+        }
+    }
+
+    /// Ids derived from the install, the user and the topic: 36 lowercase hex characters, which
+    /// Appwrite accepts as a document id.
+    enum Ids {
+        static func target(installation: String, userId: String) -> String {
+            hash("target:\(installation):\(userId)")
+        }
+
+        static func subscriber(targetId: String, topic: String) -> String {
+            hash("subscriber:\(targetId):\(topic)")
+        }
+
+        /// Topics a subscriber can point at: a messaging topic id. `users/<id>` reaches the user's
+        /// targets without one, and wildcard filters match no single topic.
+        static func isMessagingTopic(_ topic: String) -> Bool {
+            !topic.isEmpty && !topic.contains("/") && !topic.contains("+") && !topic.contains("#")
+        }
+
+        private static func hash(_ value: String) -> String {
+            #if canImport(CryptoKit)
+                return String(SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined().prefix(36))
+            #else
+                return String(value.utf8.map { String(format: "%02x", $0) }.joined().suffix(36))
+            #endif
+        }
+    }
+}
