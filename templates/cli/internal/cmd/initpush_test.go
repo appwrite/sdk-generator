@@ -1314,25 +1314,59 @@ func TestInitApnsOffersTheAppleIDWhenNoKeyIsFound(t *testing.T) {
 	}
 }
 
-func TestInitApnsFallsBackWhenTheAppleSignInFails(t *testing.T) {
+func TestInitApnsStopsWhenCreateKeyFails(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	// A key already in the project folder must not stand in for the one
+	// --create-key was asked to create.
+	testApnsKey(t, root)
+	scripted := &prompt.Scripted{}
+	setup, _ := newTestPushSetup(t, server, scripted, root)
+	setup.appleKey = (&fakeAppleKey{err: errors.New("could not reach Apple")}).create(t)
+
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{})
+	if err == nil || err.Error() != "could not create the APNs key with your Apple ID: could not reach Apple" {
+		t.Fatalf("err = %v", err)
+	}
+	if len(scripted.Asked) != 0 || len(messaging.providers) != 0 {
+		t.Errorf("asked %v, providers %v", scripted.Asked, messaging.providers)
+	}
+}
+
+// choiceSequence answers the same choice differently each time it is asked.
+type choiceSequence struct {
+	*prompt.Scripted
+	answers []string
+}
+
+func (c *choiceSequence) Choice(question prompt.Choice) (string, error) {
+	c.Scripted.Asked = append(c.Scripted.Asked, question.Message)
+	answer := c.answers[0]
+	c.answers = c.answers[1:]
+
+	return answer, nil
+}
+
+func TestInitApnsFallsBackWhenTheChosenAppleSignInFails(t *testing.T) {
 	messaging := &fakeMessaging{}
 	server := httptest.NewServer(messaging)
 	defer server.Close()
 
 	existing := testApnsKey(t, t.TempDir())
-	scripted := &prompt.Scripted{
-		Choices: map[string]string{"How would you like to provide the APNs auth key (.p8)?": "file"},
-		Texts:   map[string]string{"Path to the APNs auth key (.p8)": existing},
+	scripted := &choiceSequence{
+		Scripted: &prompt.Scripted{Texts: map[string]string{"Path to the APNs auth key (.p8)": existing}},
+		answers:  []string{"automatic", "file"},
 	}
 	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
-	appleKey := &fakeAppleKey{err: errors.New("could not reach Apple")}
-	setup.appleKey = appleKey.create(t)
+	setup.appleKey = (&fakeAppleKey{err: errors.New("could not reach Apple")}).create(t)
 
-	err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{})
-	if err != nil {
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out.String(), "Could not create the APNs key with your Apple ID") {
+	if !strings.Contains(out.String(), "Could not create the APNs key with your Apple ID: could not reach Apple.") {
 		t.Errorf("output:\n%s", out.String())
 	}
 	if len(messaging.providers) != 2 || messaging.providers[0]["credentials"].(map[string]any)["authKeyId"] != "KEY1234567" {

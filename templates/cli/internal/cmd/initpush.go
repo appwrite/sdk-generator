@@ -476,11 +476,12 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 	return nil
 }
 
-// apnsKey finds or creates the APNs key and returns its path. Creating it with
-// the Apple ID is tried first when --create-key is passed, and offered
-// alongside the browser flow otherwise. When it cannot run or fails, the other
-// ways of providing the key remain.
+// apnsKey finds or creates the APNs key and returns its path. With
+// --create-key, signing in with the Apple ID is the only way, and a failure
+// stops the command. Otherwise it is offered alongside the browser flow, and
+// when it fails the other ways of providing the key remain.
 func (s *pushSetup) apnsKey(teamID string, create bool) (string, string, error) {
+	explicit := create
 	automatic := ""
 	if s.appleKey != nil {
 		automatic = "Sign in with your Apple ID and create one (experimental)"
@@ -513,6 +514,11 @@ func (s *pushSetup) apnsKey(teamID string, create bool) (string, string, error) 
 		}
 		if err == nil {
 			return path, keyTeam, nil
+		}
+		// --create-key asked for a new key: falling back to a .p8 already in
+		// the project folder would hide that none was created.
+		if explicit {
+			return "", "", fmt.Errorf("could not create the APNs key with your Apple ID: %w", err)
 		}
 		output.Warn(s.out, "Could not create the APNs key with your Apple ID: %s.", err)
 		output.Log(s.out, "Provide the key another way instead.")
