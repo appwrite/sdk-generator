@@ -1418,7 +1418,9 @@ extension Push {
             return
         }
         apnsLocked { apnsLinked[targetId] = apnsLinked[targetId] ?? [] }
-        for topic in topics where Ids.isMessagingTopic(topic) {
+        // A topic unsubscribed while the target request was in flight is not linked.
+        let wanted = Set(push.backgroundTopics())
+        for topic in topics where Ids.isMessagingTopic(topic) && wanted.contains(topic) {
             await link(push, targetId: targetId, topic: topic)
         }
     }
@@ -1464,6 +1466,11 @@ extension Push {
             return
         }
         apnsLocked { _ = apnsLinked[targetId, default: []].insert(topic) }
+        // Unsubscribed while the subscriber was being created: `apnsDisable` found nothing to
+        // unlink then, so undo it here.
+        if !push.backgroundTopics().contains(topic) {
+            await unlink(push, targetId: targetId, topic: topic)
+        }
     }
 
     private static func unlink(_ push: Push, targetId: String, topic: String) async {
