@@ -109,8 +109,14 @@ func (a *Adapter) downloadNode(ctx context.Context, dir string, log func(string,
 	if err != nil {
 		return "", "", fmt.Errorf("could not unpack %s: %w", archive, err)
 	}
-	_ = os.RemoveAll(root)
+	// Publishing is a rename, which fails when another run published first;
+	// that runtime is complete, so it is used rather than replaced. An
+	// existing runtime is never removed, as another run may be using it.
 	if err := os.Rename(filepath.Join(staging, name), root); err != nil {
+		if _, statErr := os.Stat(npm); statErr == nil {
+			return node, npm, nil
+		}
+
 		return "", "", fmt.Errorf("could not unpack %s: %w", archive, err)
 	}
 	if _, err := os.Stat(npm); err != nil {

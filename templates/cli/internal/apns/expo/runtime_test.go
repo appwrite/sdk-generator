@@ -204,3 +204,34 @@ func TestUntarRefusesPathsOutsideTheFolder(t *testing.T) {
 		t.Error("wrote outside the folder")
 	}
 }
+
+func TestConcurrentFirstRunsShareOneRuntime(t *testing.T) {
+	name, archive := fakeNodeBuild(t)
+	server, _ := serve(t, name, archive)
+	dir := t.TempDir()
+
+	const runs = 4
+	errs := make(chan error, runs)
+	for range runs {
+		go func() {
+			adapter := &Adapter{NodeDist: server.URL, HTTP: server.Client()}
+			node, _, err := adapter.downloadNode(context.Background(), dir, func(string, ...any) {})
+			if err == nil {
+				_, err = os.Stat(node)
+			}
+			errs <- err
+		}()
+	}
+	for range runs {
+		if err := <-errs; err != nil {
+			t.Error(err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, name, "lib", "node_modules", "npm", "bin", "npm-cli.js")); err != nil {
+		t.Errorf("runtime is incomplete after concurrent runs: %v", err)
+	}
+	leftovers, _ := filepath.Glob(filepath.Join(dir, ".node-*"))
+	if len(leftovers) != 0 {
+		t.Errorf("left staging files behind: %v", leftovers)
+	}
+}
