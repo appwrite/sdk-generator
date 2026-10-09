@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -394,5 +395,37 @@ func TestTheBundlerUpgradeCommandRuns(t *testing.T) {
 	_, err := (&Adapter{Bundle: bundle, WorkDir: project}).CreateKey(context.Background(), apns.Request{Name: "Appwrite Push", Environment: apns.EnvironmentAll, AppleID: "dev@example.com", Password: "secret"})
 	if err == nil || !strings.Contains(err.Error(), "Upgrade it with cd "+project+" && bundle update fastlane") {
 		t.Errorf("err = %v", err)
+	}
+}
+
+func TestShellQuote(t *testing.T) {
+	for _, test := range []struct{ path, goos, want string }{
+		{"/Users/dev/app", "darwin", "/Users/dev/app"},
+		{"/Users/dev/My App", "darwin", "'/Users/dev/My App'"},
+		{"/Users/dev/it's", "linux", `'/Users/dev/it'\''s'`},
+		{`/Users/dev/back\slash`, "linux", `'/Users/dev/back\slash'`},
+		{`C:\Users\dev\app`, "windows", `C:\Users\dev\app`},
+		{`C:\Users\dev\My App`, "windows", `"C:\Users\dev\My App"`},
+	} {
+		if got := shellQuote(test.path, test.goos); got != test.want {
+			t.Errorf("shellQuote(%q, %s) = %s, want %s", test.path, test.goos, got, test.want)
+		}
+	}
+}
+
+// The quoted command must work when pasted into a shell, for a folder whose
+// name has spaces and a quote.
+func TestTheQuotedCdRunsInAShell(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX shell")
+	}
+	folder := filepath.Join(t.TempDir(), "My Project's App")
+	if err := os.Mkdir(folder, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	output, err := exec.Command("/bin/sh", "-c", "cd "+shellQuote(folder, runtime.GOOS)+" && pwd -P").Output()
+	resolved, _ := filepath.EvalSymlinks(folder)
+	if err != nil || strings.TrimSpace(string(output)) != resolved {
+		t.Errorf("cd landed in %q, %v; want %q", output, err, resolved)
 	}
 }

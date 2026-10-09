@@ -19,6 +19,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -285,10 +286,29 @@ func (r runner) check(ctx context.Context) error {
 	}
 	upgrade := "brew upgrade fastlane, or gem update fastlane, depending on how it was installed"
 	if r.gemfile != "" {
-		upgrade = "cd " + filepath.Dir(r.gemfile) + " && bundle update fastlane"
+		upgrade = "cd " + shellQuote(filepath.Dir(r.gemfile), runtime.GOOS) + " && bundle update fastlane"
 	}
 
 	return supportedVersion(string(output), upgrade)
+}
+
+// shellQuote quotes path for the shell people paste a command into: single
+// quotes on Unix, with any single quote closed, escaped and reopened, and
+// double quotes on Windows, where paths cannot contain one. A path of only
+// safe characters is left as it is.
+func shellQuote(path, goos string) string {
+	safe := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/._-"
+	if goos == "windows" {
+		safe += ":\\"
+	}
+	if path != "" && strings.Trim(path, safe) == "" {
+		return path
+	}
+	if goos == "windows" {
+		return `"` + path + `"`
+	}
+
+	return "'" + strings.ReplaceAll(path, "'", `'\''`) + "'"
 }
 
 const installHint = "Install it with brew install fastlane (Homebrew) or gem install fastlane, " +
