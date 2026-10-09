@@ -35,11 +35,16 @@ type fakeApple struct {
 	t        *testing.T
 	requests []string
 
-	widgetKeyGone bool
-	noTwoFactor   bool
-	teams         []Team
-	keys          []ExistingKey
-	maxKeys       bool
+	widgetKeyGone    bool
+	noTwoFactor      bool
+	noTrustedDevices bool
+	olympusRefuses   bool
+	// generation names the current signed-in cookie; bumping it expires
+	// every session handed out before.
+	generation int
+	teams      []Team
+	keys       []ExistingKey
+	maxKeys    bool
 
 	salt     []byte
 	b        *big.Int
@@ -67,7 +72,19 @@ func (f *fakeApple) record(r *http.Request) {
 func (f *fakeApple) signedIn(r *http.Request) bool {
 	cookie, err := r.Cookie("myacinfo")
 
-	return err == nil && cookie.Value == "signed-in"
+	return err == nil && cookie.Value == f.sessionCookie().Value
+}
+
+func (f *fakeApple) sessionCookie() *http.Cookie {
+	return &http.Cookie{Name: "myacinfo", Value: fmt.Sprintf("signed-in-%d", f.generation), Path: "/"}
+}
+
+// trusted reports whether the request carries the cookie 2sv/trust handed
+// out, quoted the way Apple quotes it.
+func (f *fakeApple) trusted(r *http.Request) bool {
+	cookie, err := r.Cookie("DES123")
+
+	return err == nil && cookie.Value == "trusted==SRVT" && cookie.Quoted
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -140,8 +157,8 @@ func (f *fakeApple) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			return
 		}
-		if f.noTwoFactor {
-			http.SetCookie(w, &http.Cookie{Name: "myacinfo", Value: "signed-in", Path: "/"})
+		if f.noTwoFactor || f.trusted(r) {
+			http.SetCookie(w, f.sessionCookie())
 			w.WriteHeader(http.StatusOK)
 
 			return
@@ -154,6 +171,7 @@ func (f *fakeApple) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"trustedPhoneNumbers": []map[string]any{{"id": 1, "numberWithDialCode": "+1 (•••) •••-••12", "pushMode": "sms"}},
 			"securityCode":        map[string]any{"length": 6},
+			"noTrustedDevices":    f.noTrustedDevices,
 		})
 
 	case r.URL.Path == "/appleauth/auth/verify/trusteddevice/securitycode" && twoFactorSession:
@@ -163,15 +181,26 @@ func (f *fakeApple) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			return
 		}
-		http.SetCookie(w, &http.Cookie{Name: "myacinfo", Value: "signed-in", Path: "/"})
+		http.SetCookie(w, f.sessionCookie())
 		w.WriteHeader(http.StatusNoContent)
 
+	case r.URL.Path == "/appleauth/auth/verify/phone/securitycode" && twoFactorSession:
+		phone, _ := params["phoneNumber"].(map[string]any)
+		code := params["securityCode"].(map[string]any)["code"]
+		if phone["id"] != float64(1) || params["mode"] != "sms" || code != testCode {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"serviceErrors": []map[string]string{{"code": "-21669", "message": "Incorrect verification code."}}})
+
+			return
+		}
+		http.SetCookie(w, f.sessionCookie())
+		w.WriteHeader(http.StatusOK)
+
 	case r.URL.Path == "/appleauth/auth/2sv/trust" && twoFactorSession:
-		http.SetCookie(w, &http.Cookie{Name: "DES123", Value: "trusted==SRVT", Path: "/"})
+		http.SetCookie(w, &http.Cookie{Name: "DES123", Value: "trusted==SRVT", Quoted: true, Path: "/"})
 		w.WriteHeader(http.StatusNoContent)
 
 	case r.URL.Path == "/olympus/v1/session":
-		if !f.signedIn(r) {
+		if !f.signedIn(r) || f.olympusRefuses {
 			w.WriteHeader(http.StatusUnauthorized)
 
 			return
@@ -445,4 +474,74 @@ func contains(lines []string, line string) bool {
 	}
 
 	return false
+}
+
+func TestCreateKeyWithATextMessageCode(t *testing.T) {
+	fake := newFakeApple(t)
+	fake.noTrustedDevices = true
+	asker := &scriptedAsker{answers: map[string][]string{"Enter the 6-digit code sent to": {testCode}}}
+	client, _ := newTestClient(t, fake, asker, t.TempDir(), map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword})
+
+	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(asker.asked, "|") != "Enter the 6-digit code sent to +1 (•••) •••-••12" {
+		t.Errorf("asked %v", asker.asked)
+	}
+	requests := strings.Join(fake.requests, ",")
+	// With no trusted devices and one phone, Apple has already texted the code.
+	if !strings.Contains(requests, "POST /appleauth/auth/verify/phone/securitycode") || strings.Contains(requests, "PUT /appleauth/auth/verify/phone,") {
+		t.Errorf("requests = %v", fake.requests)
+	}
+}
+
+func TestTheSignInIsSavedAsSoonAsTheCodeIsAccepted(t *testing.T) {
+	fake := newFakeApple(t)
+	fake.olympusRefuses = true
+	dir := t.TempDir()
+	env := map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword}
+	client, _ := newTestClient(t, fake, &scriptedAsker{answers: map[string][]string{"Enter the 6-di": {testCode}}}, dir, env)
+
+	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err == nil ||
+		!strings.Contains(err.Error(), "refused the session") {
+		t.Fatalf("err = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "session.json")); err != nil {
+		t.Fatalf("the accepted sign-in was not saved: %v", err)
+	}
+
+	fake.olympusRefuses = false
+	again := &scriptedAsker{}
+	second, _ := newTestClient(t, fake, again, dir, env)
+	if _, err := second.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
+		t.Fatal(err)
+	}
+	if len(again.asked) != 0 {
+		t.Errorf("asked %v", again.asked)
+	}
+}
+
+func TestAnExpiredSessionSignsInAgainWithoutACode(t *testing.T) {
+	fake := newFakeApple(t)
+	dir := t.TempDir()
+	env := map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword}
+	first, _ := newTestClient(t, fake, &scriptedAsker{answers: map[string][]string{"Enter the 6-di": {testCode}}}, dir, env)
+	if _, err := first.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
+		t.Fatal(err)
+	}
+
+	fake.generation++
+	fake.requests = nil
+	again := &scriptedAsker{}
+	second, _ := newTestClient(t, fake, again, dir, env)
+	if _, err := second.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
+		t.Fatal(err)
+	}
+	if len(again.asked) != 0 {
+		t.Errorf("asked %v", again.asked)
+	}
+	requests := strings.Join(fake.requests, ",")
+	if !strings.Contains(requests, "/appleauth/auth/signin/complete") || strings.Contains(requests, "/securitycode") {
+		t.Errorf("requests = %v", fake.requests)
+	}
 }

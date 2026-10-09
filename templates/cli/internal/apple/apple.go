@@ -153,17 +153,19 @@ func (c Client) connect(ctx context.Context) (*portalClient, error) {
 	}
 
 	accountName := c.env(AppleIDVariable)
-	if session, err := portal.session(ctx); err == nil && session != nil &&
-		(accountName == "" || strings.EqualFold(session.User.EmailAddress, accountName)) {
-		c.logf("Using the saved Apple sign-in for %s.", session.User.EmailAddress)
+	if session, err := portal.session(ctx); err == nil && session != nil {
+		if accountName == "" || strings.EqualFold(session.User.EmailAddress, accountName) {
+			c.logf("Using the saved Apple sign-in for %s.", session.User.EmailAddress)
 
-		return portal, nil
+			return portal, nil
+		}
+		// Another Apple ID's session: none of it applies.
+		jar = newSavedJar()
+		withJar.Jar = jar
+		portal.jar = jar
 	}
-
-	// Start clean: a stale jar can make Apple refuse the new sign-in.
-	jar = newSavedJar()
-	withJar.Jar = jar
-	portal.jar = jar
+	// An expired session's cookies stay: among them is the one that marks
+	// this machine as trusted, which lets Apple skip two-factor on sign-in.
 	if err := portal.loadWidgetKey(ctx); err != nil {
 		return nil, err
 	}
@@ -191,15 +193,17 @@ func (c Client) connect(ctx context.Context) (*portalClient, error) {
 	if err := portal.signIn(ctx, accountName, password); err != nil {
 		return nil, err
 	}
+	// Saved as soon as Apple accepts the sign-in, so a failure after this
+	// point does not cost another two-factor code.
+	if err := portal.jar.save(c.sessionPath()); err != nil {
+		c.logf("Could not save the Apple sign-in, so the next run asks again: %v", err)
+	}
 	session, err := portal.session(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not reach App Store Connect: %w", err)
 	}
 	if session == nil {
 		return nil, errors.New("Apple signed you in but App Store Connect refused the session. Sign in once at https://appstoreconnect.apple.com to accept any pending agreements, then try again")
-	}
-	if err := jar.save(c.sessionPath()); err != nil {
-		c.logf("Could not save the Apple sign-in, so the next run asks again: %v", err)
 	}
 
 	return portal, nil
