@@ -1198,6 +1198,31 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/apns/expo/adapter.go',
+                'template'      => 'cli/internal/apns/expo/adapter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/expo/adapter_test.go',
+                'template'      => 'cli/internal/apns/expo/adapter_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/helper/helper.js',
+                'template'      => 'cli/internal/apns/expo/helper/helper.js',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/helper/package.json',
+                'template'      => 'cli/internal/apns/expo/helper/package.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/helper/package-lock.json',
+                'template'      => 'cli/internal/apns/expo/helper/package-lock.json',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pull.go',
                 'template'      => 'cli/internal/cmd/pull.go',
             ],
