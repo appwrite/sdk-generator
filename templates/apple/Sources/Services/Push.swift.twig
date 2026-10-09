@@ -165,13 +165,21 @@ public struct PushNotificationOpened {
             withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
         ) {
             let info = notification.request.content.userInfo
+            let forwards = forwarded?.responds(to: #selector(UNUserNotificationCenterDelegate.userNotificationCenter(_:willPresent:withCompletionHandler:))) ?? false
             if Push.RemoteMessage(userInfo: info) != nil {
                 // An APNs push Appwrite sent: shows nothing when MQTT already delivered it, and is
-                // recorded otherwise, so MQTT does not deliver it again.
+                // recorded otherwise, so MQTT does not deliver it again. The app's own delegate
+                // still decides how a new one is presented.
                 let delivered = Push.isDelivered(notification)
                 _ = Push.handleRemoteNotification(info)
-                completionHandler(delivered ? [] : [.banner, .list, .sound])
-            } else if let forwarded, forwarded.responds(to: #selector(UNUserNotificationCenterDelegate.userNotificationCenter(_:willPresent:withCompletionHandler:))) {
+                if let forwarded, forwards {
+                    forwarded.userNotificationCenter?(center, willPresent: notification) { options in
+                        completionHandler(delivered ? [] : options)
+                    }
+                } else {
+                    completionHandler(delivered ? [] : [.banner, .list, .sound])
+                }
+            } else if let forwarded, forwards {
                 forwarded.userNotificationCenter?(center, willPresent: notification, withCompletionHandler: completionHandler)
             } else {
                 completionHandler([])
