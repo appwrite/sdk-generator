@@ -1223,6 +1223,21 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/apns/fastlane/adapter.go',
+                'template'      => 'cli/internal/apns/fastlane/adapter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/fastlane/adapter_test.go',
+                'template'      => 'cli/internal/apns/fastlane/adapter_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/fastlane/helper/Fastfile',
+                'template'      => 'cli/internal/apns/fastlane/helper/Fastfile',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pull.go',
                 'template'      => 'cli/internal/cmd/pull.go',
             ],
