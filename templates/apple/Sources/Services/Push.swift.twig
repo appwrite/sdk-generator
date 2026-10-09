@@ -1443,8 +1443,16 @@ extension Push {
                 converter: { $0 }
             )
         } catch let error as {{ spec.info.title | caseUcfirst }}Error where error.code == 409 {
-            // This install already has a target for the user: point it at the current token.
-            _ = try await Account(push.client).updatePushTarget(targetId: targetId, identifier: token)
+            // This install already has a target for the user: point it at the current token, and
+            // the build's environment, which changes when the same install moves from a debug to
+            // a TestFlight build.
+            let _: Any = try await push.client.call(
+                method: "PUT",
+                path: "/account/targets/\(targetId)/push",
+                headers: ["content-type": "application/json"],
+                params: params.filter { $0.key != "targetId" },
+                converter: { $0 }
+            )
         }
     }
 
