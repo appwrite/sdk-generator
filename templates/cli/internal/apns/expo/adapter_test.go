@@ -121,8 +121,10 @@ func TestCreateKeyInstallsOnceAndRunsTheHelper(t *testing.T) {
 	}
 }
 
-func TestCreateKeyNotesTheEnvironmentItCannotRestrict(t *testing.T) {
-	node, npm, _ := fakeTools(t, "v20.1.0", `{"keyId":"KEY1234567","teamId":"ABCDE12345","p8":"pem"}`)
+// Without a team, the helper gets no --team-id and apple-utils picks the
+// account's only team or asks, the flow the CLI uses when no team is known.
+func TestCreateKeyWithoutATeamNotesTheEnvironment(t *testing.T) {
+	node, npm, log := fakeTools(t, "v20.1.0", `{"keyId":"KEY1234567","teamId":"ABCDE12345","p8":"pem"}`)
 	adapter := &Adapter{Node: node, Npm: npm, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
 	var logged []string
 	request := apns.Request{
@@ -137,6 +139,12 @@ func TestCreateKeyNotesTheEnvironmentItCannotRestrict(t *testing.T) {
 	}
 	if len(logged) != 1 || !strings.Contains(logged[0], "both APNs environments") {
 		t.Errorf("logged %v", logged)
+	}
+	calls, _ := os.ReadFile(log)
+	lines := strings.Split(strings.TrimSpace(string(calls)), "\n")
+	helper := lines[len(lines)-1]
+	if !strings.Contains(helper, "helper.js --name Appwrite Push --out ") || strings.Contains(helper, "--team-id") {
+		t.Errorf("helper call = %s", helper)
 	}
 }
 
