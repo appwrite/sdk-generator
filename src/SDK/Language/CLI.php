@@ -1158,18 +1158,28 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'internal/apple/helper/helper.js',
-                'template'      => 'cli/internal/apple/helper/helper.js',
+                'destination'   => 'internal/apple/auth.go',
+                'template'      => 'cli/internal/apple/auth.go',
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'internal/apple/helper/package.json',
-                'template'      => 'cli/internal/apple/helper/package.json',
+                'destination'   => 'internal/apple/jar.go',
+                'template'      => 'cli/internal/apple/jar.go',
             ],
             [
                 'scope'         => 'copy',
-                'destination'   => 'internal/apple/helper/package-lock.json',
-                'template'      => 'cli/internal/apple/helper/package-lock.json',
+                'destination'   => 'internal/apple/portal.go',
+                'template'      => 'cli/internal/apple/portal.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apple/srp.go',
+                'template'      => 'cli/internal/apple/srp.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apple/srp_test.go',
+                'template'      => 'cli/internal/apple/srp_test.go',
             ],
             [
                 'scope'         => 'default',

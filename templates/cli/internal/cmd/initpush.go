@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -96,14 +97,16 @@ func newPushSetup(command *cobra.Command) (*pushSetup, error) {
 
 	var appleKey func(teamID, name string) (apple.Key, error)
 	if prefs, err := config.GlobalPath(app.ExecutableName); err == nil {
-		helper := apple.Helper{
-			Dir:    filepath.Join(filepath.Dir(prefs), "apple"),
-			Stdin:  os.Stdin,
-			Stdout: os.Stdout,
-			Stderr: os.Stderr,
+		out := command.OutOrStdout()
+		client := apple.Client{
+			Dir:   filepath.Join(filepath.Dir(prefs), "apple"),
+			Asker: appleAsker{context.prompter},
+			Log: func(format string, args ...any) {
+				output.Log(out, format, args...)
+			},
 		}
 		appleKey = func(teamID, name string) (apple.Key, error) {
-			return helper.CreateKey(command.Context(), teamID, name)
+			return client.CreateKey(command.Context(), teamID, name)
 		}
 	}
 
@@ -147,7 +150,7 @@ func newInitApnsCommand() *cobra.Command {
 	flags.StringVar(&options.keyID, "key-id", "", "APNs key ID")
 	flags.StringVar(&options.teamID, "team-id", "", "Apple Developer team ID")
 	flags.StringVar(&options.bundleID, "bundle-id", "", "iOS app bundle ID")
-	flags.BoolVar(&options.createKey, "create-key", false, "Create the APNs key by signing in with your Apple ID (experimental, needs Node.js 18 or later)")
+	flags.BoolVar(&options.createKey, "create-key", false, "Create the APNs key by signing in with your Apple ID (experimental)")
 	command.MarkFlagsMutuallyExclusive("create-key", "key-path")
 
 	return command
@@ -517,14 +520,38 @@ func (s *pushSetup) apnsKey(teamID string, create bool) (string, string, error) 
 	}
 }
 
+// appleAsker asks the Apple sign-in's questions through the CLI's prompts,
+// so they look like every other question and fail with a clear message
+// without a terminal.
+type appleAsker struct {
+	prompter prompt.Prompter
+}
+
+func (a appleAsker) Ask(question string, secret bool) (string, error) {
+	return a.prompter.Text(prompt.Text{Message: question, Secret: secret, Flag: "--key-path", Validate: requiredValue("an answer")})
+}
+
+func (a appleAsker) Choose(question string, options []string) (int, error) {
+	choices := make([]prompt.Option, len(options))
+	for index, label := range options {
+		choices[index] = prompt.Option{Label: label, Value: strconv.Itoa(index)}
+	}
+	value, err := a.prompter.Choice(prompt.Choice{Message: question, Options: choices, Flag: "--key-path"})
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.Atoi(value)
+}
+
 // createApnsKey creates a key through the Apple Developer portal and saves it
 // into the project folder before anything else happens, because Apple lets a
 // key be downloaded only once.
 func (s *pushSetup) createApnsKey(teamID string) (string, string, error) {
 	if s.appleKey == nil {
-		return "", "", apple.ErrUnavailable
+		return "", "", errors.New("signing in with an Apple ID is not available here")
 	}
-	output.Log(s.out, "Signing in to the Apple Developer portal. Your Apple ID and password are sent only to Apple.")
+	output.Log(s.out, "Signing in to the Apple Developer portal. Your password never leaves this machine: Apple checks it with SRP.")
 	key, err := s.appleKey(teamID, "Appwrite Push "+time.Now().Format("20060102150405"))
 	if err != nil {
 		return "", "", err

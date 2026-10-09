@@ -1,47 +1,37 @@
 // Package apple creates APNs keys through the Apple Developer portal.
 //
-// Apple has no public API for APNs keys, so this runs a small Node script on
-// top of @expo/apple-utils, the library eas-cli uses for the same job. The
-// script, its package.json and its lockfile are embedded in the binary and
-// installed on first use, so no Apple sign-in code ships inside the CLI itself.
+// Apple has no public API for APNs keys, so this signs in the way the
+// portal's web pages do, with the person's Apple ID, password and two-factor
+// code, and calls the portal's private API. The sign-in follows spaceship
+// (fastlane) and the key calls follow @expo/apple-utils, the two tools that
+// do the same job. Apple can change either without notice, so callers keep
+// another way to get a key.
 package apple
 
 import (
-	"bytes"
 	"context"
-	"embed"
-	"encoding/json"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
-	"strconv"
+	"strings"
+	"time"
 )
-
-//go:embed helper/helper.js helper/package.json helper/package-lock.json
-var helperFiles embed.FS
-
-const minimumNodeMajor = 18
-
-// ErrUnavailable means the helper cannot run here: Node.js or npm is missing,
-// too old, or the install failed. The caller falls back to another way of
-// getting the key.
-var ErrUnavailable = errors.New("automatic APNs key creation is unavailable")
 
 // Key is a newly created APNs key. Apple lets its contents be downloaded once.
 type Key struct {
-	KeyID  string `json:"keyId"`
-	TeamID string `json:"teamId"`
-	P8     string `json:"p8"`
+	KeyID  string
+	TeamID string
+	P8     string
 }
 
 // ExistingKey is a key already on the team, listed when no new one fits.
 type ExistingKey struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
+	ID        string `json:"keyId"`
+	Name      string `json:"keyName"`
 	CanRevoke bool   `json:"canRevoke"`
 }
 
@@ -54,166 +44,210 @@ func (e *MaxKeysError) Error() string {
 	return "the Apple team already has the maximum number of APNs keys"
 }
 
-// Helper runs the embedded script.
-type Helper struct {
-	// Dir is where the script and its dependencies are installed.
-	Dir string
-	// Node and Npm are the commands to run. Empty means "node" and "npm".
-	Node string
-	Npm  string
-	// The script prompts for the Apple ID, password and two-factor code, so
-	// these are normally the terminal.
-	Stdin  io.Reader
-	Stdout io.Writer
-	Stderr io.Writer
+// Asker asks the person at the terminal.
+type Asker interface {
+	// Ask reads one line. secret hides what is typed.
+	Ask(question string, secret bool) (string, error)
+	// Choose returns the index of the chosen option.
+	Choose(question string, options []string) (int, error)
 }
 
-type result struct {
-	Key
-	Error   string        `json:"error"`
-	Message string        `json:"message"`
-	Keys    []ExistingKey `json:"keys"`
+// Credential environment variables, checked in order. EXPO_APPLE_* lets
+// someone already set up for eas-cli sign in without typing.
+var (
+	appleIDVariables       = []string{"APPWRITE_APPLE_ID", "EXPO_APPLE_ID"}
+	applePasswordVariables = []string{"APPWRITE_APPLE_PASSWORD", "EXPO_APPLE_PASSWORD"}
+)
+
+// Client signs in to the Apple Developer portal and creates keys.
+type Client struct {
+	// Dir keeps the signed-in session between runs, readable by the user only.
+	Dir   string
+	Asker Asker
+	// Log prints a line for the person running the command.
+	Log    func(format string, args ...any)
+	Getenv func(string) string
+
+	// For tests. Zero values mean Apple's servers and the real clock.
+	HTTP   *http.Client
+	Hosts  Hosts
+	Random io.Reader
+	Now    func() time.Time
 }
 
-// CreateKey signs in to the Apple Developer portal, creates a team-scoped
-// APNs key named name on teamID, and downloads it. An empty teamID lets the
-// sign-in choose the team, asking when the account has several.
-func (h Helper) CreateKey(ctx context.Context, teamID, name string) (Key, error) {
-	if err := h.checkNode(ctx); err != nil {
-		return Key{}, err
-	}
-	if err := h.install(ctx); err != nil {
-		return Key{}, err
-	}
-
-	scratch, err := os.MkdirTemp("", "appwrite-apple-")
+// CreateKey signs in, creates a team-scoped APNs key named name and downloads
+// it. An empty teamID uses the account's only team, or asks which one.
+func (c Client) CreateKey(ctx context.Context, teamID, name string) (Key, error) {
+	portal, err := c.connect(ctx)
 	if err != nil {
 		return Key{}, err
 	}
-	defer os.RemoveAll(scratch)
-	out := filepath.Join(scratch, "result.json")
+	defer portal.jar.save(c.sessionPath())
 
-	arguments := []string{filepath.Join(h.Dir, "helper.js"), "--name", name, "--out", out}
-	if teamID != "" {
-		arguments = append(arguments, "--team-id", teamID)
-	}
-	command := exec.CommandContext(ctx, h.node(), arguments...)
-	command.Dir = h.Dir
-	command.Stdin, command.Stdout, command.Stderr = h.Stdin, h.Stdout, h.Stderr
-	// apple-utils stores the Apple password in the macOS Keychain unless told
-	// not to. The CLI never keeps the password.
-	command.Env = append(os.Environ(), "EXPO_NO_KEYCHAIN=1")
-	runErr := command.Run()
-
-	contents, err := os.ReadFile(out)
+	teamID, err = portal.chooseTeam(ctx, teamID)
 	if err != nil {
-		if runErr != nil {
-			return Key{}, fmt.Errorf("the Apple sign-in helper failed: %w", runErr)
+		return Key{}, err
+	}
+	existing, err := portal.keys(ctx, teamID)
+	if err != nil {
+		return Key{}, err
+	}
+	keyID, err := portal.createKey(ctx, teamID, name)
+	if errors.Is(err, errMaxKeys) {
+		return Key{}, &MaxKeysError{Keys: existing}
+	}
+	if err != nil {
+		return Key{}, err
+	}
+	p8, err := portal.downloadKey(ctx, teamID, keyID)
+	if err != nil {
+		return Key{}, fmt.Errorf("created key %s but could not download it, and Apple allows only one download. Revoke it in the Apple Developer portal: %w", keyID, err)
+	}
+
+	return Key{KeyID: keyID, TeamID: teamID, P8: p8}, nil
+}
+
+func (c Client) sessionPath() string {
+	return filepath.Join(c.Dir, "session.json")
+}
+
+func (c Client) logf(format string, args ...any) {
+	if c.Log != nil {
+		c.Log(format, args...)
+	}
+}
+
+func (c Client) env(names []string) (string, string) {
+	getenv := c.Getenv
+	if getenv == nil {
+		getenv = os.Getenv
+	}
+	for _, name := range names {
+		if value := getenv(name); value != "" {
+			return value, name
 		}
-
-		return Key{}, fmt.Errorf("the Apple sign-in helper returned no result: %w", err)
 	}
 
-	return decodeResult(contents)
+	return "", ""
 }
 
-func decodeResult(contents []byte) (Key, error) {
-	var decoded result
-	if err := json.Unmarshal(contents, &decoded); err != nil {
-		return Key{}, fmt.Errorf("the Apple sign-in helper returned an unreadable result: %w", err)
+// connect returns a signed-in portal client, reusing the saved session when
+// it is still valid and belongs to the Apple ID being used.
+func (c Client) connect(ctx context.Context) (*portalClient, error) {
+	if err := os.MkdirAll(c.Dir, 0o700); err != nil {
+		return nil, err
 	}
-	switch decoded.Error {
-	case "":
-	case "max-keys":
-		return Key{}, &MaxKeysError{Keys: decoded.Keys}
-	default:
-		if decoded.Message == "" {
-			decoded.Message = decoded.Error
-		}
-
-		return Key{}, errors.New(decoded.Message)
+	httpClient := c.HTTP
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: time.Minute}
 	}
-	if decoded.KeyID == "" || decoded.P8 == "" {
-		return Key{}, errors.New("the Apple sign-in helper returned no key")
+	jar := newSavedJar()
+	jar.load(c.sessionPath())
+	withJar := *httpClient
+	withJar.Jar = jar
+	portal := &portalClient{
+		http: &withJar, jar: jar, hosts: c.Hosts, dir: c.Dir, asker: c.Asker, log: c.logf,
+		random: c.Random, now: c.Now,
 	}
-
-	return decoded.Key, nil
-}
-
-func (h Helper) node() string {
-	if h.Node != "" {
-		return h.Node
+	if portal.hosts == (Hosts{}) {
+		portal.hosts = DefaultHosts
 	}
-
-	return "node"
-}
-
-func (h Helper) npm() string {
-	if h.Npm != "" {
-		return h.Npm
+	if portal.random == nil {
+		portal.random = rand.Reader
+	}
+	if portal.now == nil {
+		portal.now = time.Now
 	}
 
-	return "npm"
-}
+	accountName, accountSource := c.env(appleIDVariables)
+	if session, err := portal.session(ctx); err == nil && session != nil &&
+		(accountName == "" || strings.EqualFold(session.User.EmailAddress, accountName)) {
+		c.logf("Using the saved Apple sign-in for %s.", session.User.EmailAddress)
 
-var nodeVersion = regexp.MustCompile(`^v?(\d+)\.`)
-
-func (h Helper) checkNode(ctx context.Context) error {
-	output, err := exec.CommandContext(ctx, h.node(), "--version").Output()
-	if err != nil {
-		return fmt.Errorf("%w: Node.js %d or later is required", ErrUnavailable, minimumNodeMajor)
+		return portal, nil
 	}
 
-	return supportedNode(string(bytes.TrimSpace(output)))
-}
-
-func supportedNode(version string) error {
-	match := nodeVersion.FindStringSubmatch(version)
-	if match == nil {
-		return fmt.Errorf("%w: could not read the Node.js version %q", ErrUnavailable, version)
-	}
-	if major, _ := strconv.Atoi(match[1]); major < minimumNodeMajor {
-		return fmt.Errorf("%w: Node.js %d or later is required, found %s", ErrUnavailable, minimumNodeMajor, version)
+	// Start clean: a stale jar can make Apple refuse the new sign-in.
+	jar = newSavedJar()
+	withJar.Jar = jar
+	portal.jar = jar
+	if err := portal.loadWidgetKey(ctx); err != nil {
+		return nil, err
 	}
 
-	return nil
-}
-
-// install writes the embedded files into Dir and runs npm ci when the
-// lockfile changed or the dependencies are missing. The lockfile pins the
-// exact package hashes, and --ignore-scripts keeps install scripts from running.
-func (h Helper) install(ctx context.Context) error {
-	if err := os.MkdirAll(h.Dir, 0o700); err != nil {
-		return err
-	}
-	changed := false
-	for _, name := range []string{"helper.js", "package.json", "package-lock.json"} {
-		contents, err := helperFiles.ReadFile("helper/" + name)
+	if accountName == "" {
+		answer, err := c.Asker.Ask("Apple ID (email)", false)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		path := filepath.Join(h.Dir, name)
-		if current, err := os.ReadFile(path); err == nil && bytes.Equal(current, contents) {
-			continue
+		accountName = strings.TrimSpace(answer)
+	} else {
+		c.logf("Using the Apple ID from %s.", accountSource)
+	}
+	password, passwordSource := c.env(applePasswordVariables)
+	if password == "" {
+		answer, err := c.Asker.Ask("Password for "+accountName, true)
+		if err != nil {
+			return nil, err
 		}
-		if err := os.WriteFile(path, contents, 0o600); err != nil {
-			return err
-		}
-		changed = true
+		password = answer
+	} else {
+		c.logf("Using the Apple ID password from %s.", passwordSource)
 	}
 
-	if _, err := os.Stat(filepath.Join(h.Dir, "node_modules", "@expo", "apple-utils", "package.json")); err == nil && !changed {
-		return nil
+	if err := portal.signIn(ctx, accountName, password); err != nil {
+		return nil, err
 	}
-	command := exec.CommandContext(ctx, h.npm(), "ci", "--ignore-scripts", "--no-audit", "--no-fund", "--loglevel=error")
-	command.Dir = h.Dir
-	command.Stdout, command.Stderr = h.Stderr, h.Stderr
-	if err := command.Run(); err != nil {
-		// A failed install must not look complete on the next run.
-		_ = os.Remove(filepath.Join(h.Dir, "package-lock.json"))
-
-		return fmt.Errorf("%w: npm ci failed in %s: %v", ErrUnavailable, h.Dir, err)
+	session, err := portal.session(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("could not reach App Store Connect: %w", err)
+	}
+	if session == nil {
+		return nil, errors.New("Apple signed you in but App Store Connect refused the session. Sign in once at https://appstoreconnect.apple.com to accept any pending agreements, then try again")
+	}
+	if err := jar.save(c.sessionPath()); err != nil {
+		c.logf("Could not save the Apple sign-in, so the next run asks again: %v", err)
 	}
 
-	return nil
+	return portal, nil
+}
+
+// chooseTeam checks teamID against the account's teams, or picks one.
+func (p *portalClient) chooseTeam(ctx context.Context, teamID string) (string, error) {
+	teams, err := p.teams(ctx)
+	if errors.Is(err, errSessionExpired) {
+		return "", errors.New("the Apple session expired. Run the command again to sign in")
+	}
+	if err != nil {
+		return "", err
+	}
+	if len(teams) == 0 {
+		return "", errors.New("this Apple ID belongs to no Apple Developer team. APNs keys need a paid Apple Developer Program membership")
+	}
+	if teamID != "" {
+		ids := make([]string, len(teams))
+		for index, team := range teams {
+			if team.ID == teamID {
+				return teamID, nil
+			}
+			ids[index] = team.ID
+		}
+
+		return "", fmt.Errorf("this Apple ID is not on team %s. Its teams are %s", teamID, strings.Join(ids, ", "))
+	}
+	if len(teams) == 1 {
+		p.log("Using Apple team %s (%s).", teams[0].Name, teams[0].ID)
+
+		return teams[0].ID, nil
+	}
+	labels := make([]string, len(teams))
+	for index, team := range teams {
+		labels[index] = fmt.Sprintf("%s (%s)", team.Name, team.ID)
+	}
+	chosen, err := p.asker.Choose("Which Apple Developer team should own the key?", labels)
+	if err != nil {
+		return "", err
+	}
+
+	return teams[chosen].ID, nil
 }

@@ -1314,7 +1314,7 @@ func TestInitApnsOffersTheAppleIDWhenNoKeyIsFound(t *testing.T) {
 	}
 }
 
-func TestInitApnsFallsBackWhenTheAppleIDHelperCannotRun(t *testing.T) {
+func TestInitApnsFallsBackWhenTheAppleSignInFails(t *testing.T) {
 	messaging := &fakeMessaging{}
 	server := httptest.NewServer(messaging)
 	defer server.Close()
@@ -1325,7 +1325,7 @@ func TestInitApnsFallsBackWhenTheAppleIDHelperCannotRun(t *testing.T) {
 		Texts:   map[string]string{"Path to the APNs auth key (.p8)": existing},
 	}
 	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
-	appleKey := &fakeAppleKey{err: apple.ErrUnavailable}
+	appleKey := &fakeAppleKey{err: errors.New("could not reach Apple")}
 	setup.appleKey = appleKey.create(t)
 
 	err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{})
