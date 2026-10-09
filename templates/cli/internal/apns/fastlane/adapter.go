@@ -77,7 +77,10 @@ type result struct {
 // when the request has none, and handed to fastlane as FASTLANE_USER and
 // FASTLANE_PASSWORD, so fastlane never offers to keep them in the Keychain.
 func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key, error) {
-	runner := a.runner()
+	runner, err := a.runner()
+	if err != nil {
+		return apns.Key{}, err
+	}
 	if err := runner.check(ctx); err != nil {
 		return apns.Key{}, err
 	}
@@ -202,23 +205,27 @@ var gemfileFastlane = regexp.MustCompile(`(?m)^\s*gem\s+['"]fastlane['"]`)
 
 // runner picks the configured command, then the project's Bundler fastlane,
 // then fastlane from PATH. A Bundler fastlane must run with bundle exec and
-// the project's Gemfile, since the lane runs in a temporary folder.
-func (a *Adapter) runner() runner {
+// the project's Gemfile, since the lane runs in a temporary folder. When the
+// project pins fastlane but Bundler is missing, it stops rather than run a
+// fastlane other than the pinned one.
+func (a *Adapter) runner() (runner, error) {
 	base := append(os.Environ(), "FASTLANE_SKIP_UPDATE_CHECK=1", "FASTLANE_OPT_OUT_USAGE=1")
 	if a.Fastlane != "" {
-		return runner{name: a.Fastlane, env: base}
+		return runner{name: a.Fastlane, env: base}, nil
 	}
 	bundle := a.Bundle
 	if bundle == "" {
 		bundle = "bundle"
 	}
 	if gemfile := projectGemfile(a.WorkDir); gemfile != "" {
-		if _, err := exec.LookPath(bundle); err == nil {
-			return runner{name: bundle, prefix: []string{"exec", "fastlane"}, env: append(base, "BUNDLE_GEMFILE="+gemfile), gemfile: gemfile}
+		if _, err := exec.LookPath(bundle); err != nil {
+			return runner{}, fmt.Errorf("%w: %s pins fastlane, but Bundler is not installed. Install it with gem install bundler, then run bundle install there", apns.ErrUnavailable, gemfile)
 		}
+
+		return runner{name: bundle, prefix: []string{"exec", "fastlane"}, env: append(base, "BUNDLE_GEMFILE="+gemfile), gemfile: gemfile}, nil
 	}
 
-	return runner{name: "fastlane", env: base}
+	return runner{name: "fastlane", env: base}, nil
 }
 
 // projectGemfile returns the Gemfile in dir, or in dir/ios as Flutter and

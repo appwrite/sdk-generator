@@ -237,3 +237,17 @@ done
 		t.Errorf("logged %v", logged)
 	}
 }
+
+func TestCreateKeyWillNotBypassAPinnedFastlane(t *testing.T) {
+	project := t.TempDir()
+	gemfile := filepath.Join(project, "Gemfile")
+	if err := os.WriteFile(gemfile, []byte("gem \"fastlane\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	adapter := &Adapter{Bundle: filepath.Join(t.TempDir(), "bundle"), WorkDir: project}
+
+	_, err := adapter.CreateKey(context.Background(), apns.Request{Name: "Appwrite Push", Environment: apns.EnvironmentAll, AppleID: "dev@example.com", Password: "secret"})
+	if !errors.Is(err, apns.ErrUnavailable) || !strings.Contains(err.Error(), gemfile+" pins fastlane, but Bundler is not installed") {
+		t.Fatalf("err = %v", err)
+	}
+}
