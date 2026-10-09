@@ -154,6 +154,7 @@ func newInitApnsCommand() *cobra.Command {
 	flags.StringVar(&options.environment, "environment", string(apns.EnvironmentAll), "APNs environment to set up: production, sandbox or all")
 	flags.StringVar(&options.setup, "provider", "", "How --create-key creates the key: appwrite, expo or fastlane. Defaults to $"+apnsSetupVariable+", then "+defaultApnsSetup)
 	command.MarkFlagsMutuallyExclusive("create-key", "key-path")
+	command.MarkFlagsMutuallyExclusive("create-key", "key-id")
 
 	return command
 }
@@ -424,9 +425,10 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 	}
 
 	keyPath := options.keyPath
+	createdKeyID := ""
 	if keyPath == "" {
 		var keyTeam string
-		keyPath, keyTeam, err = s.apnsKey(teamID, options, environment)
+		keyPath, createdKeyID, keyTeam, err = s.apnsKey(teamID, options, environment)
 		if err != nil {
 			return err
 		}
@@ -449,6 +451,13 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 	}
 
 	keyID := options.keyID
+	// A created key's ID comes from Apple; any other would not match the .p8.
+	if createdKeyID != "" {
+		if keyID != "" && keyID != createdKeyID {
+			output.Warn(s.out, "Using the created key's ID %s instead of --key-id %s.", createdKeyID, keyID)
+		}
+		keyID = createdKeyID
+	}
 	if keyID == "" {
 		if match := apnsKeyFileName.FindStringSubmatch(filepath.Base(keyPath)); match != nil {
 			keyID = match[1]
@@ -496,7 +505,7 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 // --create-key, signing in with the Apple ID is the only way, and a failure
 // stops the command. Otherwise it is offered alongside the browser flow, and
 // when it fails the other ways of providing the key remain.
-func (s *pushSetup) apnsKey(teamID string, options apnsOptions, environment apns.Environment) (string, string, error) {
+func (s *pushSetup) apnsKey(teamID string, options apnsOptions, environment apns.Environment) (string, string, string, error) {
 	create := options.createKey
 	explicit := create
 	automatic := ""
@@ -513,12 +522,12 @@ func (s *pushSetup) apnsKey(teamID string, options apnsOptions, environment apns
 					return strings.HasSuffix(path, ".p8") && err == nil
 				})
 			if !errors.Is(err, errAutomaticKey) {
-				return path, "", err
+				return path, "", "", err
 			}
 		}
 		create = false
 
-		path, keyTeam, err := s.createApnsKey(teamID, options.setup, environment)
+		path, keyID, keyTeam, err := s.createApnsKey(teamID, options.setup, environment)
 		var maxKeys *apns.MaxKeysError
 		if errors.As(err, &maxKeys) {
 			output.Warn(s.out, "Apple allows two APNs keys per team, and this team has no free slot. Keys on the team:")
@@ -527,15 +536,15 @@ func (s *pushSetup) apnsKey(teamID string, options apnsOptions, environment apns
 			}
 			output.Hint(s.out, "One key works for every app on the team. Reuse a .p8 you saved earlier, or revoke a key you no longer use at %s.", apnsKeysListPage)
 
-			return "", "", errors.New("no APNs key can be created on this team. Pass --key-path with an existing .p8 instead")
+			return "", "", "", errors.New("no APNs key can be created on this team. Pass --key-path with an existing .p8 instead")
 		}
 		if err == nil {
-			return path, keyTeam, nil
+			return path, keyID, keyTeam, nil
 		}
 		// --create-key asked for a new key: falling back to a .p8 already in
 		// the project folder would hide that none was created.
 		if explicit {
-			return "", "", fmt.Errorf("could not create the APNs key with your Apple ID: %w", err)
+			return "", "", "", fmt.Errorf("could not create the APNs key with your Apple ID: %w", err)
 		}
 		output.Warn(s.out, "Could not create the APNs key with your Apple ID: %s.", err)
 		output.Log(s.out, "Provide the key another way instead.")
@@ -619,7 +628,7 @@ type apnsAsker struct {
 }
 
 func (a apnsAsker) Ask(question string, secret bool) (string, error) {
-	return a.prompter.Text(prompt.Text{Message: question, Secret: secret, Flag: "--key-path", Validate: requiredValue("an answer")})
+	return a.prompter.Text(prompt.Text{Message: question, Secret: secret, Validate: requiredValue("an answer")})
 }
 
 func (a apnsAsker) Choose(question string, options []string) (int, error) {
@@ -627,7 +636,7 @@ func (a apnsAsker) Choose(question string, options []string) (int, error) {
 	for index, label := range options {
 		choices[index] = prompt.Option{Label: label, Value: strconv.Itoa(index)}
 	}
-	value, err := a.prompter.Choice(prompt.Choice{Message: question, Options: choices, Flag: "--key-path"})
+	value, err := a.prompter.Choice(prompt.Choice{Message: question, Options: choices})
 	if err != nil {
 		return 0, err
 	}
@@ -638,10 +647,10 @@ func (a apnsAsker) Choose(question string, options []string) (int, error) {
 // createApnsKey creates a key through the Apple Developer portal and saves it
 // into the project folder before anything else happens, because Apple lets a
 // key be downloaded only once.
-func (s *pushSetup) createApnsKey(teamID, setup string, environment apns.Environment) (string, string, error) {
+func (s *pushSetup) createApnsKey(teamID, setup string, environment apns.Environment) (string, string, string, error) {
 	adapter, err := s.apnsAdapter(setup)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	request := apns.Request{
 		TeamID:      teamID,
@@ -665,8 +674,12 @@ func (s *pushSetup) createApnsKey(teamID, setup string, environment apns.Environ
 		output.Log(s.out, "Using the Apple ID password from %s.", applePasswordVariable)
 	}
 	key, err := apns.CreateKey(s.context(), adapter, request)
+	var unanswered *prompt.NonInteractiveError
+	if errors.As(err, &unanswered) {
+		return "", "", "", fmt.Errorf("signing in to Apple asked %q, which needs an interactive terminal. %s and %s answer the Apple ID and password, but the two-factor code always needs one. Without a terminal, pass --key-path with an existing .p8 instead of --create-key", unanswered.Message, appleIDVariable, applePasswordVariable)
+	}
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	directory := s.root
@@ -676,21 +689,21 @@ func (s *pushSetup) createApnsKey(teamID, setup string, environment apns.Environ
 	path := filepath.Join(directory, "AuthKey_"+key.KeyID+".p8")
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
-		return "", "", fmt.Errorf("could not save the new key %s: %w", key.KeyID, err)
+		return "", "", "", fmt.Errorf("could not save the new key %s: %w", key.KeyID, err)
 	}
 	_, err = file.WriteString(key.P8)
 	if closeErr := file.Close(); err == nil {
 		err = closeErr
 	}
 	if err != nil {
-		return "", "", fmt.Errorf("could not save the new key %s: %w", key.KeyID, err)
+		return "", "", "", fmt.Errorf("could not save the new key %s: %w", key.KeyID, err)
 	}
 
 	output.Success(s.out, "Created APNs key %s on team %s and saved it to %s.", key.KeyID, key.TeamID, s.display(path))
 	output.Hint(s.out, "Apple lets you download this key only once. Keep the file somewhere safe and out of version control.")
 	s.checkKeyLocation(path)
 
-	return path, key.TeamID, nil
+	return path, key.KeyID, key.TeamID, nil
 }
 
 func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {

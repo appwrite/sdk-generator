@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -1611,4 +1612,70 @@ func (r optionsRecorder) Choice(question prompt.Choice) (string, error) {
 	}
 
 	return r.Scripted.Choice(question)
+}
+
+func TestInitApnsUsesTheCreatedKeysID(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	scripted := &prompt.Scripted{Choices: map[string]string{"How would you like to provide the APNs auth key (.p8)?": "automatic"}}
+	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
+	useAdapter(setup, &apnstest.Adapter{KeyID: "NEWKEY1234"})
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", keyID: "WRONGKEY12"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, provider := range messaging.providers {
+		if provider["credentials"].(map[string]any)["authKeyId"] != "NEWKEY1234" {
+			t.Errorf("provider = %v", provider)
+		}
+	}
+	if !strings.Contains(out.String(), "Using the created key's ID NEWKEY1234 instead of --key-id WRONGKEY12.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+
+	command := newInitApnsCommand()
+	if err := command.ParseFlags([]string{"--create-key", "--key-id", "WRONGKEY12"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := command.ValidateFlagGroups(); err == nil || !strings.Contains(err.Error(), "key-id") {
+		t.Errorf("--create-key with --key-id: %v", err)
+	}
+}
+
+// askingAdapter asks one question before creating a key, as a sign-in does.
+type askingAdapter struct{}
+
+func (askingAdapter) Name() string { return defaultApnsSetup }
+
+func (askingAdapter) CreateKey(_ context.Context, request apns.Request) (apns.Key, error) {
+	if _, err := request.Asker.Ask("Enter the 6-digit code sent to +1 •••12", false); err != nil {
+		return apns.Key{}, err
+	}
+
+	return apns.Key{KeyID: "NEWKEY1234", TeamID: request.TeamID, P8: apnstest.P8()}, nil
+}
+
+func TestInitApnsExplainsASignInWithoutATerminal(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	setup, _ := newTestPushSetup(t, server, prompt.NonInteractive{}, t.TempDir())
+	setup.apnsAdapters = apns.NewRegistry(askingAdapter{})
+
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{})
+	if err == nil {
+		t.Fatal("no error without a terminal")
+	}
+	message := err.Error()
+	for _, part := range []string{`asked "Enter the 6-digit code sent to +1 •••12"`, "APPWRITE_APPLE_ID", "the two-factor code always needs one", "instead of --create-key"} {
+		if !strings.Contains(message, part) {
+			t.Errorf("message is missing %q: %s", part, message)
+		}
+	}
+	if strings.Contains(message, "Pass --key-path instead") {
+		t.Errorf("suggests a flag --create-key rejects: %s", message)
+	}
 }
