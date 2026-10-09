@@ -286,7 +286,7 @@ func (f *fakeApple) portal(w http.ResponseWriter, r *http.Request, path string, 
 		if f.maxKeys {
 			writeJSON(w, http.StatusOK, map[string]any{
 				"resultCode":   9401,
-				"resultString": "You%20have%20already%20reached%20the%20maximum%20allowed%20number%20of%20Keys%20for%20this%20service.",
+				"resultString": "You%20have%20already%20reached%20the%20maximum%20allowed%20number%20of%20team%20scoped%20Keys%20for%20this%20service%20in%20production%20and%20sandbox%20environment.",
 			})
 
 			return
@@ -644,6 +644,18 @@ func TestAnImpracticalHashcashIsNotAnswered(t *testing.T) {
 
 	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", apns.EnvironmentAll); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestMaxKeysMessages(t *testing.T) {
+	for message, full := range map[string]bool{
+		"You have already reached the maximum allowed number of Keys for this service.":                                                   true,
+		"You have already reached the maximum allowed number of team scoped Keys for this service in production and sandbox environment.": true,
+		"An unexpected error occurred.": false,
+	} {
+		if got := maxKeysMessage.MatchString(message); got != full {
+			t.Errorf("maxKeysMessage(%q) = %v", message, got)
+		}
 	}
 }
 {% endverbatim %}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apns"
@@ -21,6 +22,12 @@ const (
 	apnsServiceID = "U27F4V844T"
 	keysPageSize  = 500
 )
+
+// maxKeysMessage is Apple's answer when the team has no free key slot, worded
+// "maximum allowed number of Keys" and, since 2026, "maximum allowed number
+// of team scoped Keys for this service in production and sandbox
+// environment".
+var maxKeysMessage = regexp.MustCompile(`(?i)maximum allowed number of (?:[a-z ]+ )?keys`)
 
 var (
 	errSessionExpired = errors.New("the Apple session expired")
@@ -138,7 +145,7 @@ func result(payload []byte, out any) error {
 		if strings.Contains(message, "session has expired") {
 			return errSessionExpired
 		}
-		if strings.Contains(message, "maximum allowed number of Keys") {
+		if maxKeysMessage.MatchString(message) {
 			return errMaxKeys
 		}
 		if message == "" {

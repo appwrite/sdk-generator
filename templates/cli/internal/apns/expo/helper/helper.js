@@ -22,10 +22,16 @@ function parseArguments(argv) {
   return values;
 }
 
+// Apple words a full team as "maximum allowed number of Keys" or, since 2026,
+// "maximum allowed number of team scoped Keys ...", which apple-utils does not
+// turn into MaxKeysCreatedError, so the message itself is checked too.
+const maxKeysMessage = /maximum allowed number of (?:[a-z ]+ )?keys/i;
+
 function isMaxKeysError(error) {
   return (
     error instanceof Keys.MaxKeysCreatedError ||
-    /maximum allowed number of Keys/.test(error?.rawDump?.resultString ?? '')
+    maxKeysMessage.test(error?.rawDump?.resultString ?? '') ||
+    maxKeysMessage.test(error?.message ?? '')
   );
 }
 

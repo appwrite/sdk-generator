@@ -41,7 +41,8 @@ def create_apns_key_with_spaceship(options)
       }
     )
   rescue StandardError => error
-    raise unless error.message.include?('maximum allowed number of Keys')
+    # Worded with or without "team scoped" before "Keys".
+    raise unless error.message =~ /maximum allowed number of (?:[a-z ]+ )?keys/i
 
     keys = client.list_keys.map do |key|
       { id: key['keyId'], name: key['keyName'], canRevoke: key['canRevoke'] == true }
