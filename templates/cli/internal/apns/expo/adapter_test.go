@@ -180,3 +180,46 @@ func TestCreateKeyPassesResetToTheHelper(t *testing.T) {
 		t.Errorf("helper call = %s", helper)
 	}
 }
+
+type oneAnswer struct {
+	answer string
+	asked  []string
+}
+
+func (o *oneAnswer) Ask(question string, secret bool) (string, error) {
+	o.asked = append(o.asked, question)
+
+	return o.answer, nil
+}
+
+func (o *oneAnswer) Choose(string, []string) (int, error) {
+	return 0, errors.New("not expected")
+}
+
+// A reset asks for the Apple ID once and hands it to apple-utils, whose sign
+// out would otherwise ask, forget it, and leave the sign-in to ask again.
+func TestResetAsksForTheAppleIDOnce(t *testing.T) {
+	node, npm, log := fakeTools(t, "v20.1.0", `{"keyId":"KEY1234567","teamId":"ABCDE12345","p8":"pem"}`)
+	adapter := &Adapter{Node: node, Npm: npm, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	asker := &oneAnswer{answer: "dev@example.com"}
+	request := apns.Request{Name: "Appwrite Push", Environment: apns.EnvironmentAll, SessionDir: t.TempDir(), Reset: true, Asker: asker}
+
+	if _, err := adapter.CreateKey(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(asker.asked, "|") != "Apple ID (email)" {
+		t.Errorf("asked %v", asker.asked)
+	}
+	calls, _ := os.ReadFile(log)
+	lines := strings.Split(strings.TrimSpace(string(calls)), "\n")
+	if helper := lines[len(lines)-1]; !strings.HasSuffix(helper, "EXPO_APPLE_ID=dev@example.com") || !strings.Contains(helper, " --reset true") {
+		t.Errorf("helper call = %s", helper)
+	}
+
+	// With the Apple ID known, nothing is asked.
+	known := &oneAnswer{}
+	request.Asker, request.AppleID = known, "dev@example.com"
+	if _, err := adapter.CreateKey(context.Background(), request); err != nil || len(known.asked) != 0 {
+		t.Errorf("asked %v, %v", known.asked, err)
+	}
+}
