@@ -1222,6 +1222,16 @@ class CLI extends Go
                 'template'      => 'cli/internal/apns/expo/helper/package-lock.json',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/runtime.go',
+                'template'      => 'cli/internal/apns/expo/runtime.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/expo/runtime_test.go',
+                'template'      => 'cli/internal/apns/expo/runtime_test.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/apns/fastlane/adapter.go',
                 'template'      => 'cli/internal/apns/fastlane/adapter.go',

@@ -4,7 +4,8 @@
 // It runs a small Node script embedded in the binary, with its package.json
 // and a lockfile that pins @expo/apple-utils 2.2.1 (MIT) by hash. They are
 // installed into the session folder on first use with npm ci
-// --ignore-scripts. It needs Node.js 18 or later.
+// --ignore-scripts. It runs on Node.js 18 or later, and downloads the Node.js
+// LTS into the session folder when the machine has none it can use.
 package expo
 
 import (
@@ -15,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,9 +33,16 @@ const minimumNodeMajor = 18
 
 // Adapter creates APNs keys with @expo/apple-utils.
 type Adapter struct {
-	// Node and Npm are the commands to run. Empty means "node" and "npm".
+	// Node and Npm are the commands to run. Empty means "node" and "npm"
+	// from PATH, or a downloaded Node.js when those are missing or too old.
 	Node string
 	Npm  string
+	// For tests: where Node.js builds are downloaded from, the client, and
+	// the platform. Zero values mean nodejs.org and this machine.
+	NodeDist string
+	HTTP     *http.Client
+	GOOS     string
+	GOARCH   string
 	// apple-utils prompts for anything the request does not answer, and for
 	// the two-factor code, on the terminal. Nil means the process's own.
 	Stdin  io.Reader
@@ -68,8 +77,9 @@ type result struct {
 // creates keys for both APNs environments; for a single-environment request
 // that key works too.
 func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key, error) {
-	if err := a.checkNode(ctx); err != nil {
-		return apns.Key{}, err
+	log := request.Log
+	if log == nil {
+		log = func(string, ...any) {}
 	}
 	dir := request.SessionDir
 	if dir == "" {
@@ -80,11 +90,15 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 		defer os.RemoveAll(scratch)
 		dir = scratch
 	}
-	if err := a.install(ctx, dir); err != nil {
+	tools, err := a.toolchain(ctx, dir, log)
+	if err != nil {
 		return apns.Key{}, err
 	}
-	if request.Environment != apns.EnvironmentAll && request.Log != nil {
-		request.Log("The expo setup creates keys for both APNs environments; the key also works for %s.", request.Environment)
+	if err := a.install(ctx, dir, tools); err != nil {
+		return apns.Key{}, err
+	}
+	if request.Environment != apns.EnvironmentAll {
+		log("The expo setup creates keys for both APNs environments; the key also works for %s.", request.Environment)
 	}
 
 	scratch, err := os.MkdirTemp("", "appwrite-apns-expo-result-")
@@ -98,13 +112,13 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	if request.TeamID != "" {
 		arguments = append(arguments, "--team-id", request.TeamID)
 	}
-	command := exec.CommandContext(ctx, a.node(), arguments...)
+	command := exec.CommandContext(ctx, tools.node, arguments...)
 	command.Dir = dir
 	command.Stdin, command.Stdout, command.Stderr = a.terminal()
 	// apple-utils reads the Apple ID and password from these instead of
 	// asking, and stores the password in the macOS Keychain unless told not
 	// to. The CLI never keeps the password.
-	command.Env = append(os.Environ(), "EXPO_NO_KEYCHAIN=1")
+	command.Env = append(tools.env(), "EXPO_NO_KEYCHAIN=1")
 	if request.AppleID != "" {
 		command.Env = append(command.Env, "EXPO_APPLE_ID="+request.AppleID)
 	}
@@ -170,14 +184,6 @@ func (a *Adapter) terminal() (io.Reader, io.Writer, io.Writer) {
 	return stdin, stdout, stderr
 }
 
-func (a *Adapter) node() string {
-	if a.Node != "" {
-		return a.Node
-	}
-
-	return "node"
-}
-
 func (a *Adapter) npm() string {
 	if a.Npm != "" {
 		return a.Npm
@@ -188,13 +194,57 @@ func (a *Adapter) npm() string {
 
 var nodeVersion = regexp.MustCompile(`^v?(\d+)\.`)
 
-func (a *Adapter) checkNode(ctx context.Context) error {
-	output, err := exec.CommandContext(ctx, a.node(), "--version").Output()
+func checkNode(ctx context.Context, node string) error {
+	output, err := exec.CommandContext(ctx, node, "--version").Output()
 	if err != nil {
 		return fmt.Errorf("%w: the expo setup needs Node.js %d or later", apns.ErrUnavailable, minimumNodeMajor)
 	}
 
 	return supportedNode(string(bytes.TrimSpace(output)))
+}
+
+// toolchain is how node and npm are run.
+type toolchain struct {
+	node string
+	npm  []string
+	// bin is put first on PATH when node is a downloaded one.
+	bin string
+}
+
+func (t toolchain) env() []string {
+	env := os.Environ()
+	if t.bin != "" {
+		env = append(env, "PATH="+t.bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	}
+
+	return env
+}
+
+// toolchain uses the configured node, then node and npm from PATH, then the
+// Node.js downloaded into dir. A configured node is never replaced.
+func (a *Adapter) toolchain(ctx context.Context, dir string, log func(string, ...any)) (toolchain, error) {
+	if a.Node != "" {
+		if err := checkNode(ctx, a.Node); err != nil {
+			return toolchain{}, err
+		}
+
+		return toolchain{node: a.Node, npm: []string{a.npm()}}, nil
+	}
+	if checkNode(ctx, "node") == nil {
+		if _, err := exec.LookPath(a.npm()); err == nil {
+			return toolchain{node: "node", npm: []string{a.npm()}}, nil
+		}
+	}
+
+	node, npm, err := a.downloadNode(ctx, filepath.Join(dir, "runtime"), log)
+	if err != nil {
+		return toolchain{}, fmt.Errorf("%w: the expo setup needs Node.js %d or later, and downloading it failed: %v", apns.ErrUnavailable, minimumNodeMajor, err)
+	}
+	if err := checkNode(ctx, node); err != nil {
+		return toolchain{}, err
+	}
+
+	return toolchain{node: node, npm: []string{node, npm}, bin: filepath.Dir(node)}, nil
 }
 
 func supportedNode(version string) error {
@@ -213,7 +263,7 @@ func supportedNode(version string) error {
 // lockfile changed or the dependencies are missing. The lockfile pins the
 // exact package hashes, and --ignore-scripts keeps install scripts from
 // running.
-func (a *Adapter) install(ctx context.Context, dir string) error {
+func (a *Adapter) install(ctx context.Context, dir string, tools toolchain) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
@@ -237,8 +287,10 @@ func (a *Adapter) install(ctx context.Context, dir string) error {
 		return nil
 	}
 	_, _, stderr := a.terminal()
-	command := exec.CommandContext(ctx, a.npm(), "ci", "--ignore-scripts", "--no-audit", "--no-fund", "--loglevel=error")
+	arguments := append(append([]string{}, tools.npm[1:]...), "ci", "--ignore-scripts", "--no-audit", "--no-fund", "--loglevel=error")
+	command := exec.CommandContext(ctx, tools.npm[0], arguments...)
 	command.Dir = dir
+	command.Env = tools.env()
 	command.Stdout, command.Stderr = stderr, stderr
 	if err := command.Run(); err != nil {
 		// A failed install must not look complete on the next run.
