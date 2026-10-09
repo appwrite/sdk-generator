@@ -3,8 +3,8 @@
 //
 // It runs a lane from a Fastfile embedded in the binary with the fastlane the
 // person already has installed, so it works with a gem, Homebrew or bundler
-// installation and brings no Ruby of its own. spaceship signs in with SRP,
-// since fastlane 2.226.0.
+// installation and brings no Ruby of its own. It needs fastlane 2.225.0 or
+// later, the first release whose spaceship signs in with SRP.
 package fastlane
 
 import (
@@ -27,9 +27,10 @@ import (
 //go:embed helper/Fastfile
 var fastfile []byte
 
-// The first fastlane that signs in with SRP, which Apple has required since
-// October 2024.
-var minimumVersion = [3]int{2, 226, 0}
+// fastlane 2.225.0 (October 2024) is the first that signs in with SRP, which
+// Apple has required since then; earlier versions get "503 Service
+// Temporarily Unavailable" when signing in.
+var minimumVersion = [3]int{2, 225, 0}
 
 // Adapter creates APNs keys with an installed fastlane.
 type Adapter struct {

@@ -15,9 +15,9 @@ import (
 func TestSupportedVersion(t *testing.T) {
 	for output, supported := range map[string]bool{
 		"fastlane installation at path:\n/opt/homebrew/bin/fastlane\n-----------------------------\nfastlane 2.228.0\n": true,
-		"fastlane 2.226.0": true,
+		"fastlane 2.225.0": true,
 		"fastlane 3.0.0":   true,
-		"fastlane 2.225.9": false,
+		"fastlane 2.224.9": false,
 		"fastlane 1.300.0": false,
 		"something else":   false,
 	} {
