@@ -1147,6 +1147,21 @@ class CLI extends Go
                 'template'      => 'cli/internal/cmd/initpush_test.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/apns.go',
+                'template'      => 'cli/internal/apns/apns.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/apns_test.go',
+                'template'      => 'cli/internal/apns/apns_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/apnstest/apnstest.go',
+                'template'      => 'cli/internal/apns/apnstest/apnstest.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/pull.go',
                 'template'      => 'cli/internal/cmd/pull.go',
