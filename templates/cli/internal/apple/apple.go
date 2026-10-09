@@ -74,9 +74,27 @@ type Client struct {
 	Now    func() time.Time
 }
 
-// CreateKey signs in, creates a team-scoped APNs key named name and downloads
-// it. An empty teamID uses the account's only team, or asks which one.
-func (c Client) CreateKey(ctx context.Context, teamID, name string) (Key, error) {
+// Environment is the APNs environment a key works in.
+type Environment string
+
+// The environments Apple offers when creating a key. Both tools that
+// automate this only ever send EnvironmentAll; the other two are the values
+// the portal's choices stand for.
+const (
+	EnvironmentAll        Environment = "all"
+	EnvironmentProduction Environment = "production"
+	EnvironmentSandbox    Environment = "sandbox"
+)
+
+// CreateKey signs in, creates a team-scoped APNs key named name for
+// environment and downloads it. An empty teamID uses the account's only team,
+// or asks which one.
+func (c Client) CreateKey(ctx context.Context, teamID, name string, environment Environment) (Key, error) {
+	switch environment {
+	case EnvironmentAll, EnvironmentProduction, EnvironmentSandbox:
+	default:
+		return Key{}, fmt.Errorf("unknown APNs environment %q", environment)
+	}
 	portal, err := c.connect(ctx)
 	if err != nil {
 		return Key{}, err
@@ -91,7 +109,7 @@ func (c Client) CreateKey(ctx context.Context, teamID, name string) (Key, error)
 	if err != nil {
 		return Key{}, err
 	}
-	keyID, err := portal.createKey(ctx, teamID, name)
+	keyID, err := portal.createKey(ctx, teamID, name, environment)
 	if errors.Is(err, errMaxKeys) {
 		return Key{}, &MaxKeysError{Keys: existing}
 	}

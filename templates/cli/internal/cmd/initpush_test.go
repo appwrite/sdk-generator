@@ -1223,9 +1223,9 @@ type fakeAppleKey struct {
 	err   error
 }
 
-func (f *fakeAppleKey) create(t *testing.T) func(teamID, name string) (apple.Key, error) {
-	return func(teamID, name string) (apple.Key, error) {
-		f.calls = append(f.calls, teamID+" "+name)
+func (f *fakeAppleKey) create(t *testing.T) func(teamID, name string, environment apple.Environment) (apple.Key, error) {
+	return func(teamID, name string, environment apple.Environment) (apple.Key, error) {
+		f.calls = append(f.calls, teamID+" "+name+" "+string(environment))
 		if teamID == "" {
 			teamID = "APPLE12345"
 		}
@@ -1455,5 +1455,62 @@ func TestInitApnsAsksForTheTeamAfterAKeyFile(t *testing.T) {
 	}
 	if messaging.providers[0]["credentials"].(map[string]any)["teamId"] != "ABCDE12345" {
 		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitApnsSetsUpOneEnvironment(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, root)
+	appleKey := &fakeAppleKey{keyID: "NEWKEY1234"}
+	setup.appleKey = appleKey.create(t)
+
+	options := apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true, environment: "sandbox"}
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(appleKey.calls) != 1 || !strings.HasSuffix(appleKey.calls[0], " sandbox") {
+		t.Errorf("helper calls = %v", appleKey.calls)
+	}
+	if len(messaging.providers) != 1 || messaging.providers[0]["options"].(map[string]any)["sandbox"] != true {
+		t.Fatalf("providers = %v", messaging.providers)
+	}
+	if !strings.Contains(out.String(), "APNs (sandbox) is set up for com.example.app.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+
+	// The sandbox provider is all a sandbox run needs.
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(appleKey.calls) != 1 || !strings.Contains(out.String(), "APNs (sandbox) is already set up for com.example.app.") {
+		t.Errorf("calls = %v, output:\n%s", appleKey.calls, out.String())
+	}
+
+	// Production still needs its own provider; the key already in the folder
+	// serves it.
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", environment: "production"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(messaging.providers) != 2 || messaging.providers[1]["options"].(map[string]any)["sandbox"] != false {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitApnsRejectsAnUnknownEnvironment(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	setup, _ := newTestPushSetup(t, server, &prompt.Scripted{}, t.TempDir())
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", environment: "staging"}, appleApp{})
+	if err == nil || err.Error() != `--environment must be production, sandbox or all, not "staging"` {
+		t.Fatalf("err = %v", err)
+	}
+	if len(messaging.requests) != 0 {
+		t.Errorf("requests = %v", messaging.requests)
 	}
 }

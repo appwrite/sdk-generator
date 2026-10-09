@@ -320,7 +320,7 @@ func TestCreateKeySignsInWithTwoFactorAndReusesTheSession(t *testing.T) {
 	}}
 	client, logged := newTestClient(t, fake, asker, dir, nil)
 
-	key, err := client.CreateKey(context.Background(), "", "Appwrite Push")
+	key, err := client.CreateKey(context.Background(), "", "Appwrite Push", EnvironmentAll)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,7 +350,7 @@ func TestCreateKeySignsInWithTwoFactorAndReusesTheSession(t *testing.T) {
 	again := &scriptedAsker{}
 	second, logged := newTestClient(t, fake, again, dir, nil)
 	fake.requests = nil
-	if _, err := second.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push 2"); err != nil {
+	if _, err := second.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push 2", EnvironmentAll); err != nil {
 		t.Fatal(err)
 	}
 	if len(again.asked) != 0 {
@@ -379,7 +379,7 @@ func TestCreateKeyReadsTheCredentialsFromTheEnvironment(t *testing.T) {
 		"EXPO_APPLE_ID": "someone-else@example.com",
 	})
 
-	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
+	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", EnvironmentAll); err != nil {
 		t.Fatal(err)
 	}
 	if len(asker.asked) != 0 {
@@ -401,7 +401,7 @@ func TestCreateKeyRejectsAWrongPassword(t *testing.T) {
 	asker := &scriptedAsker{answers: map[string][]string{"Apple ID": {testAppleID}, "Password for": {"wrong"}}}
 	client, _ := newTestClient(t, fake, asker, dir, nil)
 
-	if _, err := client.CreateKey(context.Background(), "", "Appwrite Push"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, err := client.CreateKey(context.Background(), "", "Appwrite Push", EnvironmentAll); !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("err = %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "session.json")); err == nil {
@@ -416,7 +416,7 @@ func TestCreateKeyReportsAFullTeam(t *testing.T) {
 	fake.keys = []ExistingKey{{ID: "OLDKEY1234", Name: "Firebase", CanRevoke: true}, {ID: "OLDKEY5678", Name: "Expo", CanRevoke: true}}
 	client, _ := newTestClient(t, fake, &scriptedAsker{}, t.TempDir(), map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword})
 
-	_, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push")
+	_, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", EnvironmentAll)
 	var maxKeys *MaxKeysError
 	if !errors.As(err, &maxKeys) || len(maxKeys.Keys) != 2 || maxKeys.Keys[0].ID != "OLDKEY1234" || maxKeys.Keys[1].Name != "Expo" {
 		t.Fatalf("err = %v", err)
@@ -434,13 +434,13 @@ func TestCreateKeyChoosesAmongTeams(t *testing.T) {
 	asker := &scriptedAsker{choices: map[string]int{"Which Apple Developer team should own the key?": 1}}
 	client, _ := newTestClient(t, fake, asker, t.TempDir(), env)
 
-	key, err := client.CreateKey(context.Background(), "", "Appwrite Push")
+	key, err := client.CreateKey(context.Background(), "", "Appwrite Push", EnvironmentAll)
 	if err != nil || key.TeamID != "ABCDE12345" {
 		t.Fatalf("key = %+v, %v", key, err)
 	}
 
 	other, _ := newTestClient(t, fake, &scriptedAsker{}, t.TempDir(), env)
-	if _, err := other.CreateKey(context.Background(), "ZZZZZ99999", "Appwrite Push"); err == nil ||
+	if _, err := other.CreateKey(context.Background(), "ZZZZZ99999", "Appwrite Push", EnvironmentAll); err == nil ||
 		!strings.Contains(err.Error(), "AAAAA11111, ABCDE12345") {
 		t.Errorf("err = %v", err)
 	}
@@ -455,12 +455,12 @@ func TestWidgetKeyFallsBackToTheSavedCopy(t *testing.T) {
 		t.Fatal(err)
 	}
 	client, _ := newTestClient(t, fake, &scriptedAsker{}, dir, map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword})
-	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
+	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", EnvironmentAll); err != nil {
 		t.Fatal(err)
 	}
 
 	empty, _ := newTestClient(t, fake, &scriptedAsker{}, t.TempDir(), map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword})
-	if _, err := empty.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err == nil ||
+	if _, err := empty.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", EnvironmentAll); err == nil ||
 		!strings.Contains(err.Error(), "sign-in key") {
 		t.Errorf("err = %v", err)
 	}
@@ -482,7 +482,7 @@ func TestCreateKeyWithATextMessageCode(t *testing.T) {
 	asker := &scriptedAsker{answers: map[string][]string{"Enter the 6-digit code sent to": {testCode}}}
 	client, _ := newTestClient(t, fake, asker, t.TempDir(), map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword})
 
-	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
+	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", EnvironmentAll); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Join(asker.asked, "|") != "Enter the 6-digit code sent to +1 (•••) •••-••12" {
@@ -502,7 +502,7 @@ func TestTheSignInIsSavedAsSoonAsTheCodeIsAccepted(t *testing.T) {
 	env := map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword}
 	client, _ := newTestClient(t, fake, &scriptedAsker{answers: map[string][]string{"Enter the 6-di": {testCode}}}, dir, env)
 
-	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err == nil ||
+	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", EnvironmentAll); err == nil ||
 		!strings.Contains(err.Error(), "refused the session") {
 		t.Fatalf("err = %v", err)
 	}
@@ -513,7 +513,7 @@ func TestTheSignInIsSavedAsSoonAsTheCodeIsAccepted(t *testing.T) {
 	fake.olympusRefuses = false
 	again := &scriptedAsker{}
 	second, _ := newTestClient(t, fake, again, dir, env)
-	if _, err := second.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
+	if _, err := second.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", EnvironmentAll); err != nil {
 		t.Fatal(err)
 	}
 	if len(again.asked) != 0 {
@@ -526,7 +526,7 @@ func TestAnExpiredSessionSignsInAgainWithoutACode(t *testing.T) {
 	dir := t.TempDir()
 	env := map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword}
 	first, _ := newTestClient(t, fake, &scriptedAsker{answers: map[string][]string{"Enter the 6-di": {testCode}}}, dir, env)
-	if _, err := first.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
+	if _, err := first.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", EnvironmentAll); err != nil {
 		t.Fatal(err)
 	}
 
@@ -534,7 +534,7 @@ func TestAnExpiredSessionSignsInAgainWithoutACode(t *testing.T) {
 	fake.requests = nil
 	again := &scriptedAsker{}
 	second, _ := newTestClient(t, fake, again, dir, env)
-	if _, err := second.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
+	if _, err := second.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", EnvironmentAll); err != nil {
 		t.Fatal(err)
 	}
 	if len(again.asked) != 0 {
@@ -543,5 +543,29 @@ func TestAnExpiredSessionSignsInAgainWithoutACode(t *testing.T) {
 	requests := strings.Join(fake.requests, ",")
 	if !strings.Contains(requests, "/appleauth/auth/signin/complete") || strings.Contains(requests, "/securitycode") {
 		t.Errorf("requests = %v", fake.requests)
+	}
+}
+
+func TestCreateKeyForOneEnvironment(t *testing.T) {
+	fake := newFakeApple(t)
+	fake.noTwoFactor = true
+	env := map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword}
+	client, _ := newTestClient(t, fake, &scriptedAsker{}, t.TempDir(), env)
+
+	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", EnvironmentSandbox); err != nil {
+		t.Fatal(err)
+	}
+	requests := fake.created["NEWKEY1234"]["serviceConfigurationsRequests"].([]any)
+	if environment := requests[0].(map[string]any)["environment"]; environment != "sandbox" {
+		t.Errorf("environment = %v", environment)
+	}
+
+	fake.requests = nil
+	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", "staging"); err == nil ||
+		!strings.Contains(err.Error(), `unknown APNs environment "staging"`) {
+		t.Errorf("err = %v", err)
+	}
+	if len(fake.requests) != 0 {
+		t.Errorf("called Apple for an unknown environment: %v", fake.requests)
 	}
 }

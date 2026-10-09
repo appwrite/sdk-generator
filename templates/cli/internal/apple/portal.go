@@ -163,9 +163,9 @@ func (p *portalClient) keys(ctx context.Context, teamID string) ([]ExistingKey, 
 	}
 }
 
-// createKey creates a team-scoped key with only APNs enabled, for every
+// createKey creates a team-scoped key with only APNs enabled, for the given
 // environment, and returns its ID.
-func (p *portalClient) createKey(ctx context.Context, teamID, name string) (string, error) {
+func (p *portalClient) createKey(ctx context.Context, teamID, name string, environment Environment) (string, error) {
 	payload, err := p.portal(ctx, http.MethodPost, "account/auth/key/v2/create", teamID, map[string]any{
 		"name":                  name,
 		"scope":                 "team",
@@ -174,7 +174,7 @@ func (p *portalClient) createKey(ctx context.Context, teamID, name string) (stri
 			"isNew":       true,
 			"serviceId":   apnsServiceID,
 			"identifiers": map[string]any{},
-			"environment": "all",
+			"environment": string(environment),
 			"scope":       "team",
 		}},
 	})
