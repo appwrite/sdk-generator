@@ -22,7 +22,9 @@ import (
 	"time"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apple"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 	"github.com/spf13/cobra"
@@ -30,6 +32,7 @@ import (
 
 const (
 	apnsKeyPage         = "https://developer.apple.com/account/resources/authkeys/add"
+	apnsKeysListPage    = "https://developer.apple.com/account/resources/authkeys/list"
 	fcmConsoleHome      = "https://console.firebase.google.com"
 	fcmServiceAccounts  = "https://console.firebase.google.com/project/%s/settings/serviceaccounts/adminsdk"
 	fcmSetupGuide       = "https://firebase.google.com/docs/android/setup#add-config-file"
@@ -44,10 +47,11 @@ var (
 )
 
 type apnsOptions struct {
-	keyPath  string
-	keyID    string
-	teamID   string
-	bundleID string
+	keyPath   string
+	keyID     string
+	teamID    string
+	bundleID  string
+	createKey bool
 }
 
 type fcmOptions struct {
@@ -69,6 +73,7 @@ type pushSetup struct {
 	googleHosts   map[string]string
 	googlePoll    time.Duration
 	googleTimeout time.Duration
+	appleKey      func(teamID, name string) (apple.Key, error)
 }
 
 func newPushSetup(command *cobra.Command) (*pushSetup, error) {
@@ -89,6 +94,19 @@ func newPushSetup(command *cobra.Command) (*pushSetup, error) {
 		}
 	}
 
+	var appleKey func(teamID, name string) (apple.Key, error)
+	if prefs, err := config.GlobalPath(app.ExecutableName); err == nil {
+		helper := apple.Helper{
+			Dir:    filepath.Join(filepath.Dir(prefs), "apple"),
+			Stdin:  os.Stdin,
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
+		}
+		appleKey = func(teamID, name string) (apple.Key, error) {
+			return helper.CreateKey(command.Context(), teamID, name)
+		}
+	}
+
 	return &pushSetup{
 		api:           context.api,
 		prompter:      context.prompter,
@@ -101,6 +119,7 @@ func newPushSetup(command *cobra.Command) (*pushSetup, error) {
 		console:       newConsoleForPush(),
 		googlePoll:    2 * time.Second,
 		googleTimeout: googleSignInTimeout,
+		appleKey:      appleKey,
 	}, nil
 }
 
@@ -128,6 +147,8 @@ func newInitApnsCommand() *cobra.Command {
 	flags.StringVar(&options.keyID, "key-id", "", "APNs key ID")
 	flags.StringVar(&options.teamID, "team-id", "", "Apple Developer team ID")
 	flags.StringVar(&options.bundleID, "bundle-id", "", "iOS app bundle ID")
+	flags.BoolVar(&options.createKey, "create-key", false, "Create the APNs key by signing in with your Apple ID (experimental, needs Node.js 18 or later)")
+	command.MarkFlagsMutuallyExclusive("create-key", "key-path")
 
 	return command
 }
@@ -382,13 +403,7 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 
 	keyPath := options.keyPath
 	if keyPath == "" {
-		keyPath, _, err = s.acquireKey("APNs auth key (.p8)", "", "Create one in the Apple Developer portal", "--key-path", apnsKeyPage,
-			"In the Apple Developer portal, create a key with Apple Push Notifications service (APNs) enabled and download it.",
-			func(path string) bool {
-				_, err := readApnsKey(path)
-
-				return strings.HasSuffix(path, ".p8") && err == nil
-			})
+		keyPath, err = s.apnsKey(teamID, options.createKey)
 		if err != nil {
 			return err
 		}
@@ -440,6 +455,90 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 	output.Success(s.out, "APNs is set up for %s.", bundleID)
 
 	return nil
+}
+
+// apnsKey finds or creates the APNs key and returns its path. Creating it with
+// the Apple ID is tried first when --create-key is passed, and offered
+// alongside the browser flow otherwise. When it cannot run or fails, the other
+// ways of providing the key remain.
+func (s *pushSetup) apnsKey(teamID string, create bool) (string, error) {
+	automatic := ""
+	if s.appleKey != nil {
+		automatic = "Sign in with your Apple ID and create one (experimental)"
+	}
+	for {
+		if !create {
+			path, _, err := s.acquireKey("APNs auth key (.p8)", automatic, "Create one in the Apple Developer portal", "--key-path", apnsKeyPage,
+				"In the Apple Developer portal, create a key with Apple Push Notifications service (APNs) enabled and download it.",
+				func(path string) bool {
+					_, err := readApnsKey(path)
+
+					return strings.HasSuffix(path, ".p8") && err == nil
+				})
+			if !errors.Is(err, errAutomaticKey) {
+				return path, err
+			}
+		}
+		create = false
+
+		path, err := s.createApnsKey(teamID)
+		var maxKeys *apple.MaxKeysError
+		if errors.As(err, &maxKeys) {
+			output.Warn(s.out, "Apple allows two APNs keys per team, and team %s has no free slot. Keys on the team:", teamID)
+			for _, key := range maxKeys.Keys {
+				output.Log(s.out, "  %s (%s)", key.Name, key.ID)
+			}
+			output.Hint(s.out, "One key works for every app on the team. Reuse a .p8 you saved earlier, or revoke a key you no longer use at %s.", apnsKeysListPage)
+
+			return "", errors.New("no APNs key can be created on this team. Pass --key-path with an existing .p8 instead")
+		}
+		if err == nil {
+			return path, nil
+		}
+		output.Warn(s.out, "Could not create the APNs key with your Apple ID: %s.", err)
+		output.Log(s.out, "Provide the key another way instead.")
+		automatic = ""
+	}
+}
+
+// createApnsKey creates a key through the Apple Developer portal and saves it
+// into the project folder before anything else happens, because Apple lets a
+// key be downloaded only once.
+func (s *pushSetup) createApnsKey(teamID string) (string, error) {
+	if s.appleKey == nil {
+		return "", apple.ErrUnavailable
+	}
+	output.Log(s.out, "Signing in to the Apple Developer portal for team %s. Your Apple ID and password are sent only to Apple.", teamID)
+	key, err := s.appleKey(teamID, "Appwrite Push "+time.Now().Format("20060102150405"))
+	if err != nil {
+		return "", err
+	}
+	if key.TeamID != teamID || !apnsKeyID.MatchString(key.KeyID) {
+		return "", fmt.Errorf("Apple returned key %q for team %q, expected team %s", key.KeyID, key.TeamID, teamID)
+	}
+
+	directory := s.root
+	if len(s.keyDirs) > 0 {
+		directory = s.keyDirs[0]
+	}
+	path := filepath.Join(directory, "AuthKey_"+key.KeyID+".p8")
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return "", fmt.Errorf("could not save the new key %s: %w", key.KeyID, err)
+	}
+	_, err = file.WriteString(key.P8)
+	if closeErr := file.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return "", fmt.Errorf("could not save the new key %s: %w", key.KeyID, err)
+	}
+
+	output.Success(s.out, "Created APNs key %s and saved it to %s.", key.KeyID, s.display(path))
+	output.Hint(s.out, "Apple lets you download this key only once. Keep the file somewhere safe and out of version control.")
+	s.checkKeyLocation(path)
+
+	return path, nil
 }
 
 func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {

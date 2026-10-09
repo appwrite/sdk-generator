@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apple"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
@@ -1210,5 +1211,157 @@ func TestInitFcmExplainsAServerWithoutTheFirebaseManagementAPI(t *testing.T) {
 	}
 	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (manual-project)" {
 		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+// fakeAppleKey stands in for the Apple sign-in helper. It records each call
+// and returns a fresh P-256 key, or err when set.
+type fakeAppleKey struct {
+	calls []string
+	keyID string
+	err   error
+}
+
+func (f *fakeAppleKey) create(t *testing.T) func(teamID, name string) (apple.Key, error) {
+	return func(teamID, name string) (apple.Key, error) {
+		f.calls = append(f.calls, teamID+" "+name)
+		if f.err != nil {
+			return apple.Key{}, f.err
+		}
+		path := testApnsKey(t, t.TempDir())
+		contents, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		return apple.Key{KeyID: f.keyID, TeamID: teamID, P8: string(contents)}, nil
+	}
+}
+
+func TestInitApnsCreatesTheKeyWithTheAppleID(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	scripted := &prompt.Scripted{}
+	setup, out := newTestPushSetup(t, server, scripted, root)
+	appleKey := &fakeAppleKey{keyID: "NEWKEY1234"}
+	setup.appleKey = appleKey.create(t)
+
+	options := apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(scripted.Asked) != 0 {
+		t.Errorf("asked %v", scripted.Asked)
+	}
+	if len(appleKey.calls) != 1 || !strings.HasPrefix(appleKey.calls[0], "ABCDE12345 Appwrite Push ") {
+		t.Errorf("helper calls = %v", appleKey.calls)
+	}
+	saved := filepath.Join(root, "AuthKey_NEWKEY1234.p8")
+	info, err := os.Stat(saved)
+	if err != nil {
+		t.Fatalf("key was not saved: %v", err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Errorf("key mode = %v", info.Mode().Perm())
+	}
+	if len(messaging.providers) != 2 {
+		t.Fatalf("providers = %v", messaging.providers)
+	}
+	for _, provider := range messaging.providers {
+		credentials := provider["credentials"].(map[string]any)
+		if credentials["authKeyId"] != "NEWKEY1234" || credentials["teamId"] != "ABCDE12345" {
+			t.Errorf("provider = %v", provider)
+		}
+	}
+	if !strings.Contains(out.String(), "Created APNs key NEWKEY1234 and saved it to AuthKey_NEWKEY1234.p8.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+
+	// A second run finds both providers and does not spend another key slot.
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(appleKey.calls) != 1 {
+		t.Errorf("created another key on rerun: %v", appleKey.calls)
+	}
+}
+
+func TestInitApnsOffersTheAppleIDWhenNoKeyIsFound(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	scripted := &prompt.Scripted{Choices: map[string]string{
+		"How would you like to provide the APNs auth key (.p8)?": "automatic",
+	}}
+	setup, _ := newTestPushSetup(t, server, scripted, t.TempDir())
+	appleKey := &fakeAppleKey{keyID: "NEWKEY1234"}
+	setup.appleKey = appleKey.create(t)
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(appleKey.calls) != 1 || len(messaging.providers) != 2 {
+		t.Errorf("calls = %v, providers = %v", appleKey.calls, messaging.providers)
+	}
+}
+
+func TestInitApnsFallsBackWhenTheAppleIDHelperCannotRun(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	existing := testApnsKey(t, t.TempDir())
+	scripted := &prompt.Scripted{
+		Choices: map[string]string{"How would you like to provide the APNs auth key (.p8)?": "file"},
+		Texts:   map[string]string{"Path to the APNs auth key (.p8)": existing},
+	}
+	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
+	appleKey := &fakeAppleKey{err: apple.ErrUnavailable}
+	setup.appleKey = appleKey.create(t)
+
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "Could not create the APNs key with your Apple ID") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	if len(messaging.providers) != 2 || messaging.providers[0]["credentials"].(map[string]any)["authKeyId"] != "KEY1234567" {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitApnsStopsWhenTheTeamHasNoFreeKeySlot(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, root)
+	appleKey := &fakeAppleKey{err: &apple.MaxKeysError{Keys: []apple.ExistingKey{
+		{ID: "OLDKEY1234", Name: "Firebase", CanRevoke: true},
+		{ID: "OLDKEY5678", Name: "Expo", CanRevoke: true},
+	}}}
+	setup.appleKey = appleKey.create(t)
+
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{})
+	if err == nil || !strings.Contains(err.Error(), "--key-path") {
+		t.Fatalf("err = %v", err)
+	}
+	for _, line := range []string{"Firebase (OLDKEY1234)", "Expo (OLDKEY5678)", apnsKeysListPage} {
+		if !strings.Contains(out.String(), line) {
+			t.Errorf("output is missing %q:\n%s", line, out.String())
+		}
+	}
+	if len(messaging.providers) != 0 {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+	if entries, _ := os.ReadDir(root); len(entries) != 0 {
+		t.Errorf("wrote %v", entries)
 	}
 }
