@@ -1147,6 +1147,31 @@ class CLI extends Go
                 'template'      => 'cli/internal/cmd/initpush_test.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apple/apple.go',
+                'template'      => 'cli/internal/apple/apple.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apple/apple_test.go',
+                'template'      => 'cli/internal/apple/apple_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apple/helper/helper.js',
+                'template'      => 'cli/internal/apple/helper/helper.js',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apple/helper/package.json',
+                'template'      => 'cli/internal/apple/helper/package.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apple/helper/package-lock.json',
+                'template'      => 'cli/internal/apple/helper/package-lock.json',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/pull.go',
                 'template'      => 'cli/internal/cmd/pull.go',
