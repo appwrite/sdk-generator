@@ -344,8 +344,10 @@ func TestCreateKeyReadsTheCredentialsFromTheEnvironment(t *testing.T) {
 	fake.noTwoFactor = true
 	asker := &scriptedAsker{}
 	client, logged := newTestClient(t, fake, asker, t.TempDir(), map[string]string{
-		"EXPO_APPLE_ID":           testAppleID,
+		"APPWRITE_APPLE_ID":       testAppleID,
 		"APPWRITE_APPLE_PASSWORD": testPassword,
+		// Only APPWRITE_ variables are read.
+		"EXPO_APPLE_ID": "someone-else@example.com",
 	})
 
 	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push"); err != nil {
@@ -354,7 +356,7 @@ func TestCreateKeyReadsTheCredentialsFromTheEnvironment(t *testing.T) {
 	if len(asker.asked) != 0 {
 		t.Errorf("asked %v", asker.asked)
 	}
-	if !contains(*logged, "Using the Apple ID from EXPO_APPLE_ID.") || !contains(*logged, "Using the Apple ID password from APPWRITE_APPLE_PASSWORD.") {
+	if !contains(*logged, "Using the Apple ID from APPWRITE_APPLE_ID.") || !contains(*logged, "Using the Apple ID password from APPWRITE_APPLE_PASSWORD.") {
 		t.Errorf("logged %v", *logged)
 	}
 	for _, line := range *logged {

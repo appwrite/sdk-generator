@@ -52,11 +52,10 @@ type Asker interface {
 	Choose(question string, options []string) (int, error)
 }
 
-// Credential environment variables, checked in order. EXPO_APPLE_* lets
-// someone already set up for eas-cli sign in without typing.
-var (
-	appleIDVariables       = []string{"APPWRITE_APPLE_ID", "EXPO_APPLE_ID"}
-	applePasswordVariables = []string{"APPWRITE_APPLE_PASSWORD", "EXPO_APPLE_PASSWORD"}
+// Environment variables that answer the Apple ID and password questions.
+const (
+	AppleIDVariable       = "APPWRITE_APPLE_ID"
+	ApplePasswordVariable = "APPWRITE_APPLE_PASSWORD"
 )
 
 // Client signs in to the Apple Developer portal and creates keys.
@@ -117,18 +116,12 @@ func (c Client) logf(format string, args ...any) {
 	}
 }
 
-func (c Client) env(names []string) (string, string) {
-	getenv := c.Getenv
-	if getenv == nil {
-		getenv = os.Getenv
-	}
-	for _, name := range names {
-		if value := getenv(name); value != "" {
-			return value, name
-		}
+func (c Client) env(name string) string {
+	if c.Getenv == nil {
+		return os.Getenv(name)
 	}
 
-	return "", ""
+	return c.Getenv(name)
 }
 
 // connect returns a signed-in portal client, reusing the saved session when
@@ -159,7 +152,7 @@ func (c Client) connect(ctx context.Context) (*portalClient, error) {
 		portal.now = time.Now
 	}
 
-	accountName, accountSource := c.env(appleIDVariables)
+	accountName := c.env(AppleIDVariable)
 	if session, err := portal.session(ctx); err == nil && session != nil &&
 		(accountName == "" || strings.EqualFold(session.User.EmailAddress, accountName)) {
 		c.logf("Using the saved Apple sign-in for %s.", session.User.EmailAddress)
@@ -182,9 +175,9 @@ func (c Client) connect(ctx context.Context) (*portalClient, error) {
 		}
 		accountName = strings.TrimSpace(answer)
 	} else {
-		c.logf("Using the Apple ID from %s.", accountSource)
+		c.logf("Using the Apple ID from %s.", AppleIDVariable)
 	}
-	password, passwordSource := c.env(applePasswordVariables)
+	password := c.env(ApplePasswordVariable)
 	if password == "" {
 		answer, err := c.Asker.Ask("Password for "+accountName, true)
 		if err != nil {
@@ -192,7 +185,7 @@ func (c Client) connect(ctx context.Context) (*portalClient, error) {
 		}
 		password = answer
 	} else {
-		c.logf("Using the Apple ID password from %s.", passwordSource)
+		c.logf("Using the Apple ID password from %s.", ApplePasswordVariable)
 	}
 
 	if err := portal.signIn(ctx, accountName, password); err != nil {
