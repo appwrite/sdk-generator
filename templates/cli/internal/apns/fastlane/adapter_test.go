@@ -353,8 +353,46 @@ func TestCreateKeyDoesNotInstallFastlaneWhenDeclined(t *testing.T) {
 }
 
 func TestOldFastlaneSaysHowToUpgrade(t *testing.T) {
-	if err := supportedVersion("fastlane 2.220.0", "bundle update fastlane in /app"); err == nil ||
-		!strings.Contains(err.Error(), "found 2.220.0. Upgrade it with bundle update fastlane in /app") {
+	if err := supportedVersion("fastlane 2.220.0", "cd /app && bundle update fastlane"); err == nil ||
+		!strings.Contains(err.Error(), "found 2.220.0. Upgrade it with cd /app && bundle update fastlane") {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestAConfiguredFastlaneIsNeverInstalled(t *testing.T) {
+	fastlane, _ := fakeFastlane(t, "2.228.0", `{}`)
+	bin := withoutFastlane(t)
+	log := fakeBrew(t, bin, fastlane)
+	asker := &choosingAsker{choice: 0}
+
+	_, err := (&Adapter{Fastlane: "fastlane"}).CreateKey(context.Background(), apns.Request{Name: "Appwrite Push", Environment: apns.EnvironmentAll, Asker: asker})
+	if !errors.Is(err, apns.ErrUnavailable) {
+		t.Fatalf("err = %v", err)
+	}
+	if len(asker.asked) != 0 {
+		t.Errorf("offered to install: %v", asker.asked)
+	}
+	if _, err := os.Stat(log); err == nil {
+		t.Error("ran brew for a configured command")
+	}
+}
+
+func TestTheBundlerUpgradeCommandRuns(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell stand-in")
+	}
+	project := t.TempDir()
+	gemfile := filepath.Join(project, "Gemfile")
+	if err := os.WriteFile(gemfile, []byte("gem \"fastlane\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	bundle := filepath.Join(t.TempDir(), "bundle")
+	if err := os.WriteFile(bundle, []byte("#!/bin/sh\necho \"fastlane 2.220.0\"\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := (&Adapter{Bundle: bundle, WorkDir: project}).CreateKey(context.Background(), apns.Request{Name: "Appwrite Push", Environment: apns.EnvironmentAll, AppleID: "dev@example.com", Password: "secret"})
+	if err == nil || !strings.Contains(err.Error(), "Upgrade it with cd "+project+" && bundle update fastlane") {
 		t.Errorf("err = %v", err)
 	}
 }

@@ -85,7 +85,9 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 		return apns.Key{}, err
 	}
 	err = runner.check(ctx)
-	if errors.Is(err, errNotInstalled) {
+	// Installing is only offered for fastlane from PATH: a configured command
+	// is never replaced.
+	if errors.Is(err, errNotInstalled) && a.Fastlane == "" {
 		if err = a.offerInstall(ctx, request); err == nil {
 			err = runner.check(ctx)
 		}
@@ -283,7 +285,7 @@ func (r runner) check(ctx context.Context) error {
 	}
 	upgrade := "brew upgrade fastlane, or gem update fastlane, depending on how it was installed"
 	if r.gemfile != "" {
-		upgrade = "bundle update fastlane in " + filepath.Dir(r.gemfile)
+		upgrade = "cd " + filepath.Dir(r.gemfile) + " && bundle update fastlane"
 	}
 
 	return supportedVersion(string(output), upgrade)
