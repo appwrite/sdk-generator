@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apns"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apns/apnstest"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
@@ -1211,4 +1213,402 @@ func TestInitFcmExplainsAServerWithoutTheFirebaseManagementAPI(t *testing.T) {
 	if len(messaging.providers) != 1 || messaging.providers[0]["name"] != "FCM (manual-project)" {
 		t.Errorf("providers = %v", messaging.providers)
 	}
+}
+
+// useAdapter makes adapter the only APNs key setup, under the default name,
+// as an account with one team (APPLE12345) would see it.
+func useAdapter(setup *pushSetup, adapter *apnstest.Adapter) *apnstest.Adapter {
+	adapter.AdapterName = defaultApnsSetup
+	if adapter.TeamID == "" {
+		adapter.TeamID = "APPLE12345"
+	}
+	setup.apnsAdapters = apns.NewRegistry(adapter)
+
+	return adapter
+}
+func TestInitApnsCreatesTheKeyWithTheAppleID(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	scripted := &prompt.Scripted{}
+	setup, out := newTestPushSetup(t, server, scripted, root)
+	appleKey := useAdapter(setup, &apnstest.Adapter{KeyID: "NEWKEY1234"})
+
+	options := apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(scripted.Asked) != 0 {
+		t.Errorf("asked %v", scripted.Asked)
+	}
+	if len(appleKey.Requests) != 1 || appleKey.Requests[0].TeamID != "ABCDE12345" || !strings.HasPrefix(appleKey.Requests[0].Name, "Appwrite Push ") {
+		t.Errorf("helper calls = %v", appleKey.Requests)
+	}
+	saved := filepath.Join(root, "AuthKey_NEWKEY1234.p8")
+	info, err := os.Stat(saved)
+	if err != nil {
+		t.Fatalf("key was not saved: %v", err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Errorf("key mode = %v", info.Mode().Perm())
+	}
+	if len(messaging.providers) != 2 {
+		t.Fatalf("providers = %v", messaging.providers)
+	}
+	for _, provider := range messaging.providers {
+		credentials := provider["credentials"].(map[string]any)
+		if credentials["authKeyId"] != "NEWKEY1234" || credentials["teamId"] != "ABCDE12345" {
+			t.Errorf("provider = %v", provider)
+		}
+	}
+	if !strings.Contains(out.String(), "Created APNs key NEWKEY1234 on team ABCDE12345 and saved it to AuthKey_NEWKEY1234.p8.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+
+	// A second run finds both providers and does not spend another key slot.
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(appleKey.Requests) != 1 {
+		t.Errorf("created another key on rerun: %v", appleKey.Requests)
+	}
+}
+
+func TestInitApnsOffersTheAppleIDWhenNoKeyIsFound(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	scripted := &prompt.Scripted{Choices: map[string]string{
+		"How would you like to provide the APNs auth key (.p8)?": "automatic",
+	}}
+	setup, _ := newTestPushSetup(t, server, scripted, t.TempDir())
+	appleKey := useAdapter(setup, &apnstest.Adapter{KeyID: "NEWKEY1234"})
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(appleKey.Requests) != 1 || len(messaging.providers) != 2 {
+		t.Errorf("calls = %v, providers = %v", appleKey.Requests, messaging.providers)
+	}
+}
+
+func TestInitApnsStopsWhenCreateKeyFails(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	// A key already in the project folder must not stand in for the one
+	// --create-key was asked to create.
+	testApnsKey(t, root)
+	scripted := &prompt.Scripted{}
+	setup, _ := newTestPushSetup(t, server, scripted, root)
+	useAdapter(setup, &apnstest.Adapter{Err: errors.New("could not reach Apple")})
+
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{})
+	if err == nil || err.Error() != "could not create the APNs key with your Apple ID: could not reach Apple" {
+		t.Fatalf("err = %v", err)
+	}
+	if len(scripted.Asked) != 0 || len(messaging.providers) != 0 {
+		t.Errorf("asked %v, providers %v", scripted.Asked, messaging.providers)
+	}
+}
+
+// choiceSequence answers the same choice differently each time it is asked.
+type choiceSequence struct {
+	*prompt.Scripted
+	answers []string
+}
+
+func (c *choiceSequence) Choice(question prompt.Choice) (string, error) {
+	c.Scripted.Asked = append(c.Scripted.Asked, question.Message)
+	answer := c.answers[0]
+	c.answers = c.answers[1:]
+
+	return answer, nil
+}
+
+func TestInitApnsFallsBackWhenTheChosenAppleSignInFails(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	existing := testApnsKey(t, t.TempDir())
+	scripted := &choiceSequence{
+		Scripted: &prompt.Scripted{Texts: map[string]string{"Path to the APNs auth key (.p8)": existing}},
+		answers:  []string{"automatic", "file"},
+	}
+	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
+	useAdapter(setup, &apnstest.Adapter{Err: errors.New("could not reach Apple")})
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "Could not create the APNs key with your Apple ID: could not reach Apple.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+	if len(messaging.providers) != 2 || messaging.providers[0]["credentials"].(map[string]any)["authKeyId"] != "KEY1234567" {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitApnsStopsWhenTheTeamHasNoFreeKeySlot(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, root)
+	appleKey := &apnstest.Adapter{Err: &apns.MaxKeysError{Keys: []apns.ExistingKey{
+		{ID: "OLDKEY1234", Name: "Firebase", CanRevoke: true},
+		{ID: "OLDKEY5678", Name: "Expo", CanRevoke: true},
+	}}}
+	useAdapter(setup, appleKey)
+
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{})
+	if err == nil || !strings.Contains(err.Error(), "--key-path") {
+		t.Fatalf("err = %v", err)
+	}
+	for _, line := range []string{"Firebase (OLDKEY1234)", "Expo (OLDKEY5678)", apnsKeysListPage} {
+		if !strings.Contains(out.String(), line) {
+			t.Errorf("output is missing %q:\n%s", line, out.String())
+		}
+	}
+	if len(messaging.providers) != 0 {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+	if entries, _ := os.ReadDir(root); len(entries) != 0 {
+		t.Errorf("wrote %v", entries)
+	}
+}
+
+func TestInitApnsTakesTheTeamFromTheAppleSignIn(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	scripted := &prompt.Scripted{}
+	setup, _ := newTestPushSetup(t, server, scripted, t.TempDir())
+	appleKey := useAdapter(setup, &apnstest.Adapter{KeyID: "NEWKEY1234"})
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", createKey: true}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(scripted.Asked) != 0 {
+		t.Errorf("asked %v", scripted.Asked)
+	}
+	if len(appleKey.Requests) != 1 || appleKey.Requests[0].TeamID != "" {
+		t.Errorf("helper calls = %v", appleKey.Requests)
+	}
+	for _, provider := range messaging.providers {
+		if provider["credentials"].(map[string]any)["teamId"] != "APPLE12345" {
+			t.Errorf("provider = %v", provider)
+		}
+	}
+}
+
+func TestInitApnsAsksForTheTeamAfterAKeyFile(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	existing := testApnsKey(t, t.TempDir())
+	scripted := &prompt.Scripted{
+		Choices: map[string]string{"How would you like to provide the APNs auth key (.p8)?": "file"},
+		Texts: map[string]string{
+			"Path to the APNs auth key (.p8)":       existing,
+			"What is your Apple Developer team ID?": "ABCDE12345",
+		},
+	}
+	setup, _ := newTestPushSetup(t, server, scripted, t.TempDir())
+	useAdapter(setup, &apnstest.Adapter{KeyID: "NEWKEY1234"})
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"How would you like to provide the APNs auth key (.p8)?", "Path to the APNs auth key (.p8)", "What is your Apple Developer team ID?"}
+	if strings.Join(scripted.Asked, "|") != strings.Join(want, "|") {
+		t.Errorf("asked %v", scripted.Asked)
+	}
+	if messaging.providers[0]["credentials"].(map[string]any)["teamId"] != "ABCDE12345" {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitApnsSetsUpOneEnvironment(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, root)
+	appleKey := useAdapter(setup, &apnstest.Adapter{KeyID: "NEWKEY1234"})
+
+	options := apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true, environment: "sandbox"}
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(appleKey.Requests) != 1 || appleKey.Requests[0].Environment != apns.EnvironmentSandbox {
+		t.Errorf("helper calls = %v", appleKey.Requests)
+	}
+	if len(messaging.providers) != 1 || messaging.providers[0]["options"].(map[string]any)["sandbox"] != true {
+		t.Fatalf("providers = %v", messaging.providers)
+	}
+	if !strings.Contains(out.String(), "APNs (sandbox) is set up for com.example.app.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+
+	// The sandbox provider is all a sandbox run needs.
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(appleKey.Requests) != 1 || !strings.Contains(out.String(), "APNs (sandbox) is already set up for com.example.app.") {
+		t.Errorf("calls = %v, output:\n%s", appleKey.Requests, out.String())
+	}
+
+	// Production still needs its own provider; the key already in the folder
+	// serves it.
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", environment: "production"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(messaging.providers) != 2 || messaging.providers[1]["options"].(map[string]any)["sandbox"] != false {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitApnsRejectsAnUnknownEnvironment(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	setup, _ := newTestPushSetup(t, server, &prompt.Scripted{}, t.TempDir())
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", environment: "staging"}, appleApp{})
+	if err == nil || err.Error() != `--environment must be production, sandbox or all, not "staging"` {
+		t.Fatalf("err = %v", err)
+	}
+	if len(messaging.requests) != 0 {
+		t.Errorf("requests = %v", messaging.requests)
+	}
+}
+
+func TestInitApnsPicksTheSetupFromTheFlagThenTheEnvironment(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, t.TempDir())
+	appwrite := &apnstest.Adapter{AdapterName: "appwrite", KeyID: "APPWRITE01", TeamID: "ABCDE12345"}
+	expo := &apnstest.Adapter{AdapterName: "expo", KeyID: "EXPOKEY001", TeamID: "ABCDE12345"}
+	setup.apnsAdapters = apns.NewRegistry(appwrite, expo)
+	env := map[string]string{
+		"APPWRITE_APNS_SETUP":     "expo",
+		"APPWRITE_APPLE_ID":       "dev@example.com",
+		"APPWRITE_APPLE_PASSWORD": "secret",
+	}
+	setup.getenv = func(name string) string { return env[name] }
+	options := apnsOptions{bundleID: "com.example.app", createKey: true}
+
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(expo.Requests) != 1 || len(appwrite.Requests) != 0 {
+		t.Fatalf("expo = %d, appwrite = %d requests", len(expo.Requests), len(appwrite.Requests))
+	}
+	request := expo.Requests[0]
+	if request.AppleID != "dev@example.com" || request.Password != "secret" || request.Asker == nil {
+		t.Errorf("request = %+v", request)
+	}
+	for _, line := range []string{"Signing in to the Apple Developer portal (expo).", "Using the Apple ID from APPWRITE_APPLE_ID.", "Using the Apple ID password from APPWRITE_APPLE_PASSWORD."} {
+		if !strings.Contains(out.String(), line) {
+			t.Errorf("output is missing %q:\n%s", line, out.String())
+		}
+	}
+	if strings.Contains(out.String(), "secret") {
+		t.Errorf("printed the password:\n%s", out.String())
+	}
+
+	// Each run starts from no providers and a fresh folder: a key file is
+	// never overwritten.
+	fresh := func() {
+		messaging.providers = nil
+		setup.keyDirs = []string{t.TempDir()}
+	}
+	fresh()
+	options.setup = "appwrite"
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(appwrite.Requests) != 1 || len(expo.Requests) != 1 {
+		t.Errorf("--provider did not win over %s", apnsSetupVariable)
+	}
+
+	delete(env, "APPWRITE_APNS_SETUP")
+	options.setup = ""
+	fresh()
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(appwrite.Requests) != 2 {
+		t.Errorf("the default is not %s", defaultApnsSetup)
+	}
+}
+
+func TestInitApnsReportsAnUnknownSetup(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	setup, _ := newTestPushSetup(t, server, &prompt.Scripted{}, t.TempDir())
+	setup.apnsAdapters = apns.NewRegistry(&apnstest.Adapter{AdapterName: "appwrite"})
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true, setup: "fastlane"}, appleApp{})
+	if err == nil || !strings.Contains(err.Error(), `unknown APNs key setup "fastlane": use one of appwrite`) {
+		t.Fatalf("err = %v", err)
+	}
+	if len(messaging.providers) != 0 {
+		t.Errorf("providers = %v", messaging.providers)
+	}
+}
+
+func TestInitApnsWithoutSetupsOnlyOffersTheOtherWays(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	var offered []prompt.Option
+	scripted := &prompt.Scripted{Choices: map[string]string{"How would you like to provide the APNs auth key (.p8)?": "file"}, Texts: map[string]string{"Path to the APNs auth key (.p8)": testApnsKey(t, t.TempDir())}}
+	setup, _ := newTestPushSetup(t, server, optionsRecorder{scripted, &offered}, t.TempDir())
+	setup.apnsAdapters = apns.NewRegistry()
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, option := range offered {
+		if option.Value == "automatic" {
+			t.Errorf("offered the Apple sign-in with no setup built in: %v", offered)
+		}
+	}
+
+	messaging.providers = nil
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{})
+	if err == nil || !strings.Contains(err.Error(), "this build has none") {
+		t.Errorf("err = %v", err)
+	}
+}
+
+// optionsRecorder records the options of the key question.
+type optionsRecorder struct {
+	*prompt.Scripted
+	options *[]prompt.Option
+}
+
+func (r optionsRecorder) Choice(question prompt.Choice) (string, error) {
+	if question.Message == "How would you like to provide the APNs auth key (.p8)?" {
+		*r.options = question.Options
+	}
+
+	return r.Scripted.Choice(question)
 }
