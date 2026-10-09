@@ -1215,7 +1215,8 @@ func TestInitFcmExplainsAServerWithoutTheFirebaseManagementAPI(t *testing.T) {
 }
 
 // fakeAppleKey stands in for the Apple sign-in helper. It records each call
-// and returns a fresh P-256 key, or err when set.
+// and returns a fresh P-256 key, or err when set. Without a team it signs in
+// to team APPLE12345, as an account with one team would.
 type fakeAppleKey struct {
 	calls []string
 	keyID string
@@ -1225,6 +1226,9 @@ type fakeAppleKey struct {
 func (f *fakeAppleKey) create(t *testing.T) func(teamID, name string) (apple.Key, error) {
 	return func(teamID, name string) (apple.Key, error) {
 		f.calls = append(f.calls, teamID+" "+name)
+		if teamID == "" {
+			teamID = "APPLE12345"
+		}
 		if f.err != nil {
 			return apple.Key{}, f.err
 		}
@@ -1277,7 +1281,7 @@ func TestInitApnsCreatesTheKeyWithTheAppleID(t *testing.T) {
 			t.Errorf("provider = %v", provider)
 		}
 	}
-	if !strings.Contains(out.String(), "Created APNs key NEWKEY1234 and saved it to AuthKey_NEWKEY1234.p8.") {
+	if !strings.Contains(out.String(), "Created APNs key NEWKEY1234 on team ABCDE12345 and saved it to AuthKey_NEWKEY1234.p8.") {
 		t.Errorf("output:\n%s", out.String())
 	}
 
@@ -1363,5 +1367,59 @@ func TestInitApnsStopsWhenTheTeamHasNoFreeKeySlot(t *testing.T) {
 	}
 	if entries, _ := os.ReadDir(root); len(entries) != 0 {
 		t.Errorf("wrote %v", entries)
+	}
+}
+
+func TestInitApnsTakesTheTeamFromTheAppleSignIn(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	scripted := &prompt.Scripted{}
+	setup, _ := newTestPushSetup(t, server, scripted, t.TempDir())
+	appleKey := &fakeAppleKey{keyID: "NEWKEY1234"}
+	setup.appleKey = appleKey.create(t)
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", createKey: true}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(scripted.Asked) != 0 {
+		t.Errorf("asked %v", scripted.Asked)
+	}
+	if len(appleKey.calls) != 1 || !strings.HasPrefix(appleKey.calls[0], " Appwrite Push ") {
+		t.Errorf("helper calls = %v", appleKey.calls)
+	}
+	for _, provider := range messaging.providers {
+		if provider["credentials"].(map[string]any)["teamId"] != "APPLE12345" {
+			t.Errorf("provider = %v", provider)
+		}
+	}
+}
+
+func TestInitApnsAsksForTheTeamAfterAKeyFile(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	existing := testApnsKey(t, t.TempDir())
+	scripted := &prompt.Scripted{
+		Choices: map[string]string{"How would you like to provide the APNs auth key (.p8)?": "file"},
+		Texts: map[string]string{
+			"Path to the APNs auth key (.p8)":       existing,
+			"What is your Apple Developer team ID?": "ABCDE12345",
+		},
+	}
+	setup, _ := newTestPushSetup(t, server, scripted, t.TempDir())
+	setup.appleKey = (&fakeAppleKey{keyID: "NEWKEY1234"}).create(t)
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"How would you like to provide the APNs auth key (.p8)?", "Path to the APNs auth key (.p8)", "What is your Apple Developer team ID?"}
+	if strings.Join(scripted.Asked, "|") != strings.Join(want, "|") {
+		t.Errorf("asked %v", scripted.Asked)
+	}
+	if messaging.providers[0]["credentials"].(map[string]any)["teamId"] != "ABCDE12345" {
+		t.Errorf("providers = %v", messaging.providers)
 	}
 }

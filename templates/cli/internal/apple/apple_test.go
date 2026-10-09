@@ -96,8 +96,8 @@ func TestCreateKeyInstallsOnceAndRunsTheHelper(t *testing.T) {
 		t.Fatalf("calls:\n%s", calls)
 	}
 	for _, line := range lines[1:] {
-		if !strings.Contains(line, "helper.js --team-id ABCDE12345 --name Appwrite Push --out ") ||
-			!strings.HasSuffix(line, "EXPO_NO_KEYCHAIN=1") {
+		if !strings.Contains(line, "helper.js --name Appwrite Push --out ") ||
+			!strings.HasSuffix(line, "--team-id ABCDE12345 EXPO_NO_KEYCHAIN=1") {
 			t.Errorf("helper call = %s", line)
 		}
 	}

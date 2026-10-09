@@ -394,17 +394,33 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 			teams = []string{provider.credential("teamId")}
 		}
 	}
-	teamID, err := s.pick(options.teamID, teams,
-		"What is your Apple Developer team ID?", "--team-id",
-		matchesPattern(appleTeamID, "a team ID is 10 uppercase letters or digits"))
-	if err != nil {
-		return err
+	pickTeam := func() (string, error) {
+		return s.pick(options.teamID, teams,
+			"What is your Apple Developer team ID?", "--team-id",
+			matchesPattern(appleTeamID, "a team ID is 10 uppercase letters or digits"))
+	}
+	// Without a known team, signing in with the Apple ID chooses it, so the
+	// question waits until the key has come from somewhere else.
+	teamID := ""
+	if options.teamID != "" || len(teams) > 0 || options.keyPath != "" {
+		if teamID, err = pickTeam(); err != nil {
+			return err
+		}
 	}
 
 	keyPath := options.keyPath
 	if keyPath == "" {
-		keyPath, err = s.apnsKey(teamID, options.createKey)
+		var keyTeam string
+		keyPath, keyTeam, err = s.apnsKey(teamID, options.createKey)
 		if err != nil {
+			return err
+		}
+		if teamID == "" {
+			teamID = keyTeam
+		}
+	}
+	if teamID == "" {
+		if teamID, err = pickTeam(); err != nil {
 			return err
 		}
 	}
@@ -461,7 +477,7 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 // the Apple ID is tried first when --create-key is passed, and offered
 // alongside the browser flow otherwise. When it cannot run or fails, the other
 // ways of providing the key remain.
-func (s *pushSetup) apnsKey(teamID string, create bool) (string, error) {
+func (s *pushSetup) apnsKey(teamID string, create bool) (string, string, error) {
 	automatic := ""
 	if s.appleKey != nil {
 		automatic = "Sign in with your Apple ID and create one (experimental)"
@@ -476,24 +492,24 @@ func (s *pushSetup) apnsKey(teamID string, create bool) (string, error) {
 					return strings.HasSuffix(path, ".p8") && err == nil
 				})
 			if !errors.Is(err, errAutomaticKey) {
-				return path, err
+				return path, "", err
 			}
 		}
 		create = false
 
-		path, err := s.createApnsKey(teamID)
+		path, keyTeam, err := s.createApnsKey(teamID)
 		var maxKeys *apple.MaxKeysError
 		if errors.As(err, &maxKeys) {
-			output.Warn(s.out, "Apple allows two APNs keys per team, and team %s has no free slot. Keys on the team:", teamID)
+			output.Warn(s.out, "Apple allows two APNs keys per team, and this team has no free slot. Keys on the team:")
 			for _, key := range maxKeys.Keys {
 				output.Log(s.out, "  %s (%s)", key.Name, key.ID)
 			}
 			output.Hint(s.out, "One key works for every app on the team. Reuse a .p8 you saved earlier, or revoke a key you no longer use at %s.", apnsKeysListPage)
 
-			return "", errors.New("no APNs key can be created on this team. Pass --key-path with an existing .p8 instead")
+			return "", "", errors.New("no APNs key can be created on this team. Pass --key-path with an existing .p8 instead")
 		}
 		if err == nil {
-			return path, nil
+			return path, keyTeam, nil
 		}
 		output.Warn(s.out, "Could not create the APNs key with your Apple ID: %s.", err)
 		output.Log(s.out, "Provide the key another way instead.")
@@ -504,17 +520,17 @@ func (s *pushSetup) apnsKey(teamID string, create bool) (string, error) {
 // createApnsKey creates a key through the Apple Developer portal and saves it
 // into the project folder before anything else happens, because Apple lets a
 // key be downloaded only once.
-func (s *pushSetup) createApnsKey(teamID string) (string, error) {
+func (s *pushSetup) createApnsKey(teamID string) (string, string, error) {
 	if s.appleKey == nil {
-		return "", apple.ErrUnavailable
+		return "", "", apple.ErrUnavailable
 	}
-	output.Log(s.out, "Signing in to the Apple Developer portal for team %s. Your Apple ID and password are sent only to Apple.", teamID)
+	output.Log(s.out, "Signing in to the Apple Developer portal. Your Apple ID and password are sent only to Apple.")
 	key, err := s.appleKey(teamID, "Appwrite Push "+time.Now().Format("20060102150405"))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	if key.TeamID != teamID || !apnsKeyID.MatchString(key.KeyID) {
-		return "", fmt.Errorf("Apple returned key %q for team %q, expected team %s", key.KeyID, key.TeamID, teamID)
+	if !apnsKeyID.MatchString(key.KeyID) || !appleTeamID.MatchString(key.TeamID) || (teamID != "" && key.TeamID != teamID) {
+		return "", "", fmt.Errorf("Apple returned key %q for team %q, expected team %s", key.KeyID, key.TeamID, teamID)
 	}
 
 	directory := s.root
@@ -524,21 +540,21 @@ func (s *pushSetup) createApnsKey(teamID string) (string, error) {
 	path := filepath.Join(directory, "AuthKey_"+key.KeyID+".p8")
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
-		return "", fmt.Errorf("could not save the new key %s: %w", key.KeyID, err)
+		return "", "", fmt.Errorf("could not save the new key %s: %w", key.KeyID, err)
 	}
 	_, err = file.WriteString(key.P8)
 	if closeErr := file.Close(); err == nil {
 		err = closeErr
 	}
 	if err != nil {
-		return "", fmt.Errorf("could not save the new key %s: %w", key.KeyID, err)
+		return "", "", fmt.Errorf("could not save the new key %s: %w", key.KeyID, err)
 	}
 
-	output.Success(s.out, "Created APNs key %s and saved it to %s.", key.KeyID, s.display(path))
+	output.Success(s.out, "Created APNs key %s on team %s and saved it to %s.", key.KeyID, key.TeamID, s.display(path))
 	output.Hint(s.out, "Apple lets you download this key only once. Keep the file somewhere safe and out of version control.")
 	s.checkKeyLocation(path)
 
-	return path, nil
+	return path, key.TeamID, nil
 }
 
 func (s *pushSetup) fcm(options fcmOptions, detected androidApp) error {

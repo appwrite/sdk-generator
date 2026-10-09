@@ -76,7 +76,8 @@ type result struct {
 }
 
 // CreateKey signs in to the Apple Developer portal, creates a team-scoped
-// APNs key named name on teamID, and downloads it.
+// APNs key named name on teamID, and downloads it. An empty teamID lets the
+// sign-in choose the team, asking when the account has several.
 func (h Helper) CreateKey(ctx context.Context, teamID, name string) (Key, error) {
 	if err := h.checkNode(ctx); err != nil {
 		return Key{}, err
@@ -92,8 +93,11 @@ func (h Helper) CreateKey(ctx context.Context, teamID, name string) (Key, error)
 	defer os.RemoveAll(scratch)
 	out := filepath.Join(scratch, "result.json")
 
-	command := exec.CommandContext(ctx, h.node(), filepath.Join(h.Dir, "helper.js"),
-		"--team-id", teamID, "--name", name, "--out", out)
+	arguments := []string{filepath.Join(h.Dir, "helper.js"), "--name", name, "--out", out}
+	if teamID != "" {
+		arguments = append(arguments, "--team-id", teamID)
+	}
+	command := exec.CommandContext(ctx, h.node(), arguments...)
 	command.Dir = h.Dir
 	command.Stdin, command.Stdout, command.Stderr = h.Stdin, h.Stdout, h.Stderr
 	// apple-utils stores the Apple password in the macOS Keychain unless told

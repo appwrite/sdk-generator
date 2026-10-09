@@ -15,8 +15,8 @@ function parseArguments(argv) {
   for (let index = 0; index < argv.length; index += 2) {
     values[argv[index].replace(/^--/, '')] = argv[index + 1];
   }
-  if (!values['team-id'] || !values.out || !values.name) {
-    throw new Error('usage: helper.js --team-id <id> --name <key name> --out <file>');
+  if (!values.out || !values.name) {
+    throw new Error('usage: helper.js [--team-id <id>] --name <key name> --out <file>');
   }
 
   return values;
@@ -30,9 +30,10 @@ function isMaxKeysError(error) {
 }
 
 async function createKey({ 'team-id': teamId, name }) {
-  const authState = await Auth.loginAsync({ teamId }, { autoResolveProvider: true });
+  // Without a team ID, apple-utils asks which team to use when there are several.
+  const authState = await Auth.loginAsync(teamId ? { teamId } : {}, { autoResolveProvider: true });
   const context = authState.context;
-  if (context.teamId !== teamId) {
+  if (teamId && context.teamId !== teamId) {
     throw new Error(`Signed in to Apple team ${context.teamId}, not ${teamId}`);
   }
 
