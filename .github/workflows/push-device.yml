@@ -1,0 +1,84 @@
+name: Push device tests
+
+# Drives the Push test apps on an Android emulator through what unit and Robolectric tests cannot
+# reach: a killed app, an app removed from recents, a lost network, the system permission screens
+# (see tests/device/run.php). Slow, so it runs nightly, on demand, and on pull requests labelled
+# "push-device-tests".
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *'
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+jobs:
+  device:
+    name: Push device / ${{ matrix.sdk }}
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'push-device-tests')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: [android, react-native, flutter]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.5'
+          extensions: curl
+
+      - name: Setup Java
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Node
+        if: matrix.sdk == 'react-native'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      # Cloned rather than set up with an action: the Flutter actions pull in unpinned actions.
+      - name: Setup Flutter
+        if: matrix.sdk == 'flutter'
+        run: |
+          git clone --depth 1 --branch stable https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Install
+        run: composer install
+
+      - name: Build the test app
+        run: tests/device/build.sh ${{ matrix.sdk }}
+
+      - name: Start the mock broker
+        working-directory: mock-server
+        run: docker compose up -d --build mqtt
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the device scenarios
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          # On a failure, print the end of the device log before the emulator shuts down.
+          script: adb install -r tests/device/app.apk && php tests/device/run.php ${{ matrix.sdk }} || (adb logcat -d -v tag | tail -n 400; exit 1)
