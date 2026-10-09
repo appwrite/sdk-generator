@@ -280,7 +280,11 @@ func (p *portalClient) signIn(ctx context.Context, accountName, password string)
 	}
 
 	headers := p.idmsaHeaders()
-	if token := p.hashcash(ctx); token != "" {
+	token, err := p.hashcash(ctx)
+	if err != nil {
+		return err
+	}
+	if token != "" {
 		headers["X-Apple-HC"] = token
 	}
 	response, payload, err = p.request(ctx, http.MethodPost, p.hosts.Idmsa+"/appleauth/auth/signin/complete?isRememberMeEnabled=false", map[string]any{
@@ -319,19 +323,24 @@ func (p *portalClient) signIn(ctx context.Context, accountName, password string)
 
 // hashcash answers the proof-of-work challenge Apple hands out on the sign-in
 // page. Without one, Apple decides; spaceship carries on in that case too.
-func (p *portalClient) hashcash(ctx context.Context) string {
+// maxHashcashBits bounds the work: Apple asks for about 11 bits, and 24 is
+// some 16 million attempts, a few seconds. A harder challenge is not
+// answered, as one Apple sends without a challenge is not.
+const maxHashcashBits = 24
+
+func (p *portalClient) hashcash(ctx context.Context) (string, error) {
 	response, _, err := p.request(ctx, http.MethodGet,
 		p.hosts.Idmsa+"/appleauth/auth/signin?widgetKey="+url.QueryEscape(p.widgetKey), nil, nil)
 	if err != nil {
-		return ""
+		return "", nil
 	}
 	bits, err := strconv.Atoi(response.Header.Get("X-Apple-HC-Bits"))
 	challenge := response.Header.Get("X-Apple-HC-Challenge")
-	if err != nil || challenge == "" || bits < 0 || bits > 64 {
-		return ""
+	if err != nil || challenge == "" || bits < 0 || bits > maxHashcashBits {
+		return "", nil
 	}
 
-	return hashcash(bits, challenge, p.now())
+	return hashcash(ctx, bits, challenge, p.now())
 }
 
 type trustedPhone struct {

@@ -45,9 +45,11 @@ type fakeApple struct {
 	// every session handed out before.
 	generation int
 	textsSent  int
-	teams      []Team
-	keys       []apns.ExistingKey
-	maxKeys    bool
+	// hashcashBits is the difficulty asked for; empty means 8.
+	hashcashBits string
+	teams        []Team
+	keys         []apns.ExistingKey
+	maxKeys      bool
 
 	salt     []byte
 	b        *big.Int
@@ -133,13 +135,19 @@ func (f *fakeApple) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case r.Method == http.MethodGet && r.URL.Path == "/appleauth/auth/signin":
-		w.Header().Set("X-Apple-HC-Bits", "8")
+		bits := f.hashcashBits
+		if bits == "" {
+			bits = "8"
+		}
+		w.Header().Set("X-Apple-HC-Bits", bits)
 		w.Header().Set("X-Apple-HC-Challenge", "hc-challenge")
 		w.WriteHeader(http.StatusOK)
 
 	case r.URL.Path == "/appleauth/auth/signin/complete" && idmsa:
 		token := r.Header.Get("X-Apple-HC")
-		if !strings.Contains(token, ":hc-challenge::") || leadingZeroBits(sha1.Sum([]byte(token))) < 8 {
+		if f.hashcashBits != "" && token != "" {
+			f.t.Errorf("answered a %s-bit hashcash: %q", f.hashcashBits, token)
+		} else if f.hashcashBits == "" && (!strings.Contains(token, ":hc-challenge::") || leadingZeroBits(sha1.Sum([]byte(token))) < 8) {
 			f.t.Errorf("hashcash = %q", token)
 		}
 		if params["c"] != "challenge-c" || params["accountName"] != testAppleID {
@@ -599,6 +607,17 @@ func TestChoosingATextMessageIsNotACodeAttempt(t *testing.T) {
 	}
 	if fake.textsSent != 1 || len(asker.asked) != 4 {
 		t.Errorf("texts = %d, asked %v", fake.textsSent, asker.asked)
+	}
+}
+
+func TestAnImpracticalHashcashIsNotAnswered(t *testing.T) {
+	fake := newFakeApple(t)
+	fake.noTwoFactor = true
+	fake.hashcashBits = "40"
+	client, _ := newTestClient(t, fake, &scriptedAsker{}, t.TempDir(), map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword})
+
+	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", apns.EnvironmentAll); err != nil {
+		t.Fatal(err)
 	}
 }
 {% endverbatim %}

@@ -2,8 +2,10 @@ package appwrite
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -90,10 +92,20 @@ func TestSRPRejectsAnInvalidChallenge(t *testing.T) {
 	}
 }
 
+func TestHashcashStopsWhenCancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if token, err := hashcash(ctx, 64, "challenge", time.Now()); !errors.Is(err, context.Canceled) || token != "" {
+		t.Errorf("hashcash = %q, %v", token, err)
+	}
+}
+
 func TestHashcashUsesUTC(t *testing.T) {
 	utc := time.Date(2023, 2, 23, 17, 6, 0, 0, time.UTC)
 	india := utc.In(time.FixedZone("IST", 5*3600+1800))
-	if got, want := hashcash(11, "4d74fb15eb23f465f1f6fcbf534e5877", india), hashcash(11, "4d74fb15eb23f465f1f6fcbf534e5877", utc); got != want {
+	got, _ := hashcash(context.Background(), 11, "4d74fb15eb23f465f1f6fcbf534e5877", india)
+	want, _ := hashcash(context.Background(), 11, "4d74fb15eb23f465f1f6fcbf534e5877", utc)
+	if got != want {
 		t.Errorf("hashcash in IST = %s, in UTC = %s", got, want)
 	}
 }
@@ -110,7 +122,7 @@ func TestHashcashMatchesSpaceship(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := hashcash(vector.bits, vector.challenge, date); got != vector.token {
+		if got, err := hashcash(context.Background(), vector.bits, vector.challenge, date); err != nil || got != vector.token {
 			t.Errorf("hashcash(%d, %s) = %s, want %s", vector.bits, vector.challenge, got, vector.token)
 		}
 	}

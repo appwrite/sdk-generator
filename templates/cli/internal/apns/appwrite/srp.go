@@ -1,6 +1,7 @@
 package appwrite
 
 import (
+	"context"
 	"crypto/pbkdf2"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -146,15 +147,23 @@ func (c *srpClient) proofs(accountName string, key, salt, serverB []byte) ([]byt
 // "1:bits:date:challenge::counter" string has a SHA-1 starting with bits
 // zero bits. The date is in UTC, as @expo/apple-utils sends it (spaceship
 // uses local time, which only matches on a UTC machine).
-func hashcash(bits int, challenge string, now time.Time) string {
+// The search stops when ctx is done, checked every hashcashBatch attempts.
+func hashcash(ctx context.Context, bits int, challenge string, now time.Time) (string, error) {
 	prefix := "1:" + strconv.Itoa(bits) + ":" + now.UTC().Format("20060102150405") + ":" + challenge + "::"
 	for counter := 0; ; counter++ {
+		if counter%hashcashBatch == 0 {
+			if err := ctx.Err(); err != nil {
+				return "", err
+			}
+		}
 		token := prefix + strconv.Itoa(counter)
 		if leadingZeroBits(sha1.Sum([]byte(token))) >= bits {
-			return token
+			return token, nil
 		}
 	}
 }
+
+const hashcashBatch = 1 << 16
 
 func leadingZeroBits(sum [sha1.Size]byte) int {
 	count := 0
