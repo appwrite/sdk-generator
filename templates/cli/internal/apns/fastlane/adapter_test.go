@@ -3,6 +3,7 @@ package fastlane
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -162,5 +163,77 @@ func TestCreateKeyNeedsARecentFastlane(t *testing.T) {
 	missing := &Adapter{Fastlane: filepath.Join(t.TempDir(), "fastlane")}
 	if _, err := missing.CreateKey(context.Background(), request); !errors.Is(err, apns.ErrUnavailable) {
 		t.Fatalf("missing fastlane err = %v", err)
+	}
+}
+
+func TestProjectGemfile(t *testing.T) {
+	root := t.TempDir()
+	if gemfile := projectGemfile(root); gemfile != "" {
+		t.Errorf("found %s in an empty folder", gemfile)
+	}
+
+	if err := os.WriteFile(filepath.Join(root, "Gemfile"), []byte("source \"https://rubygems.org\"\ngem \"cocoapods\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if gemfile := projectGemfile(root); gemfile != "" {
+		t.Errorf("used a Gemfile without fastlane: %s", gemfile)
+	}
+
+	if err := os.MkdirAll(filepath.Join(root, "ios"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	ios := filepath.Join(root, "ios", "Gemfile")
+	if err := os.WriteFile(ios, []byte("source 'https://rubygems.org'\n\n  gem 'fastlane', '~> 2.228'\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if gemfile := projectGemfile(root); gemfile != ios {
+		t.Errorf("projectGemfile = %q, want %q", gemfile, ios)
+	}
+}
+
+func TestCreateKeyRunsTheProjectsBundlerFastlane(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell stand-in")
+	}
+	project := t.TempDir()
+	gemfile := filepath.Join(project, "Gemfile")
+	if err := os.WriteFile(gemfile, []byte("gem \"fastlane\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	bin := t.TempDir()
+	log := filepath.Join(bin, "log")
+	bundle := filepath.Join(bin, "bundle")
+	script := `#!/bin/sh
+echo "bundle $* BUNDLE_GEMFILE=$BUNDLE_GEMFILE" >> "` + log + `"
+[ "$1 $2" = "exec fastlane" ] || exit 1
+if [ "$3" = "--version" ]; then echo "fastlane 2.228.0"; exit 0; fi
+test -f fastlane/Fastfile || exit 1
+for argument in "$@"; do
+  case "$argument" in
+    out:*) printf '%s' '{"keyId":"KEY1234567","teamId":"ABCDE12345","p8":"pem"}' > "${argument#out:}" ;;
+  esac
+done
+`
+	if err := os.WriteFile(bundle, []byte(script), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	adapter := &Adapter{Bundle: bundle, WorkDir: project, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	var logged []string
+	request := apns.Request{
+		Name: "Appwrite Push", Environment: apns.EnvironmentAll, AppleID: "dev@example.com", Password: "secret",
+		Log: func(format string, args ...any) { logged = append(logged, fmt.Sprintf(format, args...)) },
+	}
+
+	if _, err := adapter.CreateKey(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	calls, _ := os.ReadFile(log)
+	lines := strings.Split(strings.TrimSpace(string(calls)), "\n")
+	if len(lines) != 2 || lines[0] != "bundle exec fastlane --version BUNDLE_GEMFILE="+gemfile ||
+		!strings.HasPrefix(lines[1], "bundle exec fastlane create_apns_key out:") || !strings.HasSuffix(lines[1], "BUNDLE_GEMFILE="+gemfile) {
+		t.Errorf("calls:\n%s", calls)
+	}
+	if len(logged) != 1 || logged[0] != "Using fastlane from "+gemfile+" with bundle exec." {
+		t.Errorf("logged %v", logged)
 	}
 }

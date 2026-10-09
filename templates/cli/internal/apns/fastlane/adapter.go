@@ -2,8 +2,9 @@
 // open-source Apple Developer portal client.
 //
 // It runs a lane from a Fastfile embedded in the binary with the fastlane the
-// person already has installed, so it works with a gem, Homebrew or bundler
-// installation and brings no Ruby of its own. It needs fastlane 2.225.0 or
+// person already has installed and brings no Ruby of its own: the project's
+// Bundler fastlane when its Gemfile lists one, otherwise fastlane from PATH
+// (a gem or Homebrew installation). It needs fastlane 2.225.0 or
 // later, the first release whose spaceship signs in with SRP.
 package fastlane
 
@@ -34,8 +35,14 @@ var minimumVersion = [3]int{2, 225, 0}
 
 // Adapter creates APNs keys with an installed fastlane.
 type Adapter struct {
-	// Fastlane is the command to run. Empty means "fastlane" from PATH.
+	// Fastlane is the command to run. Empty means the project's Bundler
+	// fastlane when there is one, otherwise "fastlane" from PATH.
 	Fastlane string
+	// Bundle is Bundler's command. Empty means "bundle" from PATH.
+	Bundle string
+	// WorkDir is the project folder whose Gemfile may list fastlane. Empty
+	// means the current directory.
+	WorkDir string
 	// spaceship prompts for the two-factor code, and for a team when the
 	// account has several, on the terminal. Nil means the process's own.
 	Stdin  io.Reader
@@ -70,8 +77,12 @@ type result struct {
 // when the request has none, and handed to fastlane as FASTLANE_USER and
 // FASTLANE_PASSWORD, so fastlane never offers to keep them in the Keychain.
 func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key, error) {
-	if err := a.checkFastlane(ctx); err != nil {
+	runner := a.runner()
+	if err := runner.check(ctx); err != nil {
 		return apns.Key{}, err
+	}
+	if runner.gemfile != "" && request.Log != nil {
+		request.Log("Using fastlane from %s with bundle exec.", runner.gemfile)
 	}
 
 	appleID := strings.TrimSpace(request.AppleID)
@@ -109,10 +120,10 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	if request.TeamID != "" {
 		arguments = append(arguments, "team_id:"+request.TeamID)
 	}
-	command := exec.CommandContext(ctx, a.fastlane(), arguments...)
+	command := runner.command(ctx, arguments...)
 	command.Dir = scratch
 	command.Stdin, command.Stdout, command.Stderr = a.terminal()
-	command.Env = append(os.Environ(),
+	command.Env = append(command.Env,
 		"FASTLANE_USER="+appleID,
 		"FASTLANE_PASSWORD="+password,
 		"FASTLANE_SKIP_UPDATE_CHECK=1",
@@ -178,26 +189,78 @@ func (a *Adapter) terminal() (io.Reader, io.Writer, io.Writer) {
 	return stdin, stdout, stderr
 }
 
-func (a *Adapter) fastlane() string {
-	if a.Fastlane != "" {
-		return a.Fastlane
-	}
-
-	return "fastlane"
+// runner is how fastlane is started: a command, the arguments before the
+// lane's, and the environment it needs.
+type runner struct {
+	name    string
+	prefix  []string
+	env     []string
+	gemfile string
 }
 
-var versionPattern = regexp.MustCompile(`fastlane (\d+)\.(\d+)\.(\d+)`)
+var gemfileFastlane = regexp.MustCompile(`(?m)^\s*gem\s+['"]fastlane['"]`)
 
-func (a *Adapter) checkFastlane(ctx context.Context) error {
-	command := exec.CommandContext(ctx, a.fastlane(), "--version")
-	command.Env = append(os.Environ(), "FASTLANE_SKIP_UPDATE_CHECK=1", "FASTLANE_OPT_OUT_USAGE=1")
-	output, err := command.Output()
+// runner picks the configured command, then the project's Bundler fastlane,
+// then fastlane from PATH. A Bundler fastlane must run with bundle exec and
+// the project's Gemfile, since the lane runs in a temporary folder.
+func (a *Adapter) runner() runner {
+	base := append(os.Environ(), "FASTLANE_SKIP_UPDATE_CHECK=1", "FASTLANE_OPT_OUT_USAGE=1")
+	if a.Fastlane != "" {
+		return runner{name: a.Fastlane, env: base}
+	}
+	bundle := a.Bundle
+	if bundle == "" {
+		bundle = "bundle"
+	}
+	if gemfile := projectGemfile(a.WorkDir); gemfile != "" {
+		if _, err := exec.LookPath(bundle); err == nil {
+			return runner{name: bundle, prefix: []string{"exec", "fastlane"}, env: append(base, "BUNDLE_GEMFILE="+gemfile), gemfile: gemfile}
+		}
+	}
+
+	return runner{name: "fastlane", env: base}
+}
+
+// projectGemfile returns the Gemfile in dir, or in dir/ios as Flutter and
+// React Native projects keep it, when it lists fastlane.
+func projectGemfile(dir string) string {
+	if dir == "" {
+		dir, _ = os.Getwd()
+	}
+	for _, candidate := range []string{filepath.Join(dir, "Gemfile"), filepath.Join(dir, "ios", "Gemfile")} {
+		contents, err := os.ReadFile(candidate)
+		if err != nil || !gemfileFastlane.Match(contents) {
+			continue
+		}
+		if absolute, err := filepath.Abs(candidate); err == nil {
+			return absolute
+		}
+	}
+
+	return ""
+}
+
+func (r runner) command(ctx context.Context, arguments ...string) *exec.Cmd {
+	command := exec.CommandContext(ctx, r.name, append(append([]string{}, r.prefix...), arguments...)...)
+	command.Env = append([]string{}, r.env...)
+
+	return command
+}
+
+func (r runner) check(ctx context.Context) error {
+	output, err := r.command(ctx, "--version").Output()
 	if err != nil {
+		if r.gemfile != "" {
+			return fmt.Errorf("%w: bundle exec fastlane failed with %s. Run bundle install there first", apns.ErrUnavailable, r.gemfile)
+		}
+
 		return fmt.Errorf("%w: the fastlane setup needs fastlane %s or later installed (https://docs.fastlane.tools)", apns.ErrUnavailable, versionString(minimumVersion))
 	}
 
 	return supportedVersion(string(output))
 }
+
+var versionPattern = regexp.MustCompile(`fastlane (\d+)\.(\d+)\.(\d+)`)
 
 func supportedVersion(output string) error {
 	match := versionPattern.FindStringSubmatch(output)
