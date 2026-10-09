@@ -22,7 +22,7 @@ func TestSupportedVersion(t *testing.T) {
 		"fastlane 1.300.0": false,
 		"something else":   false,
 	} {
-		err := supportedVersion(output)
+		err := supportedVersion(output, "brew upgrade fastlane")
 		if (err == nil) != supported {
 			t.Errorf("supportedVersion(%q) = %v", output, err)
 		}
@@ -249,5 +249,112 @@ func TestCreateKeyWillNotBypassAPinnedFastlane(t *testing.T) {
 	_, err := adapter.CreateKey(context.Background(), apns.Request{Name: "Appwrite Push", Environment: apns.EnvironmentAll, AppleID: "dev@example.com", Password: "secret"})
 	if !errors.Is(err, apns.ErrUnavailable) || !strings.Contains(err.Error(), gemfile+" pins fastlane, but Bundler is not installed") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+// choosingAsker answers every choice with choice and records the questions.
+type choosingAsker struct {
+	choice int
+	asked  []string
+}
+
+func (c *choosingAsker) Ask(question string, secret bool) (string, error) {
+	return "", errors.New("not expected: " + question)
+}
+
+func (c *choosingAsker) Choose(question string, options []string) (int, error) {
+	c.asked = append(c.asked, question)
+
+	return c.choice, nil
+}
+
+// withoutFastlane leaves PATH with only bin, so fastlane is not found unless
+// something puts it there.
+func withoutFastlane(t *testing.T) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("shell stand-ins")
+	}
+	bin := t.TempDir()
+	t.Setenv("PATH", bin)
+
+	return bin
+}
+
+// fakeBrew writes a brew stand-in into bin that logs its arguments and, for
+// install fastlane, copies fastlane into bin.
+func fakeBrew(t *testing.T, bin, fastlane string) string {
+	t.Helper()
+	log := filepath.Join(t.TempDir(), "brew.log")
+	script := `#!/bin/sh
+echo "brew $*" >> "` + log + `"
+[ "$1 $2" = "install fastlane" ] && /bin/cp "` + fastlane + `" "` + bin + `/fastlane"
+`
+	if err := os.WriteFile(filepath.Join(bin, "brew"), []byte(script), 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	return log
+}
+
+func TestCreateKeyExplainsHowToInstallFastlane(t *testing.T) {
+	withoutFastlane(t)
+	request := apns.Request{Name: "Appwrite Push", Environment: apns.EnvironmentAll, Asker: &choosingAsker{}}
+
+	_, err := (&Adapter{}).CreateKey(context.Background(), request)
+	if !errors.Is(err, apns.ErrUnavailable) {
+		t.Fatalf("err = %v", err)
+	}
+	for _, part := range []string{"fastlane is not installed", "brew install fastlane", "gem install fastlane", "--provider appwrite"} {
+		if !strings.Contains(err.Error(), part) {
+			t.Errorf("message is missing %q: %v", part, err)
+		}
+	}
+}
+
+func TestCreateKeyInstallsFastlaneWithHomebrew(t *testing.T) {
+	fastlane, _ := fakeFastlane(t, "2.228.0", `{"keyId":"KEY1234567","teamId":"ABCDE12345","p8":"pem"}`)
+	bin := withoutFastlane(t)
+	log := fakeBrew(t, bin, fastlane)
+	asker := &choosingAsker{choice: 0}
+	var logged []string
+	request := apns.Request{
+		Name: "Appwrite Push", Environment: apns.EnvironmentAll, AppleID: "dev@example.com", Password: "secret", Asker: asker,
+		Log: func(format string, args ...any) { logged = append(logged, format) },
+	}
+
+	key, err := (&Adapter{Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}).CreateKey(context.Background(), request)
+	if err != nil || key.KeyID != "KEY1234567" {
+		t.Fatalf("key = %+v, %v", key, err)
+	}
+	if strings.Join(asker.asked, "|") != "fastlane is not installed. Install it with Homebrew now?" {
+		t.Errorf("asked %v", asker.asked)
+	}
+	if calls, _ := os.ReadFile(log); strings.TrimSpace(string(calls)) != "brew install fastlane" {
+		t.Errorf("brew calls = %q", calls)
+	}
+	if len(logged) != 1 || logged[0] != "Running brew install fastlane ..." {
+		t.Errorf("logged %v", logged)
+	}
+}
+
+func TestCreateKeyDoesNotInstallFastlaneWhenDeclined(t *testing.T) {
+	fastlane, _ := fakeFastlane(t, "2.228.0", `{}`)
+	bin := withoutFastlane(t)
+	log := fakeBrew(t, bin, fastlane)
+
+	_, err := (&Adapter{}).CreateKey(context.Background(), apns.Request{Name: "Appwrite Push", Environment: apns.EnvironmentAll, Asker: &choosingAsker{choice: 1}})
+	if !errors.Is(err, apns.ErrUnavailable) || !strings.Contains(err.Error(), "brew install fastlane") {
+		t.Fatalf("err = %v", err)
+	}
+	if _, err := os.Stat(log); err == nil {
+		t.Error("ran brew after the offer was declined")
+	}
+}
+
+func TestOldFastlaneSaysHowToUpgrade(t *testing.T) {
+	if err := supportedVersion("fastlane 2.220.0", "bundle update fastlane in /app"); err == nil ||
+		!strings.Contains(err.Error(), "found 2.220.0. Upgrade it with bundle update fastlane in /app") {
+		t.Errorf("err = %v", err)
 	}
 }

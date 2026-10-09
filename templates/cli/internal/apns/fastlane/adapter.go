@@ -40,6 +40,9 @@ type Adapter struct {
 	Fastlane string
 	// Bundle is Bundler's command. Empty means "bundle" from PATH.
 	Bundle string
+	// Brew is Homebrew's command, offered to install a missing fastlane.
+	// Empty means "brew" from PATH.
+	Brew string
 	// WorkDir is the project folder whose Gemfile may list fastlane. Empty
 	// means the current directory.
 	WorkDir string
@@ -81,7 +84,13 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	if err != nil {
 		return apns.Key{}, err
 	}
-	if err := runner.check(ctx); err != nil {
+	err = runner.check(ctx)
+	if errors.Is(err, errNotInstalled) {
+		if err = a.offerInstall(ctx, request); err == nil {
+			err = runner.check(ctx)
+		}
+	}
+	if err != nil {
 		return apns.Key{}, err
 	}
 	if runner.gemfile != "" && request.Log != nil {
@@ -254,22 +263,69 @@ func (r runner) command(ctx context.Context, arguments ...string) *exec.Cmd {
 	return command
 }
 
+// errNotInstalled means there is no fastlane on PATH, which installing one
+// can fix.
+var errNotInstalled = errors.New("fastlane is not installed")
+
 func (r runner) check(ctx context.Context) error {
+	if r.gemfile == "" && r.name == "fastlane" {
+		if _, err := exec.LookPath(r.name); err != nil {
+			return fmt.Errorf("%w: %w. %s", apns.ErrUnavailable, errNotInstalled, installHint)
+		}
+	}
 	output, err := r.command(ctx, "--version").Output()
 	if err != nil {
 		if r.gemfile != "" {
 			return fmt.Errorf("%w: bundle exec fastlane failed with %s. Run bundle install there first", apns.ErrUnavailable, r.gemfile)
 		}
 
-		return fmt.Errorf("%w: the fastlane setup needs fastlane %s or later installed (https://docs.fastlane.tools)", apns.ErrUnavailable, versionString(minimumVersion))
+		return fmt.Errorf("%w: %s --version failed: %v", apns.ErrUnavailable, r.name, err)
+	}
+	upgrade := "brew upgrade fastlane, or gem update fastlane, depending on how it was installed"
+	if r.gemfile != "" {
+		upgrade = "bundle update fastlane in " + filepath.Dir(r.gemfile)
 	}
 
-	return supportedVersion(string(output))
+	return supportedVersion(string(output), upgrade)
+}
+
+const installHint = "Install it with brew install fastlane (Homebrew) or gem install fastlane, " +
+	"or add gem \"fastlane\" to your project's Gemfile and run bundle install. " +
+	"Or use --provider appwrite, which needs nothing installed"
+
+// offerInstall asks to install fastlane with Homebrew, when there is one, and
+// runs it on the terminal. Without Homebrew, a terminal or a yes, it returns
+// how to install fastlane instead.
+func (a *Adapter) offerInstall(ctx context.Context, request apns.Request) error {
+	notInstalled := fmt.Errorf("%w: %w. %s", apns.ErrUnavailable, errNotInstalled, installHint)
+	brew := a.Brew
+	if brew == "" {
+		brew = "brew"
+	}
+	if _, err := exec.LookPath(brew); err != nil || request.Asker == nil {
+		return notInstalled
+	}
+	choice, err := request.Asker.Choose("fastlane is not installed. Install it with Homebrew now?",
+		[]string{"Yes, run brew install fastlane", "No"})
+	if err != nil || choice != 0 {
+		return notInstalled
+	}
+
+	if request.Log != nil {
+		request.Log("Running brew install fastlane ...")
+	}
+	command := exec.CommandContext(ctx, brew, "install", "fastlane")
+	command.Stdin, command.Stdout, command.Stderr = a.terminal()
+	if err := command.Run(); err != nil {
+		return fmt.Errorf("%w: brew install fastlane failed: %v. %s", apns.ErrUnavailable, err, installHint)
+	}
+
+	return nil
 }
 
 var versionPattern = regexp.MustCompile(`fastlane (\d+)\.(\d+)\.(\d+)`)
 
-func supportedVersion(output string) error {
+func supportedVersion(output, upgrade string) error {
 	match := versionPattern.FindStringSubmatch(output)
 	if match == nil {
 		return fmt.Errorf("%w: could not read the fastlane version", apns.ErrUnavailable)
@@ -281,7 +337,7 @@ func supportedVersion(output string) error {
 	for index := range version {
 		if version[index] != minimumVersion[index] {
 			if version[index] < minimumVersion[index] {
-				return fmt.Errorf("%w: the fastlane setup needs fastlane %s or later, found %s. Run fastlane update_fastlane", apns.ErrUnavailable, versionString(minimumVersion), versionString(version))
+				return fmt.Errorf("%w: the fastlane setup needs fastlane %s or later, found %s. Upgrade it with %s", apns.ErrUnavailable, versionString(minimumVersion), versionString(version), upgrade)
 			}
 
 			break
