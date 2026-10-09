@@ -144,9 +144,10 @@ func (c *srpClient) proofs(accountName string, key, salt, serverB []byte) ([]byt
 
 // hashcash answers Apple's proof-of-work challenge: the first counter whose
 // "1:bits:date:challenge::counter" string has a SHA-1 starting with bits
-// zero bits.
+// zero bits. The date is in UTC, as @expo/apple-utils sends it (spaceship
+// uses local time, which only matches on a UTC machine).
 func hashcash(bits int, challenge string, now time.Time) string {
-	prefix := "1:" + strconv.Itoa(bits) + ":" + now.Format("20060102150405") + ":" + challenge + "::"
+	prefix := "1:" + strconv.Itoa(bits) + ":" + now.UTC().Format("20060102150405") + ":" + challenge + "::"
 	for counter := 0; ; counter++ {
 		token := prefix + strconv.Itoa(counter)
 		if leadingZeroBits(sha1.Sum([]byte(token))) >= bits {

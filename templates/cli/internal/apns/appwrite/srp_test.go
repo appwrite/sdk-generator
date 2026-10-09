@@ -90,6 +90,14 @@ func TestSRPRejectsAnInvalidChallenge(t *testing.T) {
 	}
 }
 
+func TestHashcashUsesUTC(t *testing.T) {
+	utc := time.Date(2023, 2, 23, 17, 6, 0, 0, time.UTC)
+	india := utc.In(time.FixedZone("IST", 5*3600+1800))
+	if got, want := hashcash(11, "4d74fb15eb23f465f1f6fcbf534e5877", india), hashcash(11, "4d74fb15eb23f465f1f6fcbf534e5877", utc); got != want {
+		t.Errorf("hashcash in IST = %s, in UTC = %s", got, want)
+	}
+}
+
 func TestHashcashMatchesSpaceship(t *testing.T) {
 	for _, vector := range []struct {
 		bits                   int
