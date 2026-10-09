@@ -498,6 +498,9 @@ open class Push: Service {
 
         if background {
             requestNotificationAuthorization()
+            // Before any network work: a wake push that arrives while the SUBSCRIBE is in flight
+            // must already reach this push.
+            Push.apnsPrepare(self)
         }
 
         let generation = sync.sync { closeGeneration }
@@ -1325,14 +1328,20 @@ extension Push {
 
     // MARK: Lifecycle
 
-    /// Start APNs for a push with background subscriptions on `topics`.
-    static func apnsEnable(_ push: Push, topics: [String]) {
-        let token = apnsLocked { () -> String? in
-            apnsPushes[ObjectIdentifier(push)] = WeakPush(push)
-            return apnsToken
-        }
+    /// Let `push` receive APNs pushes and install the app delegate proxy. Runs before the
+    /// subscription's network work, so nothing APNs delivers meanwhile is missed.
+    static func apnsPrepare(_ push: Push) {
+        apnsLocked { apnsPushes[ObjectIdentifier(push)] = WeakPush(push) }
         if autoRegistration {
             installProxy()
+        }
+    }
+
+    /// Start APNs for a push with background subscriptions on `topics`.
+    static func apnsEnable(_ push: Push, topics: [String]) {
+        apnsPrepare(push)
+        let token = apnsLocked { apnsToken }
+        if autoRegistration {
             requestRegistration()
         }
         if let token {
