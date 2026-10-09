@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -102,7 +103,15 @@ func (f *fakeApple) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f.record(r)
 	body, _ := io.ReadAll(r.Body)
 	var params map[string]any
-	_ = json.Unmarshal(body, &params)
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
+		form, _ := url.ParseQuery(string(body))
+		params = map[string]any{}
+		for name := range form {
+			params[name] = form.Get(name)
+		}
+	} else {
+		_ = json.Unmarshal(body, &params)
+	}
 	idmsa := r.Header.Get("X-Apple-Widget-Key") == "widget-key"
 	twoFactorSession := r.Header.Get("X-Apple-Id-Session-Id") == "session-1" && r.Header.Get("scnt") == "scnt-1"
 
@@ -249,7 +258,13 @@ func (f *fakeApple) portal(w http.ResponseWriter, r *http.Request, path string, 
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"resultCode": 0, "teams": f.teams})
 	case "account/auth/key/list":
-		if params["teamId"] == nil || params["pageSize"] == nil {
+		// Like Apple, the key list takes a form and refuses JSON with 415.
+		if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+
+			return
+		}
+		if params["teamId"] == nil || params["pageSize"] != "500" || params["sort"] != "name=asc" {
 			f.t.Errorf("list params = %v", params)
 		}
 		w.Header().Set("csrf", "csrf-token")
@@ -260,6 +275,11 @@ func (f *fakeApple) portal(w http.ResponseWriter, r *http.Request, path string, 
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"resultCode": 0, "keys": keys})
 	case "account/auth/key/v2/create":
+		if r.Header.Get("Content-Type") != "application/json" {
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+
+			return
+		}
 		if r.Header.Get("csrf") != "csrf-token" || r.Header.Get("csrf_ts") != "csrf-ts" {
 			f.t.Errorf("create sent csrf %q / %q", r.Header.Get("csrf"), r.Header.Get("csrf_ts"))
 		}

@@ -98,20 +98,27 @@ func (e serviceErrors) has(code string) bool {
 // request sends one request and reads the whole response.
 func (p *portalClient) request(ctx context.Context, method, target string, body any, headers map[string]string) (*http.Response, []byte, error) {
 	var reader io.Reader
-	if body != nil {
+	contentType := ""
+	switch value := body.(type) {
+	case nil:
+	case url.Values:
+		reader = strings.NewReader(value.Encode())
+		contentType = "application/x-www-form-urlencoded"
+	default:
 		encoded, err := json.Marshal(body)
 		if err != nil {
 			return nil, nil, err
 		}
 		reader = bytes.NewReader(encoded)
+		contentType = "application/json"
 	}
 	request, err := http.NewRequestWithContext(ctx, method, target, reader)
 	if err != nil {
 		return nil, nil, err
 	}
 	request.Header.Set("User-Agent", "Appwrite CLI")
-	if body != nil {
-		request.Header.Set("Content-Type", "application/json")
+	if contentType != "" {
+		request.Header.Set("Content-Type", contentType)
 	}
 	for name, value := range headers {
 		request.Header.Set(name, value)

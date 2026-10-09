@@ -60,9 +60,20 @@ func (r portalResult) message() string {
 	return ""
 }
 
+// bodyEncoding is how a POST to the portal sends its values.
+type bodyEncoding int
+
+const (
+	// formBody is what the portal expects, as apple-utils and spaceship send
+	// it: an endpoint answers a JSON body with 415.
+	formBody bodyEncoding = iota
+	// jsonBody is only for creating a key, which takes nested values.
+	jsonBody
+)
+
 // portal calls one endpoint and returns the raw body after checking the
 // result code. GET requests carry teamID in the query, others in the body.
-func (p *portalClient) portal(ctx context.Context, method, path, teamID string, values map[string]any) ([]byte, error) {
+func (p *portalClient) portal(ctx context.Context, method, path, teamID string, values map[string]any, encoding bodyEncoding) ([]byte, error) {
 	target := p.hosts.Portal + "/services-account/QH65B2/" + path
 	var body any
 	if method == http.MethodGet {
@@ -74,18 +85,23 @@ func (p *portalClient) portal(ctx context.Context, method, path, teamID string, 
 			query.Set(name, fmt.Sprint(value))
 		}
 		target += "?" + query.Encode()
-	} else {
-		data := map[string]any{}
-		if teamID != "" {
-			data["teamId"] = teamID
-		}
+	} else if encoding == jsonBody {
+		data := map[string]any{"teamId": teamID}
 		for name, value := range values {
 			data[name] = value
 		}
-		// A call with nothing to send has no body, as the portal's own pages
-		// send it: its .action endpoints answer a JSON body with 415.
-		if len(data) > 0 {
-			body = data
+		body = data
+	} else {
+		form := url.Values{}
+		if teamID != "" {
+			form.Set("teamId", teamID)
+		}
+		for name, value := range values {
+			form.Set(name, fmt.Sprint(value))
+		}
+		// A call with nothing to send has no body at all.
+		if len(form) > 0 {
+			body = form
 		}
 	}
 	headers := map[string]string{"Accept": "application/json, text/plain, */*"}
@@ -136,7 +152,7 @@ func result(payload []byte, out any) error {
 }
 
 func (p *portalClient) teams(ctx context.Context) ([]Team, error) {
-	payload, err := p.portal(ctx, http.MethodPost, "account/listTeams.action", "", nil)
+	payload, err := p.portal(ctx, http.MethodPost, "account/listTeams.action", "", nil, formBody)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +175,7 @@ func (p *portalClient) keys(ctx context.Context, teamID string) ([]apns.Existing
 			"pageNumber": page,
 			"pageSize":   keysPageSize,
 			"sort":       "name=asc",
-		})
+		}, formBody)
 		if err != nil {
 			return nil, err
 		}
@@ -192,7 +208,7 @@ func (p *portalClient) createKey(ctx context.Context, teamID, name string, envir
 			"environment": string(environment),
 			"scope":       "team",
 		}},
-	})
+	}, jsonBody)
 	if err != nil {
 		return "", err
 	}
@@ -211,7 +227,7 @@ func (p *portalClient) createKey(ctx context.Context, teamID, name string, envir
 
 // downloadKey returns the key's .p8 contents. Apple serves them once.
 func (p *portalClient) downloadKey(ctx context.Context, teamID, keyID string) (string, error) {
-	payload, err := p.portal(ctx, http.MethodGet, "account/auth/key/download", teamID, map[string]any{"keyId": keyID})
+	payload, err := p.portal(ctx, http.MethodGet, "account/auth/key/download", teamID, map[string]any{"keyId": keyID}, formBody)
 	if err != nil {
 		return "", err
 	}
