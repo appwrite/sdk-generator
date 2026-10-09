@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apns"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apns/expo"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
@@ -565,7 +566,7 @@ const (
 // apnsAdapters lists the APNs key setups this build offers. Each lives in its
 // own package under internal/apns and is added here.
 func apnsAdapters() *apns.Registry {
-	return apns.NewRegistry()
+	return apns.NewRegistry(expo.New())
 }
 
 // apnsAdapter picks the setup: --provider, then APPWRITE_APNS_SETUP, then
