@@ -135,6 +135,9 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	if request.TeamID != "" {
 		arguments = append(arguments, "team_id:"+request.TeamID)
 	}
+	if request.Reset {
+		arguments = append(arguments, "reset:true")
+	}
 	command := runner.command(ctx, arguments...)
 	command.Dir = scratch
 	command.Stdin, command.Stdout, command.Stderr = a.terminal()

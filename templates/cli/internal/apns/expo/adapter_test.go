@@ -165,3 +165,18 @@ func TestCreateKeyNeedsARecentNode(t *testing.T) {
 		t.Fatalf("missing node err = %v", err)
 	}
 }
+
+func TestCreateKeyPassesResetToTheHelper(t *testing.T) {
+	node, npm, log := fakeTools(t, "v20.1.0", `{"keyId":"KEY1234567","teamId":"ABCDE12345","p8":"pem"}`)
+	adapter := &Adapter{Node: node, Npm: npm, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	request := apns.Request{Name: "Appwrite Push", Environment: apns.EnvironmentAll, SessionDir: t.TempDir(), Reset: true}
+
+	if _, err := adapter.CreateKey(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	calls, _ := os.ReadFile(log)
+	lines := strings.Split(strings.TrimSpace(string(calls)), "\n")
+	if helper := lines[len(lines)-1]; !strings.Contains(helper, " --reset true ") {
+		t.Errorf("helper call = %s", helper)
+	}
+}

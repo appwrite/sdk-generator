@@ -21,6 +21,12 @@ end
 def create_apns_key_with_spaceship(options)
   require 'spaceship'
 
+  # reset:true deletes spaceship's saved session for this Apple ID first, so
+  # the sign-in starts over, two-factor included.
+  if options[:reset].to_s == 'true'
+    cookie = Spaceship::PortalClient.new.tap { |client| client.user = ENV.fetch('FASTLANE_USER', nil) }.persistent_cookie_path
+    File.delete(cookie) if cookie && File.exist?(cookie)
+  end
   Spaceship::Portal.login(ENV.fetch('FASTLANE_USER', nil), ENV.fetch('FASTLANE_PASSWORD', nil))
   team_id = options[:team_id].to_s
   if team_id.empty?

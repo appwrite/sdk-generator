@@ -16,7 +16,7 @@ function parseArguments(argv) {
     values[argv[index].replace(/^--/, '')] = argv[index + 1];
   }
   if (!values.out || !values.name) {
-    throw new Error('usage: helper.js [--team-id <id>] --name <key name> --out <file>');
+    throw new Error('usage: helper.js [--team-id <id>] [--reset true] --name <key name> --out <file>');
   }
 
   return values;
@@ -35,7 +35,12 @@ function isMaxKeysError(error) {
   );
 }
 
-async function createKey({ 'team-id': teamId, name }) {
+async function createKey({ 'team-id': teamId, name, reset }) {
+  // --reset deletes apple-utils' saved session for this Apple ID first, so the
+  // sign-in starts over, two-factor included.
+  if (reset === 'true') {
+    await Auth.logoutAsync({});
+  }
   // Without a team ID, apple-utils asks which team to use when there are several.
   const authState = await Auth.loginAsync(teamId ? { teamId } : {}, { autoResolveProvider: true });
   const context = authState.context;

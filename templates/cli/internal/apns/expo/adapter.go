@@ -112,6 +112,9 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	if request.TeamID != "" {
 		arguments = append(arguments, "--team-id", request.TeamID)
 	}
+	if request.Reset {
+		arguments = append(arguments, "--reset", "true")
+	}
 	command := exec.CommandContext(ctx, tools.node, arguments...)
 	command.Dir = dir
 	command.Stdin, command.Stdout, command.Stderr = a.terminal()
