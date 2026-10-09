@@ -170,6 +170,7 @@ type FunctionEntry struct {
 	Events                    []string `json:"events"`
 	Scopes                    []string `json:"scopes"`
 	Schedule                  string   `json:"schedule"`
+	Interval                  int      `json:"interval"`
 	Timeout                   int      `json:"timeout"`
 	Enabled                   bool     `json:"enabled"`
 	Logging                   bool     `json:"logging"`
@@ -625,7 +626,7 @@ func runInitFunction(command *cobra.Command, options initFunctionOptions) error 
 		ID: functionID, Name: name, Runtime: selected.ID,
 		BuildSpecification: buildSpecification, RuntimeSpecification: runtimeSpecification,
 		Execute: execute, Events: []string{}, Scopes: []string{"users.read"},
-		Schedule: "", Timeout: 15, Enabled: true, Logging: true,
+		Schedule: "", Interval: 0, Timeout: 15, Enabled: true, Logging: true,
 		Entrypoint: selected.Entrypoint, Commands: selected.Commands,
 		Ignore: selected.Ignore, DeploymentRetention: 0,
 		Path:                "functions/" + directoryName,
