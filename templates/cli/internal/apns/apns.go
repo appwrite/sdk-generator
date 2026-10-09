@@ -96,7 +96,10 @@ type Request struct {
 	// SessionDir is where an adapter may keep a signed-in session between
 	// runs, readable by the user only.
 	SessionDir string
-	Asker      Asker
+	// Reset signs in to Apple again instead of reusing a saved sign-in, and
+	// the new one replaces it.
+	Reset bool
+	Asker Asker
 	// Log prints a line for the person running the command.
 	Log func(format string, args ...any)
 }

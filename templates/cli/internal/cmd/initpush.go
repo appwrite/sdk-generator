@@ -56,6 +56,7 @@ type apnsOptions struct {
 	teamID      string
 	bundleID    string
 	createKey   bool
+	reset       bool
 	environment string
 	setup       string
 }
@@ -156,7 +157,10 @@ func newInitApnsCommand() *cobra.Command {
 	flags.BoolVar(&options.createKey, "create-key", false, "Create the APNs key by signing in with your Apple ID (experimental)")
 	flags.StringVar(&options.environment, "environment", string(apns.EnvironmentAll), "APNs environment to set up: production, sandbox or all")
 	flags.StringVar(&options.setup, "provider", "", "How --create-key creates the key: appwrite, expo or fastlane. Defaults to $"+apnsSetupVariable+", then "+defaultApnsSetup)
+	flags.BoolVar(&options.reset, "reset", false, "Sign in to Apple again instead of reusing the saved sign-in, and create the key (implies --create-key)")
 	command.MarkFlagsMutuallyExclusive("create-key", "key-path")
+	command.MarkFlagsMutuallyExclusive("reset", "key-path")
+	command.MarkFlagsMutuallyExclusive("reset", "key-id")
 	command.MarkFlagsMutuallyExclusive("create-key", "key-id")
 
 	return command
@@ -372,6 +376,10 @@ func matchesPattern(pattern *regexp.Regexp, description string) func(string) err
 
 func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 	output.Log(s.out, "Setting up APNs ...")
+	// --reset is for signing in again, which only creating a key does.
+	if options.reset {
+		options.createKey = true
+	}
 
 	environment, err := apnsEnvironment(options.environment)
 	if err != nil {
@@ -399,7 +407,7 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 	setUp := func(provider *messagingProvider, wanted bool) bool {
 		return !wanted || (provider != nil && provider.Enabled)
 	}
-	if setUp(production, wantProduction) && setUp(sandbox, wantSandbox) && options.keyPath == "" && !app.Flags().Force {
+	if setUp(production, wantProduction) && setUp(sandbox, wantSandbox) && options.keyPath == "" && !options.reset && !app.Flags().Force {
 		output.Success(s.out, "APNs%s is already set up for %s.", environmentLabel(environment), bundleID)
 		output.Hint(s.out, "Pass --force or --key-path to replace the key.")
 		s.configureXcode(detected, bundleID)
@@ -530,7 +538,7 @@ func (s *pushSetup) apnsKey(teamID string, options apnsOptions, environment apns
 		}
 		create = false
 
-		path, keyID, keyTeam, err := s.createApnsKey(teamID, options.setup, environment)
+		path, keyID, keyTeam, err := s.createApnsKey(teamID, options, environment)
 		var maxKeys *apns.MaxKeysError
 		if errors.As(err, &maxKeys) {
 			output.Warn(s.out, "Apple allows two APNs keys per team, and this team has no free slot. Keys on the team:")
@@ -650,8 +658,8 @@ func (a apnsAsker) Choose(question string, options []string) (int, error) {
 // createApnsKey creates a key through the Apple Developer portal and saves it
 // into the project folder before anything else happens, because Apple lets a
 // key be downloaded only once.
-func (s *pushSetup) createApnsKey(teamID, setup string, environment apns.Environment) (string, string, string, error) {
-	adapter, err := s.apnsAdapter(setup)
+func (s *pushSetup) createApnsKey(teamID string, options apnsOptions, environment apns.Environment) (string, string, string, error) {
+	adapter, err := s.apnsAdapter(options.setup)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -661,6 +669,7 @@ func (s *pushSetup) createApnsKey(teamID, setup string, environment apns.Environ
 		Environment: environment,
 		AppleID:     s.env(appleIDVariable),
 		Password:    s.env(applePasswordVariable),
+		Reset:       options.reset,
 		Asker:       apnsAsker{s.prompter},
 		Log: func(format string, args ...any) {
 			output.Log(s.out, format, args...)
@@ -670,6 +679,9 @@ func (s *pushSetup) createApnsKey(teamID, setup string, environment apns.Environ
 		request.SessionDir = filepath.Join(s.apnsSessions, adapter.Name())
 	}
 	output.Log(s.out, "Signing in to the Apple Developer portal (%s).", adapter.Name())
+	if options.reset {
+		output.Log(s.out, "Signing in again: the saved Apple sign-in is not used (--reset).")
+	}
 	if request.AppleID != "" {
 		output.Log(s.out, "Using the Apple ID from %s.", appleIDVariable)
 	}

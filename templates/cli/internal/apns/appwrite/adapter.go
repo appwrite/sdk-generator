@@ -105,8 +105,11 @@ func (a *Adapter) connect(ctx context.Context, request apns.Request) (*portalCli
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: time.Minute}
 	}
+	// With Reset nothing is loaded, not even the cookie that marks this
+	// machine as trusted, so Apple asks for a two-factor code again; the new
+	// session replaces the saved one.
 	jar := newSavedJar()
-	if path := sessionPath(request.SessionDir); path != "" {
+	if path := sessionPath(request.SessionDir); path != "" && !request.Reset {
 		jar.load(path)
 	}
 	withJar := *httpClient

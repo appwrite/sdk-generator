@@ -1679,3 +1679,43 @@ func TestInitApnsExplainsASignInWithoutATerminal(t *testing.T) {
 		t.Errorf("suggests a flag --create-key rejects: %s", message)
 	}
 }
+
+func TestInitApnsResetSignsInAgainAndCreatesAKey(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, t.TempDir())
+	adapter := useAdapter(setup, &apnstest.Adapter{KeyID: "FIRSTKEY12"})
+	options := apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Already set up, yet --reset signs in again and creates a key, without
+	// --create-key or --force.
+	setup.keyDirs = []string{t.TempDir()}
+	adapter.KeyID = "SECONDKEY1"
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", reset: true}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(adapter.Requests) != 2 || adapter.Requests[0].Reset || !adapter.Requests[1].Reset {
+		t.Fatalf("requests = %+v", adapter.Requests)
+	}
+	for _, provider := range messaging.providers {
+		if provider["credentials"].(map[string]any)["authKeyId"] != "SECONDKEY1" {
+			t.Errorf("provider = %v", provider)
+		}
+	}
+	if !strings.Contains(out.String(), "Signing in again: the saved Apple sign-in is not used (--reset).") {
+		t.Errorf("output:\n%s", out.String())
+	}
+
+	command := newInitApnsCommand()
+	if err := command.ParseFlags([]string{"--reset", "--key-path", "AuthKey_KEY1234567.p8"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := command.ValidateFlagGroups(); err == nil || !strings.Contains(err.Error(), "key-path") {
+		t.Errorf("--reset with --key-path: %v", err)
+	}
+}

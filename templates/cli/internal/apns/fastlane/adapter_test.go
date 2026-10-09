@@ -429,3 +429,16 @@ func TestTheQuotedCdRunsInAShell(t *testing.T) {
 		t.Errorf("cd landed in %q, %v; want %q", output, err, resolved)
 	}
 }
+
+func TestCreateKeyPassesResetToTheLane(t *testing.T) {
+	fastlane, log := fakeFastlane(t, "2.228.0", `{"keyId":"KEY1234567","teamId":"ABCDE12345","p8":"pem"}`)
+	adapter := &Adapter{Fastlane: fastlane, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	request := apns.Request{Name: "Appwrite Push", Environment: apns.EnvironmentAll, AppleID: "dev@example.com", Password: "secret", Reset: true}
+
+	if _, err := adapter.CreateKey(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	if calls, _ := os.ReadFile(log); !strings.Contains(string(calls), " reset:true ") {
+		t.Errorf("lane call = %s", calls)
+	}
+}

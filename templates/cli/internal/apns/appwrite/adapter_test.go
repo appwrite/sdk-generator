@@ -658,4 +658,38 @@ func TestMaxKeysMessages(t *testing.T) {
 		}
 	}
 }
+
+func TestResetSignsInAgain(t *testing.T) {
+	fake := newFakeApple(t)
+	dir := t.TempDir()
+	env := map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword}
+	first, _ := newTestClient(t, fake, &scriptedAsker{answers: map[string][]string{"Enter the 6-di": {testCode}}}, dir, env)
+	if _, err := first.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", apns.EnvironmentAll); err != nil {
+		t.Fatal(err)
+	}
+
+	// The saved session and its trusted-machine cookie are ignored: Apple
+	// asks for the password check and a code again.
+	asker := &scriptedAsker{answers: map[string][]string{"Enter the 6-di": {testCode}}}
+	second, _ := newTestClient(t, fake, asker, dir, env)
+	second.request.Reset = true
+	fake.requests = nil
+	if _, err := second.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", apns.EnvironmentAll); err != nil {
+		t.Fatal(err)
+	}
+	requests := strings.Join(fake.requests, ",")
+	if !strings.Contains(requests, "/appleauth/auth/signin/complete") || !strings.Contains(requests, "/securitycode") || len(asker.asked) != 1 {
+		t.Errorf("asked %v, requests = %v", asker.asked, fake.requests)
+	}
+
+	// The new session replaces the saved one: a normal run reuses it.
+	third, _ := newTestClient(t, fake, &scriptedAsker{}, dir, env)
+	fake.requests = nil
+	if _, err := third.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", apns.EnvironmentAll); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(strings.Join(fake.requests, ","), "/appleauth/") {
+		t.Errorf("signed in again after a reset: %v", fake.requests)
+	}
+}
 {% endverbatim %}

@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apns"
 )
@@ -81,6 +82,16 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	if log == nil {
 		log = func(string, ...any) {}
 	}
+	// For a reset the helper signs out of apple-utils before signing in. Its
+	// sign out asks for the Apple ID and forgets it, so the sign-in would ask
+	// again; asking here once and passing it to both avoids that.
+	if request.Reset && strings.TrimSpace(request.AppleID) == "" && request.Asker != nil {
+		answer, err := request.Asker.Ask("Apple ID (email)", false)
+		if err != nil {
+			return apns.Key{}, err
+		}
+		request.AppleID = strings.TrimSpace(answer)
+	}
 	dir := request.SessionDir
 	if dir == "" {
 		scratch, err := os.MkdirTemp("", "appwrite-apns-expo-")
@@ -111,6 +122,9 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	arguments := []string{filepath.Join(dir, "helper.js"), "--name", request.Name, "--out", out}
 	if request.TeamID != "" {
 		arguments = append(arguments, "--team-id", request.TeamID)
+	}
+	if request.Reset {
+		arguments = append(arguments, "--reset", "true")
 	}
 	command := exec.CommandContext(ctx, tools.node, arguments...)
 	command.Dir = dir
