@@ -1163,6 +1163,41 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/adapter.go',
+                'template'      => 'cli/internal/apns/appwrite/adapter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/adapter_test.go',
+                'template'      => 'cli/internal/apns/appwrite/adapter_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/auth.go',
+                'template'      => 'cli/internal/apns/appwrite/auth.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/appwrite/jar.go',
+                'template'      => 'cli/internal/apns/appwrite/jar.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/portal.go',
+                'template'      => 'cli/internal/apns/appwrite/portal.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/appwrite/srp.go',
+                'template'      => 'cli/internal/apns/appwrite/srp.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/appwrite/srp_test.go',
+                'template'      => 'cli/internal/apns/appwrite/srp_test.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pull.go',
                 'template'      => 'cli/internal/cmd/pull.go',
             ],
