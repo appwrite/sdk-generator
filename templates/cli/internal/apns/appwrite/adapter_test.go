@@ -44,6 +44,7 @@ type fakeApple struct {
 	// generation names the current signed-in cookie; bumping it expires
 	// every session handed out before.
 	generation int
+	textsSent  int
 	teams      []Team
 	keys       []apns.ExistingKey
 	maxKeys    bool
@@ -185,6 +186,10 @@ func (f *fakeApple) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		http.SetCookie(w, f.sessionCookie())
 		w.WriteHeader(http.StatusNoContent)
+
+	case r.Method == http.MethodPut && r.URL.Path == "/appleauth/auth/verify/phone" && twoFactorSession:
+		f.textsSent++
+		writeJSON(w, http.StatusOK, map[string]any{})
 
 	case r.URL.Path == "/appleauth/auth/verify/phone/securitycode" && twoFactorSession:
 		phone, _ := params["phoneNumber"].(map[string]any)
@@ -579,5 +584,21 @@ func TestCreateKeyForOneEnvironment(t *testing.T) {
 		t.Errorf("environment = %v", environment)
 	}
 
+}
+
+func TestChoosingATextMessageIsNotACodeAttempt(t *testing.T) {
+	fake := newFakeApple(t)
+	asker := &scriptedAsker{answers: map[string][]string{
+		"Enter the 6-digit code shown":   {"sms"},
+		"Enter the 6-digit code sent to": {"000000", "111111", testCode},
+	}}
+	client, _ := newTestClient(t, fake, asker, t.TempDir(), map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword})
+
+	if _, err := client.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", apns.EnvironmentAll); err != nil {
+		t.Fatalf("the third code was not accepted: %v", err)
+	}
+	if fake.textsSent != 1 || len(asker.asked) != 4 {
+		t.Errorf("texts = %d, asked %v", fake.textsSent, asker.asked)
+	}
 }
 {% endverbatim %}

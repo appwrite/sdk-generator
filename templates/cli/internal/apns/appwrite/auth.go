@@ -389,7 +389,10 @@ func (p *portalClient) twoFactor(ctx context.Context) error {
 		question = fmt.Sprintf("Enter the %d-digit code sent to %s", length, phone.NumberWithDialCode)
 	}
 
-	for attempt := 1; ; attempt++ {
+	// Only codes Apple rejects count as attempts; switching to a text message
+	// does not.
+	wrong := 0
+	for {
 		code, err := p.asker.Ask(question, false)
 		if err != nil {
 			return err
@@ -422,7 +425,8 @@ func (p *portalClient) twoFactor(ctx context.Context) error {
 		var failure serviceErrors
 		_ = json.Unmarshal(payload, &failure)
 		if failure.has("-21669") || strings.Contains(strings.ToLower(failure.message()), "verification code") {
-			if attempt >= codeAttempts {
+			wrong++
+			if wrong >= codeAttempts {
 				return errors.New("the verification code was wrong too many times")
 			}
 			p.log("That code is not right. Try again.")
