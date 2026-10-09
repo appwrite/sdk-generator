@@ -82,7 +82,11 @@ func (p *portalClient) portal(ctx context.Context, method, path, teamID string, 
 		for name, value := range values {
 			data[name] = value
 		}
-		body = data
+		// A call with nothing to send has no body, as the portal's own pages
+		// send it: its .action endpoints answer a JSON body with 415.
+		if len(data) > 0 {
+			body = data
+		}
 	}
 	headers := map[string]string{"Accept": "application/json, text/plain, */*"}
 	if p.csrf != "" || p.csrfTS != "" {

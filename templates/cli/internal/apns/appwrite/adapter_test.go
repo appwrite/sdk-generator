@@ -241,6 +241,12 @@ func (f *fakeApple) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (f *fakeApple) portal(w http.ResponseWriter, r *http.Request, path string, params map[string]any) {
 	switch path {
 	case "account/listTeams.action":
+		// The real endpoint refuses a JSON body with 415.
+		if r.Header.Get("Content-Type") != "" || r.ContentLength > 0 {
+			w.WriteHeader(http.StatusUnsupportedMediaType)
+
+			return
+		}
 		writeJSON(w, http.StatusOK, map[string]any{"resultCode": 0, "teams": f.teams})
 	case "account/auth/key/list":
 		if params["teamId"] == nil || params["pageSize"] == nil {
