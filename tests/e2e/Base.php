@@ -72,6 +72,11 @@ abstract class Base extends TestCase
         'https://localhost?code=abcdef&state=123456',
     ];
 
+    protected const OAUTH_EXCEPTION_RESPONSES = [
+        'Invalid `clientId` param: Value must be a valid string and at least 1 chars and no longer than 100 chars',
+        '{"message":"Invalid `clientId` param: Value must be a valid string and at least 1 chars and no longer than 100 chars","code":400}',
+    ];
+
     protected const DOWNLOAD_RESPONSES = [
         'GET:/v1/mock/tests/general/download:passed',
     ];

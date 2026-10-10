@@ -316,6 +316,19 @@ async function start() {
     )
     console.log(url)
 
+    try {
+        await general.oauth2(
+            'x'.repeat(101),
+            ['test'],
+            '123456',
+            'https://localhost',
+            'https://localhost'
+        );
+    } catch(error) {
+        console.log(error.message);
+        console.log(error.response);
+    }
+
     // Query helper tests
     console.log(Query.equal("released", [true]));
     console.log(Query.equal("title", ["Spiderman", "Dr. Strange"]));
