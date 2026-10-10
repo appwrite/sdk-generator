@@ -158,6 +158,12 @@ abstract class Language
         }
 
         foreach ($operation->responses as $status => $response) {
+            if (
+                \in_array((string) $status, self::REDIRECT_STATUSES, true)
+                && isset(\array_change_key_case($response->headers)['location'])
+            ) {
+                return self::METHOD_TYPE_WEB_AUTH;
+            }
             foreach ($response->content as $contentType => $mediaType) {
                 $schema = $mediaType->schema;
                 if ($schema !== null && $spec instanceof Specification) {

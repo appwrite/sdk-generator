@@ -645,6 +645,32 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A redirect that declares `Location` (header names are case-insensitive)
+     * is a webAuth method. It generates the same SDK as the binary body older
+     * servers declare instead, so the producer can switch without a flag day.
+     */
+    public function testRedirectWithLocationIsWebAuth(): void
+    {
+        $document = static fn(array $redirect): array => [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'general']],
+            'paths' => ['/tests/oauth2' => ['get' => [
+                'operationId' => 'generalOauth2',
+                'tags' => ['general'],
+                'summary' => 'OAuth2',
+                'description' => 'OAuth2.',
+                'responses' => ['301' => ['description' => 'Redirect', ...$redirect]],
+            ]]],
+        ];
+
+        $files = $this->generateDocument($document(['headers' => ['location' => ['schema' => ['type' => 'string', 'format' => 'uri']]]]), 'web', 'redirect-location');
+
+        $this->assertStringContainsString('window.location.href = uri.toString();', $files['src/services/general.ts']);
+        $this->assertSame($files, $this->generateDocument($document(['content' => ['text/html' => ['schema' => ['type' => 'string', 'format' => 'binary']]]]), 'web', 'redirect-legacy'));
+    }
+
+    /**
      * An upload whose only parameter is the file still takes the progress
      * callback as its second positional argument.
      */
