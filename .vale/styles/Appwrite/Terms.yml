@@ -1,0 +1,9 @@
+---
+extends: existence
+message: "Use 'test' instead of 'spec'."
+level: warning
+ignorecase: true
+tokens:
+  - spec
+  - specs
+---

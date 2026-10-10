@@ -1,0 +1,68 @@
+extends: substitution
+message: "Use '%s' instead of '%s'."
+link: "https://developers.google.com/style/word-list"
+level: warning
+# The case-insensitive half of the word list, so sentence-initial use is caught
+# ('Touch the screen', not only 'touch the screen'). Entries that must stay
+# case-sensitive are in WordList.yml.
+ignorecase: true
+action:
+  name: replace
+swap:
+  "(?:API Console|dev|developer) key": API key
+  "(?:cell ?phone|smart ?phone)": phone|mobile phone
+  "(?:dev|developer|APIs) console": API console
+  "(?:e-mail|Email|E-mail)": email
+  "(?:file ?path|path ?name)": path
+  "(?:kill|terminate|abort)": stop|exit|cancel|end
+  # Longest form first: with the shortest alternative leading, 'OAuth 2' matched
+  # only 'OAuth', so applying the suggestion produced 'OAuth 2.0 2'. The rule is
+  # already case-insensitive, so the inline (?i) is redundant. See issue #41.
+  '\bOauth2\.0\b|\bOAuth ?2\b(?!\.0)|\bOauth\b(?! ?2)': OAuth 2.0
+  "(?:ok|Okay)": OK|okay
+  "(?:WiFi|wifi)": Wi-Fi
+  '[\.]+apk': APK
+  '3\-D': 3D
+  'Google (?:I\-O|IO)': Google I/O
+  "tap (?:&|and) hold": touch & hold
+  "un(?:check|select)": clear
+  above: preceding
+  account name: username
+  action bar: app bar
+  admin: administrator
+  a\.k\.a|aka: or|also known as
+  application: app
+  approx\.: approximately
+  autoupdate: automatically update
+  cellular data: mobile data
+  cellular network: mobile network
+  chapter: documents|pages|sections
+  check box: checkbox
+  click on: click|click in
+  content type: media type
+  curated roles: predefined roles
+  data are: data is
+  disabled?: turn off|off
+  ephemeral IP address: ephemeral external IP address
+  fewer data: less data
+  file name: filename
+  firewalls: firewall rules
+  functionality: capability|feature
+  grayed-out: unavailable
+  in order to: to
+  ingest: import|load
+  long press: touch & hold
+  network IP address: internal IP address
+  omnibox: address bar
+  open-source: open source
+  overview screen: recents screen
+  regex: regular expression
+  sign into: sign in to
+  '(?<!single )sign-?on': single sign-on
+  static IP address: static external IP address
+  stylesheet: style sheet
+  synch: sync
+  tablename: table name
+  tablet: device
+  'touch(?! ?(?:&|and) hold)': tap
+  vs\.: versus
