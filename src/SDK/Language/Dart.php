@@ -520,12 +520,51 @@ class Dart extends Language
         return str_replace('$', '\\$', $encoded);
     }
 
+    protected function getDartLiteral(mixed $value): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_string($value)) {
+            return $this->getDartStringLiteral($value);
+        }
+
+        if (is_object($value)) {
+            $value = get_object_vars($value);
+
+            if ($value === []) {
+                return '<String, dynamic>{}';
+            }
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            return '[' . implode(', ', array_map($this->getDartLiteral(...), $value)) . ']';
+        }
+
+        if (is_array($value)) {
+            $pairs = [];
+            foreach ($value as $key => $item) {
+                $pairs[] = $this->getDartStringLiteral((string) $key) . ': ' . $this->getDartLiteral($item);
+            }
+
+            return '{' . implode(', ', $pairs) . '}';
+        }
+
+        return json_encode($value, JSON_THROW_ON_ERROR);
+    }
+
     #[Override]
     public function getFilters(): array
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toCamelCase($value)),
             new TwigFilter('dartString', fn(?string $value): string => $this->getDartStringLiteral($value ?? ''), ['is_safe' => ['html']]),
+            new TwigFilter('dartLiteral', fn(mixed $value): string => $this->getDartLiteral($value), ['is_safe' => ['html']]),
             new TwigFilter('trimLines', fn(string $value): string => preg_replace('/[ \t]+$/m', '', $value) ?? $value),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
