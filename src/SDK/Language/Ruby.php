@@ -353,6 +353,14 @@ class Ruby extends Language
             return str_replace('#', '\\#', json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
         }
 
+        if (is_object($value)) {
+            $value = get_object_vars($value);
+
+            if ($value === []) {
+                return '{}';
+            }
+        }
+
         if (is_array($value) && array_is_list($value)) {
             return '[' . implode(', ', array_map($this->formatRubyLiteral(...), $value)) . ']';
         }
