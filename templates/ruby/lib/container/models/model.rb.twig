@@ -13,7 +13,7 @@ module {{ spec.info.title | caseUcfirst }}
 
             def initialize(
 {% for property in definition.properties %}
-                {{ (property | schemaName) | caseSnake | escapeKeyword }}:{% if not (property | schemaRequired) and property.default is not null and property.default != '' %} {{ property.default | json_encode | raw }}{% endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
+                {{ (property | schemaName) | caseSnake | escapeKeyword }}:{% if not (property | schemaRequired) and property.default is not null and property.default != '' %} {{ property.default | rubyLiteral }}{% endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}

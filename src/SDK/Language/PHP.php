@@ -561,11 +561,10 @@ class PHP extends Language
             return 'null';
         }
 
-        if (is_object($value)) {
-            $value = (array) $value;
-        }
+        if (is_array($value) || is_object($value)) {
+            // An object default arrives as stdClass, nested ones included; var_export needs plain arrays.
+            $value = json_decode((string) json_encode($value), true);
 
-        if (is_array($value)) {
             return $value === [] ? '[]' : var_export($value, true);
         }
 

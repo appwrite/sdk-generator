@@ -687,6 +687,27 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('optional_result: "pending"', $model);
     }
 
+    public function testStructuredDefaultsAreValidLiterals(): void
+    {
+        $default = \json_decode('{"nested":{"count":1,"missing":null},"tags":["a",null],"template":"#{name}"}');
+
+        $php = $this->language('php')->getFilters();
+        $ruby = $this->language('ruby')->getFilters();
+        $render = static fn (array $filters, string $name): string => (string) \call_user_func(
+            array_first(\array_filter($filters, static fn ($filter): bool => $filter->getName() === $name))->getCallable(),
+            $default,
+        );
+
+        $this->assertSame(
+            ['nested' => ['count' => 1, 'missing' => null], 'tags' => ['a', null], 'template' => '#{name}'],
+            eval('return ' . $render($php, 'phpLiteral') . ';'),
+        );
+        $this->assertSame(
+            '{"nested" => {"count" => 1, "missing" => nil}, "tags" => ["a", nil], "template" => "\\#{name}"}',
+            $render($ruby, 'rubyLiteral'),
+        );
+    }
+
     private function generateWithModelDefaults(string $name): string
     {
         $dir = self::OUTPUT . '/' . $name . '/defaults';
