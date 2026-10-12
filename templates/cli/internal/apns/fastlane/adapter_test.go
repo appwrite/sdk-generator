@@ -442,3 +442,100 @@ func TestCreateKeyPassesResetToTheLane(t *testing.T) {
 		t.Errorf("lane call = %s", calls)
 	}
 }
+
+func laneCalls(t *testing.T, log string) []string {
+	t.Helper()
+	calls, _ := os.ReadFile(log)
+	text := strings.TrimSpace(string(calls))
+	if text == "" {
+		return nil
+	}
+
+	return strings.Split(text, "\n")
+}
+
+func TestPrepareAppIDWithoutAskingAppliesInOneRun(t *testing.T) {
+	fastlane, log := fakeFastlane(t, "2.228.0", `{"teamId":"ABCDE12345","registered":true,"push":true,"created":true,"pushTurnedOn":true}`)
+	adapter := &Adapter{Fastlane: fastlane, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	request := apns.Request{TeamID: "ABCDE12345", AppleID: "dev@example.com", Password: "secret", Asker: &choosingAsker{}}
+
+	result, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app"})
+	if err != nil || result != (apns.AppIDResult{TeamID: "ABCDE12345", Registered: true, Push: true, Created: true, PushTurnedOn: true}) {
+		t.Fatalf("result = %+v, %v", result, err)
+	}
+	calls := laneCalls(t, log)
+	if len(calls) != 1 || !strings.HasPrefix(calls[0], "fastlane prepare_app_id out:") ||
+		!strings.HasSuffix(calls[0], "mode:apply bundle_id:io.example.app name:io example app team_id:ABCDE12345 FASTLANE_USER=dev@example.com password=set") {
+		t.Errorf("lane calls = %v", calls)
+	}
+}
+
+func TestPrepareAppIDOnlyChecksAReadyAppID(t *testing.T) {
+	fastlane, log := fakeFastlane(t, "2.228.0", `{"teamId":"ABCDE12345","registered":true,"push":true}`)
+	adapter := &Adapter{Fastlane: fastlane, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	asker := &choosingAsker{}
+	request := apns.Request{AppleID: "dev@example.com", Password: "secret", Asker: asker}
+
+	result, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app", Ask: true})
+	if err != nil || !result.Registered || !result.Push {
+		t.Fatalf("result = %+v, %v", result, err)
+	}
+	if calls := laneCalls(t, log); len(calls) != 1 || !strings.Contains(calls[0], "mode:check") || len(asker.asked) != 0 {
+		t.Errorf("lane calls = %v, asked %v", calls, asker.asked)
+	}
+}
+
+func TestPrepareAppIDAsksBeforeApplying(t *testing.T) {
+	fastlane, log := fakeFastlane(t, "2.228.0", `{"teamId":"ABCDE12345","registered":true,"push":false}`)
+	adapter := &Adapter{Fastlane: fastlane, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	asker := &choosingAsker{}
+	request := apns.Request{AppleID: "dev@example.com", Password: "secret", Asker: asker, Reset: true}
+
+	if _, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app", Ask: true}); err != nil {
+		t.Fatal(err)
+	}
+	calls := laneCalls(t, log)
+	if len(calls) != 2 || !strings.Contains(calls[0], "mode:check") || !strings.Contains(calls[0], "reset:true") ||
+		!strings.Contains(calls[1], "mode:apply") || !strings.Contains(calls[1], "team_id:ABCDE12345") || strings.Contains(calls[1], "reset:true") {
+		t.Errorf("lane calls = %v", calls)
+	}
+	if strings.Join(asker.asked, "|") != "Push Notifications is off for io.example.app, so APNs refuses pushes for it. Turn it on?" {
+		t.Errorf("asked %v", asker.asked)
+	}
+}
+
+func TestPrepareAppIDWithTheSavedSignInOnly(t *testing.T) {
+	fastlane, log := fakeFastlane(t, "2.228.0", `{"error":"sign-in-needed"}`)
+	adapter := &Adapter{Fastlane: fastlane, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	request := apns.Request{SavedSignInOnly: true, Asker: &choosingAsker{}}
+
+	// spaceship keeps sessions per Apple ID: without one there is none.
+	if _, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app", Ask: true}); !errors.Is(err, apns.ErrSignInNeeded) {
+		t.Fatalf("err = %v", err)
+	}
+	if calls := laneCalls(t, log); len(calls) != 0 {
+		t.Fatalf("ran the lane without an Apple ID: %v", calls)
+	}
+
+	// With one, the lane checks the saved session; no password is asked.
+	request.AppleID = "dev@example.com"
+	if _, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app", Ask: true}); !errors.Is(err, apns.ErrSignInNeeded) {
+		t.Fatalf("err = %v", err)
+	}
+	if calls := laneCalls(t, log); len(calls) != 1 || !strings.Contains(calls[0], "saved_only:true") || !strings.HasSuffix(calls[0], "password=unset") {
+		t.Errorf("lane calls = %v", calls)
+	}
+}
+
+func TestASavedSignInCheckNeverOffersToInstallFastlane(t *testing.T) {
+	bin := withoutFastlane(t)
+	fastlane, _ := fakeFastlane(t, "2.228.0", `{}`)
+	fakeBrew(t, bin, fastlane)
+	asker := &choosingAsker{}
+	request := apns.Request{AppleID: "dev@example.com", SavedSignInOnly: true, Asker: asker}
+
+	_, err := (&Adapter{}).PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app", Ask: true})
+	if !errors.Is(err, apns.ErrUnavailable) || len(asker.asked) != 0 {
+		t.Errorf("err = %v, asked %v", err, asker.asked)
+	}
+}

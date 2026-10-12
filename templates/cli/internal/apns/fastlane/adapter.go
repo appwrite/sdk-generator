@@ -34,7 +34,7 @@ var fastfile []byte
 // Temporarily Unavailable" when signing in.
 var minimumVersion = [3]int{2, 225, 0}
 
-// Adapter creates APNs keys with an installed fastlane.
+// Adapter creates APNs keys, and prepares App IDs, with an installed fastlane.
 type Adapter struct {
 	// Fastlane is the command to run. Empty means the project's Bundler
 	// fastlane when there is one, otherwise "fastlane" from PATH.
@@ -75,26 +75,84 @@ type result struct {
 		Name      string `json:"name"`
 		CanRevoke bool   `json:"canRevoke"`
 	} `json:"keys"`
+	// The prepare_app_id lane's result.
+	Registered   bool `json:"registered"`
+	Push         bool `json:"push"`
+	Created      bool `json:"created"`
+	PushTurnedOn bool `json:"pushTurnedOn"`
 }
 
-// CreateKey runs the embedded lane. The Apple ID and password are asked here
-// when the request has none, and handed to fastlane as FASTLANE_USER and
-// FASTLANE_PASSWORD, so fastlane never offers to keep them in the Keychain.
+// CreateKey runs the embedded create_apns_key lane.
 func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key, error) {
-	runner, err := a.runner()
+	arguments := []string{"name:" + request.Name, "environment:" + string(request.Environment)}
+	contents, err := a.runLane(ctx, request, "create_apns_key", arguments...)
 	if err != nil {
 		return apns.Key{}, err
 	}
+
+	return decodeResult(contents)
+}
+
+// PrepareAppID runs the embedded prepare_app_id lane: it checks the App ID,
+// and after the question, or straight away without one, registers it and
+// turns on Push Notifications.
+func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID apns.AppIDRequest) (apns.AppIDResult, error) {
+	// spaceship keeps its saved sign-in per Apple ID, so without one there is
+	// nothing to restore.
+	if request.SavedSignInOnly && strings.TrimSpace(request.AppleID) == "" {
+		return apns.AppIDResult{}, apns.ErrSignInNeeded
+	}
+	run := func(mode string) (apns.AppIDResult, error) {
+		arguments := []string{"mode:" + mode, "bundle_id:" + appID.BundleID, "name:" + apns.AppIDName(appID.BundleID)}
+		if request.SavedSignInOnly {
+			arguments = append(arguments, "saved_only:true")
+		}
+		contents, err := a.runLane(ctx, request, "prepare_app_id", arguments...)
+		if err != nil {
+			return apns.AppIDResult{}, err
+		}
+
+		return decodeAppIDResult(contents)
+	}
+	if !appID.Ask {
+		return run("apply")
+	}
+	found, err := run("check")
+	if err != nil || (found.Registered && found.Push) {
+		return found, err
+	}
+	change, err := apns.ConfirmAppIDChange(request.Asker, appID.BundleID, found.TeamID, found.Registered)
+	if err != nil || !change {
+		return found, err
+	}
+	// The check signed in (again, for a reset) and saved the session.
+	request.Reset = false
+	request.TeamID = found.TeamID
+
+	return run("apply")
+}
+
+// runLane runs a lane of the embedded Fastfile and returns the result it
+// wrote. The Apple ID and password are asked here when the request has none,
+// and handed to fastlane as FASTLANE_USER and FASTLANE_PASSWORD, so fastlane
+// never offers to keep them in the Keychain. With SavedSignInOnly nothing is
+// asked: the lane uses spaceship's saved session for the Apple ID or reports
+// that there is none.
+func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string, arguments ...string) ([]byte, error) {
+	runner, err := a.runner()
+	if err != nil {
+		return nil, err
+	}
 	err = runner.check(ctx)
-	// Installing is only offered for fastlane from PATH: a configured command
-	// is never replaced.
-	if errors.Is(err, errNotInstalled) && a.Fastlane == "" {
+	// Installing is only offered for fastlane from PATH, never replacing a
+	// configured command, and never during a check that must not ask.
+	if errors.Is(err, errNotInstalled) && a.Fastlane == "" && !request.SavedSignInOnly {
 		if err = a.offerInstall(ctx, request); err == nil {
 			err = runner.check(ctx)
 		}
 	}
 	if err != nil {
-		return apns.Key{}, err
+		return nil, err
 	}
 	if runner.gemfile != "" && request.Log != nil {
 		request.Log("Using fastlane from %s with bundle exec.", runner.gemfile)
@@ -104,15 +162,15 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	if appleID == "" {
 		answer, err := request.Asker.Ask("Apple ID (email)", false)
 		if err != nil {
-			return apns.Key{}, err
+			return nil, err
 		}
 		appleID = strings.TrimSpace(answer)
 	}
 	password := request.Password
-	if password == "" {
+	if password == "" && !request.SavedSignInOnly {
 		answer, err := request.Asker.Ask("Password for "+appleID, true)
 		if err != nil {
-			return apns.Key{}, err
+			return nil, err
 		}
 		password = answer
 	}
@@ -120,18 +178,18 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	// fastlane runs the Fastfile in ./fastlane of its working directory.
 	scratch, err := os.MkdirTemp("", "appwrite-apns-fastlane-")
 	if err != nil {
-		return apns.Key{}, err
+		return nil, err
 	}
 	defer os.RemoveAll(scratch)
 	if err := os.MkdirAll(filepath.Join(scratch, "fastlane"), 0o700); err != nil {
-		return apns.Key{}, err
+		return nil, err
 	}
 	if err := os.WriteFile(filepath.Join(scratch, "fastlane", "Fastfile"), fastfile, 0o600); err != nil {
-		return apns.Key{}, err
+		return nil, err
 	}
 	out := filepath.Join(scratch, "result.json")
 
-	arguments := []string{"create_apns_key", "out:" + out, "name:" + request.Name, "environment:" + string(request.Environment)}
+	arguments = append([]string{lane, "out:" + out}, arguments...)
 	if request.TeamID != "" {
 		arguments = append(arguments, "team_id:"+request.TeamID)
 	}
@@ -143,23 +201,61 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	command.Stdin, command.Stdout, command.Stderr = a.terminal()
 	command.Env = append(command.Env,
 		"FASTLANE_USER="+appleID,
-		"FASTLANE_PASSWORD="+password,
 		"FASTLANE_SKIP_UPDATE_CHECK=1",
 		"FASTLANE_OPT_OUT_USAGE=1",
 		"FASTLANE_HIDE_CHANGELOG=1",
 	)
+	if password != "" {
+		command.Env = append(command.Env, "FASTLANE_PASSWORD="+password)
+	}
 	runErr := command.Run()
 
 	contents, err := os.ReadFile(out)
 	if err != nil {
 		if runErr != nil {
-			return apns.Key{}, fmt.Errorf("the fastlane lane failed: %w", runErr)
+			return nil, fmt.Errorf("the fastlane lane failed: %w", runErr)
 		}
 
-		return apns.Key{}, fmt.Errorf("the fastlane lane returned no result: %w", err)
+		return nil, fmt.Errorf("the fastlane lane returned no result: %w", err)
 	}
 
-	return decodeResult(contents)
+	return contents, nil
+}
+
+func decodeAppIDResult(contents []byte) (apns.AppIDResult, error) {
+	var decoded result
+	if err := json.Unmarshal(contents, &decoded); err != nil {
+		return apns.AppIDResult{}, fmt.Errorf("the fastlane lane returned an unreadable result: %w", err)
+	}
+	if err := decoded.err(); err != nil {
+		return apns.AppIDResult{}, err
+	}
+
+	return apns.AppIDResult{
+		TeamID:       decoded.TeamID,
+		Registered:   decoded.Registered,
+		Push:         decoded.Push,
+		Created:      decoded.Created,
+		PushTurnedOn: decoded.PushTurnedOn,
+	}, nil
+}
+
+// err is the error the lane reported, other than a full team.
+func (r result) err() error {
+	switch r.Error {
+	case "":
+		return nil
+	case "sign-in-needed":
+		return apns.ErrSignInNeeded
+	case "invalid-credentials":
+		return fmt.Errorf("%w: %s", apns.ErrInvalidCredentials, r.Message)
+	default:
+		if r.Message == "" {
+			return errors.New(r.Error)
+		}
+
+		return errors.New(r.Message)
+	}
 }
 
 func decodeResult(contents []byte) (apns.Key, error) {
@@ -176,14 +272,8 @@ func decodeResult(contents []byte) (apns.Key, error) {
 		}
 
 		return apns.Key{}, &apns.MaxKeysError{Keys: keys}
-	case "invalid-credentials":
-		return apns.Key{}, fmt.Errorf("%w: %s", apns.ErrInvalidCredentials, decoded.Message)
 	default:
-		if decoded.Message == "" {
-			decoded.Message = decoded.Error
-		}
-
-		return apns.Key{}, errors.New(decoded.Message)
+		return apns.Key{}, decoded.err()
 	}
 	if decoded.KeyID == "" || decoded.P8 == "" {
 		return apns.Key{}, errors.New("the fastlane lane returned no key")

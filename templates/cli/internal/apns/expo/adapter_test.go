@@ -109,8 +109,8 @@ func TestCreateKeyInstallsOnceAndRunsTheHelper(t *testing.T) {
 		t.Fatalf("calls:\n%s", calls)
 	}
 	for _, line := range lines[1:] {
-		if !strings.Contains(line, "helper.js --name Appwrite Push --out ") ||
-			!strings.HasSuffix(line, "--team-id ABCDE12345 EXPO_NO_KEYCHAIN=1 EXPO_APPLE_ID=dev@example.com") {
+		if !strings.Contains(line, "helper.js --name Appwrite Push --team-id ABCDE12345 --out ") ||
+			!strings.HasSuffix(line, " EXPO_NO_KEYCHAIN=1 EXPO_APPLE_ID=dev@example.com") {
 			t.Errorf("helper call = %s", line)
 		}
 	}
@@ -221,5 +221,114 @@ func TestResetAsksForTheAppleIDOnce(t *testing.T) {
 	request.Asker, request.AppleID = known, "dev@example.com"
 	if _, err := adapter.CreateKey(context.Background(), request); err != nil || len(known.asked) != 0 {
 		t.Errorf("asked %v, %v", known.asked, err)
+	}
+}
+
+// choosing answers Choose with choice and records the question.
+type choosing struct {
+	asked  []string
+	choice int
+}
+
+func (c *choosing) Ask(question string, _ bool) (string, error) {
+	return "", errors.New("not expected: " + question)
+}
+
+func (c *choosing) Choose(question string, _ []string) (int, error) {
+	c.asked = append(c.asked, question)
+
+	return c.choice, nil
+}
+
+func helperCalls(t *testing.T, log string) []string {
+	t.Helper()
+	calls, _ := os.ReadFile(log)
+	var helper []string
+	for _, line := range strings.Split(strings.TrimSpace(string(calls)), "\n") {
+		if strings.Contains(line, "helper.js") {
+			helper = append(helper, line)
+		}
+	}
+
+	return helper
+}
+
+func TestPrepareAppIDWithoutAskingAppliesInOneRun(t *testing.T) {
+	node, npm, log := fakeTools(t, "v20.1.0", `{"teamId":"ABCDE12345","registered":true,"push":true,"created":true,"pushTurnedOn":true}`)
+	adapter := &Adapter{Node: node, Npm: npm, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	request := apns.Request{TeamID: "ABCDE12345", AppleID: "dev@example.com", SessionDir: t.TempDir()}
+
+	result, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app"})
+	if err != nil || result != (apns.AppIDResult{TeamID: "ABCDE12345", Registered: true, Push: true, Created: true, PushTurnedOn: true}) {
+		t.Fatalf("result = %+v, %v", result, err)
+	}
+	calls := helperCalls(t, log)
+	if len(calls) != 1 || !strings.Contains(calls[0], "helper.js --action app-id --mode apply --bundle-id io.example.app --name io example app --team-id ABCDE12345 --out ") {
+		t.Errorf("helper calls = %v", calls)
+	}
+}
+
+func TestPrepareAppIDOnlyChecksAReadyAppID(t *testing.T) {
+	node, npm, log := fakeTools(t, "v20.1.0", `{"teamId":"ABCDE12345","registered":true,"push":true}`)
+	adapter := &Adapter{Node: node, Npm: npm, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	asker := &choosing{}
+	request := apns.Request{AppleID: "dev@example.com", SessionDir: t.TempDir(), Asker: asker}
+
+	result, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app", Ask: true})
+	if err != nil || !result.Registered || !result.Push || result.Created {
+		t.Fatalf("result = %+v, %v", result, err)
+	}
+	if calls := helperCalls(t, log); len(calls) != 1 || !strings.Contains(calls[0], "--mode check") || len(asker.asked) != 0 {
+		t.Errorf("helper calls = %v, asked %v", calls, asker.asked)
+	}
+}
+
+func TestPrepareAppIDAsksBeforeApplying(t *testing.T) {
+	node, npm, log := fakeTools(t, "v20.1.0", `{"teamId":"ABCDE12345","registered":false,"push":false}`)
+	adapter := &Adapter{Node: node, Npm: npm, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	asker := &choosing{}
+	request := apns.Request{AppleID: "dev@example.com", SessionDir: t.TempDir(), Asker: asker, Reset: true}
+
+	if _, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app", Ask: true}); err != nil {
+		t.Fatal(err)
+	}
+	calls := helperCalls(t, log)
+	if len(calls) != 2 || !strings.Contains(calls[0], "--mode check") || !strings.Contains(calls[0], "--reset true") ||
+		!strings.Contains(calls[1], "--mode apply") || !strings.Contains(calls[1], "--team-id ABCDE12345") || strings.Contains(calls[1], "--reset") {
+		t.Errorf("helper calls = %v", calls)
+	}
+	if len(asker.asked) != 1 || !strings.HasPrefix(asker.asked[0], "io.example.app is not registered as an App ID on team ABCDE12345") {
+		t.Errorf("asked %v", asker.asked)
+	}
+
+	// Declining runs nothing more.
+	declined := &choosing{choice: 1}
+	request.Asker = declined
+	before := len(helperCalls(t, log))
+	result, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app", Ask: true})
+	if err != nil || result.Registered || len(helperCalls(t, log)) != before+1 {
+		t.Errorf("result = %+v, %v, calls %v", result, err, helperCalls(t, log))
+	}
+}
+
+func TestPrepareAppIDWithTheSavedSignInOnly(t *testing.T) {
+	node, npm, log := fakeTools(t, "v20.1.0", `{"error":"sign-in-needed"}`)
+	adapter := &Adapter{Node: node, Npm: npm, Stdout: &strings.Builder{}, Stderr: &strings.Builder{}}
+	request := apns.Request{SessionDir: t.TempDir(), SavedSignInOnly: true}
+
+	// apple-utils keeps sessions per Apple ID: without one there is none.
+	if _, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app", Ask: true}); !errors.Is(err, apns.ErrSignInNeeded) {
+		t.Fatalf("err = %v", err)
+	}
+	if calls := helperCalls(t, log); len(calls) != 0 {
+		t.Fatalf("ran the helper without an Apple ID: %v", calls)
+	}
+
+	request.AppleID = "dev@example.com"
+	if _, err := adapter.PrepareAppID(context.Background(), request, apns.AppIDRequest{BundleID: "io.example.app", Ask: true}); !errors.Is(err, apns.ErrSignInNeeded) {
+		t.Fatalf("err = %v", err)
+	}
+	if calls := helperCalls(t, log); len(calls) != 1 || !strings.Contains(calls[0], "--saved-only true") {
+		t.Errorf("helper calls = %v", calls)
 	}
 }

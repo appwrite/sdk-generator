@@ -72,12 +72,78 @@ type result struct {
 		Name      string `json:"name"`
 		CanRevoke bool   `json:"canRevoke"`
 	} `json:"keys"`
+	// The app-id action's result.
+	Registered   bool `json:"registered"`
+	Push         bool `json:"push"`
+	Created      bool `json:"created"`
+	PushTurnedOn bool `json:"pushTurnedOn"`
 }
 
 // CreateKey installs the helper if needed and runs it. apple-utils always
 // creates keys for both APNs environments; for a single-environment request
 // that key works too.
 func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key, error) {
+	if request.Environment != apns.EnvironmentAll && request.Log != nil {
+		request.Log("The expo setup creates keys for both APNs environments; the key also works for %s.", request.Environment)
+	}
+	arguments := []string{"--name", request.Name}
+	if request.TeamID != "" {
+		arguments = append(arguments, "--team-id", request.TeamID)
+	}
+	contents, err := a.runHelper(ctx, &request, arguments...)
+	if err != nil {
+		return apns.Key{}, err
+	}
+
+	return decodeResult(contents)
+}
+
+// PrepareAppID runs the helper's app-id action: it checks the App ID, and
+// after the question, or straight away without one, registers it and turns
+// on Push Notifications.
+func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID apns.AppIDRequest) (apns.AppIDResult, error) {
+	// apple-utils keeps its saved sign-in per Apple ID, so without one there
+	// is nothing to restore.
+	if request.SavedSignInOnly && strings.TrimSpace(request.AppleID) == "" {
+		return apns.AppIDResult{}, apns.ErrSignInNeeded
+	}
+	run := func(mode string) (apns.AppIDResult, error) {
+		arguments := []string{"--action", "app-id", "--mode", mode, "--bundle-id", appID.BundleID, "--name", apns.AppIDName(appID.BundleID)}
+		if request.TeamID != "" {
+			arguments = append(arguments, "--team-id", request.TeamID)
+		}
+		if request.SavedSignInOnly {
+			arguments = append(arguments, "--saved-only", "true")
+		}
+		contents, err := a.runHelper(ctx, &request, arguments...)
+		if err != nil {
+			return apns.AppIDResult{}, err
+		}
+
+		return decodeAppIDResult(contents)
+	}
+	if !appID.Ask {
+		return run("apply")
+	}
+	found, err := run("check")
+	if err != nil || (found.Registered && found.Push) {
+		return found, err
+	}
+	change, err := apns.ConfirmAppIDChange(request.Asker, appID.BundleID, found.TeamID, found.Registered)
+	if err != nil || !change {
+		return found, err
+	}
+	// The check signed in (again, for a reset) and saved the session.
+	request.Reset = false
+	request.TeamID = found.TeamID
+
+	return run("apply")
+}
+
+// runHelper installs the helper if needed, runs it with arguments and returns
+// the result it wrote. The terminal stays attached, since apple-utils asks
+// for what signing in needs.
+func (a *Adapter) runHelper(ctx context.Context, request *apns.Request, arguments ...string) ([]byte, error) {
 	log := request.Log
 	if log == nil {
 		log = func(string, ...any) {}
@@ -88,7 +154,7 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	if request.Reset && strings.TrimSpace(request.AppleID) == "" && request.Asker != nil {
 		answer, err := request.Asker.Ask("Apple ID (email)", false)
 		if err != nil {
-			return apns.Key{}, err
+			return nil, err
 		}
 		request.AppleID = strings.TrimSpace(answer)
 	}
@@ -96,33 +162,28 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	if dir == "" {
 		scratch, err := os.MkdirTemp("", "appwrite-apns-expo-")
 		if err != nil {
-			return apns.Key{}, err
+			return nil, err
 		}
 		defer os.RemoveAll(scratch)
 		dir = scratch
 	}
 	tools, err := a.toolchain(ctx, dir, log)
 	if err != nil {
-		return apns.Key{}, err
+		return nil, err
 	}
 	if err := a.install(ctx, dir, tools); err != nil {
-		return apns.Key{}, err
-	}
-	if request.Environment != apns.EnvironmentAll {
-		log("The expo setup creates keys for both APNs environments; the key also works for %s.", request.Environment)
+		return nil, err
 	}
 
 	scratch, err := os.MkdirTemp("", "appwrite-apns-expo-result-")
 	if err != nil {
-		return apns.Key{}, err
+		return nil, err
 	}
 	defer os.RemoveAll(scratch)
 	out := filepath.Join(scratch, "result.json")
 
-	arguments := []string{filepath.Join(dir, "helper.js"), "--name", request.Name, "--out", out}
-	if request.TeamID != "" {
-		arguments = append(arguments, "--team-id", request.TeamID)
-	}
+	arguments = append([]string{filepath.Join(dir, "helper.js")}, arguments...)
+	arguments = append(arguments, "--out", out)
 	if request.Reset {
 		arguments = append(arguments, "--reset", "true")
 	}
@@ -144,13 +205,49 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	contents, err := os.ReadFile(out)
 	if err != nil {
 		if runErr != nil {
-			return apns.Key{}, fmt.Errorf("the @expo/apple-utils helper failed: %w", runErr)
+			return nil, fmt.Errorf("the @expo/apple-utils helper failed: %w", runErr)
 		}
 
-		return apns.Key{}, fmt.Errorf("the @expo/apple-utils helper returned no result: %w", err)
+		return nil, fmt.Errorf("the @expo/apple-utils helper returned no result: %w", err)
 	}
 
-	return decodeResult(contents)
+	return contents, nil
+}
+
+func decodeAppIDResult(contents []byte) (apns.AppIDResult, error) {
+	var decoded result
+	if err := json.Unmarshal(contents, &decoded); err != nil {
+		return apns.AppIDResult{}, fmt.Errorf("the @expo/apple-utils helper returned an unreadable result: %w", err)
+	}
+	if err := decoded.err(); err != nil {
+		return apns.AppIDResult{}, err
+	}
+
+	return apns.AppIDResult{
+		TeamID:       decoded.TeamID,
+		Registered:   decoded.Registered,
+		Push:         decoded.Push,
+		Created:      decoded.Created,
+		PushTurnedOn: decoded.PushTurnedOn,
+	}, nil
+}
+
+// err is the error the helper reported, other than a full team.
+func (r result) err() error {
+	switch r.Error {
+	case "":
+		return nil
+	case "sign-in-needed":
+		return apns.ErrSignInNeeded
+	case "invalid-credentials":
+		return fmt.Errorf("%w: %s", apns.ErrInvalidCredentials, r.Message)
+	default:
+		if r.Message == "" {
+			return errors.New(r.Error)
+		}
+
+		return errors.New(r.Message)
+	}
 }
 
 func decodeResult(contents []byte) (apns.Key, error) {
@@ -167,14 +264,8 @@ func decodeResult(contents []byte) (apns.Key, error) {
 		}
 
 		return apns.Key{}, &apns.MaxKeysError{Keys: keys}
-	case "invalid-credentials":
-		return apns.Key{}, fmt.Errorf("%w: %s", apns.ErrInvalidCredentials, decoded.Message)
 	default:
-		if decoded.Message == "" {
-			decoded.Message = decoded.Error
-		}
-
-		return apns.Key{}, errors.New(decoded.Message)
+		return apns.Key{}, decoded.err()
 	}
 	if decoded.KeyID == "" || decoded.P8 == "" {
 		return apns.Key{}, errors.New("the @expo/apple-utils helper returned no key")
