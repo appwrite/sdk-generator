@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 {% verbatim %}
@@ -16,7 +17,13 @@ import (
 // carry X-HTTP-Method-Override: GET and the query in the body, and every
 // write carries the team in its attributes.
 
-const pushCapability = "PUSH_NOTIFICATIONS"
+const (
+	pushCapability = "PUSH_NOTIFICATIONS"
+	appIDsPageSize = 200
+	// maxAppIDPages bounds the lookup should the portal keep handing out
+	// next pages.
+	maxAppIDPages = 100
+)
 
 // AppID is a registered App ID and whether it can receive pushes.
 type AppID struct {
@@ -38,7 +45,12 @@ type jsonAPIResource struct {
 type jsonAPIDocument struct {
 	Data     json.RawMessage   `json:"data"`
 	Included []jsonAPIResource `json:"included"`
-	Errors   []struct {
+	// Links.Next is the next page of a list, as a URL whose query carries
+	// the cursor.
+	Links struct {
+		Next string `json:"next"`
+	} `json:"links"`
+	Errors []struct {
 		Status string `json:"status"`
 		Code   string `json:"code"`
 		Title  string `json:"title"`
@@ -99,16 +111,38 @@ func (p *portalClient) connectAPI(ctx context.Context, method, path, teamID stri
 }
 
 // appID looks up identifier among the team's App IDs. It returns nil when
-// the team has none with that identifier.
+// the team has none with that identifier. The portal's filter also returns
+// longer identifiers that start with it, so every page is read until the
+// exact one turns up.
 func (p *portalClient) appID(ctx context.Context, teamID, identifier string) (*AppID, error) {
 	query := url.Values{}
 	query.Set("filter[identifier]", identifier)
 	query.Set("include", "bundleIdCapabilities")
-	query.Set("limit", "200")
-	document, err := p.connectAPI(ctx, http.MethodGet, "bundleIds", teamID, query, nil)
-	if err != nil {
-		return nil, err
+	query.Set("limit", strconv.Itoa(appIDsPageSize))
+	for page := 0; page < maxAppIDPages; page++ {
+		document, err := p.connectAPI(ctx, http.MethodGet, "bundleIds", teamID, query, nil)
+		if err != nil {
+			return nil, err
+		}
+		if found, err := exactAppID(document, identifier); found != nil || err != nil {
+			return found, err
+		}
+		if document.Links.Next == "" {
+			return nil, nil
+		}
+		next, err := url.Parse(document.Links.Next)
+		if err != nil || next.Query().Get("cursor") == "" {
+			return nil, fmt.Errorf("the Apple Developer portal sent an unreadable next page link %q", document.Links.Next)
+		}
+		query.Set("cursor", next.Query().Get("cursor"))
 	}
+
+	return nil, fmt.Errorf("could not find %s within %d pages of App IDs", identifier, maxAppIDPages)
+}
+
+// exactAppID returns the App ID with exactly identifier on one page of the
+// list, or nil.
+func exactAppID(document *jsonAPIDocument, identifier string) (*AppID, error) {
 	var resources []jsonAPIResource
 	if err := json.Unmarshal(document.Data, &resources); err != nil {
 		return nil, fmt.Errorf("the Apple Developer portal sent an unreadable App ID list: %w", err)

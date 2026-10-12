@@ -15,6 +15,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -60,6 +62,8 @@ type fakeApple struct {
 	created  map[string]map[string]any
 	// appIDs are the team's App IDs by identifier.
 	appIDs map[string]*fakeAppID
+	// appIDPages counts the App ID list pages served.
+	appIDPages int
 }
 
 type fakeAppID struct {
@@ -337,11 +341,21 @@ func (f *fakeApple) connectAPI(w http.ResponseWriter, r *http.Request, path stri
 		}
 		data := []map[string]any{}
 		included := []map[string]any{}
-		for identifier, appID := range f.appIDs {
-			// Like Apple, the filter matches by prefix.
-			if !strings.HasPrefix(identifier, query.Get("filter[identifier]")) {
-				continue
+		// Like Apple, the filter matches by prefix, and the list comes in
+		// pages of limit, in ID order, with a cursor to the next.
+		var matching []string
+		for identifier := range f.appIDs {
+			if strings.HasPrefix(identifier, query.Get("filter[identifier]")) {
+				matching = append(matching, identifier)
 			}
+		}
+		sort.Slice(matching, func(i, j int) bool { return f.appIDs[matching[i]].id < f.appIDs[matching[j]].id })
+		limit, _ := strconv.Atoi(query.Get("limit"))
+		offset, _ := strconv.Atoi(query.Get("cursor"))
+		page := matching[min(offset, len(matching)):min(offset+limit, len(matching))]
+		f.appIDPages++
+		for _, identifier := range page {
+			appID := f.appIDs[identifier]
 			capabilities := []map[string]any{{"type": "bundleIdCapabilities", "id": appID.id + "_IN_APP_PURCHASE"}}
 			included = append(included, map[string]any{"type": "bundleIdCapabilities", "id": appID.id + "_IN_APP_PURCHASE", "attributes": map[string]any{"capabilityType": "IN_APP_PURCHASE"}})
 			if appID.push {
@@ -355,7 +369,11 @@ func (f *fakeApple) connectAPI(w http.ResponseWriter, r *http.Request, path stri
 				"relationships": map[string]any{"bundleIdCapabilities": map[string]any{"data": capabilities}},
 			})
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"data": data, "included": included})
+		document := map[string]any{"data": data, "included": included}
+		if offset+limit < len(matching) {
+			document["links"] = map[string]any{"next": fmt.Sprintf("https://developer.apple.com/services-account/v1/bundleIds?cursor=%d&limit=%d", offset+limit, limit)}
+		}
+		writeJSON(w, http.StatusOK, document)
 	case path == "bundleIds" && r.Method == http.MethodPost:
 		data, _ := params["data"].(map[string]any)
 		attributes, _ := data["attributes"].(map[string]any)
@@ -875,6 +893,22 @@ func TestPrepareAppIDWithoutASavedSignInAsksNothing(t *testing.T) {
 	}
 	if len(asker.asked) != 0 || strings.Contains(strings.Join(fake.requests, ","), "/appleauth/") {
 		t.Errorf("asked %v, requests %v", asker.asked, fake.requests)
+	}
+}
+func TestPrepareAppIDFindsTheAppIDOnALaterPage(t *testing.T) {
+	fake := newFakeApple(t)
+	// More longer identifiers than one page, listed before the exact one.
+	for index := range 250 {
+		fake.appIDs[fmt.Sprintf("com.example.app.widget%03d", index)] = &fakeAppID{id: fmt.Sprintf("A%03d", index)}
+	}
+	fake.appIDs["com.example.app"] = &fakeAppID{id: "Z", push: true}
+
+	result, err := prepareAppID(t, fake, &scriptedAsker{}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Created || !result.Registered || !result.Push || fake.appIDPages != 2 {
+		t.Errorf("result = %+v after %d pages", result, fake.appIDPages)
 	}
 }
 {% endverbatim %}
