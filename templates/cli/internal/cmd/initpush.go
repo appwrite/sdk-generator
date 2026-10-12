@@ -37,6 +37,7 @@ import (
 const (
 	apnsKeyPage         = "https://developer.apple.com/account/resources/authkeys/add"
 	apnsKeysListPage    = "https://developer.apple.com/account/resources/authkeys/list"
+	appIDsPage          = "https://developer.apple.com/account/resources/identifiers/list"
 	fcmConsoleHome      = "https://console.firebase.google.com"
 	fcmServiceAccounts  = "https://console.firebase.google.com/project/%s/settings/serviceaccounts/adminsdk"
 	fcmSetupGuide       = "https://firebase.google.com/docs/android/setup#add-config-file"
@@ -59,6 +60,9 @@ type apnsOptions struct {
 	reset       bool
 	environment string
 	setup       string
+	// registerAppID registers the bundle ID as an App ID with Push
+	// Notifications, without asking.
+	registerAppID bool
 }
 
 type fcmOptions struct {
@@ -158,6 +162,7 @@ func newInitApnsCommand() *cobra.Command {
 	flags.StringVar(&options.environment, "environment", string(apns.EnvironmentAll), "APNs environment to set up: production, sandbox or all")
 	flags.StringVar(&options.setup, "provider", "", "How --create-key creates the key: appwrite, expo or fastlane. Defaults to $"+apnsSetupVariable+", then "+defaultApnsSetup)
 	flags.BoolVar(&options.reset, "reset", false, "Sign in to Apple again instead of reusing the saved sign-in, and create the key (implies --create-key)")
+	flags.BoolVar(&options.registerAppID, "register-app-id", false, "Register the bundle ID as an App ID with Push Notifications in the Apple Developer portal, signing in with your Apple ID (experimental)")
 	command.MarkFlagsMutuallyExclusive("create-key", "key-path")
 	command.MarkFlagsMutuallyExclusive("reset", "key-path")
 	command.MarkFlagsMutuallyExclusive("reset", "key-id")
@@ -411,6 +416,9 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 		output.Success(s.out, "APNs%s is already set up for %s.", environmentLabel(environment), bundleID)
 		output.Hint(s.out, "Pass --force or --key-path to replace the key.")
 		s.configureXcode(detected, bundleID)
+		if options.registerAppID {
+			return s.prepareAppID(provisionedTeam(production, sandbox, detected.teams(bundleID)), bundleID, options)
+		}
 
 		return nil
 	}
@@ -508,6 +516,11 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 
 	s.configureXcode(detected, bundleID)
 	output.Success(s.out, "APNs%s is set up for %s.", environmentLabel(environment), bundleID)
+	// Signed in to Apple already when a key was just created, so the App ID
+	// is checked too; --register-app-id asks for it on its own.
+	if createdKeyID != "" || options.registerAppID {
+		return s.prepareAppID(teamID, bundleID, options)
+	}
 
 	return nil
 }
@@ -655,22 +668,15 @@ func (a apnsAsker) Choose(question string, options []string) (int, error) {
 	return strconv.Atoi(value)
 }
 
-// createApnsKey creates a key through the Apple Developer portal and saves it
-// into the project folder before anything else happens, because Apple lets a
-// key be downloaded only once.
-func (s *pushSetup) createApnsKey(teamID string, options apnsOptions, environment apns.Environment) (string, string, string, error) {
-	adapter, err := s.apnsAdapter(options.setup)
-	if err != nil {
-		return "", "", "", err
-	}
+// appleRequest is how every Apple Developer portal step signs in: the Apple ID
+// and password from the environment when set, the saved session unless reset.
+func (s *pushSetup) appleRequest(adapter apns.Adapter, teamID string, reset bool) apns.Request {
 	request := apns.Request{
-		TeamID:      teamID,
-		Name:        "Appwrite Push " + time.Now().Format("20060102150405"),
-		Environment: environment,
-		AppleID:     s.env(appleIDVariable),
-		Password:    s.env(applePasswordVariable),
-		Reset:       options.reset,
-		Asker:       apnsAsker{s.prompter},
+		TeamID:   teamID,
+		AppleID:  s.env(appleIDVariable),
+		Password: s.env(applePasswordVariable),
+		Reset:    reset,
+		Asker:    apnsAsker{s.prompter},
 		Log: func(format string, args ...any) {
 			output.Log(s.out, format, args...)
 		},
@@ -679,7 +685,7 @@ func (s *pushSetup) createApnsKey(teamID string, options apnsOptions, environmen
 		request.SessionDir = filepath.Join(s.apnsSessions, adapter.Name())
 	}
 	output.Log(s.out, "Signing in to the Apple Developer portal (%s).", adapter.Name())
-	if options.reset {
+	if reset {
 		output.Log(s.out, "Signing in again: the saved Apple sign-in is not used (--reset).")
 	}
 	if request.AppleID != "" {
@@ -688,6 +694,92 @@ func (s *pushSetup) createApnsKey(teamID string, options apnsOptions, environmen
 	if request.Password != "" {
 		output.Log(s.out, "Using the Apple ID password from %s.", applePasswordVariable)
 	}
+
+	return request
+}
+
+// prepareAppID makes sure the bundle ID is an App ID with Push Notifications
+// on the team: APNs refuses pushes for any other bundle ID (TopicDisallowed),
+// and Xcode registers it only for a device build with the capability added.
+// After a new key it asks before each change; --register-app-id makes them
+// directly and fails the command when it cannot.
+func (s *pushSetup) prepareAppID(teamID, bundleID string, options apnsOptions) error {
+	explicit := options.registerAppID
+	fail := func(format string, args ...any) error {
+		message := fmt.Sprintf(format, args...)
+		if explicit {
+			return errors.New(message)
+		}
+		output.Warn(s.out, "%s.", message)
+		output.Hint(s.out, "APNs accepts pushes only for a bundle ID registered as an App ID with Push Notifications. Check it at %s.", appIDsPage)
+
+		return nil
+	}
+	adapter, err := s.apnsAdapter(options.setup)
+	if err != nil {
+		return fail("Could not check the App ID for %s: %s", bundleID, err)
+	}
+	preparer, ok := adapter.(apns.AppIDPreparer)
+	if !ok {
+		return fail("The %s setup cannot check App IDs, so %s was not checked", adapter.Name(), bundleID)
+	}
+
+	output.Log(s.out, "Checking the App ID for %s ...", bundleID)
+	// A key created a moment ago left a fresh sign-in: --reset is not repeated.
+	request := s.appleRequest(adapter, teamID, options.reset && !options.createKey)
+	result, err := preparer.PrepareAppID(s.context(), request, apns.AppIDRequest{BundleID: bundleID, Ask: !explicit})
+	var unanswered *prompt.NonInteractiveError
+	if errors.As(err, &unanswered) {
+		return fail("Could not check the App ID for %s: %q needs an interactive terminal. Pass --register-app-id to register it without asking", bundleID, unanswered.Message)
+	}
+	if err != nil {
+		return fail("Could not check the App ID for %s: %s", bundleID, err)
+	}
+
+	switch {
+	case result.Created:
+		output.Success(s.out, "Registered %s as an App ID with Push Notifications on team %s.", bundleID, result.TeamID)
+	case result.PushTurnedOn:
+		output.Success(s.out, "Turned on Push Notifications for the App ID %s.", bundleID)
+	case result.Registered && result.Push:
+		output.Success(s.out, "%s is registered as an App ID with Push Notifications.", bundleID)
+	case !result.Registered:
+		output.Warn(s.out, "%s is not registered as an App ID on team %s: APNs refuses pushes for it until it is.", bundleID, result.TeamID)
+		output.Hint(s.out, "Run `appwrite init apns --register-app-id`, or register it at %s.", appIDsPage)
+	default:
+		output.Warn(s.out, "Push Notifications is off for the App ID %s: APNs refuses pushes for it until it is on.", bundleID)
+		output.Hint(s.out, "Run `appwrite init apns --register-app-id`, or turn it on at %s.", appIDsPage)
+	}
+
+	return nil
+}
+
+// provisionedTeam is the team of an existing APNs provider for the bundle ID,
+// else the one detected in the project, else none (signing in picks it).
+func provisionedTeam(production, sandbox *messagingProvider, detected []string) string {
+	for _, provider := range []*messagingProvider{production, sandbox} {
+		if provider != nil && appleTeamID.MatchString(provider.credential("teamId")) {
+			return provider.credential("teamId")
+		}
+	}
+	if len(detected) == 1 {
+		return detected[0]
+	}
+
+	return ""
+}
+
+// createApnsKey creates a key through the Apple Developer portal and saves it
+// into the project folder before anything else happens, because Apple lets a
+// key be downloaded only once.
+func (s *pushSetup) createApnsKey(teamID string, options apnsOptions, environment apns.Environment) (string, string, string, error) {
+	adapter, err := s.apnsAdapter(options.setup)
+	if err != nil {
+		return "", "", "", err
+	}
+	request := s.appleRequest(adapter, teamID, options.reset)
+	request.Name = "Appwrite Push " + time.Now().Format("20060102150405")
+	request.Environment = environment
 	key, err := apns.CreateKey(s.context(), adapter, request)
 	var unanswered *prompt.NonInteractiveError
 	if errors.As(err, &unanswered) {
