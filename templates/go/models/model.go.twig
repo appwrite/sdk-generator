@@ -1,4 +1,8 @@
 package models
+{% set defaults = {} %}
+{% for property in definition.properties | filter((property) => (property | schemaRequired) and (property | schemaDefault) is not null) %}
+{% set defaults = defaults | merge({((property | schemaName)): (property | schemaDefault)}) %}
+{% endfor %}
 
 import (
 	"encoding/json"
@@ -21,6 +25,17 @@ func (model {{ definitionName | caseUcfirst }}) New(data []byte) *{{ definitionN
 	return &model
 }
 
+{%~ if defaults is not empty %}
+func (model *{{ definitionName | caseUcfirst }}) UnmarshalJSON(data []byte) error {
+	type alias {{ definitionName | caseUcfirst }}
+	if err := json.Unmarshal([]byte({{ defaults | goJsonString }}), (*alias)(model)); err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, (*alias)(model))
+}
+
+{%~ endif %}
 {%~ if definition.additionalProperties %}
 // Use this method to get response in desired type
 {%~ endif %}
