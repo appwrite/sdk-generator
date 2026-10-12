@@ -146,6 +146,9 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     // Extended General Responses
     test_general_download(client).await?;
 
+    let preset = general.get_preset().await?;
+    println!("preset: name={}, count={}, enabled={}", preset.name, preset.count, preset.enabled);
+
     // Exception Responses
     match general.error400().await {
         Ok(_) => {},

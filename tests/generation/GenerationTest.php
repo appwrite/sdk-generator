@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Generation;
 
-use Appwrite\Models\Mock;
-use Appwrite\Models\Zznullablescalars;
 use Exception;
 use Iterator;
 use Appwrite\SDK\Language;
@@ -659,67 +657,16 @@ final class GenerationTest extends TestCase
         }
     }
 
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function testPhpModelsFillMissingFieldsFromTheirDefaults(): void
-    {
-        $dir = $this->generateWithModelDefaults('php');
-
-        require_once $dir . '/src/Appwrite/Models/ArraySerializable.php';
-        require_once $dir . '/src/Appwrite/Models/Mock.php';
-        require_once $dir . '/src/Appwrite/Models/Zznullablescalars.php';
-
-        $this->assertSame('Unknown $result', Mock::from([])->result);
-        $this->assertSame('Sent', Mock::from(['result' => 'Sent'])->result);
-
-        $scalars = Zznullablescalars::from(['text' => 'text', 'price' => 1.5]);
-        $this->assertSame(0, $scalars->count);
-        $this->assertFalse($scalars->enabled);
-
-        $this->expectExceptionMessage('Missing required field "text"');
-        Zznullablescalars::from(['price' => 1.5]);
-    }
-
     public function testRubyModelDefaultsAreLiterals(): void
     {
-        $model = (string) \file_get_contents($this->generateWithModelDefaults('ruby') . '/lib/appwrite/models/mock.rb');
-
-        $this->assertStringContainsString('optional_result: "pending"', $model);
-    }
-
-    public function testStructuredDefaultsAreValidLiterals(): void
-    {
-        $default = \json_decode('{"nested":{"count":1,"missing":null},"tags":["a",null],"template":"#{name}"}');
-
-        $php = $this->language('php')->getFilters();
-        $ruby = $this->language('ruby')->getFilters();
-        $render = static fn (array $filters, string $name): string => (string) \call_user_func(
-            array_first(\array_filter($filters, static fn ($filter): bool => $filter->getName() === $name))->getCallable(),
-            $default,
-        );
-
-        $this->assertSame(
-            ['nested' => ['count' => 1, 'missing' => null], 'tags' => ['a', null], 'template' => '#{name}'],
-            eval('return ' . $render($php, 'phpLiteral') . ';'),
-        );
-        $this->assertSame(
-            '{"nested" => {"count" => 1, "missing" => nil}, "tags" => ["a", nil], "template" => "\\#{name}"}',
-            $render($ruby, 'rubyLiteral'),
-        );
-    }
-
-    private function generateWithModelDefaults(string $name): string
-    {
-        $dir = self::OUTPUT . '/' . $name . '/defaults';
+        $dir = self::OUTPUT . '/ruby/defaults';
         $this->removeDirectory($dir);
 
         $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
-        $document->components->schemas->mock->properties->result->default = 'Unknown $result';
         $document->components->schemas->mock->properties->optionalResult->default = 'pending';
-        $document->components->schemas->zznullablescalars->properties->count->default = 0;
-        $document->components->schemas->zznullablescalars->properties->enabled->default = false;
+        $document->components->schemas->mock->properties->metadataList->default = [(object) ['enabled' => null, 'label' => '#{name}']];
 
-        $sdk = new SDK($this->language($name), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk = new SDK($this->language('ruby'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
         $sdk
             ->setName('test')
             ->setVersion('0.0.1')
@@ -728,7 +675,10 @@ final class GenerationTest extends TestCase
             ->setTest('true')
             ->generate($dir);
 
-        return $dir;
+        $model = (string) \file_get_contents($dir . '/lib/appwrite/models/mock.rb');
+
+        $this->assertStringContainsString('optional_result: "pending"', $model);
+        $this->assertStringContainsString('metadata_list: [{ "enabled" => nil, "label" => "\\#{name}" }]', $model);
     }
 
     public function testGoModelCommentsAreNotHtmlEscaped(): void

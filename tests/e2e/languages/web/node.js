@@ -194,6 +194,9 @@ async function start() {
     } catch (error) {
         console.log(error);
     }
+    const preset = await general.getPreset();
+    console.log(`preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}`);
+
     try {
         response = await general.error400();
     } catch(error) {

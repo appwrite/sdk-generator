@@ -139,6 +139,9 @@ response = general.create_players(players: [
 ])
 puts response.result
 
+preset = general.get_preset()
+puts "preset: name=#{preset.name}, count=#{preset.count}, enabled=#{preset.enabled}"
+
 begin
     general.error400()
 rescue Exception => error

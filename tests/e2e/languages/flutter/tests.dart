@@ -219,6 +219,9 @@ void main() async {
   ]);
   print(response.result);
 
+  final preset = await general.getPreset();
+  print('preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}');
+
   try {
     await general.error400();
   } on AppwriteException catch (e) {

@@ -126,6 +126,9 @@ response = general.create_players([
 ])
 print(response.result)
 
+preset = general.get_preset()
+print(f"preset: name={preset.name}, count={preset.count}, enabled={str(preset.enabled).lower()}")
+
 try:
     response = general.error400()
 except AppwriteException as e:

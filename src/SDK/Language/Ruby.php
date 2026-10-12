@@ -300,40 +300,6 @@ class Ruby extends Language
         return $output;
     }
 
-    protected function formatRubyLiteral(mixed $value): string
-    {
-        if ($value === null) {
-            return 'nil';
-        }
-
-        if (is_bool($value)) {
-            return $value ? 'true' : 'false';
-        }
-
-        if (is_string($value)) {
-            return str_replace('#{', '\\#{', (string) json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-        }
-
-        if (is_object($value)) {
-            $value = get_object_vars($value);
-        }
-
-        if (is_array($value)) {
-            if (array_is_list($value)) {
-                return '[' . implode(', ', array_map($this->formatRubyLiteral(...), $value)) . ']';
-            }
-
-            $pairs = [];
-            foreach ($value as $key => $item) {
-                $pairs[] = $this->formatRubyLiteral((string) $key) . ' => ' . $this->formatRubyLiteral($item);
-            }
-
-            return '{' . implode(', ', $pairs) . '}';
-        }
-
-        return (string) $value;
-    }
-
     /**
      * Converts JSON Object To Ruby Native Hash
      *
@@ -371,6 +337,36 @@ class Ruby extends Language
         }
 
         return $output . (str_repeat('  ', $indent + 2) . '}');
+    }
+
+    protected function formatRubyLiteral(mixed $value): string
+    {
+        if ($value === null) {
+            return 'nil';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_string($value)) {
+            return str_replace('#', '\\#', json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            return '[' . implode(', ', array_map($this->formatRubyLiteral(...), $value)) . ']';
+        }
+
+        if (is_array($value)) {
+            $pairs = [];
+            foreach ($value as $key => $item) {
+                $pairs[] = $this->formatRubyLiteral((string) $key) . ' => ' . $this->formatRubyLiteral($item);
+            }
+
+            return '{ ' . implode(', ', $pairs) . ' }';
+        }
+
+        return json_encode($value, JSON_THROW_ON_ERROR);
     }
 
     #[Override]

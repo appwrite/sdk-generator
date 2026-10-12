@@ -262,6 +262,9 @@ $players = [
 $response = $general->createPlayers($players);
 echo $response->result . "\n";
 
+$preset = $general->getPreset();
+echo 'preset: name=' . $preset->name . ', count=' . $preset->count . ', enabled=' . ($preset->enabled ? 'true' : 'false') . "\n";
+
 try {
     $response = $general->error400();
 } catch (AppwriteException $e) {

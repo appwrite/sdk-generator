@@ -193,6 +193,13 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	// Extended General Responses
 	testGeneralDownload(client)
 
+	preset, err := general.GetPreset()
+	if err != nil {
+		fmt.Printf("general.GetPreset => error %v\n", err)
+	} else {
+		fmt.Printf("preset: name=%s, count=%d, enabled=%t\n", preset.Name, preset.Count, preset.Enabled)
+	}
+
 	// Exception Responses
 	_, err = general.Error400()
 	if err != nil {

@@ -138,6 +138,9 @@ namespace AppwriteTests
             });
             TestContext.WriteLine(mock.Result);
 
+            var preset = await general.GetPreset();
+            TestContext.WriteLine($"preset: name={preset.Name}, count={preset.Count}, enabled={preset.Enabled.ToString().ToLowerInvariant()}");
+
             try
             {
                 await general.Error400();

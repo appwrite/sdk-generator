@@ -243,6 +243,9 @@ class Tests: XCTestCase {
         ])
         print(mock.result)
 
+        let preset = try await general.getPreset()
+        print("preset: name=\(preset.name), count=\(preset.count), enabled=\(preset.enabled)")
+
         do {
             try await general.error400()
         } catch let error as AppwriteError {
