@@ -115,6 +115,36 @@ type Adapter interface {
 	CreateKey(ctx context.Context, request Request) (Key, error)
 }
 
+// AppIDRequest names the App ID to prepare.
+type AppIDRequest struct {
+	BundleID string
+	// Ask asks before registering the App ID or turning on Push
+	// Notifications. Without it the changes are made directly.
+	Ask bool
+}
+
+// AppIDResult is what preparing an App ID found and changed.
+type AppIDResult struct {
+	TeamID string
+	// Registered and Push describe the App ID after the call.
+	Registered bool
+	Push       bool
+	// Created and PushTurnedOn are the changes the call made.
+	Created      bool
+	PushTurnedOn bool
+}
+
+// AppIDPreparer is an Adapter that can also prepare the app's App ID. APNs
+// refuses pushes for a bundle ID (TopicDisallowed) unless the team has it
+// registered as an App ID with Push Notifications, and a key alone does not
+// register it.
+type AppIDPreparer interface {
+	// PrepareAppID signs in like CreateKey, registers the bundle ID as an
+	// explicit App ID when the team has none, and turns on Push
+	// Notifications when it is off.
+	PrepareAppID(ctx context.Context, request Request, appID AppIDRequest) (AppIDResult, error)
+}
+
 var (
 	keyIDPattern  = regexp.MustCompile(`^[A-Z0-9]{10}$`)
 	teamIDPattern = regexp.MustCompile(`^[A-Z0-9]{10}$`)

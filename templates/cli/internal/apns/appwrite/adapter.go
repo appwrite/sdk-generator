@@ -75,6 +75,75 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 	return apns.Key{KeyID: keyID, TeamID: teamID, P8: p8}, nil
 }
 
+// PrepareAppID signs in, then makes sure the bundle ID is an App ID with Push
+// Notifications on the team, asking first when appID.Ask is set.
+func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID apns.AppIDRequest) (apns.AppIDResult, error) {
+	portal, err := a.connect(ctx, request)
+	if err != nil {
+		return apns.AppIDResult{}, err
+	}
+	defer portal.saveSession()
+
+	teamID, err := portal.chooseTeam(ctx, request.TeamID)
+	if err != nil {
+		return apns.AppIDResult{}, err
+	}
+	result := apns.AppIDResult{TeamID: teamID}
+	found, err := portal.appID(ctx, teamID, appID.BundleID)
+	if err != nil {
+		return result, err
+	}
+	if found == nil {
+		if appID.Ask {
+			register, err := confirm(request.Asker, fmt.Sprintf("%s is not registered as an App ID on team %s, so APNs refuses pushes for it. Register it with Push Notifications?", appID.BundleID, teamID))
+			if err != nil || !register {
+				return result, err
+			}
+		}
+		if found, err = portal.createAppID(ctx, teamID, appID.BundleID, appIDName(appID.BundleID)); err != nil {
+			return result, err
+		}
+		result.Created = true
+	}
+	result.Registered = true
+	if !found.Push {
+		// Registering it was already agreed to as "with Push Notifications".
+		if appID.Ask && !result.Created {
+			turnOn, err := confirm(request.Asker, fmt.Sprintf("Push Notifications is off for %s, so APNs refuses pushes for it. Turn it on?", appID.BundleID))
+			if err != nil || !turnOn {
+				return result, err
+			}
+		}
+		if err := portal.enablePush(ctx, teamID, found); err != nil {
+			return result, err
+		}
+		result.PushTurnedOn = true
+	}
+	result.Push = found.Push
+
+	return result, nil
+}
+
+// appIDName is the App ID's description in the portal, which allows only
+// letters, digits and spaces.
+func appIDName(bundleID string) string {
+	name := strings.Map(func(r rune) rune {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' {
+			return r
+		}
+
+		return ' '
+	}, bundleID)
+
+	return strings.Join(strings.Fields(name), " ")
+}
+
+func confirm(asker apns.Asker, question string) (bool, error) {
+	choice, err := asker.Choose(question, []string{"Yes", "No"})
+
+	return choice == 0, err
+}
+
 func sessionPath(dir string) string {
 	if dir == "" {
 		return ""

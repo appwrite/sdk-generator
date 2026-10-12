@@ -60,3 +60,25 @@ func P8() string {
 
 	return string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: encoded}))
 }
+
+// AppIDAdapter is an Adapter that also prepares App IDs: it records each
+// call and returns Result, or AppIDErr when set.
+type AppIDAdapter struct {
+	Adapter
+	Result        apns.AppIDResult
+	AppIDErr      error
+	AppIDRequests []apns.AppIDRequest
+	// AppIDSignIns are the sign-in requests each call came with.
+	AppIDSignIns []apns.Request
+}
+
+// PrepareAppID records the call and returns Result or AppIDErr.
+func (a *AppIDAdapter) PrepareAppID(_ context.Context, request apns.Request, appID apns.AppIDRequest) (apns.AppIDResult, error) {
+	a.AppIDRequests = append(a.AppIDRequests, appID)
+	a.AppIDSignIns = append(a.AppIDSignIns, request)
+	if a.AppIDErr != nil {
+		return apns.AppIDResult{}, a.AppIDErr
+	}
+
+	return a.Result, nil
+}

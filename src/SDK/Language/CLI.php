@@ -1173,6 +1173,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/appid.go',
+                'template'      => 'cli/internal/apns/appwrite/appid.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/apns/appwrite/auth.go',
                 'template'      => 'cli/internal/apns/appwrite/auth.go',
             ],

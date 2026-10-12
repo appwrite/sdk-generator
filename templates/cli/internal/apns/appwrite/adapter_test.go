@@ -58,6 +58,13 @@ type fakeApple struct {
 	clientA  []byte
 	verifier *big.Int
 	created  map[string]map[string]any
+	// appIDs are the team's App IDs by identifier.
+	appIDs map[string]*fakeAppID
+}
+
+type fakeAppID struct {
+	id   string
+	push bool
 }
 
 func newFakeApple(t *testing.T) *fakeApple {
@@ -66,6 +73,7 @@ func newFakeApple(t *testing.T) *fakeApple {
 		teams:   []Team{{ID: "ABCDE12345", Name: "Example Inc", Type: "Company/Organization"}},
 		salt:    []byte("0123456789abcdef"),
 		created: map[string]map[string]any{},
+		appIDs:  map[string]*fakeAppID{},
 	}
 }
 
@@ -241,6 +249,14 @@ func (f *fakeApple) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		f.portal(w, r, strings.TrimPrefix(r.URL.Path, "/services-account/QH65B2/"), params)
 
+	case strings.HasPrefix(r.URL.Path, "/services-account/v1/"):
+		if !f.signedIn(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+
+			return
+		}
+		f.connectAPI(w, r, strings.TrimPrefix(r.URL.Path, "/services-account/v1/"), params)
+
 	default:
 		f.t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
 		w.WriteHeader(http.StatusNotFound)
@@ -301,6 +317,72 @@ func (f *fakeApple) portal(w http.ResponseWriter, r *http.Request, path string, 
 		_, _ = w.Write([]byte(testP8))
 	default:
 		f.t.Errorf("unexpected portal call %s", path)
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
+// connectAPI plays the portal's App ID API as a web session uses it: reads
+// are POSTs with X-HTTP-Method-Override: GET and the query in the body.
+func (f *fakeApple) connectAPI(w http.ResponseWriter, r *http.Request, path string, params map[string]any) {
+	if r.Header.Get("Content-Type") != "application/vnd.api+json" || r.Header.Get("X-Requested-With") != "XMLHttpRequest" {
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+
+		return
+	}
+	switch {
+	case path == "bundleIds" && r.Method == http.MethodPost && r.Header.Get("X-HTTP-Method-Override") == http.MethodGet:
+		query, _ := url.ParseQuery(fmt.Sprint(params["urlEncodedQueryParams"]))
+		if params["teamId"] != "ABCDE12345" || query.Get("include") != "bundleIdCapabilities" {
+			f.t.Errorf("list App IDs params = %v", params)
+		}
+		data := []map[string]any{}
+		included := []map[string]any{}
+		for identifier, appID := range f.appIDs {
+			// Like Apple, the filter matches by prefix.
+			if !strings.HasPrefix(identifier, query.Get("filter[identifier]")) {
+				continue
+			}
+			capabilities := []map[string]any{{"type": "bundleIdCapabilities", "id": appID.id + "_IN_APP_PURCHASE"}}
+			included = append(included, map[string]any{"type": "bundleIdCapabilities", "id": appID.id + "_IN_APP_PURCHASE", "attributes": map[string]any{"capabilityType": "IN_APP_PURCHASE"}})
+			if appID.push {
+				capabilities = append(capabilities, map[string]any{"type": "bundleIdCapabilities", "id": appID.id + "_PUSH_NOTIFICATIONS"})
+				included = append(included, map[string]any{"type": "bundleIdCapabilities", "id": appID.id + "_PUSH_NOTIFICATIONS", "attributes": map[string]any{"capabilityType": "PUSH_NOTIFICATIONS"}})
+			}
+			data = append(data, map[string]any{
+				"type":          "bundleIds",
+				"id":            appID.id,
+				"attributes":    map[string]any{"identifier": identifier, "seedId": "ABCDE12345", "platform": "IOS"},
+				"relationships": map[string]any{"bundleIdCapabilities": map[string]any{"data": capabilities}},
+			})
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"data": data, "included": included})
+	case path == "bundleIds" && r.Method == http.MethodPost:
+		data, _ := params["data"].(map[string]any)
+		attributes, _ := data["attributes"].(map[string]any)
+		identifier, _ := attributes["identifier"].(string)
+		name, _ := attributes["name"].(string)
+		if attributes["teamId"] != "ABCDE12345" || attributes["platform"] != "IOS" || identifier == "" || strings.ContainsAny(name, ".-_") {
+			writeJSON(w, http.StatusConflict, map[string]any{"errors": []map[string]any{{"status": "409", "detail": "An attribute value is invalid."}}})
+
+			return
+		}
+		appID := &fakeAppID{id: "APPID" + fmt.Sprint(len(f.appIDs)+1)}
+		f.appIDs[identifier] = appID
+		writeJSON(w, http.StatusCreated, map[string]any{"data": map[string]any{"type": "bundleIds", "id": appID.id, "attributes": attributes}})
+	case strings.HasPrefix(path, "bundleIds/") && r.Method == http.MethodPatch:
+		encoded, _ := json.Marshal(params)
+		for _, appID := range f.appIDs {
+			if path == "bundleIds/"+appID.id && strings.Contains(string(encoded), `"id":"PUSH_NOTIFICATIONS"`) && strings.Contains(string(encoded), `"enabled":true`) && strings.Contains(string(encoded), `"teamId":"ABCDE12345"`) {
+				appID.push = true
+				writeJSON(w, http.StatusOK, map[string]any{"data": map[string]any{"type": "bundleIds", "id": appID.id}})
+
+				return
+			}
+		}
+		f.t.Errorf("unexpected App ID update %s %s", path, encoded)
+		w.WriteHeader(http.StatusNotFound)
+	default:
+		f.t.Errorf("unexpected App ID call %s %s", r.Method, path)
 		w.WriteHeader(http.StatusNotFound)
 	}
 }
@@ -690,6 +772,100 @@ func TestResetSignsInAgain(t *testing.T) {
 	}
 	if strings.Contains(strings.Join(fake.requests, ","), "/appleauth/") {
 		t.Errorf("signed in again after a reset: %v", fake.requests)
+	}
+}
+
+// prepareAppID signs in with the saved session of a first run, then prepares
+// com.example.app on the fake.
+func prepareAppID(t *testing.T, fake *fakeApple, asker *scriptedAsker, ask bool) (apns.AppIDResult, error) {
+	t.Helper()
+	dir := t.TempDir()
+	env := map[string]string{"APPWRITE_APPLE_ID": testAppleID, "APPWRITE_APPLE_PASSWORD": testPassword}
+	first, _ := newTestClient(t, fake, &scriptedAsker{answers: map[string][]string{"Enter the 6-di": {testCode}}}, dir, env)
+	if _, err := first.CreateKey(context.Background(), "ABCDE12345", "Appwrite Push", apns.EnvironmentAll); err != nil {
+		t.Fatal(err)
+	}
+	client, _ := newTestClient(t, fake, asker, dir, env)
+	client.request.TeamID = "ABCDE12345"
+	fake.requests = nil
+
+	return client.adapter.PrepareAppID(context.Background(), client.request, apns.AppIDRequest{BundleID: "com.example.app", Ask: ask})
+}
+
+const registerQuestion = "com.example.app is not registered as an App ID on team ABCDE12345, so APNs refuses pushes for it. Register it with Push Notifications?"
+
+func TestPrepareAppIDRegistersAMissingAppIDWithPush(t *testing.T) {
+	fake := newFakeApple(t)
+	// Only a longer identifier exists, which the portal's prefix filter also returns.
+	fake.appIDs["com.example.app.widget"] = &fakeAppID{id: "WIDGET", push: true}
+	asker := &scriptedAsker{choices: map[string]int{registerQuestion: 0}}
+
+	result, err := prepareAppID(t, fake, asker, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Created || !result.PushTurnedOn || !result.Registered || !result.Push || result.TeamID != "ABCDE12345" {
+		t.Errorf("result = %+v", result)
+	}
+	appID := fake.appIDs["com.example.app"]
+	if appID == nil || !appID.push {
+		t.Fatalf("App ID = %+v", appID)
+	}
+	// One question covers registering it with push.
+	if strings.Join(asker.asked, "|") != registerQuestion {
+		t.Errorf("asked %v", asker.asked)
+	}
+}
+
+func TestPrepareAppIDTurnsOnPush(t *testing.T) {
+	fake := newFakeApple(t)
+	fake.appIDs["com.example.app"] = &fakeAppID{id: "EXISTING"}
+	asker := &scriptedAsker{}
+
+	result, err := prepareAppID(t, fake, asker, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Created || !result.PushTurnedOn || !result.Push || !fake.appIDs["com.example.app"].push {
+		t.Errorf("result = %+v", result)
+	}
+	if len(asker.asked) != 0 || contains(fake.requests, "POST /services-account/v1/bundleIds/EXISTING") {
+		t.Errorf("asked %v, requests %v", asker.asked, fake.requests)
+	}
+}
+
+func TestPrepareAppIDLeavesAReadyAppIDAlone(t *testing.T) {
+	fake := newFakeApple(t)
+	fake.appIDs["com.example.app"] = &fakeAppID{id: "READY", push: true}
+
+	result, err := prepareAppID(t, fake, &scriptedAsker{}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Created || result.PushTurnedOn || !result.Registered || !result.Push {
+		t.Errorf("result = %+v", result)
+	}
+	if contains(fake.requests, "PATCH /services-account/v1/bundleIds/READY") {
+		t.Errorf("changed a ready App ID: %v", fake.requests)
+	}
+}
+
+func TestPrepareAppIDChangesNothingWhenDeclined(t *testing.T) {
+	fake := newFakeApple(t)
+	asker := &scriptedAsker{choices: map[string]int{registerQuestion: 1}}
+
+	result, err := prepareAppID(t, fake, asker, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Registered || result.Created || len(fake.appIDs) != 0 {
+		t.Errorf("result = %+v, App IDs %v", result, fake.appIDs)
+	}
+}
+
+func TestAppIDNameKeepsLettersAndDigits(t *testing.T) {
+	if name := appIDName("io.appwrite.push-test_2"); name != "io appwrite push test 2" {
+		t.Errorf("name = %q", name)
 	}
 }
 {% endverbatim %}
