@@ -504,7 +504,10 @@ abstract class JS extends Language
         }
 
         $shapes = [];
-        foreach ($method->responses as $response) {
+        foreach ($method->responses as $code => $response) {
+            if (!\str_starts_with((string) $code, '2')) {
+                continue;
+            }
             foreach ($response->content as $mediaType) {
                 if ($mediaType->schema !== null) {
                     $shapes[] = $this->getDefaultsShape($mediaType->schema, $spec);

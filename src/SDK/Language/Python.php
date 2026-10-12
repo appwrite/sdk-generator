@@ -725,8 +725,8 @@ class Python extends Language
         return match (true) {
             $value === null => 'None',
             \is_bool($value) => $value ? 'True' : 'False',
-            \is_string($value) => "'" . \str_replace(['\\"', "'"], ['"', "\\'"], \substr(\json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '""', 1, -1)) . "'",
-            default => \json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: 'None',
+            \is_string($value) => "'" . \str_replace(['\\"', "'"], ['"', "\\'"], \substr(\json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 1, -1)) . "'",
+            default => \json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
         };
     }
 

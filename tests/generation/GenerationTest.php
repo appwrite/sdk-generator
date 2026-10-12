@@ -688,6 +688,10 @@ final class GenerationTest extends TestCase
         $twice = \json_decode(\json_encode($preset, JSON_THROW_ON_ERROR), flags: JSON_THROW_ON_ERROR);
         $twice->operationId = 'generalCreatePreset';
         $twice->responses->{'201'} = $twice->responses->{'200'};
+        $twice->responses->{'400'} = (object) [
+            'description' => 'Error',
+            'content' => (object) ['application/json' => (object) ['schema' => (object) ['$ref' => '#/components/schemas/error']]],
+        ];
         $document->paths->{'/mock/tests/general/preset-twice'} = (object) ['get' => $twice];
 
         $sdk = new SDK($this->language('web'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
@@ -805,8 +809,10 @@ final class GenerationTest extends TestCase
         $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
         $document->components->schemas->mock->required[] = 'localizedStatus';
         $document->components->schemas->mock->properties->localizedStatus->default = 'ខេត្ត';
+        $document->components->schemas->zznullablescalars->properties->count->default = 0;
+        $document->components->schemas->zznullablescalars->properties->price->default = 0.0;
 
-        $sdk = new SDK($this->language('python'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk = new SDK($this->language('python'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)));
         $sdk
             ->setName('test')
             ->setVersion('0.0.1')
@@ -816,10 +822,13 @@ final class GenerationTest extends TestCase
             ->generate($dir);
 
         $model = (string) \file_get_contents($dir . '/appwrite/models/mock.py');
+        $scalars = (string) \file_get_contents($dir . '/appwrite/models/zznullablescalars.py');
 
         $this->assertStringContainsString("localizedstatus: LocalizedStatus = Field(..., alias='localizedStatus')", $model);
         $this->assertStringContainsString("@model_validator(mode='before')", $model);
         $this->assertStringContainsString("if 'localizedStatus' not in data and 'localizedstatus' not in data:\n            data['localizedStatus'] = 'ខេត្ត'", $model);
+        $this->assertStringContainsString("data['count'] = 0\n", $scalars);
+        $this->assertStringContainsString("data['price'] = 0.0\n", $scalars);
     }
 
     public function testDotNetModelDefaultsAreLiterals(): void
@@ -932,10 +941,10 @@ final class GenerationTest extends TestCase
                     let map = defaults.merging(map) { _, new in new }
             SWIFT, $model);
         $this->assertStringContainsString('relatedMock: UnionMock.from(map: map["relatedMock"] as! [String: Any])', $model);
-        $this->assertStringContainsString('forKey: .relatedMock) ?? UnionMock.from(map: ["type": "mock", "result": "ok"] as [String: Any])', $model);
-        $this->assertStringContainsString('forKey: .metadataList) ?? ([["enabled": NSNull(), "label": "x", "ratio": 1.0] as [String: Any], [Any]()] as [Any]).map { AnyCodable($0) }', $model);
-        $this->assertStringContainsString('forKey: .zzmocks) ?? ([["type": "mock", "result": "ok"] as [String: Any]] as [Any]).map { UnionMock.from(map: $0 as! [String: Any]) }', $model);
-        $this->assertStringContainsString('forKey: .zzsettings) ?? ([String: Any]()).mapValues { AnyCodable($0) }', $model);
+        $this->assertStringContainsString('self.relatedMock = try container.contains(.relatedMock) ? container.decode(UnionMock.self, forKey: .relatedMock) : UnionMock.from(map: ["type": "mock", "result": "ok"] as [String: Any])', $model);
+        $this->assertStringContainsString('self.metadataList = try container.contains(.metadataList) ? container.decode([AnyCodable].self, forKey: .metadataList) : ([["enabled": NSNull(), "label": "x", "ratio": 1.0] as [String: Any], [Any]()] as [Any]).map { AnyCodable($0) }', $model);
+        $this->assertStringContainsString('self.zzmocks = try container.contains(.zzmocks) ? container.decode([UnionMock].self, forKey: .zzmocks) : ([["type": "mock", "result": "ok"] as [String: Any]] as [Any]).map { UnionMock.from(map: $0 as! [String: Any]) }', $model);
+        $this->assertStringContainsString('self.zzsettings = try container.contains(.zzsettings) ? container.decode([String: AnyCodable].self, forKey: .zzsettings) : ([String: Any]()).mapValues { AnyCodable($0) }', $model);
     }
 
     public function testGoModelCommentsAreNotHtmlEscaped(): void
