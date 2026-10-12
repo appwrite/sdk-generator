@@ -34,7 +34,7 @@ class {{ definitionName | caseUcfirst | overrideIdentifier }} implements Model {
 {% if defaultedProperties is not empty %}
     map = {
 {% for property in defaultedProperties %}
-      '{{ (property | schemaName) | escapeDollarSign }}': {{ property | schemaDefault | dartLiteral }},
+      '{{ (property | schemaName) | escapeDollarSign }}': {{ property | dartDefault }},
 {% endfor %}
       ...map,
     };

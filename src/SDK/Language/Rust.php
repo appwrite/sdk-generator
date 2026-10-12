@@ -867,7 +867,9 @@ class Rust extends Language
     protected function getModelDefault(Schema $property, ?Specification $spec = null): string
     {
         $value = $this->getSchema($property)->default;
-        $json = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+        $json = is_array($value) && $this->getSchemaType($property) === self::TYPE_OBJECT
+            ? $this->getRustJsonMap($value)
+            : $this->getRustJson($value);
 
         return match ($this->getTypeName($property, $spec)) {
             'String' => $json . '.to_string()',
@@ -876,6 +878,45 @@ class Rust extends Language
             'serde_json::Value' => 'serde_json::json!(' . $json . ')',
             default => 'serde_json::from_value(serde_json::json!(' . $json . ')).unwrap()',
         };
+    }
+
+    protected function getRustJson(mixed $value): string
+    {
+        return match (true) {
+            is_string($value) => $this->getRustString($value),
+            is_array($value) && array_is_list($value) => '[' . implode(', ', array_map($this->getRustJson(...), $value)) . ']',
+            is_array($value) => $this->getRustJsonMap($value),
+            default => json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+        };
+    }
+
+    protected function getRustJsonMap(array $value): string
+    {
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $pairs[] = $this->getRustString((string) $key) . ': ' . $this->getRustJson($item);
+        }
+
+        return '{' . implode(', ', $pairs) . '}';
+    }
+
+    protected function getRustString(string $value): string
+    {
+        $escaped = preg_replace_callback(
+            '/[\\\\"\x00-\x1f\x7f]/',
+            static fn(array $match): string => match ($match[0]) {
+                '\\' => '\\\\',
+                '"' => '\\"',
+                "\n" => '\\n',
+                "\r" => '\\r',
+                "\t" => '\\t',
+                "\0" => '\\0',
+                default => sprintf('\\u{%02x}', ord($match[0])),
+            },
+            $value,
+        );
+
+        return '"' . $escaped . '"';
     }
 
     /**

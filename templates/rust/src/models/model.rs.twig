@@ -43,14 +43,13 @@ pub struct {{ definitionName | caseUcfirst | overrideIdentifier }} {
 {% set propertyName = (property | schemaName) %}
 {% set fieldName = propertyName matches '/^_?[A-Z_]+$/' ? propertyName | lower | trim('_') : propertyName | caseSnake %}
 {% set fieldName = fieldName | overrideIdentifier %}
-{% set fieldType = property | propertyType(spec) | rustType %}
 
 {% if property | schemaNullable %}
-fn default_{{ fieldName | replace({'r#': ''}) }}() -> Option<{{ fieldType }}> {
+fn default_{{ fieldName | replace({'r#': ''}) }}() -> Option<{{ property | propertyType(spec) | rustType }}> {
     Some({{ property | rustDefault(spec) }})
 }
 {% else %}
-fn default_{{ fieldName | replace({'r#': ''}) }}() -> {{ fieldType }} {
+fn default_{{ fieldName | replace({'r#': ''}) }}() -> {{ property | propertyType(spec) | rustType }} {
     {{ property | rustDefault(spec) }}
 }
 {% endif %}

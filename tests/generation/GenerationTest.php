@@ -758,6 +758,30 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('mocks = ((if (map.containsKey("mocks")) map["mocks"] else listOf<Any?>(mapOf<String, Any?>("result" to "ok"))) as List<Map<String, Any>>).map { Mock.from(map = it) }', $model, "{$name}/{$platform}");
     }
 
+    public function testModelDefaultsFollowTheTargetLiteralSyntax(): void
+    {
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR);
+        $document['components']['schemas']['mock']['required'][] = 'settings';
+        $document['components']['schemas']['mock']['required'][] = 'metadataList';
+        $document['components']['schemas']['mock']['properties']['metadataList']['default'] = [];
+        $document['components']['schemas']['mock']['properties']['result']['default'] = "a\u{8}b";
+        $document['components']['schemas']['mock']['properties']['settings'] = [
+            'type' => 'object',
+            'description' => 'Settings.',
+            'additionalProperties' => true,
+            'default' => [],
+        ];
+
+        $rust = $this->generateDocument($document, 'rust', 'defaults');
+        $dotnet = $this->generateDocument($document, 'dotnet', 'defaults');
+        $dart = $this->generateDocument($document, 'dart', 'defaults');
+
+        $this->assertStringContainsString('"a\\u{08}b".to_string()', $rust['src/models/mock.rs']);
+        $this->assertStringContainsString('fn default_metadata_list() -> Vec<serde_json::Value> {', $rust['src/models/mock.rs']);
+        $this->assertStringContainsString('map["settings"] : new Dictionary<string, object>())', $dotnet['Appwrite/Models/Mock.cs']);
+        $this->assertStringContainsString("'settings': <String, dynamic>{},", $dart['lib/src/models/mock.dart']);
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);
