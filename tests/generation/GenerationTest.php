@@ -859,6 +859,50 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString("'settings': <String, dynamic>{},", $dart['lib/src/models/mock.dart']);
     }
 
+    public function testSwiftModelDefaultsAreLiterals(): void
+    {
+        $dir = self::OUTPUT . '/swift/defaults';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $mock = $document->components->schemas->mock;
+        $mock->required = [...$mock->required, 'status', 'relatedMock', 'metadataList', 'zzsettings', 'zzratio', 'zzmocks'];
+        $mock->properties->status->default = 'active';
+        $mock->properties->relatedMock->default = (object) ['type' => 'mock', 'result' => 'ok'];
+        $mock->properties->metadataList->default = [(object) ['enabled' => null, 'label' => 'x'], (object) []];
+        $mock->properties->zzsettings = (object) ['type' => 'object', 'additionalProperties' => true, 'default' => (object) []];
+        $mock->properties->zzratio = (object) ['type' => 'number', 'default' => 1];
+        $mock->properties->zzmocks = (object) ['type' => 'array', 'items' => (object) ['$ref' => '#/components/schemas/unionMock'], 'default' => [(object) ['type' => 'mock', 'result' => 'ok']]];
+
+        $sdk = new SDK($this->language('swift'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $model = (string) \file_get_contents($dir . '/Sources/AppwriteModels/Mock.swift');
+
+        $this->assertStringContainsString(<<<'SWIFT'
+                    let defaults: [String: Any] = [
+                        "status": "active",
+                        "relatedMock": ["type": "mock", "result": "ok"] as [String: Any],
+                        "metadataList": [["enabled": NSNull(), "label": "x"] as [String: Any], [Any]()] as [Any],
+                        "zzsettings": [String: Any](),
+                        "zzratio": 1.0,
+                        "zzmocks": [["type": "mock", "result": "ok"] as [String: Any]] as [Any],
+                    ]
+                    let map = defaults.merging(map) { _, new in new }
+            SWIFT, $model);
+        $this->assertStringContainsString('relatedMock: UnionMock.from(map: map["relatedMock"] as! [String: Any])', $model);
+        $this->assertStringContainsString('forKey: .relatedMock) ?? UnionMock.from(map: ["type": "mock", "result": "ok"] as [String: Any])', $model);
+        $this->assertStringContainsString('forKey: .metadataList) ?? ([["enabled": NSNull(), "label": "x"] as [String: Any], [Any]()] as [Any]).map { AnyCodable($0) }', $model);
+        $this->assertStringContainsString('forKey: .zzmocks) ?? ([["type": "mock", "result": "ok"] as [String: Any]] as [Any]).map { UnionMock.from(map: $0 as! [String: Any]) }', $model);
+        $this->assertStringContainsString('forKey: .zzsettings) ?? ([String: Any]()).mapValues { AnyCodable($0) }', $model);
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);
