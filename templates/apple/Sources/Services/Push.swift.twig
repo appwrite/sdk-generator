@@ -1495,6 +1495,11 @@ extension Push {
             push.surface(error)
         }
         apnsLocked { _ = apnsLinked[targetId]?.remove(topic) }
+        // Back in a background subscription while the delete was in flight: `link` saw the topic
+        // still linked then and skipped it, so link it again now.
+        if push.backgroundTopics().contains(topic) {
+            await link(push, targetId: targetId, topic: topic)
+        }
     }
 
     // MARK: Delivery
