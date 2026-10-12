@@ -619,6 +619,7 @@ class Swift extends Language
                 return '.' . $resolveKey($value);
             }),
             new TwigFilter('modelToMapValue', fn(Schema $property, string $name, bool $required): string => $this->getModelToMapValue($property, $name, $required), ['is_safe' => ['html']]),
+            new TwigFilter('swiftLiteral', fn(mixed $value): string => $this->swiftLiteral($value, 0), ['is_safe' => ['html']]),
             new TwigFilter('swiftDoc', fn(string $value, int $width = 75, string $prefix = '    ///'): string => $this->swiftDoc($value, $width, $prefix), ['is_safe' => ['html']]),
         ];
     }
