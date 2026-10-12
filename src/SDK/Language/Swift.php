@@ -482,6 +482,7 @@ class Swift extends Language
         return match (true) {
             $value === null => 'NSNull()',
             $double && is_int($value) => $value . '.0',
+            is_float($value) => var_export($value, true),
             default => $this->swiftLiteral($value, 0),
         };
     }

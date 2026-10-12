@@ -866,15 +866,16 @@ final class GenerationTest extends TestCase
 
         $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
         $mock = $document->components->schemas->mock;
-        $mock->required = [...$mock->required, 'status', 'relatedMock', 'metadataList', 'zzsettings', 'zzratio', 'zzmocks'];
+        $mock->required = [...$mock->required, 'status', 'relatedMock', 'metadataList', 'zzsettings', 'zzratio', 'zzweight', 'zzmocks'];
         $mock->properties->status->default = 'active';
         $mock->properties->relatedMock->default = (object) ['type' => 'mock', 'result' => 'ok'];
-        $mock->properties->metadataList->default = [(object) ['enabled' => null, 'label' => 'x'], (object) []];
+        $mock->properties->metadataList->default = [(object) ['enabled' => null, 'label' => 'x', 'ratio' => 1.0], (object) []];
         $mock->properties->zzsettings = (object) ['type' => 'object', 'additionalProperties' => true, 'default' => (object) []];
         $mock->properties->zzratio = (object) ['type' => 'number', 'default' => 1];
+        $mock->properties->zzweight = (object) ['type' => 'number', 'default' => 2.0];
         $mock->properties->zzmocks = (object) ['type' => 'array', 'items' => (object) ['$ref' => '#/components/schemas/unionMock'], 'default' => [(object) ['type' => 'mock', 'result' => 'ok']]];
 
-        $sdk = new SDK($this->language('swift'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk = new SDK($this->language('swift'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)));
         $sdk
             ->setName('test')
             ->setVersion('0.0.1')
@@ -889,16 +890,17 @@ final class GenerationTest extends TestCase
                     let defaults: [String: Any] = [
                         "status": "active",
                         "relatedMock": ["type": "mock", "result": "ok"] as [String: Any],
-                        "metadataList": [["enabled": NSNull(), "label": "x"] as [String: Any], [Any]()] as [Any],
+                        "metadataList": [["enabled": NSNull(), "label": "x", "ratio": 1.0] as [String: Any], [Any]()] as [Any],
                         "zzsettings": [String: Any](),
                         "zzratio": 1.0,
+                        "zzweight": 2.0,
                         "zzmocks": [["type": "mock", "result": "ok"] as [String: Any]] as [Any],
                     ]
                     let map = defaults.merging(map) { _, new in new }
             SWIFT, $model);
         $this->assertStringContainsString('relatedMock: UnionMock.from(map: map["relatedMock"] as! [String: Any])', $model);
         $this->assertStringContainsString('forKey: .relatedMock) ?? UnionMock.from(map: ["type": "mock", "result": "ok"] as [String: Any])', $model);
-        $this->assertStringContainsString('forKey: .metadataList) ?? ([["enabled": NSNull(), "label": "x"] as [String: Any], [Any]()] as [Any]).map { AnyCodable($0) }', $model);
+        $this->assertStringContainsString('forKey: .metadataList) ?? ([["enabled": NSNull(), "label": "x", "ratio": 1.0] as [String: Any], [Any]()] as [Any]).map { AnyCodable($0) }', $model);
         $this->assertStringContainsString('forKey: .zzmocks) ?? ([["type": "mock", "result": "ok"] as [String: Any]] as [Any]).map { UnionMock.from(map: $0 as! [String: Any]) }', $model);
         $this->assertStringContainsString('forKey: .zzsettings) ?? ([String: Any]()).mapValues { AnyCodable($0) }', $model);
     }
