@@ -28,11 +28,20 @@ func (model {{ definitionName | caseUcfirst }}) New(data []byte) *{{ definitionN
 {%~ if defaults is not empty %}
 func (model *{{ definitionName | caseUcfirst }}) UnmarshalJSON(data []byte) error {
 	type alias {{ definitionName | caseUcfirst }}
-	if err := json.Unmarshal([]byte({{ defaults | goJsonString }}), (*alias)(model)); err != nil {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal([]byte({{ defaults | goJsonString }}), &fields); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, &fields); err != nil {
 		return err
 	}
 
-	return json.Unmarshal(data, (*alias)(model))
+	merged, err := json.Marshal(fields)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(merged, (*alias)(model))
 }
 
 {%~ endif %}
