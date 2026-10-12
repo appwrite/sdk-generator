@@ -623,6 +623,73 @@ class Kotlin extends Language
             }
         }
 
+        $assignment = $this->getPropertyRead($property, $spec, $propertyName, $required);
+        $default = $required ? $this->getDefaultLiteral($property, $spec) : null;
+        if ($default === null) {
+            return $assignment;
+        }
+
+        return 'if (map.containsKey(' . $this->getStringLiteral($propertyName, 'kotlin') . ')) '
+            . $assignment . ' else ' . $default;
+    }
+
+    protected function getDefaultLiteral(Schema $property, Specification $spec): ?string
+    {
+        $default = $this->getSchema($property)->default;
+        if ($default === null || $this->getSchemaModel($property) !== null) {
+            return null;
+        }
+
+        if ($this->usesEnumType($property)) {
+            return !($property instanceof ArraySchema) && \is_string($default)
+                ? $this->toPascalCase($this->getSchemaEnumName($property, $spec))
+                    . '.values().first { it.value == ' . $this->getStringLiteral($default, 'kotlin') . ' }'
+                : null;
+        }
+
+        return $this->getValueLiteral($default, $this->getSchemaType($property));
+    }
+
+    protected function getValueLiteral(mixed $value, string $type = ''): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (\is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (\is_int($value) || \is_float($value)) {
+            $numberType = $type === self::TYPE_NUMBER || ($type !== self::TYPE_INTEGER && \is_float($value))
+                ? self::TYPE_NUMBER
+                : self::TYPE_INTEGER;
+
+            return $this->getNumberLiteral($value, $numberType, 'kotlin');
+        }
+
+        if (\is_string($value)) {
+            return $this->getStringLiteral($value, 'kotlin');
+        }
+
+        if (\is_object($value)) {
+            $value = \get_object_vars($value);
+        }
+
+        if (\is_array($value) && \array_is_list($value)) {
+            return 'listOf(' . \implode(', ', \array_map(fn(mixed $item): string => $this->getValueLiteral($item), $value)) . ')';
+        }
+
+        $pairs = [];
+        foreach ((array) $value as $key => $item) {
+            $pairs[] = $this->getStringLiteral((string) $key, 'kotlin') . ' to ' . $this->getValueLiteral($item);
+        }
+
+        return 'mapOf(' . \implode(', ', $pairs) . ')';
+    }
+
+    protected function getPropertyRead(Schema $property, Specification $spec, string $propertyName, bool $required): string
+    {
         $mapKey = 'map["' . \str_replace('$', '\\$', $propertyName) . '"]';
         $model = $this->getSchemaModel($property);
         if ($model !== null) {
