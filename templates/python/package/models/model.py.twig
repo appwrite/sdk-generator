@@ -1,8 +1,9 @@
 {% set hasGenericProperty = definition.properties|hasGenericTypeProperty(spec) %}
 {% set isGeneric = definition.additionalProperties or hasGenericProperty %}
+{% set defaulted = definition.properties | filter(property => (property | schemaRequired) and (property | schemaDefault) is not null) %}
 from typing import Any, Dict, List, Optional, Union, cast{% if isGeneric %}, Generic, TypeVar, Type{% endif %}
 
-from pydantic import Field, PrivateAttr{{ definition.additionalProperties ? ', TypeAdapter, model_serializer' : '' }}
+from pydantic import Field, PrivateAttr{{ definition.additionalProperties ? ', TypeAdapter' : '' }}{{ defaulted is not empty ? ', model_validator' : '' }}{{ definition.additionalProperties ? ', model_serializer' : '' }}
 
 from .base_model import AppwriteModel
 {% set added = [] %}
@@ -65,9 +66,25 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
 {% set baseType = property | getModelPropertyType(definitionName, spec) | raw %}
 {% set propType %}{% if (property | schemaModel) and (property | schemaModel) | hasGenericType(spec) %}{{ baseType | replace({((property | schemaModel) | caseUcfirst): ((property | schemaModel) | caseUcfirst) ~ '[T]'}) }}{% else %}{{ baseType }}{% endif %}{% endset %}
 {% set fieldType %}{% if not (property | schemaRequired) %}Optional[{{ propType | trim }}]{% else %}{{ propType | trim }}{% endif %}{% endset %}
-{% set field %}    {{ property | getModelFieldName(definition.properties) }}: {{ fieldType | trim | formatModelFieldType | raw }} = Field({% if (property | schemaRequired) and (property | schemaDefault) is not null %}default={{ property | schemaDefault | pythonLiteral | raw }}{% elseif (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}'){% endset %}
+{% set field %}    {{ property | getModelFieldName(definition.properties) }}: {{ fieldType | trim | formatModelFieldType | raw }} = Field({% if (property | schemaRequired) %}...{% else %}default=None{% endif %}, alias='{{ (property | schemaName) }}'){% endset %}
 {{ field | formatCall | raw }}
 {% endfor %}
+{% endif %}
+{% if defaulted is not empty %}
+
+    @model_validator(mode='before')
+    @classmethod
+    def _apply_defaults(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        data = dict(data)
+{% for property in defaulted %}
+{% set fieldName = property | getModelFieldName(definition.properties) %}
+        if '{{ property | schemaName }}' not in data{% if fieldName != (property | schemaName) %} and '{{ fieldName }}' not in data{% endif %}:
+            data['{{ property | schemaName }}'] = {{ property | schemaDefault | pythonLiteral | raw }}
+{% endfor %}
+        return data
 {% endif %}
 {% if isGeneric %}
 

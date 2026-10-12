@@ -687,6 +687,31 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('related_mock: UnionMock.from(map: map["relatedMock"])', $model);
     }
 
+    public function testPythonModelDefaultsAreValidated(): void
+    {
+        $dir = self::OUTPUT . '/python/defaults';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $document->components->schemas->mock->required[] = 'localizedStatus';
+        $document->components->schemas->mock->properties->localizedStatus->default = 'ខេត្ត';
+
+        $sdk = new SDK($this->language('python'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $model = (string) \file_get_contents($dir . '/appwrite/models/mock.py');
+
+        $this->assertStringContainsString("localizedstatus: LocalizedStatus = Field(..., alias='localizedStatus')", $model);
+        $this->assertStringContainsString("@model_validator(mode='before')", $model);
+        $this->assertStringContainsString("if 'localizedStatus' not in data and 'localizedstatus' not in data:\n            data['localizedStatus'] = 'ខេត្ត'", $model);
+    }
+
     public function testDotNetModelDefaultsAreLiterals(): void
     {
         $dir = self::OUTPUT . '/dotnet/defaults';
