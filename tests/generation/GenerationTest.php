@@ -657,6 +657,83 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testWebNestedResponseDefaultsAreApplied(): void
+    {
+        $dir = self::OUTPUT . '/web/defaults';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $preset = $document->paths->{'/mock/tests/general/preset'}->get;
+        $reference = (object) ['$ref' => '#/components/schemas/preset'];
+        $document->components->schemas->preset->properties->parent = $reference;
+        $document->components->schemas->presetList = (object) [
+            'type' => 'object',
+            'properties' => (object) [
+                'total' => (object) ['type' => 'integer'],
+                'presets' => (object) ['type' => 'array', 'items' => $reference],
+            ],
+            'required' => ['total', 'presets'],
+        ];
+
+        $list = \json_decode(\json_encode($preset, JSON_THROW_ON_ERROR), flags: JSON_THROW_ON_ERROR);
+        $list->operationId = 'generalListPresets';
+        $list->responses->{'200'}->content->{'application/json'}->schema = (object) ['$ref' => '#/components/schemas/presetList'];
+        $document->paths->{'/mock/tests/general/presets'} = (object) ['get' => $list];
+
+        $array = \json_decode(\json_encode($preset, JSON_THROW_ON_ERROR), flags: JSON_THROW_ON_ERROR);
+        $array->operationId = 'generalListPresetArray';
+        $array->responses->{'200'}->content->{'application/json'}->schema = (object) ['type' => 'array', 'items' => $reference];
+        $document->paths->{'/mock/tests/general/preset-array'} = (object) ['get' => $array];
+
+        $sdk = new SDK($this->language('web'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('client')
+            ->setTest('true')
+            ->generate($dir);
+
+        $service = (string) \file_get_contents($dir . '/src/services/general.ts');
+
+        $this->assertStringNotContainsString('...response', $service);
+        $this->assertSame(3, \substr_count($service, 'return request.then((response) => applyDefaults(response, defaults));'));
+        $this->assertStringContainsString(<<<'TS'
+                    const defaults = {
+                        defaults: {
+                            name: 'guest',
+                            count: 25,
+                            enabled: true,
+                        },
+                    };
+            TS, $service);
+        $this->assertStringContainsString(<<<'TS'
+                    const defaults = {
+                        properties: {
+                            presets: {
+                                items: {
+                                    defaults: {
+                                        name: 'guest',
+                                        count: 25,
+                                        enabled: true,
+                                    },
+                                },
+                            },
+                        },
+                    };
+            TS, $service);
+        $this->assertStringContainsString(<<<'TS'
+                    const defaults = {
+                        items: {
+                            defaults: {
+                                name: 'guest',
+                                count: 25,
+                                enabled: true,
+                            },
+                        },
+                    };
+            TS, $service);
+    }
+
     public function testRubyModelDefaultsAreLiterals(): void
     {
         $dir = self::OUTPUT . '/ruby/defaults';

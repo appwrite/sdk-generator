@@ -1,7 +1,9 @@
 {% set usesUpload = false %}
 {% set usesModels = false %}
 {% set usesException = false %}
+{% set usesDefaults = false %}
 {% for method in (service | operations) %}
+{% if (method | responseDefaults(spec, 8)) is not empty %}{% set usesDefaults = true %}{% endif %}
 {% if 'multipart/form-data' in (method | consumes) %}{% set usesUpload = true %}{% endif %}
 {% if 'Models.' in (method | getReturn(spec)) or 'Models.' in ((method | responseModel) | getGenerics(spec)) %}{% set usesModels = true %}{% endif %}
 {% for parameter in (method | parameters('all')) %}
@@ -13,6 +15,7 @@
 {% if usesException %}{% set clientImports = clientImports | merge([(spec.info.title | caseUcfirst) ~ 'Exception']) %}{% endif %}
 {% set clientImports = clientImports | merge(['Client', 'type Payload']) %}
 {% if usesUpload %}{% set clientImports = clientImports | merge(['UploadProgress']) %}{% endif %}
+{% if usesDefaults %}{% set clientImports = clientImports | merge(['applyDefaults']) %}{% endif %}
 {{ clientImports | jsImport('../client') | raw }}
 {% if usesModels %}
 import type { Models } from '../models';
@@ -181,18 +184,14 @@ export class {{ service.name | caseUcfirst }} {
         {%~ else %}
         {%- set callArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}
         {%- if (method | methodType) == 'location' %}{% set callArgs = callArgs|merge(["'arrayBuffer'"]) %}{% elseif (method | textResponse) %}{% set callArgs = callArgs|merge(["'text'"]) %}{% endif %}
-        {%- set defaults = method | responseDefaults(spec) %}
+        {%- set defaults = method | responseDefaults(spec, 8) %}
         {%~ if defaults is empty %}
         return{{ 'this.client.call' | jsArgs(callArgs, 8, ';', 7) | raw }}
         {%~ else %}
         const request ={{ 'this.client.call' | jsArgs(callArgs, 8, ';', 16) | raw }}
+        const defaults = {{ defaults | raw }};
 
-        return request.then((response) => ({
-            {%~ for default in defaults %}
-            {{ default | raw }},
-            {%~ endfor %}
-            ...response,
-        }));
+        return request.then((response) => applyDefaults(response, defaults));
         {%~ endif %}
         {%~ endif %}
     }

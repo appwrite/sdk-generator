@@ -7,6 +7,7 @@ use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\ParameterLocation;
+use Utopia\OpenAPI\Model\ReferenceSchema;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
@@ -495,28 +496,83 @@ abstract class JS extends Language
         return $quote . $escaped . $quote;
     }
 
-    /** @return list<string> */
-    protected function getResponseDefaults(Operation $method, Specification $spec): array
+    protected function getResponseDefaults(Operation $method, Specification $spec, int $indent): string
     {
         $type = $this->getMethodType($method, $spec);
         if ($type === self::METHOD_TYPE_LOCATION || $type === self::METHOD_TYPE_WEB_AUTH || $this->isTextResponse($method, $spec)) {
+            return '';
+        }
+
+        $schemas = [];
+        foreach ($method->responses as $response) {
+            foreach ($response->content as $mediaType) {
+                if ($mediaType->schema !== null) {
+                    $schemas[] = $mediaType->schema;
+                }
+            }
+        }
+        if (\count($schemas) !== 1) {
+            return '';
+        }
+
+        $tree = $this->getDefaultsTree($schemas[0], $spec, []);
+        return $tree === [] ? '' : $this->renderDefaultsTree($tree, $indent);
+    }
+
+    /**
+     * @param list<string> $visiting
+     * @return array{defaults?: array<string, string>, properties?: array<string, array<string, mixed>>, items?: array<string, mixed>}
+     */
+    private function getDefaultsTree(Schema $schema, Specification $spec, array $visiting): array
+    {
+        if ($schema instanceof ArraySchema) {
+            $items = $this->getDefaultsTree($schema->items, $spec, $visiting);
+            return $items === [] ? [] : ['items' => $items];
+        }
+        if (!$schema instanceof ReferenceSchema) {
             return [];
         }
 
-        $models = $this->getOperationResponseModels($method);
-        $model = \count($models) === 1 ? ($spec->schemas[$models[0]] ?? null) : null;
-        if (!$model instanceof ObjectSchema) {
+        $name = $this->normalizeSchemaReference($schema->reference);
+        $model = $spec->schemas[$name] ?? null;
+        if (\in_array($name, $visiting, true) || !$model instanceof ObjectSchema) {
             return [];
         }
 
         $defaults = [];
-        foreach ($model->properties as $name => $property) {
-            $default = $this->getSchema($property)->default;
-            if ($default !== null && \in_array($name, $model->required, true)) {
-                $defaults[] = $this->getObjectKeyLiteral($name) . ': ' . $this->getLiteral($default);
+        $properties = [];
+        foreach ($model->properties as $key => $property) {
+            if ($property->default !== null && \in_array($key, $model->required, true)) {
+                $defaults[$key] = $this->getLiteral($property->default);
+            }
+            $child = $this->getDefaultsTree($property, $spec, [...$visiting, $name]);
+            if ($child !== []) {
+                $properties[$key] = $child;
             }
         }
-        return $defaults;
+
+        return \array_filter(['defaults' => $defaults, 'properties' => $properties], static fn(array $branch): bool => $branch !== []);
+    }
+
+    /** @param array<string, mixed> $tree */
+    private function renderDefaultsTree(array $tree, int $indent): string
+    {
+        $padding = \str_repeat(' ', $indent + 4);
+        $lines = [];
+        foreach ($tree as $branch => $value) {
+            if ($branch === 'items') {
+                $lines[] = $padding . 'items: ' . $this->renderDefaultsTree($value, $indent + 4) . ',';
+                continue;
+            }
+            $members = [];
+            foreach ($value as $key => $member) {
+                $member = $branch === 'defaults' ? $member : $this->renderDefaultsTree($member, $indent + 8);
+                $members[] = $padding . '    ' . $this->getObjectKeyLiteral((string) $key) . ': ' . $member . ',';
+            }
+            $lines[] = $padding . $branch . ": {\n" . \implode("\n", $members) . "\n" . $padding . '},';
+        }
+
+        return "{\n" . \implode("\n", $lines) . "\n" . \str_repeat(' ', $indent) . '}';
     }
 
     protected function getLiteral(mixed $value): string
@@ -565,7 +621,7 @@ abstract class JS extends Language
             new TwigFilter('trimLines', fn(string $value): string => preg_replace('/[ \t]+$/m', '', $value) ?? $value),
             new TwigFilter('jsString', fn(?string $value): string => $this->getStringLiteral($value ?? ''), ['is_safe' => ['html']]),
             new TwigFilter('jsKey', fn(string $value): string => $this->getObjectKeyLiteral($value), ['is_safe' => ['html']]),
-            new TwigFilter('responseDefaults', fn(Operation $method, Specification $spec): array => $this->getResponseDefaults($method, $spec)),
+            new TwigFilter('responseDefaults', fn(Operation $method, Specification $spec, int $indent): string => $this->getResponseDefaults($method, $spec, $indent), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
                 $enumSchema = $this->getEnumSchema($param);

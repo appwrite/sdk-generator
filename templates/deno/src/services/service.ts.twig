@@ -28,7 +28,11 @@
 {% endmacro %}
 import { basename } from "https://deno.land/std@0.122.0/path/mod.ts";
 import { Service } from '../service.ts';
-import { Payload, Client } from '../client.ts';
+{% set usesDefaults = false %}
+{% for method in (service | operations) %}
+{% if (method | responseDefaults(spec, 8)) is not empty %}{% set usesDefaults = true %}{% endif %}
+{% endfor %}
+import { Payload, Client{% if usesDefaults %}, applyDefaults{% endif %} } from '../client.ts';
 import { InputFile } from '../inputFile.ts';
 import { AppwriteException } from '../exception.ts';
 import type { Models } from '../models.d.ts';
@@ -307,7 +311,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% endfor %}
 {% else %}
-{% set defaults = method | responseDefaults(spec) %}
+{% set defaults = method | responseDefaults(spec, 8) %}
         {{ defaults is empty ? 'return' : 'const response =' }} await this.client.call(
             '{{ method.method.value | caseLower }}',
             apiPath,
@@ -334,13 +338,9 @@ export class {{ service.name | caseUcfirst }} extends Service {
             {%~ endif %}
         );
 {% if defaults is not empty %}
+        const defaults = {{ defaults | raw }};
 
-        return {
-{% for default in defaults %}
-            {{ default | raw }},
-{% endfor %}
-            ...response,
-        };
+        return applyDefaults(response, defaults);
 {% endif %}
 {% endif %}
     }

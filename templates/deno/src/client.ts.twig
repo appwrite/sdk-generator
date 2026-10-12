@@ -4,6 +4,32 @@ export interface Payload {
     [key: string]: any;
 }
 
+type Defaults = {
+    defaults?: Record<string, unknown>;
+    properties?: Record<string, Defaults>;
+    items?: Defaults;
+};
+
+export function applyDefaults<T>(value: T, tree: Defaults): T {
+    if (Array.isArray(value)) {
+        const items = tree.items;
+        if (!items) {
+            return value;
+        }
+        return value.map((item) => applyDefaults(item, items)) as T;
+    }
+    if (value === null || typeof value !== 'object') {
+        return value;
+    }
+    const result: Record<string, unknown> = { ...tree.defaults, ...value };
+    for (const [key, child] of Object.entries(tree.properties ?? {})) {
+        if (key in result) {
+            result[key] = applyDefaults(result[key], child);
+        }
+    }
+    return result as T;
+}
+
 export class Client {
     static CHUNK_SIZE = 5*1024*1024; // 5MB
     static DENO_READ_CHUNK_SIZE = 16384; // 16kb; refference: https://github.com/denoland/deno/discussions/9906
