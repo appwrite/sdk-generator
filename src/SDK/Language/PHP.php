@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
+use stdClass;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
@@ -568,6 +569,27 @@ class PHP extends Language
         return (string)$value;
     }
 
+    /**
+     * A spec default as a PHP literal, with arrays in short syntax as the SDK's Pint config requires.
+     */
+    protected function formatPhpDefault(mixed $value): string
+    {
+        if ($value instanceof stdClass) {
+            $value = get_object_vars($value);
+        }
+
+        if (!is_array($value)) {
+            return $this->formatPhpLiteral($value);
+        }
+
+        $items = [];
+        foreach ($value as $key => $item) {
+            $items[] = (array_is_list($value) ? '' : $this->formatPhpLiteral((string) $key) . ' => ') . $this->formatPhpDefault($item);
+        }
+
+        return '[' . implode(', ', $items) . ']';
+    }
+
     protected function escapePhpString(string $value): string
     {
         $value = str_replace('\\', '\\\\', $value);
@@ -627,7 +649,7 @@ class PHP extends Language
             new TwigFilter('getResponseModels', fn(Operation $value, ?Specification $spec = null): array => $this->getResponseModels($value, $spec)),
             new TwigFilter('mockDefinitionPayload', fn(string $definitionName, Specification $spec, int $indentLevel = 2): string => $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel), ['is_safe' => ['html']]),
             new TwigFilter('methodParameters', fn(Operation $value): string => $this->getMethodParameters($value)),
-            new TwigFilter('phpLiteral', fn(mixed $value): string => $this->formatPhpLiteral($value), ['is_safe' => ['html']]),
+            new TwigFilter('phpLiteral', fn(mixed $value): string => $this->formatPhpDefault($value), ['is_safe' => ['html']]),
             new TwigFilter('deviceInfo', fn($value): string => php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m')),
             new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {

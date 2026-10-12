@@ -87,7 +87,7 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
         ];
 
 {% endif %}
-{% for property in requiredProperties %}
+{% for property in requiredProperties | filter((property) => (property | schemaDefault) is null) %}
         if (!array_key_exists('{{ (property | schemaName) }}', $data)) {
             throw new \InvalidArgumentException('Missing required field "{{ (property | schemaName) }}" for ' . static::class . '.');
         }
