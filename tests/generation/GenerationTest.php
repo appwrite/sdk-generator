@@ -665,6 +665,9 @@ final class GenerationTest extends TestCase
         $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
         $document->components->schemas->mock->properties->optionalResult->default = 'pending';
         $document->components->schemas->mock->properties->metadataList->default = [(object) ['enabled' => null, 'label' => '#{name}']];
+        $document->components->schemas->mock->properties->settings = (object) ['type' => 'object', 'additionalProperties' => true, 'default' => (object) ['0' => 'x']];
+        $document->components->schemas->mock->properties->relatedMock->default = (object) [];
+        $document->components->schemas->mock->required[] = 'relatedMock';
 
         $sdk = new SDK($this->language('ruby'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
         $sdk
@@ -679,6 +682,9 @@ final class GenerationTest extends TestCase
 
         $this->assertStringContainsString('optional_result: "pending"', $model);
         $this->assertStringContainsString('metadata_list: [{ "enabled" => nil, "label" => "\\#{name}" }]', $model);
+        $this->assertStringContainsString('settings: { "0" => "x" }', $model);
+        $this->assertStringContainsString('map = { "relatedMock" => {} }.merge(map)', $model);
+        $this->assertStringContainsString('related_mock: UnionMock.from(map: map["relatedMock"])', $model);
     }
 
     public function testDotNetModelDefaultsAreLiterals(): void
