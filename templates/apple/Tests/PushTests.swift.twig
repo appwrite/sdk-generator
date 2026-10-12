@@ -81,8 +81,18 @@ final class PushTests {
         #expect(message?.wake == false)
     }
 
+    @Test func wakeAsAppwriteSendsIt() {
+        let message = Push.RemoteMessage(userInfo: [
+            "aps": ["content-available": 1],
+            "data": ["type": "wake", "messageId": "m7"],
+        ])
+        #expect(message?.id == "m7")
+        #expect(message?.wake == true)
+
+        #expect(Push.RemoteMessage(userInfo: ["aps": ["alert": "Hello"], "data": ["orderId": "7"]]) == nil)
+    }
+
     @Test func wakeFromServersBeforeTheAppwriteKey() {
-        // appwrite/appwrite#14302 sends the wake inside `aps.data`.
         let message = Push.RemoteMessage(userInfo: [
             "aps": ["content-available": 1, "data": ["type": "wake", "messageId": "m2"]]
         ])

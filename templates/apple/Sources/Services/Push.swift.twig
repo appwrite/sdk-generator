@@ -1599,12 +1599,16 @@ extension Push {
         /// Read off the app's provisioning profile: `aps-environment = development` means sandbox.
         /// App Store builds carry no profile and always use production.
         static var current: Environment {
-            for (name, ext) in [("embedded", "mobileprovision"), ("embedded", "provisionprofile")] {
-                if let url = Bundle.main.url(forResource: name, withExtension: ext), let data = try? Data(contentsOf: url) {
-                    return detect(profile: data)
+            #if targetEnvironment(simulator)
+                return .sandbox
+            #else
+                for (name, ext) in [("embedded", "mobileprovision"), ("embedded", "provisionprofile")] {
+                    if let url = Bundle.main.url(forResource: name, withExtension: ext), let data = try? Data(contentsOf: url) {
+                        return detect(profile: data)
+                    }
                 }
-            }
-            return .production
+                return .production
+            #endif
         }
 
         /// The environment a provisioning profile grants. The profile is a signed container with its
@@ -1675,8 +1679,7 @@ extension Push {
         /// A silent push sent only to wake the app; its content follows over MQTT.
         let wake: Bool
 
-        /// From an APNs `userInfo`: Appwrite's data under the top-level `appwrite` key, or as top-level
-        /// (or `aps.data`) `messageId`/`type` keys from servers before that. Nil when it is not Appwrite's.
+        /// From an APNs `userInfo`: Appwrite's data under `appwrite`, `data`, `aps.data` or at the top level. Nil when it is not Appwrite's.
         init?(userInfo: [AnyHashable: Any]) {
             if let appwrite = userInfo["appwrite"] as? [String: Any] {
                 id = appwrite["messageId"] as? String
@@ -1686,8 +1689,10 @@ extension Push {
                 return
             }
             let aps = userInfo["aps"] as? [String: Any]
-            let fields = (aps?["data"] as? [String: Any]) ?? (userInfo as? [String: Any] ?? [:])
-            guard let messageId = fields["messageId"] as? String, !messageId.isEmpty else {
+            let places = [userInfo["data"], aps?["data"], userInfo as? [String: Any]].compactMap { $0 as? [String: Any] }
+            guard let fields = places.first(where: { ($0["messageId"] as? String)?.isEmpty == false }),
+                let messageId = fields["messageId"] as? String
+            else {
                 return nil
             }
             id = messageId
