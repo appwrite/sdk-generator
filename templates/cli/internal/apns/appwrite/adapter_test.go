@@ -863,9 +863,18 @@ func TestPrepareAppIDChangesNothingWhenDeclined(t *testing.T) {
 	}
 }
 
-func TestAppIDNameKeepsLettersAndDigits(t *testing.T) {
-	if name := appIDName("io.appwrite.push-test_2"); name != "io appwrite push test 2" {
-		t.Errorf("name = %q", name)
+func TestPrepareAppIDWithoutASavedSignInAsksNothing(t *testing.T) {
+	fake := newFakeApple(t)
+	asker := &scriptedAsker{}
+	client, _ := newTestClient(t, fake, asker, t.TempDir(), nil)
+	client.request.SavedSignInOnly = true
+
+	_, err := client.adapter.PrepareAppID(context.Background(), client.request, apns.AppIDRequest{BundleID: "com.example.app", Ask: true})
+	if !errors.Is(err, apns.ErrSignInNeeded) {
+		t.Fatalf("err = %v", err)
+	}
+	if len(asker.asked) != 0 || strings.Contains(strings.Join(fake.requests, ","), "/appleauth/") {
+		t.Errorf("asked %v, requests %v", asker.asked, fake.requests)
 	}
 }
 {% endverbatim %}

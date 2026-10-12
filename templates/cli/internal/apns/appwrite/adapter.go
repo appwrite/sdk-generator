@@ -95,12 +95,12 @@ func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID 
 	}
 	if found == nil {
 		if appID.Ask {
-			register, err := confirm(request.Asker, fmt.Sprintf("%s is not registered as an App ID on team %s, so APNs refuses pushes for it. Register it with Push Notifications?", appID.BundleID, teamID))
+			register, err := apns.ConfirmAppIDChange(request.Asker, appID.BundleID, teamID, false)
 			if err != nil || !register {
 				return result, err
 			}
 		}
-		if found, err = portal.createAppID(ctx, teamID, appID.BundleID, appIDName(appID.BundleID)); err != nil {
+		if found, err = portal.createAppID(ctx, teamID, appID.BundleID, apns.AppIDName(appID.BundleID)); err != nil {
 			return result, err
 		}
 		result.Created = true
@@ -109,7 +109,7 @@ func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID 
 	if !found.Push {
 		// Registering it was already agreed to as "with Push Notifications".
 		if appID.Ask && !result.Created {
-			turnOn, err := confirm(request.Asker, fmt.Sprintf("Push Notifications is off for %s, so APNs refuses pushes for it. Turn it on?", appID.BundleID))
+			turnOn, err := apns.ConfirmAppIDChange(request.Asker, appID.BundleID, teamID, true)
 			if err != nil || !turnOn {
 				return result, err
 			}
@@ -122,26 +122,6 @@ func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID 
 	result.Push = found.Push
 
 	return result, nil
-}
-
-// appIDName is the App ID's description in the portal, which allows only
-// letters, digits and spaces.
-func appIDName(bundleID string) string {
-	name := strings.Map(func(r rune) rune {
-		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' {
-			return r
-		}
-
-		return ' '
-	}, bundleID)
-
-	return strings.Join(strings.Fields(name), " ")
-}
-
-func confirm(asker apns.Asker, question string) (bool, error) {
-	choice, err := asker.Choose(question, []string{"Yes", "No"})
-
-	return choice == 0, err
 }
 
 func sessionPath(dir string) string {
@@ -212,6 +192,9 @@ func (a *Adapter) connect(ctx context.Context, request apns.Request) (*portalCli
 		jar = newSavedJar()
 		withJar.Jar = jar
 		portal.jar = jar
+	}
+	if request.SavedSignInOnly {
+		return nil, apns.ErrSignInNeeded
 	}
 	// An expired session's cookies stay: among them is the one that marks
 	// this machine as trusted, which lets Apple skip two-factor on sign-in.

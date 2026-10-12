@@ -73,6 +73,9 @@ var (
 	ErrUnavailable = errors.New("this APNs key setup is not available here")
 	// ErrInvalidCredentials means Apple refused the Apple ID or password.
 	ErrInvalidCredentials = errors.New("Apple did not accept the Apple ID and password")
+	// ErrSignInNeeded means a request with SavedSignInOnly found no saved
+	// sign-in it could use. Nothing was asked.
+	ErrSignInNeeded = errors.New("signing in to Apple is needed")
 )
 
 // Asker asks the person at the terminal.
@@ -99,12 +102,15 @@ type Request struct {
 	// Reset signs in to Apple again instead of reusing a saved sign-in, and
 	// the new one replaces it.
 	Reset bool
-	Asker Asker
+	// SavedSignInOnly uses a saved sign-in only: without a valid one the
+	// adapter returns ErrSignInNeeded instead of asking.
+	SavedSignInOnly bool
+	Asker           Asker
 	// Log prints a line for the person running the command.
 	Log func(format string, args ...any)
 }
 
-// Adapter creates APNs keys one way.
+// Adapter creates APNs keys, and prepares App IDs, one way.
 type Adapter interface {
 	// Name is how people pick the adapter, for example "appwrite".
 	Name() string
@@ -113,6 +119,15 @@ type Adapter interface {
 	// Apple refuses the sign-in, and a *MaxKeysError when the team has no
 	// free key slot.
 	CreateKey(ctx context.Context, request Request) (Key, error)
+	// PrepareAppID signs in like CreateKey and makes sure the bundle ID is an
+	// App ID with Push Notifications: APNs refuses pushes for any other
+	// bundle ID (TopicDisallowed), and a key alone does not register it. It
+	// registers the App ID when the team has none and turns on Push
+	// Notifications when it is off, asking first when appID.Ask is set
+	// (ConfirmAppIDChange words the questions). With
+	// request.SavedSignInOnly and no saved sign-in it returns
+	// ErrSignInNeeded.
+	PrepareAppID(ctx context.Context, request Request, appID AppIDRequest) (AppIDResult, error)
 }
 
 // AppIDRequest names the App ID to prepare.
@@ -134,15 +149,62 @@ type AppIDResult struct {
 	PushTurnedOn bool
 }
 
-// AppIDPreparer is an Adapter that can also prepare the app's App ID. APNs
-// refuses pushes for a bundle ID (TopicDisallowed) unless the team has it
-// registered as an App ID with Push Notifications, and a key alone does not
-// register it.
-type AppIDPreparer interface {
-	// PrepareAppID signs in like CreateKey, registers the bundle ID as an
-	// explicit App ID when the team has none, and turns on Push
-	// Notifications when it is off.
-	PrepareAppID(ctx context.Context, request Request, appID AppIDRequest) (AppIDResult, error)
+// ConfirmAppIDChange asks before an App ID change: registering the bundle ID
+// (with Push Notifications) when registered is false, else turning Push
+// Notifications on. Every adapter asks with these words.
+func ConfirmAppIDChange(asker Asker, bundleID, teamID string, registered bool) (bool, error) {
+	question := fmt.Sprintf("%s is not registered as an App ID on team %s, so APNs refuses pushes for it. Register it with Push Notifications?", bundleID, teamID)
+	if registered {
+		question = fmt.Sprintf("Push Notifications is off for %s, so APNs refuses pushes for it. Turn it on?", bundleID)
+	}
+	choice, err := asker.Choose(question, []string{"Yes", "No"})
+
+	return choice == 0, err
+}
+
+// AppIDName is an App ID's description in the portal, which allows only
+// letters, digits and spaces.
+func AppIDName(bundleID string) string {
+	name := strings.Map(func(r rune) rune {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' {
+			return r
+		}
+
+		return ' '
+	}, bundleID)
+
+	return strings.Join(strings.Fields(name), " ")
+}
+
+var bundleIDPattern = regexp.MustCompile(`^[A-Za-z0-9.-]+$`)
+
+// PrepareAppID checks the request, runs the adapter, and checks what it
+// returned, so every adapter is held to the same contract.
+func PrepareAppID(ctx context.Context, adapter Adapter, request Request, appID AppIDRequest) (AppIDResult, error) {
+	if !bundleIDPattern.MatchString(appID.BundleID) {
+		return AppIDResult{}, fmt.Errorf("%q is not a bundle ID: a bundle ID has letters, digits, hyphens and dots", appID.BundleID)
+	}
+	if request.TeamID != "" && !teamIDPattern.MatchString(request.TeamID) {
+		return AppIDResult{}, fmt.Errorf("%q is not an Apple team ID: a team ID is 10 uppercase letters or digits", request.TeamID)
+	}
+	if request.Log == nil {
+		request.Log = func(string, ...any) {}
+	}
+
+	result, err := adapter.PrepareAppID(ctx, request, appID)
+	if err != nil {
+		return result, err
+	}
+	switch {
+	case !teamIDPattern.MatchString(result.TeamID):
+		return result, fmt.Errorf("the %s APNs setup returned an invalid team ID %q", adapter.Name(), result.TeamID)
+	case request.TeamID != "" && result.TeamID != request.TeamID:
+		return result, fmt.Errorf("the %s APNs setup checked the App ID on team %s, not %s", adapter.Name(), result.TeamID, request.TeamID)
+	case (result.Created || result.Push) && !result.Registered, result.PushTurnedOn && !result.Push:
+		return result, fmt.Errorf("the %s APNs setup returned an inconsistent App ID result %+v", adapter.Name(), result)
+	}
+
+	return result, nil
 }
 
 var (
