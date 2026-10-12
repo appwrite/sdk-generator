@@ -232,6 +232,10 @@ namespace AppwriteTests
 
             var preset = await general.GetPreset();
             LogResult($"preset: name={preset.Name}, count={preset.Count}, enabled={preset.Enabled.ToString().ToLowerInvariant()}");
+            foreach (var item in (await general.ListPresets()).Presets)
+            {
+                LogResult($"preset: name={item.Name}, count={item.Count}, enabled={item.Enabled.ToString().ToLowerInvariant()}");
+            }
 
             try
             {

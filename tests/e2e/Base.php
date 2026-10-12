@@ -92,6 +92,8 @@ abstract class Base extends TestCase
 
     protected const MODEL_DEFAULT_RESPONSES = [
         'preset: name=guest, count=25, enabled=false',
+        'preset: name=guest, count=25, enabled=false',
+        'preset: name=server, count=25, enabled=true',
     ];
 
     protected const PYTHON_MODEL_DEFAULT_RESPONSES = [

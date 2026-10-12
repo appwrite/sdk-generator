@@ -844,6 +844,21 @@ App::get('/v1/mock/tests/general/preset')
         $response->json(['enabled' => false]);
     });
 
+App::get('/v1/mock/tests/general/presets')
+    ->desc('List Presets')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json([
+            'total' => 2,
+            'presets' => [
+                ['enabled' => false],
+                ['name' => 'server', 'enabled' => true],
+            ],
+        ]);
+    });
+
 App::get('/v1/mock/tests/compound')
     ->desc('Get compound union')
     ->groups(['mock'])

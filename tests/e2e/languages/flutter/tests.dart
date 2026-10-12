@@ -221,6 +221,10 @@ void main() async {
 
   final preset = await general.getPreset();
   print('preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}');
+  final presets = await general.listPresets();
+  for (final item in presets.presets) {
+    print('preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}');
+  }
 
   try {
     await general.error400();
