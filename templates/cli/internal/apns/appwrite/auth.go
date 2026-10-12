@@ -47,6 +47,9 @@ type portalClient struct {
 	random io.Reader
 	now    func() time.Time
 
+	// appleID is the Apple ID of the signed-in session.
+	appleID string
+
 	widgetKey string
 	sessionID string
 	scnt      string

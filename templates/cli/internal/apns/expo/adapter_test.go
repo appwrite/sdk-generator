@@ -31,8 +31,8 @@ func TestSupportedNode(t *testing.T) {
 }
 
 func TestDecodeResult(t *testing.T) {
-	key, err := decodeResult([]byte(`{"keyId":"KEY1234567","teamId":"ABCDE12345","p8":"-----BEGIN PRIVATE KEY-----"}`))
-	if err != nil || key.KeyID != "KEY1234567" || key.TeamID != "ABCDE12345" {
+	key, err := decodeResult([]byte(`{"keyId":"KEY1234567","teamId":"ABCDE12345","p8":"-----BEGIN PRIVATE KEY-----","appleId":"dev@example.com"}`))
+	if err != nil || key.KeyID != "KEY1234567" || key.TeamID != "ABCDE12345" || key.AppleID != "dev@example.com" {
 		t.Errorf("key = %+v, %v", key, err)
 	}
 
@@ -294,7 +294,8 @@ func TestPrepareAppIDAsksBeforeApplying(t *testing.T) {
 	}
 	calls := helperCalls(t, log)
 	if len(calls) != 2 || !strings.Contains(calls[0], "--mode check") || !strings.Contains(calls[0], "--reset true") ||
-		!strings.Contains(calls[1], "--mode apply") || !strings.Contains(calls[1], "--team-id ABCDE12345") || strings.Contains(calls[1], "--reset") {
+		!strings.Contains(calls[1], "--mode apply") || !strings.Contains(calls[1], "--team-id ABCDE12345") || strings.Contains(calls[1], "--reset") ||
+		!strings.Contains(calls[1], "--saved-only true") || !strings.HasSuffix(calls[1], "EXPO_APPLE_ID=dev@example.com") {
 		t.Errorf("helper calls = %v", calls)
 	}
 	if len(asker.asked) != 1 || !strings.HasPrefix(asker.asked[0], "io.example.app is not registered as an App ID on team ABCDE12345") {

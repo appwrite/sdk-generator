@@ -85,12 +85,14 @@ type result struct {
 // CreateKey runs the embedded create_apns_key lane.
 func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key, error) {
 	arguments := []string{"name:" + request.Name, "environment:" + string(request.Environment)}
-	contents, err := a.runLane(ctx, request, "create_apns_key", arguments...)
+	contents, appleID, err := a.runLane(ctx, request, "create_apns_key", arguments...)
 	if err != nil {
 		return apns.Key{}, err
 	}
+	key, err := decodeResult(contents)
+	key.AppleID = appleID
 
-	return decodeResult(contents)
+	return key, err
 }
 
 // PrepareAppID runs the embedded prepare_app_id lane: it checks the App ID,
@@ -107,10 +109,12 @@ func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID 
 		if request.SavedSignInOnly {
 			arguments = append(arguments, "saved_only:true")
 		}
-		contents, err := a.runLane(ctx, request, "prepare_app_id", arguments...)
+		contents, appleID, err := a.runLane(ctx, request, "prepare_app_id", arguments...)
 		if err != nil {
 			return apns.AppIDResult{}, err
 		}
+		// The apply run reuses the check's sign-in instead of asking again.
+		request.AppleID = appleID
 
 		return decodeAppIDResult(contents)
 	}
@@ -125,23 +129,25 @@ func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID 
 	if err != nil || !change {
 		return found, err
 	}
-	// The check signed in (again, for a reset) and saved the session.
+	// The check signed in (again, for a reset) and saved the session, so the
+	// change reuses it instead of asking again.
 	request.Reset = false
 	request.TeamID = found.TeamID
+	request.SavedSignInOnly = true
 
 	return run("apply")
 }
 
 // runLane runs a lane of the embedded Fastfile and returns the result it
-// wrote. The Apple ID and password are asked here when the request has none,
+// wrote, with the Apple ID it ran as. The Apple ID and password are asked here when the request has none,
 // and handed to fastlane as FASTLANE_USER and FASTLANE_PASSWORD, so fastlane
 // never offers to keep them in the Keychain. With SavedSignInOnly nothing is
 // asked: the lane uses spaceship's saved session for the Apple ID or reports
 // that there is none.
-func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string, arguments ...string) ([]byte, error) {
+func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string, arguments ...string) ([]byte, string, error) {
 	runner, err := a.runner()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	err = runner.check(ctx)
 	// Installing is only offered for fastlane from PATH, never replacing a
@@ -152,7 +158,7 @@ func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string
 		}
 	}
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if runner.gemfile != "" && request.Log != nil {
 		request.Log("Using fastlane from %s with bundle exec.", runner.gemfile)
@@ -162,7 +168,7 @@ func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string
 	if appleID == "" {
 		answer, err := request.Asker.Ask("Apple ID (email)", false)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		appleID = strings.TrimSpace(answer)
 	}
@@ -170,7 +176,7 @@ func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string
 	if password == "" && !request.SavedSignInOnly {
 		answer, err := request.Asker.Ask("Password for "+appleID, true)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		password = answer
 	}
@@ -178,14 +184,14 @@ func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string
 	// fastlane runs the Fastfile in ./fastlane of its working directory.
 	scratch, err := os.MkdirTemp("", "appwrite-apns-fastlane-")
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer os.RemoveAll(scratch)
 	if err := os.MkdirAll(filepath.Join(scratch, "fastlane"), 0o700); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if err := os.WriteFile(filepath.Join(scratch, "fastlane", "Fastfile"), fastfile, 0o600); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	out := filepath.Join(scratch, "result.json")
 
@@ -213,13 +219,13 @@ func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string
 	contents, err := os.ReadFile(out)
 	if err != nil {
 		if runErr != nil {
-			return nil, fmt.Errorf("the fastlane lane failed: %w", runErr)
+			return nil, "", fmt.Errorf("the fastlane lane failed: %w", runErr)
 		}
 
-		return nil, fmt.Errorf("the fastlane lane returned no result: %w", err)
+		return nil, "", fmt.Errorf("the fastlane lane returned no result: %w", err)
 	}
 
-	return contents, nil
+	return contents, appleID, nil
 }
 
 func decodeAppIDResult(contents []byte) (apns.AppIDResult, error) {

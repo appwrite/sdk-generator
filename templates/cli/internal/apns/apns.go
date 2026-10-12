@@ -48,6 +48,9 @@ type Key struct {
 	KeyID  string
 	TeamID string
 	P8     string
+	// AppleID is the Apple ID that signed in, when the adapter knows it, so
+	// later steps can reuse the saved sign-in instead of asking again.
+	AppleID string
 }
 
 // ExistingKey is a key already on the team.

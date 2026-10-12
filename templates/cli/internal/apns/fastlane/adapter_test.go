@@ -119,7 +119,7 @@ func TestCreateKeyRunsTheLane(t *testing.T) {
 		Environment: apns.EnvironmentSandbox,
 		Asker:       asker,
 	})
-	if err != nil || key.KeyID != "KEY1234567" || key.P8 != "pem" {
+	if err != nil || key.KeyID != "KEY1234567" || key.P8 != "pem" || key.AppleID != "dev@example.com" {
 		t.Fatalf("key = %+v, %v", key, err)
 	}
 	if strings.Join(asker.asked, "|") != "Apple ID (email)|Password for dev@example.com" {
@@ -496,7 +496,8 @@ func TestPrepareAppIDAsksBeforeApplying(t *testing.T) {
 	}
 	calls := laneCalls(t, log)
 	if len(calls) != 2 || !strings.Contains(calls[0], "mode:check") || !strings.Contains(calls[0], "reset:true") ||
-		!strings.Contains(calls[1], "mode:apply") || !strings.Contains(calls[1], "team_id:ABCDE12345") || strings.Contains(calls[1], "reset:true") {
+		!strings.Contains(calls[1], "mode:apply") || !strings.Contains(calls[1], "team_id:ABCDE12345") || strings.Contains(calls[1], "reset:true") ||
+		!strings.Contains(calls[1], "saved_only:true") {
 		t.Errorf("lane calls = %v", calls)
 	}
 	if strings.Join(asker.asked, "|") != "Push Notifications is off for io.example.app, so APNs refuses pushes for it. Turn it on?" {

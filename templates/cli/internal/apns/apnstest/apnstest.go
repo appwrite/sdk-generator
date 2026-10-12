@@ -55,7 +55,12 @@ func (a *Adapter) CreateKey(_ context.Context, request apns.Request) (apns.Key, 
 		team = a.TeamID
 	}
 
-	return apns.Key{KeyID: a.KeyID, TeamID: team, P8: P8()}, nil
+	appleID := request.AppleID
+	if appleID == "" {
+		appleID = "dev@example.com"
+	}
+
+	return apns.Key{KeyID: a.KeyID, TeamID: team, P8: P8(), AppleID: appleID}, nil
 }
 
 // PrepareAppID records the call and returns AppIDResult or AppIDErr.

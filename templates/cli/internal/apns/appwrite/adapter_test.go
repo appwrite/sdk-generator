@@ -487,7 +487,7 @@ func TestCreateKeySignsInWithTwoFactorAndReusesTheSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if key.KeyID != "NEWKEY1234" || key.TeamID != "ABCDE12345" || key.P8 != testP8 {
+	if key.KeyID != "NEWKEY1234" || key.TeamID != "ABCDE12345" || key.P8 != testP8 || key.AppleID != testAppleID {
 		t.Errorf("key = %+v", key)
 	}
 	created := fake.created["NEWKEY1234"]

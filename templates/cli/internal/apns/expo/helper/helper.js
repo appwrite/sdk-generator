@@ -45,7 +45,7 @@ function isMaxKeysError(error) {
   );
 }
 
-// signIn returns the request context, or null when --saved-only finds no
+// signIn returns the signed-in auth state, or null when --saved-only finds no
 // saved sign-in for EXPO_APPLE_ID.
 async function signIn({ 'team-id': teamId, reset, 'saved-only': savedOnly }) {
   // --reset deletes apple-utils' saved session for this Apple ID first, so the
@@ -71,7 +71,7 @@ async function signIn({ 'team-id': teamId, reset, 'saved-only': savedOnly }) {
     throw new Error(`Signed in to Apple team ${context.teamId}, not ${teamId}`);
   }
 
-  return context;
+  return authState;
 }
 
 async function createKey(context, { name }) {
@@ -129,12 +129,17 @@ async function prepareAppId(context, { 'bundle-id': identifier, name, mode }) {
 }
 
 async function run(options) {
-  const context = await signIn(options);
-  if (!context) {
+  const authState = await signIn(options);
+  if (!authState) {
     return { error: 'sign-in-needed' };
   }
+  const result =
+    options.action === 'app-id'
+      ? await prepareAppId(authState.context, options)
+      : await createKey(authState.context, options);
 
-  return options.action === 'app-id' ? prepareAppId(context, options) : createKey(context, options);
+  // The Apple ID lets later runs reuse this sign-in without asking.
+  return { ...result, appleId: authState.username };
 }
 
 async function main() {

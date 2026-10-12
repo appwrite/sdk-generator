@@ -1745,9 +1745,9 @@ func TestInitApnsChecksTheAppIDAfterCreatingAKey(t *testing.T) {
 	if len(adapter.AppIDRequests) != 1 || adapter.AppIDRequests[0] != (apns.AppIDRequest{BundleID: "com.example.app", Ask: true}) {
 		t.Fatalf("App ID calls = %v", adapter.AppIDRequests)
 	}
-	// The key's sign-in is reused: no question, and --reset does not sign in
-	// a second time.
-	if signIn := adapter.AppIDSignIns[0]; signIn.TeamID != "ABCDE12345" || signIn.Reset || signIn.SavedSignInOnly {
+	// The key's saved sign-in is reused for its Apple ID: no question, and
+	// --reset does not sign in a second time.
+	if signIn := adapter.AppIDSignIns[0]; signIn.TeamID != "ABCDE12345" || signIn.Reset || !signIn.SavedSignInOnly || signIn.AppleID != "dev@example.com" {
 		t.Errorf("App ID sign-in = %+v", signIn)
 	}
 	if len(scripted.Asked) != 0 {
@@ -1854,5 +1854,23 @@ func TestInitApnsRegisterAppIDSignsInAndDoesNotAsk(t *testing.T) {
 	err := setup.apns(apnsOptions{bundleID: "com.example.app", registerAppID: true}, appleApp{})
 	if err == nil || !strings.Contains(err.Error(), "Could not check the App ID for com.example.app: could not reach Apple") {
 		t.Errorf("err = %v", err)
+	}
+}
+
+func TestInitApnsSignsInAgainWhenTheNewKeysSignInIsNotSaved(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	scripted := &prompt.Scripted{}
+	setup, _ := newTestPushSetup(t, server, scripted, t.TempDir())
+	adapter := useAdapter(setup, &apnstest.Adapter{KeyID: "NEWKEY1234", SignInNeeded: true})
+
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	// The person just signed in for the key: no "sign in to check?" question.
+	if len(adapter.AppIDSignIns) != 2 || !adapter.AppIDSignIns[0].SavedSignInOnly || adapter.AppIDSignIns[1].SavedSignInOnly || len(scripted.Asked) != 0 {
+		t.Errorf("sign-ins = %+v, asked %v", adapter.AppIDSignIns, scripted.Asked)
 	}
 }

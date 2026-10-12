@@ -72,7 +72,7 @@ func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key
 		return apns.Key{}, fmt.Errorf("created key %s but could not download it, and Apple allows only one download. Revoke it in the Apple Developer portal: %w", keyID, err)
 	}
 
-	return apns.Key{KeyID: keyID, TeamID: teamID, P8: p8}, nil
+	return apns.Key{KeyID: keyID, TeamID: teamID, P8: p8, AppleID: portal.appleID}, nil
 }
 
 // PrepareAppID signs in, then makes sure the bundle ID is an App ID with Push
@@ -185,6 +185,7 @@ func (a *Adapter) connect(ctx context.Context, request apns.Request) (*portalCli
 	if session, err := portal.session(ctx); err == nil && session != nil {
 		if accountName == "" || strings.EqualFold(session.User.EmailAddress, accountName) {
 			logf("Using the saved Apple sign-in for %s.", session.User.EmailAddress)
+			portal.appleID = session.User.EmailAddress
 
 			return portal, nil
 		}
@@ -231,6 +232,7 @@ func (a *Adapter) connect(ctx context.Context, request apns.Request) (*portalCli
 	if session == nil {
 		return nil, errors.New("Apple signed you in but App Store Connect refused the session. Sign in once at https://appstoreconnect.apple.com to accept any pending agreements, then try again")
 	}
+	portal.appleID = accountName
 
 	return portal, nil
 }

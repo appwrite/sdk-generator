@@ -90,6 +90,9 @@ type pushSetup struct {
 	// apnsSessions is where they keep a signed-in session.
 	apnsAdapters *apns.Registry
 	apnsSessions string
+	// appleID is the Apple ID a key was just created with, so the App ID
+	// check reuses that sign-in.
+	appleID string
 }
 
 func newPushSetup(command *cobra.Command) (*pushSetup, error) {
@@ -722,14 +725,24 @@ func (s *pushSetup) prepareAppID(teamID, bundleID string, options apnsOptions, s
 	}
 
 	output.Log(s.out, "Checking the App ID for %s ...", bundleID)
-	// A key created a moment ago left a fresh sign-in: --reset is not repeated.
+	// A key created a moment ago left a fresh, saved sign-in: the check reuses
+	// it for the same Apple ID, and --reset is not repeated.
 	request := s.appleRequest(adapter, teamID, options.reset && !options.createKey)
-	request.SavedSignInOnly = !signedIn && !explicit
-	if explicit && !signedIn {
+	if signedIn && request.AppleID == "" {
+		request.AppleID = s.appleID
+	}
+	request.SavedSignInOnly = signedIn || !explicit
+	if !request.SavedSignInOnly {
 		s.logAppleSignIn(adapter, request)
 	}
 	appID := apns.AppIDRequest{BundleID: bundleID, Ask: !explicit}
 	result, err := apns.PrepareAppID(s.context(), adapter, request, appID)
+	// Just signed in, or asked for explicitly: sign in again without asking.
+	if errors.Is(err, apns.ErrSignInNeeded) && (signedIn || explicit) {
+		request.SavedSignInOnly = false
+		s.logAppleSignIn(adapter, request)
+		result, err = apns.PrepareAppID(s.context(), adapter, request, appID)
+	}
 	if errors.Is(err, apns.ErrSignInNeeded) {
 		answer, askErr := s.prompter.Choice(prompt.Choice{
 			Message:     "Sign in with your Apple ID to check the App ID for " + bundleID + "?",
@@ -802,6 +815,9 @@ func (s *pushSetup) createApnsKey(teamID string, options apnsOptions, environmen
 	request.Name = "Appwrite Push " + time.Now().Format("20060102150405")
 	request.Environment = environment
 	key, err := apns.CreateKey(s.context(), adapter, request)
+	if err == nil {
+		s.appleID = key.AppleID
+	}
 	var unanswered *prompt.NonInteractiveError
 	if errors.As(err, &unanswered) {
 		return "", "", "", fmt.Errorf("signing in to Apple asked %q, which needs an interactive terminal. %s and %s answer the Apple ID and password, but the two-factor code always needs one. Without a terminal, pass --key-path with an existing .p8 instead of --create-key", unanswered.Message, appleIDVariable, applePasswordVariable)

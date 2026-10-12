@@ -63,6 +63,7 @@ func (a *Adapter) Name() string {
 
 type result struct {
 	KeyID   string `json:"keyId"`
+	AppleID string `json:"appleId"`
 	TeamID  string `json:"teamId"`
 	P8      string `json:"p8"`
 	Error   string `json:"error"`
@@ -119,6 +120,12 @@ func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID 
 		if err != nil {
 			return apns.AppIDResult{}, err
 		}
+		// The apply run restores the check's sign-in, which apple-utils keeps
+		// per Apple ID.
+		var signedIn result
+		if json.Unmarshal(contents, &signedIn) == nil && signedIn.AppleID != "" {
+			request.AppleID = signedIn.AppleID
+		}
 
 		return decodeAppIDResult(contents)
 	}
@@ -133,9 +140,11 @@ func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID 
 	if err != nil || !change {
 		return found, err
 	}
-	// The check signed in (again, for a reset) and saved the session.
+	// The check signed in (again, for a reset) and saved the session, so the
+	// change reuses it instead of asking again.
 	request.Reset = false
 	request.TeamID = found.TeamID
+	request.SavedSignInOnly = true
 
 	return run("apply")
 }
@@ -271,7 +280,7 @@ func decodeResult(contents []byte) (apns.Key, error) {
 		return apns.Key{}, errors.New("the @expo/apple-utils helper returned no key")
 	}
 
-	return apns.Key{KeyID: decoded.KeyID, TeamID: decoded.TeamID, P8: decoded.P8}, nil
+	return apns.Key{KeyID: decoded.KeyID, TeamID: decoded.TeamID, P8: decoded.P8, AppleID: decoded.AppleID}, nil
 }
 
 func (a *Adapter) terminal() (io.Reader, io.Writer, io.Writer) {
