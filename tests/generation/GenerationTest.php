@@ -915,6 +915,7 @@ final class GenerationTest extends TestCase
         $mock->properties->zzsettings = (object) ['type' => 'object', 'additionalProperties' => true, 'default' => (object) []];
         $mock->properties->zzratio = (object) ['type' => 'number', 'default' => 1];
         $mock->properties->zzweight = (object) ['type' => 'number', 'default' => 2.0];
+        $mock->properties->result->default = 'C:\\temp "x"';
         $mock->properties->zzmocks = (object) ['type' => 'array', 'items' => (object) ['$ref' => '#/components/schemas/unionMock'], 'default' => [(object) ['type' => 'mock', 'result' => 'ok']]];
 
         $sdk = new SDK($this->language('swift'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)));
@@ -930,6 +931,7 @@ final class GenerationTest extends TestCase
 
         $this->assertStringContainsString(<<<'SWIFT'
                     let defaults: [String: Any] = [
+                        "result": "C:\\temp \"x\"",
                         "status": "active",
                         "relatedMock": ["type": "mock", "result": "ok"] as [String: Any],
                         "metadataList": [["enabled": NSNull(), "label": "x", "ratio": 1.0] as [String: Any], [Any]()] as [Any],

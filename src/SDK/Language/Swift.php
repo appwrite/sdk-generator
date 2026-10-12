@@ -506,7 +506,7 @@ class Swift extends Language
     protected function swiftString(string $value): string
     {
         $escaped = preg_replace_callback(
-            '/[\\"\x00-\x1F]/',
+            '/[\\\\"\x00-\x1F]/',
             fn(array $match): string => match ($match[0]) {
                 '\\' => '\\\\',
                 '"' => '\\"',
