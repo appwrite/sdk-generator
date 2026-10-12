@@ -181,7 +181,19 @@ export class {{ service.name | caseUcfirst }} {
         {%~ else %}
         {%- set callArgs = ["'" ~ (method.method.value | caseLower) ~ "'", 'uri', 'apiHeaders', 'apiPayload'] %}
         {%- if (method | methodType) == 'location' %}{% set callArgs = callArgs|merge(["'arrayBuffer'"]) %}{% elseif (method | textResponse) %}{% set callArgs = callArgs|merge(["'text'"]) %}{% endif %}
+        {%- set defaults = method | responseDefaults(spec) %}
+        {%~ if defaults is empty %}
         return{{ 'this.client.call' | jsArgs(callArgs, 8, ';', 7) | raw }}
+        {%~ else %}
+        const request ={{ 'this.client.call' | jsArgs(callArgs, 8, ';', 16) | raw }}
+
+        return request.then((response) => ({
+            {%~ for default in defaults %}
+            {{ default | raw }},
+            {%~ endfor %}
+            ...response,
+        }));
+        {%~ endif %}
         {%~ endif %}
     }
 {%~ if not loop.last %}

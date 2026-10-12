@@ -307,7 +307,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% endfor %}
 {% else %}
-        return await this.client.call(
+{% set defaults = method | responseDefaults(spec) %}
+        {{ defaults is empty ? 'return' : 'const response =' }} await this.client.call(
             '{{ method.method.value | caseLower }}',
             apiPath,
             {
@@ -332,6 +333,15 @@ export class {{ service.name | caseUcfirst }} extends Service {
             'json'
             {%~ endif %}
         );
+{% if defaults is not empty %}
+
+        return {
+{% for default in defaults %}
+            {{ default | raw }},
+{% endfor %}
+            ...response,
+        };
+{% endif %}
 {% endif %}
     }
 {% endfor %}

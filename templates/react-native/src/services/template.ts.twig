@@ -462,7 +462,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% endfor %}
 {% else %}
-        return this.client.call(
+{% set defaults = method | responseDefaults(spec) %}
+        {{ defaults is empty ? 'return' : 'const request =' }} this.client.call(
             '{{ method.method.value | caseLower }}',
             uri,
             {
@@ -480,6 +481,15 @@ export class {{ service.name | caseUcfirst }} extends Service {
             'arrayBuffer'{% elseif (method | textResponse) %},
             'text'{% endif %},
         );
+{% if defaults is not empty %}
+
+        return request.then((response) => ({
+{% for default in defaults %}
+            {{ default | raw }},
+{% endfor %}
+            ...response,
+        }));
+{% endif %}
 {% endif %}
 {% endif %}
     }

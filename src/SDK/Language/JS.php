@@ -3,6 +3,8 @@
 namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\ObjectSchema;
+use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\ParameterLocation;
 use Utopia\OpenAPI\Model\Schema;
@@ -10,6 +12,7 @@ use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
+use stdClass;
 use Twig\TwigFilter;
 
 abstract class JS extends Language
@@ -492,6 +495,47 @@ abstract class JS extends Language
         return $quote . $escaped . $quote;
     }
 
+    /** @return list<string> */
+    protected function getResponseDefaults(Operation $method, Specification $spec): array
+    {
+        $type = $this->getMethodType($method, $spec);
+        if ($type === self::METHOD_TYPE_LOCATION || $type === self::METHOD_TYPE_WEB_AUTH || $this->isTextResponse($method, $spec)) {
+            return [];
+        }
+
+        $models = $this->getOperationResponseModels($method);
+        $model = \count($models) === 1 ? ($spec->schemas[$models[0]] ?? null) : null;
+        if (!$model instanceof ObjectSchema) {
+            return [];
+        }
+
+        $defaults = [];
+        foreach ($model->properties as $name => $property) {
+            $default = $this->getSchema($property)->default;
+            if ($default !== null && \in_array($name, $model->required, true)) {
+                $defaults[] = $this->getObjectKeyLiteral($name) . ': ' . $this->getLiteral($default);
+            }
+        }
+        return $defaults;
+    }
+
+    protected function getLiteral(mixed $value): string
+    {
+        if ($value instanceof stdClass || (\is_array($value) && !\array_is_list($value))) {
+            $members = [];
+            foreach ((array) $value as $key => $member) {
+                $members[] = $this->getObjectKeyLiteral((string) $key) . ': ' . $this->getLiteral($member);
+            }
+            return $members === [] ? '{}' : '{ ' . \implode(', ', $members) . ' }';
+        }
+
+        return match (true) {
+            \is_array($value) => '[' . \implode(', ', \array_map($this->getLiteral(...), $value)) . ']',
+            \is_string($value) => $this->getStringLiteral($value),
+            default => (string) \json_encode($value),
+        };
+    }
+
     /**
      * Render an object literal key, quoting it only when it is not a valid
      * ECMAScript identifier. Prettier removes redundant quotes, so emitting
@@ -521,6 +565,7 @@ abstract class JS extends Language
             new TwigFilter('trimLines', fn(string $value): string => preg_replace('/[ \t]+$/m', '', $value) ?? $value),
             new TwigFilter('jsString', fn(?string $value): string => $this->getStringLiteral($value ?? ''), ['is_safe' => ['html']]),
             new TwigFilter('jsKey', fn(string $value): string => $this->getObjectKeyLiteral($value), ['is_safe' => ['html']]),
+            new TwigFilter('responseDefaults', fn(Operation $method, Specification $spec): array => $this->getResponseDefaults($method, $spec)),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
                 $enumSchema = $this->getEnumSchema($param);
