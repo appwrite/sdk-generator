@@ -1618,7 +1618,7 @@ extension Push {
                 return !apnsProxyInstalled
             }
             if install {
-                DelegateProxy.install(on: type(of: delegate))
+                DelegateProxy.install(on: delegate)
             }
         }
     }
@@ -1653,8 +1653,31 @@ extension Push {
             private typealias ReceiveFunction = @convention(c) (AnyObject, Selector, AnyObject, NSDictionary, FetchCompletion) -> Void
         #endif
 
-        static func install(on cls: AnyClass) {
-            swizzle(cls, didRegister, types: "v@:@@") { original in
+        /// Install on the app delegate. A method it does not implement but forwards goes on the class it
+        /// forwards to: SwiftUI's delegate forwards to the `@UIApplicationDelegateAdaptor` class, and a
+        /// method added to SwiftUI's would stop the app's own from running.
+        static func install(on delegate: NSObject) {
+            install(on: type(of: delegate)) { selector in
+                owner(of: delegate, selector)
+            }
+        }
+
+        /// The class whose `selector` the delegate runs: its own, or the one it forwards it to.
+        static func owner(of delegate: NSObject, _ selector: Selector) -> AnyClass {
+            let cls: AnyClass = type(of: delegate)
+            if class_getInstanceMethod(cls, selector) == nil,
+                let target = delegate.forwardingTarget(for: selector) as? NSObject,
+                target !== delegate,
+                class_getInstanceMethod(type(of: target), selector) != nil
+            {
+                return type(of: target)
+            }
+            return cls
+        }
+
+        /// Install on `cls`, or for each method on the class `owner` names.
+        static func install(on cls: AnyClass, owner: ((Selector) -> AnyClass)? = nil) {
+            swizzle(owner?(didRegister) ?? cls, didRegister, types: "v@:@@") { original in
                 let block: @convention(block) (AnyObject, AnyObject, NSData) -> Void = { this, application, token in
                     Push.apnsSetDeviceToken(token as Data)
                     if let original {
@@ -1663,7 +1686,7 @@ extension Push {
                 }
                 return imp_implementationWithBlock(block)
             }
-            swizzle(cls, didFail, types: "v@:@@") { original in
+            swizzle(owner?(didFail) ?? cls, didFail, types: "v@:@@") { original in
                 let block: @convention(block) (AnyObject, AnyObject, NSError) -> Void = { this, application, error in
                     Push.apnsRegistrationFailed(error)
                     if let original {
@@ -1673,7 +1696,7 @@ extension Push {
                 return imp_implementationWithBlock(block)
             }
             #if os(macOS)
-                swizzle(cls, didReceive, types: "v@:@@") { original in
+                swizzle(owner?(didReceive) ?? cls, didReceive, types: "v@:@@") { original in
                     let block: @convention(block) (AnyObject, AnyObject, NSDictionary) -> Void = { this, application, userInfo in
                         _ = Push.apnsHandle(userInfo as? [AnyHashable: Any] ?? [:], completion: nil)
                         if let original {
@@ -1683,7 +1706,7 @@ extension Push {
                     return imp_implementationWithBlock(block)
                 }
             #else
-                swizzle(cls, didReceive, types: "v@:@@@?") { original in
+                swizzle(owner?(didReceive) ?? cls, didReceive, types: "v@:@@@?") { original in
                     let block: @convention(block) (AnyObject, AnyObject, NSDictionary, @escaping FetchCompletion) -> Void = {
                         this, application, userInfo, completion in
                         // The app's own method still runs for Appwrite's pushes. iOS gets one

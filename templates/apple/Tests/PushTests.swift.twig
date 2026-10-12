@@ -160,6 +160,19 @@ final class PushTests {
         #expect(Push.apnsCurrentToken == "0102")
     }
 
+    @Test func theProxyFollowsAForwardingDelegate() {
+        // SwiftUI's app delegate forwards to the `@UIApplicationDelegateAdaptor` class rather than
+        // implementing the methods. The proxy must go on that class, or the app's method stops running.
+        let target = ForwardedDelegate()
+        let delegate = ForwardingDelegate(target: target)
+        Push.DelegateProxy.install(on: delegate)
+
+        #expect(class_getInstanceMethod(ForwardingDelegate.self, Push.DelegateProxy.didRegister) == nil, "nothing added to the forwarding class")
+        _ = delegate.perform(Push.DelegateProxy.didRegister, with: NSObject(), with: Data([0xab, 0xcd]) as NSData)
+        #expect(target.tokens == 1, "the app's own method still runs")
+        #expect(Push.apnsCurrentToken == "abcd")
+    }
+
     // MARK: Remote notifications
 
     @Test func remoteNotifications() {
@@ -175,5 +188,32 @@ final class PushTests {
         #expect(Push.apnsHandle(push) { results.append($0) }, "still Appwrite's the second time")
         #expect(results == [true, false], "delivered once")
         #expect(Push.apnsDeliveries.contains("m6"))
+    }
+}
+
+/// Stands in for SwiftUI's app delegate: implements nothing, forwards to the app's class.
+private final class ForwardingDelegate: NSObject {
+    let target: ForwardedDelegate
+
+    init(target: ForwardedDelegate) {
+        self.target = target
+    }
+
+    override func forwardingTarget(for selector: Selector!) -> Any? {
+        target.responds(to: selector) ? target : nil
+    }
+
+    override func responds(to selector: Selector!) -> Bool {
+        super.responds(to: selector) || target.responds(to: selector)
+    }
+}
+
+/// Stands in for the app's `@UIApplicationDelegateAdaptor` class.
+private final class ForwardedDelegate: NSObject {
+    var tokens = 0
+
+    @objc(application:didRegisterForRemoteNotificationsWithDeviceToken:)
+    func didRegister(_ application: AnyObject, token: NSData) {
+        tokens += 1
     }
 }
