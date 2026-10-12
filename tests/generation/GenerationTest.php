@@ -737,6 +737,27 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('(map.ContainsKey("metadataList") ? map["metadataList"] : new List<object> { new Dictionary<string, object> { { "enabled", true }, { "label", "x" } }, new List<object>() }).ConvertToList<', $model);
     }
 
+    #[DataProvider('kotlinLanguages')]
+    public function testKotlinModelDefaultsFollowTheSchema(string $name, string $platform): void
+    {
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR);
+        $preset = &$document['components']['schemas']['preset'];
+        $preset['properties']['settings'] = ['type' => 'object', 'additionalProperties' => true, 'default' => (object) []];
+        $preset['properties']['mock'] = ['$ref' => '#/components/schemas/mock', 'default' => ['result' => 'ok']];
+        $preset['properties']['mocks'] = ['type' => 'array', 'items' => ['$ref' => '#/components/schemas/mock'], 'default' => [['result' => 'ok']]];
+        $preset['required'][] = 'settings';
+        $preset['required'][] = 'mock';
+        $preset['required'][] = 'mocks';
+
+        $files = $this->generateDocument($document, $name, 'defaults');
+        $path = $name === 'android' ? 'library/src/main/java/appwrite/models/Preset.kt' : 'src/main/kotlin/appwrite/models/Preset.kt';
+        $model = $files[$path];
+
+        $this->assertStringContainsString('settings = (if (map.containsKey("settings")) map["settings"] else mapOf<String, Any?>()) as Map<String, Any?>', $model, "{$name}/{$platform}");
+        $this->assertStringContainsString('mock = Mock.from(map = (if (map.containsKey("mock")) map["mock"] else mapOf<String, Any?>("result" to "ok")) as Map<String, Any>)', $model, "{$name}/{$platform}");
+        $this->assertStringContainsString('mocks = ((if (map.containsKey("mocks")) map["mocks"] else listOf<Any?>(mapOf<String, Any?>("result" to "ok"))) as List<Map<String, Any>>).map { Mock.from(map = it) }', $model, "{$name}/{$platform}");
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);
