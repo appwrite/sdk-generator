@@ -1,8 +1,10 @@
 import Foundation
 import MQTTNIO
 import NIOCore
-import ObjectiveC
 
+#if canImport(ObjectiveC)
+    import ObjectiveC
+#endif
 #if canImport(CryptoKit)
     import CryptoKit
 #endif
@@ -1581,203 +1583,6 @@ extension Push {
         }
     }
 
-    // MARK: App delegate proxy
-
-    private static func requestRegistration() {
-        let first = apnsLocked { () -> Bool in
-            defer { apnsRegistrationRequested = true }
-            return !apnsRegistrationRequested
-        }
-        guard first, Bundle.main.bundleIdentifier != nil else {
-            return
-        }
-        DispatchQueue.main.async {
-            #if os(iOS) || os(tvOS)
-                UIApplication.shared.registerForRemoteNotifications()
-            #elseif os(macOS)
-                NSApplication.shared.registerForRemoteNotifications()
-            #endif
-        }
-    }
-
-    /// Proxy the app delegate's remote-notification methods. SwiftUI apps set their delegate after
-    /// launch, so this waits for one to exist.
-    private static func installProxy(attempt: Int = 0) {
-        guard Bundle.main.bundleIdentifier != nil else {
-            return
-        }
-        DispatchQueue.main.async {
-            guard let delegate = applicationDelegate() else {
-                if attempt < 20 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { installProxy(attempt: attempt + 1) }
-                }
-                return
-            }
-            let install = apnsLocked { () -> Bool in
-                defer { apnsProxyInstalled = true }
-                return !apnsProxyInstalled
-            }
-            if install {
-                DelegateProxy.install(on: delegate)
-            }
-        }
-    }
-
-    private static func applicationDelegate() -> NSObject? {
-        #if os(iOS) || os(tvOS)
-            return UIApplication.shared.delegate as? NSObject
-        #elseif os(macOS)
-            return NSApplication.shared.delegate as? NSObject
-        #else
-            return nil
-        #endif
-    }
-
-    /// Replaces the app delegate's remote-notification methods with versions that tell `Push` first
-    /// and then call the app's own. Methods the app does not implement are added.
-    enum DelegateProxy {
-        static let didRegister = NSSelectorFromString("application:didRegisterForRemoteNotificationsWithDeviceToken:")
-        static let didFail = NSSelectorFromString("application:didFailToRegisterForRemoteNotificationsWithError:")
-        #if os(macOS)
-            static let didReceive = NSSelectorFromString("application:didReceiveRemoteNotification:")
-        #else
-            static let didReceive = NSSelectorFromString("application:didReceiveRemoteNotification:fetchCompletionHandler:")
-        #endif
-
-        private typealias TokenFunction = @convention(c) (AnyObject, Selector, AnyObject, NSData) -> Void
-        private typealias FailFunction = @convention(c) (AnyObject, Selector, AnyObject, NSError) -> Void
-        #if os(macOS)
-            private typealias ReceiveFunction = @convention(c) (AnyObject, Selector, AnyObject, NSDictionary) -> Void
-        #else
-            private typealias FetchCompletion = @convention(block) (UInt) -> Void
-            private typealias ReceiveFunction = @convention(c) (AnyObject, Selector, AnyObject, NSDictionary, FetchCompletion) -> Void
-        #endif
-
-        /// Install on the app delegate. A method it does not implement but forwards goes on the class it
-        /// forwards to: SwiftUI's delegate forwards to the `@UIApplicationDelegateAdaptor` class, and a
-        /// method added to SwiftUI's would stop the app's own from running.
-        static func install(on delegate: NSObject) {
-            install(on: type(of: delegate)) { selector in
-                owner(of: delegate, selector)
-            }
-        }
-
-        /// The class whose `selector` the delegate runs: its own, or the one it forwards it to.
-        static func owner(of delegate: NSObject, _ selector: Selector) -> AnyClass {
-            let cls: AnyClass = type(of: delegate)
-            if class_getInstanceMethod(cls, selector) == nil,
-                let target = delegate.forwardingTarget(for: selector) as? NSObject,
-                target !== delegate,
-                class_getInstanceMethod(type(of: target), selector) != nil
-            {
-                return type(of: target)
-            }
-            return cls
-        }
-
-        /// Install on `cls`, or for each method on the class `owner` names.
-        static func install(on cls: AnyClass, owner: ((Selector) -> AnyClass)? = nil) {
-            swizzle(owner?(didRegister) ?? cls, didRegister, types: "v@:@@") { original in
-                let block: @convention(block) (AnyObject, AnyObject, NSData) -> Void = { this, application, token in
-                    Push.apnsSetDeviceToken(token as Data)
-                    if let original {
-                        unsafeBitCast(original, to: TokenFunction.self)(this, didRegister, application, token)
-                    }
-                }
-                return imp_implementationWithBlock(block)
-            }
-            swizzle(owner?(didFail) ?? cls, didFail, types: "v@:@@") { original in
-                let block: @convention(block) (AnyObject, AnyObject, NSError) -> Void = { this, application, error in
-                    Push.apnsRegistrationFailed(error)
-                    if let original {
-                        unsafeBitCast(original, to: FailFunction.self)(this, didFail, application, error)
-                    }
-                }
-                return imp_implementationWithBlock(block)
-            }
-            #if os(macOS)
-                swizzle(owner?(didReceive) ?? cls, didReceive, types: "v@:@@") { original in
-                    let block: @convention(block) (AnyObject, AnyObject, NSDictionary) -> Void = { this, application, userInfo in
-                        _ = Push.apnsHandle(userInfo as? [AnyHashable: Any] ?? [:], completion: nil)
-                        if let original {
-                            unsafeBitCast(original, to: ReceiveFunction.self)(this, didReceive, application, userInfo)
-                        }
-                    }
-                    return imp_implementationWithBlock(block)
-                }
-            #else
-                swizzle(owner?(didReceive) ?? cls, didReceive, types: "v@:@@@?") { original in
-                    let block: @convention(block) (AnyObject, AnyObject, NSDictionary, @escaping FetchCompletion) -> Void = {
-                        this, application, userInfo, completion in
-                        // The app's own method still runs for Appwrite's pushes. iOS gets one
-                        // completion, once both are done: Push's result, then the app's.
-                        let fetch = FetchResults(parts: original == nil ? 1 : 2, completion: completion)
-                        let handled = Push.apnsHandle(userInfo as? [AnyHashable: Any] ?? [:]) { delivered in
-                            fetch.finish(delivered ? FetchResults.newData : FetchResults.noData)
-                        }
-                        if !handled {
-                            fetch.finish(FetchResults.noData)
-                        }
-                        if let original {
-                            let appCompletion: FetchCompletion = { result in fetch.finish(result) }
-                            unsafeBitCast(original, to: ReceiveFunction.self)(this, didReceive, application, userInfo, appCompletion)
-                        }
-                    }
-                    return imp_implementationWithBlock(block)
-                }
-            #endif
-        }
-
-        #if !os(macOS)
-            /// Joins the fetch completions of `Push` and the app into the one iOS expects: new data
-            /// when either had some, else failed when either failed, else no data.
-            private final class FetchResults {
-                // UIBackgroundFetchResult raw values.
-                static let newData: UInt = 0
-                static let noData: UInt = 1
-                static let failed: UInt = 2
-
-                private let lock = NSLock()
-                private var remaining: Int
-                private var results: [UInt] = []
-                private let completion: FetchCompletion
-
-                init(parts: Int, completion: @escaping FetchCompletion) {
-                    remaining = parts
-                    self.completion = completion
-                }
-
-                func finish(_ result: UInt) {
-                    lock.lock()
-                    guard remaining > 0 else {
-                        lock.unlock()
-                        return
-                    }
-                    results.append(result)
-                    remaining -= 1
-                    let done = remaining == 0
-                    let combined =
-                        results.contains(FetchResults.newData)
-                        ? FetchResults.newData : results.contains(FetchResults.failed) ? FetchResults.failed : FetchResults.noData
-                    lock.unlock()
-                    if done {
-                        completion(combined)
-                    }
-                }
-            }
-        #endif
-
-        /// Point `selector` on `cls` at the implementation `make` builds from the original, which is
-        /// nil when the class did not implement it.
-        static func swizzle(_ cls: AnyClass, _ selector: Selector, types: String, make: (IMP?) -> IMP) {
-            if let method = class_getInstanceMethod(cls, selector) {
-                method_setImplementation(method, make(method_getImplementation(method)))
-            } else {
-                class_addMethod(cls, selector, make(nil), types)
-            }
-        }
-    }
-
     // MARK: Helpers
 
     /// The APNs server a device token belongs to. Debug builds get sandbox tokens and App Store or
@@ -1972,3 +1777,212 @@ extension Push {
         }
     }
 }
+
+// The app delegate proxy needs the Objective-C runtime, so it exists on Apple platforms only,
+// where APNs does.
+#if canImport(ObjectiveC)
+    extension Push {
+        // MARK: App delegate proxy
+
+        private static func requestRegistration() {
+            let first = apnsLocked { () -> Bool in
+                defer { apnsRegistrationRequested = true }
+                return !apnsRegistrationRequested
+            }
+            guard first, Bundle.main.bundleIdentifier != nil else {
+                return
+            }
+            DispatchQueue.main.async {
+                #if os(iOS) || os(tvOS)
+                    UIApplication.shared.registerForRemoteNotifications()
+                #elseif os(macOS)
+                    NSApplication.shared.registerForRemoteNotifications()
+                #endif
+            }
+        }
+
+        /// Proxy the app delegate's remote-notification methods. SwiftUI apps set their delegate after
+        /// launch, so this waits for one to exist.
+        private static func installProxy(attempt: Int = 0) {
+            guard Bundle.main.bundleIdentifier != nil else {
+                return
+            }
+            DispatchQueue.main.async {
+                guard let delegate = applicationDelegate() else {
+                    if attempt < 20 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { installProxy(attempt: attempt + 1) }
+                    }
+                    return
+                }
+                let install = apnsLocked { () -> Bool in
+                    defer { apnsProxyInstalled = true }
+                    return !apnsProxyInstalled
+                }
+                if install {
+                    DelegateProxy.install(on: delegate)
+                }
+            }
+        }
+
+        private static func applicationDelegate() -> NSObject? {
+            #if os(iOS) || os(tvOS)
+                return UIApplication.shared.delegate as? NSObject
+            #elseif os(macOS)
+                return NSApplication.shared.delegate as? NSObject
+            #else
+                return nil
+            #endif
+        }
+
+        /// Replaces the app delegate's remote-notification methods with versions that tell `Push` first
+        /// and then call the app's own. Methods the app does not implement are added.
+        enum DelegateProxy {
+            static let didRegister = NSSelectorFromString("application:didRegisterForRemoteNotificationsWithDeviceToken:")
+            static let didFail = NSSelectorFromString("application:didFailToRegisterForRemoteNotificationsWithError:")
+            #if os(macOS)
+                static let didReceive = NSSelectorFromString("application:didReceiveRemoteNotification:")
+            #else
+                static let didReceive = NSSelectorFromString("application:didReceiveRemoteNotification:fetchCompletionHandler:")
+            #endif
+
+            private typealias TokenFunction = @convention(c) (AnyObject, Selector, AnyObject, NSData) -> Void
+            private typealias FailFunction = @convention(c) (AnyObject, Selector, AnyObject, NSError) -> Void
+            #if os(macOS)
+                private typealias ReceiveFunction = @convention(c) (AnyObject, Selector, AnyObject, NSDictionary) -> Void
+            #else
+                private typealias FetchCompletion = @convention(block) (UInt) -> Void
+                private typealias ReceiveFunction = @convention(c) (AnyObject, Selector, AnyObject, NSDictionary, FetchCompletion) -> Void
+            #endif
+
+            /// Install on the app delegate. A method it does not implement but forwards goes on the class it
+            /// forwards to: SwiftUI's delegate forwards to the `@UIApplicationDelegateAdaptor` class, and a
+            /// method added to SwiftUI's would stop the app's own from running.
+            static func install(on delegate: NSObject) {
+                install(on: type(of: delegate)) { selector in
+                    owner(of: delegate, selector)
+                }
+            }
+
+            /// The class whose `selector` the delegate runs: its own, or the one it forwards it to.
+            static func owner(of delegate: NSObject, _ selector: Selector) -> AnyClass {
+                let cls: AnyClass = type(of: delegate)
+                if class_getInstanceMethod(cls, selector) == nil,
+                    let target = delegate.forwardingTarget(for: selector) as? NSObject,
+                    target !== delegate,
+                    class_getInstanceMethod(type(of: target), selector) != nil
+                {
+                    return type(of: target)
+                }
+                return cls
+            }
+
+            /// Install on `cls`, or for each method on the class `owner` names.
+            static func install(on cls: AnyClass, owner: ((Selector) -> AnyClass)? = nil) {
+                swizzle(owner?(didRegister) ?? cls, didRegister, types: "v@:@@") { original in
+                    let block: @convention(block) (AnyObject, AnyObject, NSData) -> Void = { this, application, token in
+                        Push.apnsSetDeviceToken(token as Data)
+                        if let original {
+                            unsafeBitCast(original, to: TokenFunction.self)(this, didRegister, application, token)
+                        }
+                    }
+                    return imp_implementationWithBlock(block)
+                }
+                swizzle(owner?(didFail) ?? cls, didFail, types: "v@:@@") { original in
+                    let block: @convention(block) (AnyObject, AnyObject, NSError) -> Void = { this, application, error in
+                        Push.apnsRegistrationFailed(error)
+                        if let original {
+                            unsafeBitCast(original, to: FailFunction.self)(this, didFail, application, error)
+                        }
+                    }
+                    return imp_implementationWithBlock(block)
+                }
+                #if os(macOS)
+                    swizzle(owner?(didReceive) ?? cls, didReceive, types: "v@:@@") { original in
+                        let block: @convention(block) (AnyObject, AnyObject, NSDictionary) -> Void = { this, application, userInfo in
+                            _ = Push.apnsHandle(userInfo as? [AnyHashable: Any] ?? [:], completion: nil)
+                            if let original {
+                                unsafeBitCast(original, to: ReceiveFunction.self)(this, didReceive, application, userInfo)
+                            }
+                        }
+                        return imp_implementationWithBlock(block)
+                    }
+                #else
+                    swizzle(owner?(didReceive) ?? cls, didReceive, types: "v@:@@@?") { original in
+                        let block: @convention(block) (AnyObject, AnyObject, NSDictionary, @escaping FetchCompletion) -> Void = {
+                            this, application, userInfo, completion in
+                            // The app's own method still runs for Appwrite's pushes. iOS gets one
+                            // completion, once both are done: Push's result, then the app's.
+                            let fetch = FetchResults(parts: original == nil ? 1 : 2, completion: completion)
+                            let handled = Push.apnsHandle(userInfo as? [AnyHashable: Any] ?? [:]) { delivered in
+                                fetch.finish(delivered ? FetchResults.newData : FetchResults.noData)
+                            }
+                            if !handled {
+                                fetch.finish(FetchResults.noData)
+                            }
+                            if let original {
+                                let appCompletion: FetchCompletion = { result in fetch.finish(result) }
+                                unsafeBitCast(original, to: ReceiveFunction.self)(this, didReceive, application, userInfo, appCompletion)
+                            }
+                        }
+                        return imp_implementationWithBlock(block)
+                    }
+                #endif
+            }
+
+            #if !os(macOS)
+                /// Joins the fetch completions of `Push` and the app into the one iOS expects: new data
+                /// when either had some, else failed when either failed, else no data.
+                private final class FetchResults {
+                    // UIBackgroundFetchResult raw values.
+                    static let newData: UInt = 0
+                    static let noData: UInt = 1
+                    static let failed: UInt = 2
+
+                    private let lock = NSLock()
+                    private var remaining: Int
+                    private var results: [UInt] = []
+                    private let completion: FetchCompletion
+
+                    init(parts: Int, completion: @escaping FetchCompletion) {
+                        remaining = parts
+                        self.completion = completion
+                    }
+
+                    func finish(_ result: UInt) {
+                        lock.lock()
+                        guard remaining > 0 else {
+                            lock.unlock()
+                            return
+                        }
+                        results.append(result)
+                        remaining -= 1
+                        let done = remaining == 0
+                        let combined =
+                            results.contains(FetchResults.newData)
+                            ? FetchResults.newData : results.contains(FetchResults.failed) ? FetchResults.failed : FetchResults.noData
+                        lock.unlock()
+                        if done {
+                            completion(combined)
+                        }
+                    }
+                }
+            #endif
+
+            /// Point `selector` on `cls` at the implementation `make` builds from the original, which is
+            /// nil when the class did not implement it.
+            static func swizzle(_ cls: AnyClass, _ selector: Selector, types: String, make: (IMP?) -> IMP) {
+                if let method = class_getInstanceMethod(cls, selector) {
+                    method_setImplementation(method, make(method_getImplementation(method)))
+                } else {
+                    class_addMethod(cls, selector, make(nil), types)
+                }
+            }
+        }
+    }
+#else
+    extension Push {
+        private static func requestRegistration() {}
+
+        private static func installProxy() {}
+    }
+#endif
