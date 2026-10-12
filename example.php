@@ -262,25 +262,6 @@ try {
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
         |_|   |_|                                                ";
 
-    $cliExcludes = [
-        'methods' => [
-            // Passkeys are not in the released Go SDK yet
-            ['service' => 'account', 'name' => 'listPasskeys'],
-            ['service' => 'account', 'name' => 'createPasskey'],
-            ['service' => 'account', 'name' => 'getPasskey'],
-            ['service' => 'account', 'name' => 'updatePasskey'],
-            ['service' => 'account', 'name' => 'deletePasskey'],
-            ['service' => 'account', 'name' => 'updatePasskeyVerification'],
-            ['service' => 'account', 'name' => 'createPasskeyToken'],
-            ['service' => 'account', 'name' => 'updatePasskeyToken'],
-            ['service' => 'project', 'name' => 'updatePasskeyPolicy'],
-            ['service' => 'users', 'name' => 'listPasskeys'],
-            ['service' => 'users', 'name' => 'getPasskey'],
-            ['service' => 'users', 'name' => 'updatePasskey'],
-            ['service' => 'users', 'name' => 'deletePasskey'],
-        ],
-    ];
-
     // CLI
     if (!$requestedSdk || $requestedSdk === 'cli') {
         $language = new CLI();
@@ -293,7 +274,6 @@ try {
         $sdk->setTest(false);
         configureSDK($sdk, [
             'platform' => 'server',
-            'exclude' => $cliExcludes,
         ]);
 
         $sdk->generate(__DIR__ . '/examples/cli');
