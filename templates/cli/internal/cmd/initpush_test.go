@@ -1649,6 +1649,10 @@ type askingAdapter struct{}
 
 func (askingAdapter) Name() string { return defaultApnsSetup }
 
+func (askingAdapter) PrepareAppID(_ context.Context, request apns.Request, _ apns.AppIDRequest) (apns.AppIDResult, error) {
+	return apns.AppIDResult{TeamID: request.TeamID, Registered: true, Push: true}, nil
+}
+
 func (askingAdapter) CreateKey(_ context.Context, request apns.Request) (apns.Key, error) {
 	if _, err := request.Asker.Ask("Enter the 6-digit code sent to +1 •••12", false); err != nil {
 		return apns.Key{}, err
@@ -1720,27 +1724,18 @@ func TestInitApnsResetSignsInAgainAndCreatesAKey(t *testing.T) {
 	}
 }
 
-// useAppIDAdapter makes adapter, which can also prepare App IDs, the only APNs
-// key setup.
-func useAppIDAdapter(setup *pushSetup, adapter *apnstest.AppIDAdapter) *apnstest.AppIDAdapter {
-	adapter.AdapterName = defaultApnsSetup
-	if adapter.TeamID == "" {
-		adapter.TeamID = "APPLE12345"
-	}
-	setup.apnsAdapters = apns.NewRegistry(adapter)
-
-	return adapter
-}
+const appIDSignInQuestion = "Sign in with your Apple ID to check the App ID for com.example.app?"
 
 func TestInitApnsChecksTheAppIDAfterCreatingAKey(t *testing.T) {
 	messaging := &fakeMessaging{}
 	server := httptest.NewServer(messaging)
 	defer server.Close()
 
-	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, t.TempDir())
-	adapter := useAppIDAdapter(setup, &apnstest.AppIDAdapter{
-		Adapter: apnstest.Adapter{KeyID: "NEWKEY1234"},
-		Result:  apns.AppIDResult{TeamID: "ABCDE12345", Registered: true, Push: true, Created: true, PushTurnedOn: true},
+	scripted := &prompt.Scripted{}
+	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
+	adapter := useAdapter(setup, &apnstest.Adapter{
+		KeyID:       "NEWKEY1234",
+		AppIDResult: apns.AppIDResult{TeamID: "ABCDE12345", Registered: true, Push: true, Created: true, PushTurnedOn: true},
 	})
 
 	options := apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", reset: true}
@@ -1750,41 +1745,107 @@ func TestInitApnsChecksTheAppIDAfterCreatingAKey(t *testing.T) {
 	if len(adapter.AppIDRequests) != 1 || adapter.AppIDRequests[0] != (apns.AppIDRequest{BundleID: "com.example.app", Ask: true}) {
 		t.Fatalf("App ID calls = %v", adapter.AppIDRequests)
 	}
-	// The key's sign-in just happened: --reset does not sign in a second time.
-	if signIn := adapter.AppIDSignIns[0]; signIn.TeamID != "ABCDE12345" || signIn.Reset {
+	// The key's sign-in is reused: no question, and --reset does not sign in
+	// a second time.
+	if signIn := adapter.AppIDSignIns[0]; signIn.TeamID != "ABCDE12345" || signIn.Reset || signIn.SavedSignInOnly {
 		t.Errorf("App ID sign-in = %+v", signIn)
+	}
+	if len(scripted.Asked) != 0 {
+		t.Errorf("asked %v", scripted.Asked)
 	}
 	if !strings.Contains(out.String(), "Registered com.example.app as an App ID with Push Notifications on team ABCDE12345.") {
 		t.Errorf("output:\n%s", out.String())
 	}
 }
 
-func TestInitApnsRegistersTheAppIDOfASetUpProject(t *testing.T) {
+func TestInitApnsChecksTheAppIDWithTheSavedSignIn(t *testing.T) {
 	messaging := &fakeMessaging{}
 	server := httptest.NewServer(messaging)
 	defer server.Close()
 
-	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, t.TempDir())
-	adapter := useAppIDAdapter(setup, &apnstest.AppIDAdapter{
-		Result: apns.AppIDResult{TeamID: "ABCDE12345", Registered: true, Push: true, PushTurnedOn: true},
+	scripted := &prompt.Scripted{}
+	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
+	adapter := useAdapter(setup, &apnstest.Adapter{
+		AppIDResult: apns.AppIDResult{TeamID: "ABCDE12345", Registered: true, Push: true},
 	})
+
 	keyPath := testApnsKey(t, t.TempDir())
 	if err := setup.apns(apnsOptions{keyPath: keyPath, bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
 		t.Fatal(err)
 	}
-	if len(adapter.AppIDRequests) != 0 {
-		t.Fatalf("checked the App ID without a sign-in to reuse: %v", adapter.AppIDRequests)
+	if len(adapter.AppIDRequests) != 1 || !adapter.AppIDRequests[0].Ask || !adapter.AppIDSignIns[0].SavedSignInOnly {
+		t.Fatalf("App ID calls = %v, sign-ins = %v", adapter.AppIDRequests, adapter.AppIDSignIns)
+	}
+	if len(scripted.Asked) != 0 || !strings.Contains(out.String(), "com.example.app is registered as an App ID with Push Notifications.") {
+		t.Errorf("asked %v, output:\n%s", scripted.Asked, out.String())
 	}
 
-	// Already set up: --register-app-id runs on its own, without asking,
-	// on the team of the existing providers.
-	if err := setup.apns(apnsOptions{bundleID: "com.example.app", registerAppID: true}, appleApp{}); err != nil {
+	// An already set-up project is checked on every run.
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app"}, appleApp{}); err != nil {
 		t.Fatal(err)
 	}
-	if len(adapter.AppIDRequests) != 1 || adapter.AppIDRequests[0].Ask || adapter.AppIDSignIns[0].TeamID != "ABCDE12345" {
+	if len(adapter.AppIDRequests) != 2 || adapter.AppIDSignIns[1].TeamID != "ABCDE12345" {
+		t.Errorf("App ID calls = %v, sign-ins = %v", adapter.AppIDRequests, adapter.AppIDSignIns)
+	}
+}
+
+func TestInitApnsAsksBeforeSigningInToCheckTheAppID(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	scripted := &prompt.Scripted{}
+	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
+	adapter := useAdapter(setup, &apnstest.Adapter{
+		SignInNeeded: true,
+		AppIDResult:  apns.AppIDResult{TeamID: "ABCDE12345", Registered: true, Push: true, PushTurnedOn: true},
+	})
+	keyPath := testApnsKey(t, t.TempDir())
+
+	// No saved sign-in and no answer: skipped, and the setup still succeeds.
+	if err := setup.apns(apnsOptions{keyPath: keyPath, bundleID: "com.example.app", teamID: "ABCDE12345"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(messaging.providers) != 2 || len(adapter.AppIDRequests) != 1 || strings.Join(scripted.Asked, "|") != appIDSignInQuestion {
+		t.Fatalf("providers = %v, App ID calls = %v, asked %v", messaging.providers, adapter.AppIDRequests, scripted.Asked)
+	}
+	if !strings.Contains(out.String(), "Skipped the App ID check. Run `appwrite init apns --register-app-id`") {
+		t.Errorf("output:\n%s", out.String())
+	}
+
+	// Agreeing signs in and checks.
+	scripted.Choices = map[string]string{appIDSignInQuestion: "check"}
+	if err := setup.apns(apnsOptions{bundleID: "com.example.app"}, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(adapter.AppIDRequests) != 3 || adapter.AppIDSignIns[2].SavedSignInOnly || !adapter.AppIDRequests[2].Ask {
 		t.Fatalf("App ID calls = %v, sign-ins = %v", adapter.AppIDRequests, adapter.AppIDSignIns)
 	}
 	if !strings.Contains(out.String(), "Turned on Push Notifications for the App ID com.example.app.") {
+		t.Errorf("output:\n%s", out.String())
+	}
+}
+
+func TestInitApnsRegisterAppIDSignsInAndDoesNotAsk(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	scripted := &prompt.Scripted{}
+	setup, out := newTestPushSetup(t, server, scripted, t.TempDir())
+	adapter := useAdapter(setup, &apnstest.Adapter{
+		SignInNeeded: true,
+		AppIDResult:  apns.AppIDResult{TeamID: "ABCDE12345", Registered: true, Push: true, Created: true, PushTurnedOn: true},
+	})
+	keyPath := testApnsKey(t, t.TempDir())
+	options := apnsOptions{keyPath: keyPath, bundleID: "com.example.app", teamID: "ABCDE12345", registerAppID: true}
+	if err := setup.apns(options, appleApp{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(adapter.AppIDRequests) != 1 || adapter.AppIDRequests[0].Ask || adapter.AppIDSignIns[0].SavedSignInOnly || len(scripted.Asked) != 0 {
+		t.Fatalf("App ID calls = %v, sign-ins = %v, asked %v", adapter.AppIDRequests, adapter.AppIDSignIns, scripted.Asked)
+	}
+	if !strings.Contains(out.String(), "Registered com.example.app as an App ID with Push Notifications on team ABCDE12345.") {
 		t.Errorf("output:\n%s", out.String())
 	}
 
@@ -1793,21 +1854,5 @@ func TestInitApnsRegistersTheAppIDOfASetUpProject(t *testing.T) {
 	err := setup.apns(apnsOptions{bundleID: "com.example.app", registerAppID: true}, appleApp{})
 	if err == nil || !strings.Contains(err.Error(), "Could not check the App ID for com.example.app: could not reach Apple") {
 		t.Errorf("err = %v", err)
-	}
-}
-
-func TestInitApnsWarnsWhenTheSetupCannotCheckAppIDs(t *testing.T) {
-	messaging := &fakeMessaging{}
-	server := httptest.NewServer(messaging)
-	defer server.Close()
-
-	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, t.TempDir())
-	useAdapter(setup, &apnstest.Adapter{KeyID: "NEWKEY1234"})
-
-	if err := setup.apns(apnsOptions{bundleID: "com.example.app", teamID: "ABCDE12345", createKey: true}, appleApp{}); err != nil {
-		t.Fatal(err)
-	}
-	if len(messaging.providers) != 2 || !strings.Contains(out.String(), "The appwrite setup cannot check App IDs, so com.example.app was not checked.") {
-		t.Errorf("providers = %v, output:\n%s", messaging.providers, out.String())
 	}
 }

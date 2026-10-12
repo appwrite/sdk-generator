@@ -416,11 +416,8 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 		output.Success(s.out, "APNs%s is already set up for %s.", environmentLabel(environment), bundleID)
 		output.Hint(s.out, "Pass --force or --key-path to replace the key.")
 		s.configureXcode(detected, bundleID)
-		if options.registerAppID {
-			return s.prepareAppID(provisionedTeam(production, sandbox, detected.teams(bundleID)), bundleID, options)
-		}
 
-		return nil
+		return s.prepareAppID(provisionedTeam(production, sandbox, detected.teams(bundleID)), bundleID, options, false)
 	}
 
 	teams := detected.teams(bundleID)
@@ -516,13 +513,9 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 
 	s.configureXcode(detected, bundleID)
 	output.Success(s.out, "APNs%s is set up for %s.", environmentLabel(environment), bundleID)
-	// Signed in to Apple already when a key was just created, so the App ID
-	// is checked too; --register-app-id asks for it on its own.
-	if createdKeyID != "" || options.registerAppID {
-		return s.prepareAppID(teamID, bundleID, options)
-	}
 
-	return nil
+	// A key created a moment ago left a fresh sign-in to check the App ID with.
+	return s.prepareAppID(teamID, bundleID, options, createdKeyID != "")
 }
 
 // apnsKey finds or creates the APNs key and returns its path. With
@@ -684,8 +677,14 @@ func (s *pushSetup) appleRequest(adapter apns.Adapter, teamID string, reset bool
 	if s.apnsSessions != "" {
 		request.SessionDir = filepath.Join(s.apnsSessions, adapter.Name())
 	}
+
+	return request
+}
+
+// logAppleSignIn says how the coming sign-in to Apple will happen.
+func (s *pushSetup) logAppleSignIn(adapter apns.Adapter, request apns.Request) {
 	output.Log(s.out, "Signing in to the Apple Developer portal (%s).", adapter.Name())
-	if reset {
+	if request.Reset {
 		output.Log(s.out, "Signing in again: the saved Apple sign-in is not used (--reset).")
 	}
 	if request.AppleID != "" {
@@ -694,16 +693,18 @@ func (s *pushSetup) appleRequest(adapter apns.Adapter, teamID string, reset bool
 	if request.Password != "" {
 		output.Log(s.out, "Using the Apple ID password from %s.", applePasswordVariable)
 	}
-
-	return request
 }
 
 // prepareAppID makes sure the bundle ID is an App ID with Push Notifications
 // on the team: APNs refuses pushes for any other bundle ID (TopicDisallowed),
 // and Xcode registers it only for a device build with the capability added.
-// After a new key it asks before each change; --register-app-id makes them
-// directly and fails the command when it cannot.
-func (s *pushSetup) prepareAppID(teamID, bundleID string, options apnsOptions) error {
+//
+// Every init apns runs it. It uses the sign-in a new key just left, or a
+// saved one, and asks before each change; without either it asks whether to
+// sign in, and skips when there is no terminal. --register-app-id signs in
+// when needed, makes the changes without asking and fails the command when
+// it cannot.
+func (s *pushSetup) prepareAppID(teamID, bundleID string, options apnsOptions, signedIn bool) error {
 	explicit := options.registerAppID
 	fail := func(format string, args ...any) error {
 		message := fmt.Sprintf(format, args...)
@@ -719,15 +720,34 @@ func (s *pushSetup) prepareAppID(teamID, bundleID string, options apnsOptions) e
 	if err != nil {
 		return fail("Could not check the App ID for %s: %s", bundleID, err)
 	}
-	preparer, ok := adapter.(apns.AppIDPreparer)
-	if !ok {
-		return fail("The %s setup cannot check App IDs, so %s was not checked", adapter.Name(), bundleID)
-	}
 
 	output.Log(s.out, "Checking the App ID for %s ...", bundleID)
 	// A key created a moment ago left a fresh sign-in: --reset is not repeated.
 	request := s.appleRequest(adapter, teamID, options.reset && !options.createKey)
-	result, err := preparer.PrepareAppID(s.context(), request, apns.AppIDRequest{BundleID: bundleID, Ask: !explicit})
+	request.SavedSignInOnly = !signedIn && !explicit
+	if explicit && !signedIn {
+		s.logAppleSignIn(adapter, request)
+	}
+	appID := apns.AppIDRequest{BundleID: bundleID, Ask: !explicit}
+	result, err := apns.PrepareAppID(s.context(), adapter, request, appID)
+	if errors.Is(err, apns.ErrSignInNeeded) {
+		answer, askErr := s.prompter.Choice(prompt.Choice{
+			Message:     "Sign in with your Apple ID to check the App ID for " + bundleID + "?",
+			Description: "APNs refuses pushes for a bundle ID that is not registered as an App ID with Push Notifications.",
+			Options: []prompt.Option{
+				{Label: "Sign in and check", Value: "check"},
+				{Label: "Skip", Value: "skip"},
+			},
+		})
+		if askErr != nil || answer != "check" {
+			output.Hint(s.out, "Skipped the App ID check. Run `appwrite init apns --register-app-id`, or check %s at %s.", bundleID, appIDsPage)
+
+			return nil
+		}
+		request.SavedSignInOnly = false
+		s.logAppleSignIn(adapter, request)
+		result, err = apns.PrepareAppID(s.context(), adapter, request, appID)
+	}
 	var unanswered *prompt.NonInteractiveError
 	if errors.As(err, &unanswered) {
 		return fail("Could not check the App ID for %s: %q needs an interactive terminal. Pass --register-app-id to register it without asking", bundleID, unanswered.Message)
@@ -778,6 +798,7 @@ func (s *pushSetup) createApnsKey(teamID string, options apnsOptions, environmen
 		return "", "", "", err
 	}
 	request := s.appleRequest(adapter, teamID, options.reset)
+	s.logAppleSignIn(adapter, request)
 	request.Name = "Appwrite Push " + time.Now().Format("20060102150405")
 	request.Environment = environment
 	key, err := apns.CreateKey(s.context(), adapter, request)
