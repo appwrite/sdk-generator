@@ -6,6 +6,7 @@ namespace {{ namespace | caseNamespace }}\Models;
 
 {% set requiredProperties = definition.properties | filter((property) => (property | schemaRequired)) %}
 {% set optionalProperties = definition.properties | filter((property) => not (property | schemaRequired)) %}
+{% set defaultedProperties = requiredProperties | filter((property) => (property | schemaDefault) is not null) %}
 {% set enumImports = [] %}
 {% for property in definition.properties %}
 {% if (property | enumValues) is not empty %}
@@ -78,6 +79,14 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {% if requiredProperties is empty and optionalProperties is empty and not definition.additionalProperties %}
         return new static();
 {% else %}
+{% if defaultedProperties is not empty %}
+        $data += [
+{% for property in defaultedProperties %}
+            '{{ (property | schemaName) }}' => {{ property | schemaDefault | phpLiteral }},
+{% endfor %}
+        ];
+
+{% endif %}
 {% for property in requiredProperties %}
         if (!array_key_exists('{{ (property | schemaName) }}', $data)) {
             throw new \InvalidArgumentException('Missing required field "{{ (property | schemaName) }}" for ' . static::class . '.');

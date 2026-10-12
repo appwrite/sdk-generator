@@ -561,6 +561,10 @@ class PHP extends Language
             return 'null';
         }
 
+        if (is_object($value)) {
+            $value = (array) $value;
+        }
+
         if (is_array($value)) {
             return $value === [] ? '[]' : var_export($value, true);
         }
@@ -627,6 +631,7 @@ class PHP extends Language
             new TwigFilter('getResponseModels', fn(Operation $value, ?Specification $spec = null): array => $this->getResponseModels($value, $spec)),
             new TwigFilter('mockDefinitionPayload', fn(string $definitionName, Specification $spec, int $indentLevel = 2): string => $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel), ['is_safe' => ['html']]),
             new TwigFilter('methodParameters', fn(Operation $value): string => $this->getMethodParameters($value)),
+            new TwigFilter('phpLiteral', fn(mixed $value): string => $this->formatPhpLiteral($value), ['is_safe' => ['html']]),
             new TwigFilter('deviceInfo', fn($value): string => php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m')),
             new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {

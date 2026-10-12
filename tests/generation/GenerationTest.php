@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Generation;
 
+use Appwrite\Models\Mock;
+use Appwrite\Models\Zznullablescalars;
 use Exception;
 use Iterator;
 use Appwrite\SDK\Language;
@@ -655,6 +657,57 @@ final class GenerationTest extends TestCase
 
             $this->assertMatchesRegularExpression('/uploadfileonly\(\s*file: [^,]+,\s*onprogress\?: \(progress: uploadprogress\) => void,\s*\): promise/', $service, "{$name} uploadFileOnly lacks a positional onProgress");
         }
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testPhpModelsFillMissingFieldsFromTheirDefaults(): void
+    {
+        $dir = $this->generateWithModelDefaults('php');
+
+        require_once $dir . '/src/Appwrite/Models/ArraySerializable.php';
+        require_once $dir . '/src/Appwrite/Models/Mock.php';
+        require_once $dir . '/src/Appwrite/Models/Zznullablescalars.php';
+
+        $this->assertSame('Unknown $result', Mock::from([])->result);
+        $this->assertSame('Sent', Mock::from(['result' => 'Sent'])->result);
+
+        $scalars = Zznullablescalars::from(['text' => 'text', 'price' => 1.5]);
+        $this->assertSame(0, $scalars->count);
+        $this->assertFalse($scalars->enabled);
+
+        $this->expectExceptionMessage('Missing required field "text"');
+        Zznullablescalars::from(['price' => 1.5]);
+    }
+
+    public function testRubyModelDefaultsAreLiterals(): void
+    {
+        $model = (string) \file_get_contents($this->generateWithModelDefaults('ruby') . '/lib/appwrite/models/mock.rb');
+
+        $this->assertStringContainsString('optional_result: "pending"', $model);
+    }
+
+    private function generateWithModelDefaults(string $name): string
+    {
+        $dir = self::OUTPUT . '/' . $name . '/defaults';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $document->components->schemas->mock->properties->result->default = 'Unknown $result';
+        $document->components->schemas->mock->properties->optionalResult->default = 'pending';
+        $document->components->schemas->zznullablescalars->properties->count->default = 0;
+        $document->components->schemas->zznullablescalars->properties->enabled->default = false;
+
+        $sdk = new SDK($this->language($name), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        return $dir;
     }
 
     public function testGoModelCommentsAreNotHtmlEscaped(): void
