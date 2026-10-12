@@ -685,6 +685,11 @@ final class GenerationTest extends TestCase
         $array->responses->{'200'}->content->{'application/json'}->schema = (object) ['type' => 'array', 'items' => $reference];
         $document->paths->{'/mock/tests/general/preset-array'} = (object) ['get' => $array];
 
+        $twice = \json_decode(\json_encode($preset, JSON_THROW_ON_ERROR), flags: JSON_THROW_ON_ERROR);
+        $twice->operationId = 'generalCreatePreset';
+        $twice->responses->{'201'} = $twice->responses->{'200'};
+        $document->paths->{'/mock/tests/general/preset-twice'} = (object) ['get' => $twice];
+
         $sdk = new SDK($this->language('web'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
         $sdk
             ->setName('test')
@@ -696,28 +701,45 @@ final class GenerationTest extends TestCase
         $service = (string) \file_get_contents($dir . '/src/services/general.ts');
 
         $this->assertStringNotContainsString('...response', $service);
-        $this->assertSame(3, \substr_count($service, 'return request.then((response) => applyDefaults(response, defaults));'));
-        $this->assertStringContainsString(<<<'TS'
+        $this->assertSame(4, \substr_count($service, 'return request.then((response) => applyDefaults(response, defaults));'));
+        $this->assertSame(2, \substr_count($service, <<<'TS'
                     const defaults = {
-                        defaults: {
-                            name: 'guest',
-                            count: 25,
-                            enabled: true,
-                            tier: 'free',
+                        root: 'preset',
+                        models: {
+                            preset: {
+                                defaults: {
+                                    name: 'guest',
+                                    count: 25,
+                                    enabled: true,
+                                    tier: 'free',
+                                },
+                                properties: {
+                                    parent: 'preset',
+                                },
+                            },
                         },
                     };
-            TS, $service);
+            TS));
         $this->assertStringContainsString(<<<'TS'
                     const defaults = {
-                        properties: {
-                            presets: {
-                                items: {
-                                    defaults: {
-                                        name: 'guest',
-                                        count: 25,
-                                        enabled: true,
-                                        tier: 'free',
+                        root: 'presetList',
+                        models: {
+                            presetList: {
+                                properties: {
+                                    presets: {
+                                        items: 'preset',
                                     },
+                                },
+                            },
+                            preset: {
+                                defaults: {
+                                    name: 'guest',
+                                    count: 25,
+                                    enabled: true,
+                                    tier: 'free',
+                                },
+                                properties: {
+                                    parent: 'preset',
                                 },
                             },
                         },
@@ -725,12 +747,20 @@ final class GenerationTest extends TestCase
             TS, $service);
         $this->assertStringContainsString(<<<'TS'
                     const defaults = {
-                        items: {
-                            defaults: {
-                                name: 'guest',
-                                count: 25,
-                                enabled: true,
-                                tier: 'free',
+                        root: {
+                            items: 'preset',
+                        },
+                        models: {
+                            preset: {
+                                defaults: {
+                                    name: 'guest',
+                                    count: 25,
+                                    enabled: true,
+                                    tier: 'free',
+                                },
+                                properties: {
+                                    parent: 'preset',
+                                },
                             },
                         },
                     };

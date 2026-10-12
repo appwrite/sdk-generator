@@ -503,73 +503,107 @@ abstract class JS extends Language
             return '';
         }
 
-        $schemas = [];
+        $shapes = [];
         foreach ($method->responses as $response) {
             foreach ($response->content as $mediaType) {
                 if ($mediaType->schema !== null) {
-                    $schemas[] = $mediaType->schema;
+                    $shapes[] = $this->getDefaultsShape($mediaType->schema, $spec);
                 }
             }
         }
-        if (\count($schemas) !== 1) {
+        $shapes = \array_values(\array_unique($shapes, SORT_REGULAR));
+        if (\count($shapes) !== 1 || $shapes[0] === null) {
+            return '';
+        }
+        $root = $shapes[0];
+
+        $models = [];
+        $pending = [$this->getShapeModel($root)];
+        while (($name = \array_shift($pending)) !== null) {
+            $model = $spec->schemas[$name] ?? null;
+            if (isset($models[$name]) || !$model instanceof ObjectSchema) {
+                continue;
+            }
+            $models[$name] = ['defaults' => [], 'properties' => []];
+            foreach ($model->properties as $key => $property) {
+                if ($property->default !== null && \in_array($key, $model->required, true)) {
+                    $models[$name]['defaults'][$key] = $this->getLiteral($property->default);
+                }
+                $shape = $this->getDefaultsShape($property, $spec);
+                if ($shape !== null) {
+                    $models[$name]['properties'][$key] = $shape;
+                    $pending[] = $this->getShapeModel($shape);
+                }
+            }
+        }
+
+        $filled = \array_keys(\array_filter($models, static fn(array $model): bool => $model['defaults'] !== []));
+        do {
+            $count = \count($filled);
+            foreach ($models as $name => $model) {
+                if (!\in_array($name, $filled, true) && \array_any($model['properties'], fn(string|array $shape): bool => \in_array($this->getShapeModel($shape), $filled, true))) {
+                    $filled[] = $name;
+                }
+            }
+        } while (\count($filled) !== $count);
+
+        if (!\in_array($this->getShapeModel($root), $filled, true)) {
             return '';
         }
 
-        $tree = $this->getDefaultsTree($schemas[0], $spec, []);
-        return $tree === [] ? '' : $this->renderDefaultsTree($tree, $indent);
+        $entries = [];
+        foreach ($models as $name => $model) {
+            if (!\in_array($name, $filled, true)) {
+                continue;
+            }
+            $properties = \array_filter($model['properties'], fn(string|array $shape): bool => \in_array($this->getShapeModel($shape), $filled, true));
+            $entries[$name] = \array_filter([
+                'defaults' => $model['defaults'],
+                'properties' => \array_map($this->renderShape(...), $properties),
+            ], static fn(array $branch): bool => $branch !== []);
+        }
+
+        return $this->renderObject(['root' => $this->renderShape($root), 'models' => $entries], $indent);
     }
 
-    /**
-     * @param list<string> $visiting
-     * @return array{defaults?: array<string, string>, properties?: array<string, array<string, mixed>>, items?: array<string, mixed>}
-     */
-    private function getDefaultsTree(Schema $schema, Specification $spec, array $visiting): array
+    /** @return string|array{items: string|array<string, mixed>}|null */
+    private function getDefaultsShape(Schema $schema, Specification $spec): string|array|null
     {
         if ($schema instanceof ArraySchema) {
-            $items = $this->getDefaultsTree($schema->items, $spec, $visiting);
-            return $items === [] ? [] : ['items' => $items];
+            $items = $this->getDefaultsShape($schema->items, $spec);
+            return $items === null ? null : ['items' => $items];
         }
         if (!$schema instanceof ReferenceSchema) {
-            return [];
+            return null;
         }
 
         $name = $this->normalizeSchemaReference($schema->reference);
-        $model = $spec->schemas[$name] ?? null;
-        if (\in_array($name, $visiting, true) || !$model instanceof ObjectSchema) {
-            return [];
-        }
-
-        $defaults = [];
-        $properties = [];
-        foreach ($model->properties as $key => $property) {
-            if ($property->default !== null && \in_array($key, $model->required, true)) {
-                $defaults[$key] = $this->getLiteral($property->default);
-            }
-            $child = $this->getDefaultsTree($property, $spec, [...$visiting, $name]);
-            if ($child !== []) {
-                $properties[$key] = $child;
-            }
-        }
-
-        return \array_filter(['defaults' => $defaults, 'properties' => $properties], static fn(array $branch): bool => $branch !== []);
+        return ($spec->schemas[$name] ?? null) instanceof ObjectSchema ? $name : null;
     }
 
-    /** @param array<string, mixed> $tree */
-    private function renderDefaultsTree(array $tree, int $indent): string
+    /** @param string|array{items: string|array<string, mixed>} $shape */
+    private function getShapeModel(string|array $shape): string
+    {
+        return \is_string($shape) ? $shape : $this->getShapeModel($shape['items']);
+    }
+
+    /**
+     * @param string|array{items: string|array<string, mixed>} $shape
+     * @return string|array{items: string|array<string, mixed>}
+     */
+    private function renderShape(string|array $shape): string|array
+    {
+        return \is_string($shape) ? $this->getStringLiteral($shape) : ['items' => $this->renderShape($shape['items'])];
+    }
+
+    /** @param array<string, mixed> $object */
+    private function renderObject(array $object, int $indent): string
     {
         $padding = \str_repeat(' ', $indent + 4);
         $lines = [];
-        foreach ($tree as $branch => $value) {
-            if ($branch === 'items') {
-                $lines[] = $padding . 'items: ' . $this->renderDefaultsTree($value, $indent + 4) . ',';
-                continue;
-            }
-            $members = [];
-            foreach ($value as $key => $member) {
-                $member = $branch === 'defaults' ? $member : $this->renderDefaultsTree($member, $indent + 8);
-                $members[] = $padding . '    ' . $this->getObjectKeyLiteral((string) $key) . ': ' . $member . ',';
-            }
-            $lines[] = $padding . $branch . ": {\n" . \implode("\n", $members) . "\n" . $padding . '},';
+        foreach ($object as $key => $value) {
+            $value = \is_array($value) ? $this->renderObject($value, $indent + 4) : $value;
+            $lines[] = $padding . $this->getObjectKeyLiteral((string) $key) . ': ' . $value . ',';
         }
 
         return "{\n" . \implode("\n", $lines) . "\n" . \str_repeat(' ', $indent) . '}';

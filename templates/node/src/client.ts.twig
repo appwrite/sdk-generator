@@ -44,30 +44,48 @@ const JSONbig = {
     stringify: JSONbigSerializer.stringify,
 };
 
-type Defaults = {
+type DefaultsShape = string | { items: DefaultsShape };
+
+type DefaultsModel = {
     defaults?: Record<string, unknown>;
-    properties?: Record<string, Defaults>;
-    items?: Defaults;
+    properties?: Record<string, DefaultsShape>;
+};
+
+type Defaults = {
+    root: DefaultsShape;
+    models: Record<string, DefaultsModel>;
 };
 
 export function applyDefaults<T>(value: T, tree: Defaults): T {
-    if (Array.isArray(value)) {
-        const items = tree.items;
-        if (!items) {
+    return fillDefaults(value, tree.root, tree.models) as T;
+}
+
+function fillDefaults(
+    value: unknown,
+    shape: DefaultsShape,
+    models: Record<string, DefaultsModel>,
+): unknown {
+    if (typeof shape !== 'string') {
+        if (!Array.isArray(value)) {
             return value;
         }
-        return value.map((item) => applyDefaults(item, items)) as T;
+        const items = shape.items;
+        return value.map((item) => fillDefaults(item, items, models));
     }
-    if (value === null || typeof value !== 'object') {
+    const model = models[shape];
+    if (!model || typeof value !== 'object' || value === null) {
         return value;
     }
-    const result: Record<string, unknown> = { ...tree.defaults, ...value };
-    for (const [key, child] of Object.entries(tree.properties ?? {})) {
+    if (Array.isArray(value)) {
+        return value;
+    }
+    const result: Record<string, unknown> = { ...model.defaults, ...value };
+    for (const [key, child] of Object.entries(model.properties ?? {})) {
         if (key in result) {
-            result[key] = applyDefaults(result[key], child);
+            result[key] = fillDefaults(result[key], child, models);
         }
     }
-    return result as T;
+    return result;
 }
 
 type Payload = {
