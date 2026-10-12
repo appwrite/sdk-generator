@@ -456,6 +456,7 @@ class DotNet extends Language
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter('overrideProperty', fn(string $property, string $class) => $this->getPropertyOverrides()[$class][$property] ?? $property),
             new TwigFilter('propertyType', fn(Schema $property, ?Specification $spec = null): string => $this->getPropertyType($property, $spec)),
+            new TwigFilter('csharpLiteral', fn(mixed $value): string => $this->formatCSharpLiteral($value), ['is_safe' => ['html']]),
             new TwigFilter('toMapValue', fn(Schema $property, string $resolvedName, Specification $spec): string => $this->getToMapExpression($property, $resolvedName, $spec), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
@@ -595,6 +596,44 @@ class DotNet extends Language
         }
 
         return $resolvedName;
+    }
+
+    protected function formatCSharpLiteral(mixed $value): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_object($value)) {
+            $value = get_object_vars($value);
+
+            if ($value === []) {
+                return 'new Dictionary<string, object>()';
+            }
+        }
+
+        if ($value === []) {
+            return 'new List<object>()';
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            return 'new List<object> { ' . implode(', ', array_map($this->formatCSharpLiteral(...), $value)) . ' }';
+        }
+
+        if (is_array($value)) {
+            $pairs = [];
+            foreach ($value as $key => $item) {
+                $pairs[] = '{ ' . $this->formatCSharpLiteral((string) $key) . ', ' . $this->formatCSharpLiteral($item) . ' }';
+            }
+
+            return 'new Dictionary<string, object> { ' . implode(', ', $pairs) . ' }';
+        }
+
+        return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
     }
 
     /**

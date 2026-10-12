@@ -40,6 +40,9 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
 
         public static {{ definitionName | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definitionName | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
+            {%- set source = (property | schemaDefault) is not null
+                ? '(map.ContainsKey("' ~ (property | schemaName) ~ '") ? map["' ~ (property | schemaName) ~ '"] : ' ~ (property | schemaDefault | csharpLiteral) ~ ')'
+                : 'map["' ~ (property | schemaName) ~ '"]' %}
             {{ (property | schemaName) | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}
                     {%- if (property | schemaModel) %}
                         {%- if (property | schemaType) == 'array' -%}
@@ -48,7 +51,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
                                     ? arrayRaw{{ loop.index }}.ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
                                     : null
                             {%- else -%}
-                                map["{{ (property | schemaName) }}"].ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
+                                {{ source | raw }}.ConvertToList<Dictionary<string, object>>().Select(it => {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: it)).ToList()
                             {%- endif %}
                         {%- else -%}
                             {%- if not (property | schemaRequired) -%}
@@ -56,7 +59,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
                                     ? {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: objectRaw{{ loop.index }} is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)objectRaw{{ loop.index }})
                                     : null
                             {%- else -%}
-                                {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: map["{{ (property | schemaName) }}"] is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>)map["{{ (property | schemaName) }}"])
+                                {{ spec.info.title | caseUcfirst }}.Models.{{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}.From(map: {{ source | raw }} is JsonElement jsonObj{{ loop.index }} ? jsonObj{{ loop.index }}.Deserialize<Dictionary<string, object>>()! : (Dictionary<string, object>){{ source | raw }})
                             {%- endif %}
                         {%- endif %}
                 {%- elseif (property | schemaType) != 'array' and (property | enumValues) is not empty %}
@@ -68,7 +71,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
                                 : new {{ spec.info.title | caseUcfirst }}.Enums.{{ enumName | caseUcfirst }}(enumRaw{{ loop.index }}.ToString()!)
                             : null
                     {%- else -%}
-                        new {{ spec.info.title | caseUcfirst }}.Enums.{{ enumName | caseUcfirst }}(map["{{ (property | schemaName) }}"].ToString()!)
+                        new {{ spec.info.title | caseUcfirst }}.Enums.{{ enumName | caseUcfirst }}({{ source | raw }}.ToString()!)
                     {%- endif %}
                 {%- else %}
                     {%- if (property | schemaType) == 'array' -%}
@@ -77,7 +80,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
                                 ? arrayRaw{{ loop.index }}.ConvertToList<{{ property | typeName | slice(5, (property | typeName | length) - 6) | raw }}>()
                                 : null
                         {%- else -%}
-                            map["{{ (property | schemaName) }}"].ConvertToList<{{ property | typeName | slice(5, (property | typeName | length) - 6) | raw }}>()
+                            {{ source | raw }}.ConvertToList<{{ property | typeName | slice(5, (property | typeName | length) - 6) | raw }}>()
                         {%- endif %}
                     {%- else %}
                         {%- if (property | schemaType) == "integer" or (property | schemaType) == "number" %}
@@ -86,7 +89,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
                                     ? Convert.To{% if (property | schemaType) == "integer" %}Int64{% else %}Double{% endif %}(numberRaw{{ loop.index }})
                                     : null
                             {%- else -%}
-                                Convert.To{% if (property | schemaType) == "integer" %}Int64{% else %}Double{% endif %}(map["{{ (property | schemaName) }}"])
+                                Convert.To{% if (property | schemaType) == "integer" %}Int64{% else %}Double{% endif %}({{ source | raw }})
                             {%- endif %}
                         {%- else %}
                             {%- if (property | schemaType) == "boolean" -%}
@@ -95,20 +98,20 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
                                         ? ({{ property | typeName }}?)boolRaw{{ loop.index }}
                                         : null
                                 {%- else -%}
-                                    ({{ property | typeName }})map["{{ (property | schemaName) }}"]
+                                    ({{ property | typeName }}){{ source | raw }}
                                 {%- endif %}
                             {%- else %}
                                 {%- if (property | schemaType) == "object" -%}
                                     {%- if not (property | schemaRequired) -%}
                                         map.TryGetValue("{{ (property | schemaName) }}", out var objectRaw{{ loop.index }}) ? objectRaw{{ loop.index }} : null
                                     {%- else -%}
-                                        map["{{ (property | schemaName) }}"]
+                                        {{ source | raw }}
                                     {%- endif %}
                                 {%- else %}
                                     {%- if not (property | schemaRequired) -%}
                                         map.TryGetValue("{{ (property | schemaName) }}", out var {{ (property | schemaName) | caseCamel | escapeKeyword | removeDollarSign }}) ? {{ (property | schemaName) | caseCamel | escapeKeyword | removeDollarSign }}?.ToString() : null
                                     {%- else -%}
-                                        map["{{ (property | schemaName) }}"].ToString()
+                                        {{ source | raw }}.ToString()
                                     {%- endif %}
                                 {%- endif %}
                             {%- endif %}

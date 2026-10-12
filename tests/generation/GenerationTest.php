@@ -681,6 +681,31 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('metadata_list: [{ "enabled" => nil, "label" => "\\#{name}" }]', $model);
     }
 
+    public function testDotNetModelDefaultsAreLiterals(): void
+    {
+        $dir = self::OUTPUT . '/dotnet/defaults';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $document->components->schemas->mock->required[] = 'metadataList';
+        $document->components->schemas->mock->properties->result->default = 'say "hi" \\ {0}';
+        $document->components->schemas->mock->properties->metadataList->default = [(object) ['enabled' => true, 'label' => 'x'], []];
+
+        $sdk = new SDK($this->language('dotnet'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $model = (string) \file_get_contents($dir . '/Appwrite/Models/Mock.cs');
+
+        $this->assertStringContainsString('result: (map.ContainsKey("result") ? map["result"] : "say \"hi\" \\\\ {0}").ToString()', $model);
+        $this->assertStringContainsString('(map.ContainsKey("metadataList") ? map["metadataList"] : new List<object> { new Dictionary<string, object> { { "enabled", true }, { "label", "x" } }, new List<object>() }).ConvertToList<', $model);
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);
