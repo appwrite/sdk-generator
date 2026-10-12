@@ -703,6 +703,7 @@ final class GenerationTest extends TestCase
                             name: 'guest',
                             count: 25,
                             enabled: true,
+                            tier: 'free',
                         },
                     };
             TS, $service);
@@ -715,6 +716,7 @@ final class GenerationTest extends TestCase
                                         name: 'guest',
                                         count: 25,
                                         enabled: true,
+                                        tier: 'free',
                                     },
                                 },
                             },
@@ -728,6 +730,7 @@ final class GenerationTest extends TestCase
                                 name: 'guest',
                                 count: 25,
                                 enabled: true,
+                                tier: 'free',
                             },
                         },
                     };

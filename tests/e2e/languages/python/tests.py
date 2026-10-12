@@ -128,6 +128,7 @@ print(response.result)
 
 preset = general.get_preset()
 print(f"preset: name={preset.name}, count={preset.count:g}, enabled={str(preset.enabled).lower()}")
+print(f"preset tier: {preset.tier}")
 
 try:
     response = general.error400()

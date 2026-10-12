@@ -3367,9 +3367,10 @@
         "properties": {
           "name": {"type": "string", "description": "Preset name.", "example": "guest", "default": "guest"},
           "count": {"type": "integer", "description": "Preset count.", "example": 25, "default": 25},
-          "enabled": {"type": "boolean", "description": "Whether the preset is enabled.", "example": true, "default": true}
+          "enabled": {"type": "boolean", "description": "Whether the preset is enabled.", "example": true, "default": true},
+          "tier": {"title": "PresetTier", "type": "string", "description": "Preset tier.", "example": "free", "enum": ["free", "pro"], "default": "free"}
         },
-        "required": ["name", "count", "enabled"]
+        "required": ["name", "count", "enabled", "tier"]
       },
       "zznullablescalars": {
         "description": "Nullable scalar response fields",
