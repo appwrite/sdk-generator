@@ -456,6 +456,7 @@ class DotNet extends Language
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter('overrideProperty', fn(string $property, string $class) => $this->getPropertyOverrides()[$class][$property] ?? $property),
             new TwigFilter('propertyType', fn(Schema $property, ?Specification $spec = null): string => $this->getPropertyType($property, $spec)),
+            new TwigFilter('csharpDefault', fn(Schema $property): string => $this->formatCSharpDefault($property), ['is_safe' => ['html']]),
             new TwigFilter('toMapValue', fn(Schema $property, string $resolvedName, Specification $spec): string => $this->getToMapExpression($property, $resolvedName, $spec), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
@@ -595,6 +596,56 @@ class DotNet extends Language
         }
 
         return $resolvedName;
+    }
+
+    protected function formatCSharpDefault(Schema $property): string
+    {
+        $value = $this->getSchema($property)->default;
+
+        if (is_array($value) && $this->getSchemaType($property) === self::TYPE_OBJECT) {
+            return $this->formatCSharpDictionary($value);
+        }
+
+        return $this->formatCSharpLiteral($value);
+    }
+
+    protected function formatCSharpLiteral(mixed $value): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if ($value === []) {
+            return 'new List<object>()';
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            return 'new List<object> { ' . implode(', ', array_map($this->formatCSharpLiteral(...), $value)) . ' }';
+        }
+
+        if (is_array($value)) {
+            return $this->formatCSharpDictionary($value);
+        }
+
+        return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+    }
+
+    protected function formatCSharpDictionary(array $value): string
+    {
+        if ($value === []) {
+            return 'new Dictionary<string, object>()';
+        }
+
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $pairs[] = '{ ' . $this->formatCSharpLiteral((string) $key) . ', ' . $this->formatCSharpLiteral($item) . ' }';
+        }
+
+        return 'new Dictionary<string, object> { ' . implode(', ', $pairs) . ' }';
     }
 
     /**

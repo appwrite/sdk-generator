@@ -2665,6 +2665,90 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/preset": {
+      "get": {
+        "summary": "Get Preset",
+        "operationId": "generalGetPreset",
+        "tags": [
+          "general"
+        ],
+        "description": "Return a preset that omits the fields its spec defaults cover.",
+        "x-appwrite": {
+          "demo": "general\/get-preset.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/preset"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/presets": {
+      "get": {
+        "summary": "List Presets",
+        "operationId": "generalListPresets",
+        "tags": [
+          "general"
+        ],
+        "description": "Return presets whose items omit the fields their spec defaults cover.",
+        "x-appwrite": {
+          "demo": "general\/list-presets.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset list",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/presetList"}
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/union": {
       "get": {
         "summary": "Get Union",
@@ -3318,6 +3402,26 @@
         "required": [
           "result"
         ]
+      },
+      "preset": {
+        "description": "Preset",
+        "type": "object",
+        "properties": {
+          "name": {"type": "string", "description": "Preset name.", "example": "guest", "default": "guest"},
+          "count": {"type": "integer", "description": "Preset count.", "example": 25, "default": 25},
+          "enabled": {"type": "boolean", "description": "Whether the preset is enabled.", "example": true, "default": true},
+          "tier": {"title": "PresetTier", "type": "string", "description": "Preset tier.", "example": "free", "enum": ["free", "pro"], "default": "free"}
+        },
+        "required": ["name", "count", "enabled", "tier"]
+      },
+      "presetList": {
+        "description": "Preset list",
+        "type": "object",
+        "properties": {
+          "total": {"type": "integer", "description": "Total number of presets.", "example": 2},
+          "presets": {"type": "array", "description": "List of presets.", "items": {"$ref": "#\/components\/schemas\/preset"}}
+        },
+        "required": ["total", "presets"]
       },
       "zznullablescalars": {
         "description": "Nullable scalar response fields",

@@ -139,6 +139,12 @@ response = general.create_players(players: [
 ])
 puts response.result
 
+preset = general.get_preset()
+puts "preset: name=#{preset.name}, count=#{preset.count}, enabled=#{preset.enabled}"
+general.list_presets().presets.each do |item|
+    puts "preset: name=#{item.name}, count=#{item.count}, enabled=#{item.enabled}"
+end
+
 begin
     general.error400()
 rescue Exception => error

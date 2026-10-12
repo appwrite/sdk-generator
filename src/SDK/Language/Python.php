@@ -702,6 +702,34 @@ class Python extends Language
         return \is_string($json) ? $json : 'None';
     }
 
+    protected function toPythonLiteral(mixed $value): string
+    {
+        if (\is_object($value)) {
+            $value = \get_object_vars($value);
+            $isObject = true;
+        }
+
+        if (\is_array($value)) {
+            if (!($isObject ?? false) && \array_is_list($value)) {
+                return '[' . \implode(', ', \array_map($this->toPythonLiteral(...), $value)) . ']';
+            }
+
+            $items = [];
+            foreach ($value as $key => $item) {
+                $items[] = $this->toPythonLiteral((string) $key) . ': ' . $this->toPythonLiteral($item);
+            }
+
+            return '{' . \implode(', ', $items) . '}';
+        }
+
+        return match (true) {
+            $value === null => 'None',
+            \is_bool($value) => $value ? 'True' : 'False',
+            \is_string($value) => "'" . \str_replace(['\\"', "'"], ['"', "\\'"], \substr(\json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 1, -1)) . "'",
+            default => \json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+        };
+    }
+
     /**
      * Maps every character of a line to whether it sits inside a Python string
      * literal, so a parenthesis written in an alias such as 'name(legacy)' is not
@@ -943,6 +971,7 @@ class Python extends Language
             new TwigFilter('getModelPropertyType', fn(Schema $value, string $ownerName, Specification $spec): string => $this->getModelPropertyType($value, $spec)),
             new TwigFilter('formatDocstring', fn(string $description, int $indent): string => $this->formatDocstring($description, $indent)),
             new TwigFilter('formatModelFieldType', fn(string $type): string => $this->formatModelFieldType($type)),
+            new TwigFilter('pythonLiteral', fn(mixed $value): string => $this->toPythonLiteral($value)),
             new TwigFilter('formatCall', fn(string $statement): string => $this->formatCall($statement)),
             new TwigFilter('modelPropertyNullable', fn(Schema $value): bool => !($value instanceof ArraySchema) && $value->nullable),
             new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => $this->getModelFieldName($value, $properties)),

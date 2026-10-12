@@ -276,6 +276,12 @@ class ServiceTest {
             ))
             writeToFile(mock.result)
 
+            val preset = general.getPreset()
+            writeToFile("preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}")
+            general.listPresets().presets.forEach {
+                writeToFile("preset: name=${it.name}, count=${it.count}, enabled=${it.enabled}")
+            }
+
             try {
                 general.error400()
             } catch (e: AppwriteException) {

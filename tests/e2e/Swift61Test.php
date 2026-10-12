@@ -50,6 +50,7 @@ final class Swift61Test extends Base
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
         ...Base::OBJECT_ARRAY_RESPONSES,
+        ...Base::MODEL_DEFAULT_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,

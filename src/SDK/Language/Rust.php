@@ -590,6 +590,7 @@ class Rust extends Language
             }, ["is_safe" => ["html"]]),
             new TwigFilter("inputType", fn(Schema|Parameter $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getInputType($property, $spec)),
             new TwigFilter("paramValue", fn(Schema|Parameter $property, string $paramName, ?Specification $spec = null): string => $this->getParamValue($property, $paramName, $spec), ["is_safe" => ["html"]]),
+            new TwigFilter("rustDefault", fn(Schema $property, ?Specification $spec = null): string => $this->getModelDefault($property, $spec), ["is_safe" => ["html"]]),
             new TwigFilter("rustType", fn($value): string|array => str_replace(['&lt;', '&gt;'], ['<', '>'], $value), ["is_safe" => ["html"]]),
             new TwigFilter("rustCrateName", fn($value): string|array => str_replace('-', '_', $value)),
             new TwigFilter("stripProtocol", fn($value): string|array => str_replace(['https://', 'http://'], '', $value)),
@@ -861,6 +862,61 @@ class Rust extends Language
         }
 
         return $this->rustfmtCall($indent, 'next.config.headers.insert', $args);
+    }
+
+    protected function getModelDefault(Schema $property, ?Specification $spec = null): string
+    {
+        $value = $this->getSchema($property)->default;
+        $json = is_array($value) && $this->getSchemaType($property) === self::TYPE_OBJECT
+            ? $this->getRustJsonMap($value)
+            : $this->getRustJson($value);
+
+        return match ($this->getTypeName($property, $spec)) {
+            'String' => $json . '.to_string()',
+            'i64', 'bool' => $json,
+            'f64' => is_float($value) ? $json : $json . '.0',
+            'serde_json::Value' => 'serde_json::json!(' . $json . ')',
+            default => 'serde_json::from_value(serde_json::json!(' . $json . ')).unwrap()',
+        };
+    }
+
+    protected function getRustJson(mixed $value): string
+    {
+        return match (true) {
+            is_string($value) => $this->getRustString($value),
+            is_array($value) && array_is_list($value) => '[' . implode(', ', array_map($this->getRustJson(...), $value)) . ']',
+            is_array($value) => $this->getRustJsonMap($value),
+            default => json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+        };
+    }
+
+    protected function getRustJsonMap(array $value): string
+    {
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $pairs[] = $this->getRustString((string) $key) . ': ' . $this->getRustJson($item);
+        }
+
+        return '{' . implode(', ', $pairs) . '}';
+    }
+
+    protected function getRustString(string $value): string
+    {
+        $escaped = preg_replace_callback(
+            '/[\\\\"\x00-\x1f\x7f]/',
+            static fn(array $match): string => match ($match[0]) {
+                '\\' => '\\\\',
+                '"' => '\\"',
+                "\n" => '\\n',
+                "\r" => '\\r',
+                "\t" => '\\t',
+                "\0" => '\\0',
+                default => sprintf('\\u{%02x}', ord($match[0])),
+            },
+            $value,
+        );
+
+        return '"' . $escaped . '"';
     }
 
     /**

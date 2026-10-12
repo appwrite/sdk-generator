@@ -169,6 +169,13 @@ async function start() {
   // @ts-ignore
   console.log(response.result);
 
+  const preset = await general.getPreset();
+  console.log(`preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}`);
+  const presets = await general.listPresets();
+  for (const item of presets.presets) {
+      console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
+  }
+
   try {
     response = await general.error400();
   } catch (error) {

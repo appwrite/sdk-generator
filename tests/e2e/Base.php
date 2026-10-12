@@ -90,6 +90,16 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/models/array:passed',
     ];
 
+    protected const MODEL_DEFAULT_RESPONSES = [
+        'preset: name=guest, count=25, enabled=false',
+        'preset: name=guest, count=25, enabled=false',
+        'preset: name=server, count=25, enabled=true',
+    ];
+
+    protected const PYTHON_MODEL_DEFAULT_RESPONSES = [
+        'preset tier: PresetTier.FREE',
+    ];
+
     protected const OBJECT_ARRAY_RESPONSES = [
         'POST:/v1/mock/tests/general/documents:passed',
     ];

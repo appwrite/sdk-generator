@@ -657,6 +657,298 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testWebNestedResponseDefaultsAreApplied(): void
+    {
+        $dir = self::OUTPUT . '/web/defaults';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $preset = $document->paths->{'/mock/tests/general/preset'}->get;
+        $reference = (object) ['$ref' => '#/components/schemas/preset'];
+        $document->components->schemas->preset->properties->parent = $reference;
+        $document->components->schemas->presetList = (object) [
+            'type' => 'object',
+            'properties' => (object) [
+                'total' => (object) ['type' => 'integer'],
+                'presets' => (object) ['type' => 'array', 'items' => $reference],
+            ],
+            'required' => ['total', 'presets'],
+        ];
+
+        $list = \json_decode(\json_encode($preset, JSON_THROW_ON_ERROR), flags: JSON_THROW_ON_ERROR);
+        $list->operationId = 'generalListPresets';
+        $list->responses->{'200'}->content->{'application/json'}->schema = (object) ['$ref' => '#/components/schemas/presetList'];
+        $document->paths->{'/mock/tests/general/presets'} = (object) ['get' => $list];
+
+        $array = \json_decode(\json_encode($preset, JSON_THROW_ON_ERROR), flags: JSON_THROW_ON_ERROR);
+        $array->operationId = 'generalListPresetArray';
+        $array->responses->{'200'}->content->{'application/json'}->schema = (object) ['type' => 'array', 'items' => $reference];
+        $document->paths->{'/mock/tests/general/preset-array'} = (object) ['get' => $array];
+
+        $twice = \json_decode(\json_encode($preset, JSON_THROW_ON_ERROR), flags: JSON_THROW_ON_ERROR);
+        $twice->operationId = 'generalCreatePreset';
+        $twice->responses->{'201'} = $twice->responses->{'200'};
+        $twice->responses->{'400'} = (object) [
+            'description' => 'Error',
+            'content' => (object) ['application/json' => (object) ['schema' => (object) ['$ref' => '#/components/schemas/error']]],
+        ];
+        $document->paths->{'/mock/tests/general/preset-twice'} = (object) ['get' => $twice];
+
+        $sdk = new SDK($this->language('web'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('client')
+            ->setTest('true')
+            ->generate($dir);
+
+        $service = (string) \file_get_contents($dir . '/src/services/general.ts');
+
+        $this->assertStringNotContainsString('...response', $service);
+        $this->assertSame(4, \substr_count($service, 'return request.then((response) => applyDefaults(response, defaults));'));
+        $this->assertSame(2, \substr_count($service, <<<'TS'
+                    const defaults = {
+                        root: 'preset',
+                        models: {
+                            preset: {
+                                defaults: {
+                                    name: 'guest',
+                                    count: 25,
+                                    enabled: true,
+                                    tier: 'free',
+                                },
+                                properties: {
+                                    parent: 'preset',
+                                },
+                            },
+                        },
+                    };
+            TS));
+        $this->assertStringContainsString(<<<'TS'
+                    const defaults = {
+                        root: 'presetList',
+                        models: {
+                            presetList: {
+                                properties: {
+                                    presets: {
+                                        items: 'preset',
+                                    },
+                                },
+                            },
+                            preset: {
+                                defaults: {
+                                    name: 'guest',
+                                    count: 25,
+                                    enabled: true,
+                                    tier: 'free',
+                                },
+                                properties: {
+                                    parent: 'preset',
+                                },
+                            },
+                        },
+                    };
+            TS, $service);
+        $this->assertStringContainsString(<<<'TS'
+                    const defaults = {
+                        root: {
+                            items: 'preset',
+                        },
+                        models: {
+                            preset: {
+                                defaults: {
+                                    name: 'guest',
+                                    count: 25,
+                                    enabled: true,
+                                    tier: 'free',
+                                },
+                                properties: {
+                                    parent: 'preset',
+                                },
+                            },
+                        },
+                    };
+            TS, $service);
+    }
+
+    public function testRubyModelDefaultsAreLiterals(): void
+    {
+        $dir = self::OUTPUT . '/ruby/defaults';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $document->components->schemas->mock->properties->optionalResult->default = 'pending';
+        $document->components->schemas->mock->properties->metadataList->default = [(object) ['enabled' => null, 'label' => '#{name}']];
+        $document->components->schemas->mock->properties->settings = (object) ['type' => 'object', 'additionalProperties' => true, 'default' => (object) ['0' => 'x']];
+        $document->components->schemas->mock->properties->relatedMock->default = (object) [];
+        $document->components->schemas->mock->required[] = 'relatedMock';
+
+        $sdk = new SDK($this->language('ruby'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $model = (string) \file_get_contents($dir . '/lib/appwrite/models/mock.rb');
+
+        $this->assertStringContainsString('optional_result: "pending"', $model);
+        $this->assertStringContainsString('metadata_list: [{ "enabled" => nil, "label" => "\\#{name}" }]', $model);
+        $this->assertStringContainsString('settings: { "0" => "x" }', $model);
+        $this->assertStringContainsString('map = { "relatedMock" => {} }.merge(map)', $model);
+        $this->assertStringContainsString('related_mock: UnionMock.from(map: map["relatedMock"])', $model);
+    }
+
+    public function testPythonModelDefaultsAreValidated(): void
+    {
+        $dir = self::OUTPUT . '/python/defaults';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $document->components->schemas->mock->required[] = 'localizedStatus';
+        $document->components->schemas->mock->properties->localizedStatus->default = 'ខេត្ត';
+        $document->components->schemas->zznullablescalars->properties->count->default = 0;
+        $document->components->schemas->zznullablescalars->properties->price->default = 0.0;
+
+        $sdk = new SDK($this->language('python'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $model = (string) \file_get_contents($dir . '/appwrite/models/mock.py');
+        $scalars = (string) \file_get_contents($dir . '/appwrite/models/zznullablescalars.py');
+
+        $this->assertStringContainsString("localizedstatus: LocalizedStatus = Field(..., alias='localizedStatus')", $model);
+        $this->assertStringContainsString("@model_validator(mode='before')", $model);
+        $this->assertStringContainsString("if 'localizedStatus' not in data and 'localizedstatus' not in data:\n            data['localizedStatus'] = 'ខេត្ត'", $model);
+        $this->assertStringContainsString("data['count'] = 0\n", $scalars);
+        $this->assertStringContainsString("data['price'] = 0.0\n", $scalars);
+    }
+
+    public function testDotNetModelDefaultsAreLiterals(): void
+    {
+        $dir = self::OUTPUT . '/dotnet/defaults';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $document->components->schemas->mock->required[] = 'metadataList';
+        $document->components->schemas->mock->properties->result->default = 'say "hi" \\ {0}';
+        $document->components->schemas->mock->properties->metadataList->default = [(object) ['enabled' => true, 'label' => 'x'], []];
+
+        $sdk = new SDK($this->language('dotnet'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $model = (string) \file_get_contents($dir . '/Appwrite/Models/Mock.cs');
+
+        $this->assertStringContainsString('result: (map.ContainsKey("result") ? map["result"] : "say \"hi\" \\\\ {0}").ToString()', $model);
+        $this->assertStringContainsString('(map.ContainsKey("metadataList") ? map["metadataList"] : new List<object> { new Dictionary<string, object> { { "enabled", true }, { "label", "x" } }, new List<object>() }).ConvertToList<', $model);
+    }
+
+    #[DataProvider('kotlinLanguages')]
+    public function testKotlinModelDefaultsFollowTheSchema(string $name, string $platform): void
+    {
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR);
+        $preset = &$document['components']['schemas']['preset'];
+        $preset['properties']['settings'] = ['type' => 'object', 'additionalProperties' => true, 'default' => (object) []];
+        $preset['properties']['mock'] = ['$ref' => '#/components/schemas/mock', 'default' => ['result' => 'ok']];
+        $preset['properties']['mocks'] = ['type' => 'array', 'items' => ['$ref' => '#/components/schemas/mock'], 'default' => [['result' => 'ok']]];
+        $preset['required'][] = 'settings';
+        $preset['required'][] = 'mock';
+        $preset['required'][] = 'mocks';
+
+        $files = $this->generateDocument($document, $name, 'defaults');
+        $path = $name === 'android' ? 'library/src/main/java/appwrite/models/Preset.kt' : 'src/main/kotlin/appwrite/models/Preset.kt';
+        $model = $files[$path];
+
+        $this->assertStringContainsString('settings = (if (map.containsKey("settings")) map["settings"] else mapOf<String, Any?>()) as Map<String, Any?>', $model, "{$name}/{$platform}");
+        $this->assertStringContainsString('mock = Mock.from(map = (if (map.containsKey("mock")) map["mock"] else mapOf<String, Any?>("result" to "ok")) as Map<String, Any>)', $model, "{$name}/{$platform}");
+        $this->assertStringContainsString('mocks = ((if (map.containsKey("mocks")) map["mocks"] else listOf<Any?>(mapOf<String, Any?>("result" to "ok"))) as List<Map<String, Any>>).map { Mock.from(map = it) }', $model, "{$name}/{$platform}");
+    }
+
+    public function testModelDefaultsFollowTheTargetLiteralSyntax(): void
+    {
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR);
+        $document['components']['schemas']['mock']['required'][] = 'settings';
+        $document['components']['schemas']['mock']['required'][] = 'metadataList';
+        $document['components']['schemas']['mock']['properties']['metadataList']['default'] = [];
+        $document['components']['schemas']['mock']['properties']['result']['default'] = "a\u{8}b";
+        $document['components']['schemas']['mock']['properties']['settings'] = [
+            'type' => 'object',
+            'description' => 'Settings.',
+            'additionalProperties' => true,
+            'default' => [],
+        ];
+
+        $rust = $this->generateDocument($document, 'rust', 'defaults');
+        $dotnet = $this->generateDocument($document, 'dotnet', 'defaults');
+        $dart = $this->generateDocument($document, 'dart', 'defaults');
+
+        $this->assertStringContainsString('"a\\u{08}b".to_string()', $rust['src/models/mock.rs']);
+        $this->assertStringContainsString('fn default_metadata_list() -> Vec<serde_json::Value> {', $rust['src/models/mock.rs']);
+        $this->assertStringContainsString('map["settings"] : new Dictionary<string, object>())', $dotnet['Appwrite/Models/Mock.cs']);
+        $this->assertStringContainsString("'settings': <String, dynamic>{},", $dart['lib/src/models/mock.dart']);
+    }
+
+    public function testSwiftModelDefaultsAreLiterals(): void
+    {
+        $dir = self::OUTPUT . '/swift/defaults';
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        $mock = $document->components->schemas->mock;
+        $mock->required = [...$mock->required, 'status', 'relatedMock', 'metadataList', 'zzsettings', 'zzratio', 'zzweight', 'zzmocks'];
+        $mock->properties->status->default = 'active';
+        $mock->properties->relatedMock->default = (object) ['type' => 'mock', 'result' => 'ok'];
+        $mock->properties->metadataList->default = [(object) ['enabled' => null, 'label' => 'x', 'ratio' => 1.0], (object) []];
+        $mock->properties->zzsettings = (object) ['type' => 'object', 'additionalProperties' => true, 'default' => (object) []];
+        $mock->properties->zzratio = (object) ['type' => 'number', 'default' => 1];
+        $mock->properties->zzweight = (object) ['type' => 'number', 'default' => 2.0];
+        $mock->properties->result->default = 'C:\\temp "x"';
+        $mock->properties->zzmocks = (object) ['type' => 'array', 'items' => (object) ['$ref' => '#/components/schemas/unionMock'], 'default' => [(object) ['type' => 'mock', 'result' => 'ok']]];
+
+        $sdk = new SDK($this->language('swift'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $model = (string) \file_get_contents($dir . '/Sources/AppwriteModels/Mock.swift');
+
+        $this->assertStringContainsString(<<<'SWIFT'
+                    let defaults: [String: Any] = [
+                        "result": "C:\\temp \"x\"",
+                        "status": "active",
+                        "relatedMock": ["type": "mock", "result": "ok"] as [String: Any],
+                        "metadataList": [["enabled": NSNull(), "label": "x", "ratio": 1.0] as [String: Any], [Any]()] as [Any],
+                        "zzsettings": [String: Any](),
+                        "zzratio": 1.0,
+                        "zzweight": 2.0,
+                        "zzmocks": [["type": "mock", "result": "ok"] as [String: Any]] as [Any],
+                    ]
+                    let map = defaults.merging(map) { _, new in new }
+            SWIFT, $model);
+        $this->assertStringContainsString('relatedMock: UnionMock.from(map: map["relatedMock"] as! [String: Any])', $model);
+        $this->assertStringContainsString('self.relatedMock = try container.contains(.relatedMock) ? container.decode(UnionMock.self, forKey: .relatedMock) : UnionMock.from(map: ["type": "mock", "result": "ok"] as [String: Any])', $model);
+        $this->assertStringContainsString('self.metadataList = try container.contains(.metadataList) ? container.decode([AnyCodable].self, forKey: .metadataList) : ([["enabled": NSNull(), "label": "x", "ratio": 1.0] as [String: Any], [Any]()] as [Any]).map { AnyCodable($0) }', $model);
+        $this->assertStringContainsString('self.zzmocks = try container.contains(.zzmocks) ? container.decode([UnionMock].self, forKey: .zzmocks) : ([["type": "mock", "result": "ok"] as [String: Any]] as [Any]).map { UnionMock.from(map: $0 as! [String: Any]) }', $model);
+        $this->assertStringContainsString('self.zzsettings = try container.contains(.zzsettings) ? container.decode([String: AnyCodable].self, forKey: .zzsettings) : ([String: Any]()).mapValues { AnyCodable($0) }', $model);
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);

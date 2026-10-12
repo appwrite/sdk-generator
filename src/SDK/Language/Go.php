@@ -366,6 +366,7 @@ class Go extends Language
             new TwigFilter('returnType', fn(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
             new TwigFilter('goPackagePath', fn(array $sdk): string => $this->getPackagePath($sdk)),
+            new TwigFilter('goJsonString', fn(mixed $value): string => \json_encode(\json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), ['is_safe' => ['html']]),
         ];
     }
 
