@@ -677,13 +677,15 @@ open class Push: Service {
         return PushSubscription(unsubscribe: unsubscribe, update: update)
     }
 
-    /// Tear down the connection and drop all active subscriptions.
+    /// Tear down the connection and drop all active subscriptions. APNs stops pushing to this device
+    /// for the user, so call it on sign-out.
     ///
     /// Returns at once: the DISCONNECT and the client shutdown run on a background queue,
     /// because a blocking wait is not allowed on the event loop that runs message callbacks,
     /// and those callbacks may call `close()` or drop the last subscription. A connection
     /// still being opened is abandoned, and any `subscribe` waiting on it throws.
     public func close() {
+        let hadBackground = sync.sync { subscriptions.values.contains { $0.background } }
         let client = sync.sync { () -> MQTTClient? in
             // Mark this a deliberate close so the close listener does not reconnect.
             closing = true
@@ -701,6 +703,9 @@ open class Push: Service {
             return existing
         }
         stopHeartbeat()
+        if hadBackground {
+            Push.apnsDisable(self, topics: [])
+        }
         guard let client else { return }
         DispatchQueue.global().async { [weak self] in
             do {
@@ -1377,10 +1382,31 @@ extension Push {
         }
         let targetId = Ids.target(installation: Installation.id, userId: userId)
         let linked = apnsLocked { apnsLinked[targetId] ?? [] }
+        let retire = !Shared.inServiceExtension && push.backgroundTopics().isEmpty
         Task {
             for topic in topics where linked.contains(topic) {
                 await unlink(push, targetId: targetId, topic: topic)
             }
+            if retire {
+                await deleteTarget(push, targetId: targetId)
+            }
+        }
+    }
+
+    /// With no background subscription left, the server stops pushing to this device for the user.
+    private static func deleteTarget(_ push: Push, targetId: String) async {
+        apnsLocked { apnsLinked[targetId] = nil }
+        do {
+            let _: Any = try await push.client.call(
+                method: "DELETE",
+                path: "/account/targets/\(targetId)/push",
+                headers: projectHeaders(push),
+                converter: { $0 }
+            )
+        } catch let error as {{ spec.info.title | caseUcfirst }}Error where error.code == 404 || error.code == 401 {
+            // Gone already, or the session was ended first.
+        } catch {
+            push.surface(error)
         }
     }
 
