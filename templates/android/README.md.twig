@@ -127,6 +127,13 @@ The SDK uses exact alarms on its own whenever the app may schedule them. To allo
    nothing to ask, including when the permission is not declared. The SDK never opens these
    screens on its own.
 
+If `backgroundRestricted` is true, the user restricted the app's background usage and messages can
+wait until the app is opened. Exact alarms don't lift it, and neither does foreground mode: Android
+stops a restricted app's foreground service once it leaves the screen. Ask the user to choose
+Unrestricted in the app's battery settings (Settings > Apps > your app > Battery); granting the
+battery optimisation exemption also lets the SDK's alarms and jobs run, and `bestEffort` then
+reflects only the exact-alarm state.
+
 If the user force-stops the app (Settings > Force stop, and on some devices swiping it away from
 recents), Android cancels its alarms and jobs: nothing is delivered until the app is opened
 again, and the broker then replays what was sent meanwhile.
