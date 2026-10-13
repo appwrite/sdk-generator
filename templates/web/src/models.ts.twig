@@ -42,7 +42,7 @@ export namespace Models {
          *{% if (property.description | trimLines) is not empty %} {{ property.description | trimLines | raw }}{% endif %}
 
          */
-        {{ ((property | schemaName) | removeDash ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, definitionName)), 8) | raw }}
+        {{ ((property | schemaName) | removeDash ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, definitionName)), 8, (property | schemaNullable)) | raw }}
 {% endfor %}
     };
 {% endif %}
@@ -67,7 +67,7 @@ export namespace Models {
          *{% if (property.description | trimLines) is not empty %} {{ property.description | trimLines | raw }}{% endif %}
 
          */
-        {{ ((property | schemaName) | removeDash ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, requestModelName)), 8) | raw }}
+        {{ ((property | schemaName) | removeDash ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, requestModelName)), 8, (property | schemaNullable)) | raw }}
 {% endfor %}
     };
 {% if requestModel.additionalProperties %}

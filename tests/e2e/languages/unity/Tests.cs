@@ -238,6 +238,7 @@ namespace AppwriteTests
                 LogResult($"preset: name={item.Name}, count={item.Count}, enabled={item.Enabled.ToString().ToLowerInvariant()}");
             }
             LogResult($"empty presets: {(await general.ListEmptyPresets()).Presets.Count}");
+            LogResult($"preset verified: {preset.Verified?.ToString() ?? "null"}");
 
             try
             {

@@ -146,6 +146,7 @@ namespace AppwriteTests
                 TestContext.WriteLine($"preset: name={item.Name}, count={item.Count}, enabled={item.Enabled.ToString().ToLowerInvariant()}");
             }
             TestContext.WriteLine($"empty presets: {(await general.ListEmptyPresets()).Presets.Count}");
+            TestContext.WriteLine($"preset verified: {preset.Verified?.ToString() ?? "null"}");
 
             try
             {

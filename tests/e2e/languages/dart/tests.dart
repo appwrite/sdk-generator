@@ -154,6 +154,7 @@ void main() async {
     print('preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}');
   }
   print('empty presets: ${(await general.listEmptyPresets()).presets.length}');
+  print('preset verified: ${preset.verified}');
 
   try {
     await general.error400();

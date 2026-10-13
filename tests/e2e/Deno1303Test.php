@@ -47,6 +47,7 @@ final class Deno1303Test extends Base
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
         ...Base::MODEL_DEFAULT_RESPONSES,
+        ...Base::NULLABLE_MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,

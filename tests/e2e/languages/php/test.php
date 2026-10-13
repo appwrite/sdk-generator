@@ -268,6 +268,7 @@ foreach ($general->listPresets()->presets as $item) {
     echo 'preset: name=' . $item->name . ', count=' . $item->count . ', enabled=' . ($item->enabled ? 'true' : 'false') . "\n";
 }
 echo 'empty presets: ' . count($general->listEmptyPresets()->presets) . "\n";
+echo 'preset verified: ' . ($preset->verified === null ? 'null' : var_export($preset->verified, true)) . "\n";
 
 try {
     $response = $general->error400();

@@ -214,6 +214,13 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	} else {
 		fmt.Printf("empty presets: %d\n", len(emptyPresets.Presets))
 	}
+	if preset != nil {
+		if preset.Verified == nil {
+			fmt.Println("preset verified: null")
+		} else {
+			fmt.Printf("preset verified: %t\n", *preset.Verified)
+		}
+	}
 
 	// Exception Responses
 	_, err = general.Error400()

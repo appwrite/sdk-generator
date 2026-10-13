@@ -283,6 +283,7 @@ class ServiceTest {
                 writeToFile("preset: name=${it.name}, count=${it.count}, enabled=${it.enabled}")
             }
             writeToFile("empty presets: ${general.listEmptyPresets().presets.size}")
+            writeToFile("preset verified: ${preset.verified}")
 
             try {
                 general.error400()
