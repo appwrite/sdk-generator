@@ -681,6 +681,7 @@ class PushWeb implements Push {
           // title once. A title the server sent replaces theirs, so it is shown once.
           final title = content.titleOr(subscription.title ?? topic);
           if (subscription.background &&
+              content.visible &&
               (html.document.visibilityState != 'visible' ||
                   subscription.notifyInForeground) &&
               html.Notification.supported &&

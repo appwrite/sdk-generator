@@ -311,23 +311,25 @@ Future<void> pushForegroundEntry(ServiceInstance service) async {
         final title = notify[filter];
         if (title != null) {
           final content = PushNotificationContent.of(message);
-          notifications.show(
-            id: message.topic.hashCode,
-            title: content.titleOr(title),
-            body: content.bodyFor(message),
-            notificationDetails: const NotificationDetails(
-              android: AndroidNotificationDetails(
-                _channelId,
-                _channelName,
-                importance: Importance.high,
+          if (content.visible) {
+            notifications.show(
+              id: message.topic.hashCode,
+              title: content.titleOr(title),
+              body: content.bodyFor(message),
+              notificationDetails: const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  _channelId,
+                  _channelName,
+                  importance: Importance.high,
+                ),
+                iOS: DarwinNotificationDetails(),
               ),
-              iOS: DarwinNotificationDetails(),
-            ),
-            payload: jsonEncode({
-              'topic': message.topic,
-              'payload': message.data,
-            }),
-          );
+              payload: jsonEncode({
+                'topic': message.topic,
+                'payload': message.data,
+              }),
+            );
+          }
         }
         // Forward to the app isolate (if alive) so in-app callbacks still fire.
         service.invoke(_messageEvent, {

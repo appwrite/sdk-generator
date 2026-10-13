@@ -87,8 +87,10 @@ app every 15 to 60 seconds to reconnect, and the broker replays what was sent in
 
 While the app is not on screen, each message is also posted as a notification that opens
 your launch activity with `Push.EXTRA_TOPIC` and `Push.EXTRA_PAYLOAD` in its extras. It shows the
-title, body and image sent with `createPush`, falling back to the subscription's `title` and the
-raw payload for other messages. On Android 13 and later it needs the `POST_NOTIFICATIONS`
+title, body and image sent with `createPush`, falling back to the subscription's `title`, and to
+the raw payload as the body for messages that are not a JSON object. A push with neither a title
+nor a body, such as a data-only push, posts no notification; it still reaches your callback or
+`PushReceiver`. On Android 13 and later it needs the `POST_NOTIFICATIONS`
 permission: the first background subscription asks for it from the visible activity (the one
 `Push` is created with, else the next one to resume), or call
 `Push.requestNotificationPermission(activity)` to ask yourself. Set its

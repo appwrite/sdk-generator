@@ -465,6 +465,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/src/mqtt_notification_test.dart',
+                'template'      => 'flutter/test/src/mqtt_notification_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/enums_test.dart',
                 'template'      => 'dart/test/src/enums_test.dart.twig',
             ],
