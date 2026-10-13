@@ -1618,16 +1618,17 @@ extension Push {
             deliver(message, notifyLocally: false)
         }
         #if canImport(UserNotifications)
-            Task { await Push.clearPlaceholders() }
+            Task { await Push.clearPlaceholders(subscribed: Set(filters)) }
         #endif
     }
 
     #if canImport(UserNotifications)
-        /// Remove the placeholders the extension couldn't fill: the connected app delivers their messages.
-        static func clearPlaceholders() async {
+        /// Remove the placeholders the extension couldn't fill once every topic it fetched for is
+        /// subscribed here: the broker replays their messages to these callbacks.
+        static func clearPlaceholders(subscribed: Set<String>) async {
             let center = UNUserNotificationCenter.current()
             let stale = await center.deliveredNotifications()
-                .filter { $0.request.content.userInfo[Shared.placeholderKey] as? Bool == true }
+                .filter { ($0.request.content.userInfo[Shared.placeholderKey] as? [String])?.allSatisfy(subscribed.contains) == true }
                 .map(\.request.identifier)
             if !stale.isEmpty {
                 center.removeDeliveredNotifications(withIdentifiers: stale)

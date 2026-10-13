@@ -288,11 +288,12 @@ extension Push {
 
         private func fill(_ content: UNMutableNotificationContent) async {
             Push.Shared.inServiceExtension = true
-            // Unfilled, the placeholder shows; the app clears it once it has the messages.
-            content.userInfo[Push.Shared.placeholderKey] = true
+            // Unfilled, the placeholder shows until the app subscribes to these topics and gets the messages.
+            content.userInfo[Push.Shared.placeholderKey] = [String]()
             guard let session = Push.Shared.loadSession(), let credential = Push.Shared.loadCredential() else {
                 return
             }
+            content.userInfo[Push.Shared.placeholderKey] = Array(session.topics.keys)
             var message = Push.Shared.dequeue()
             // The session allows one connection, and the live app already has the message. An app killed
             // moments ago still looks live but posted no banner, so fetch then.
