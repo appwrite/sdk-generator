@@ -231,6 +231,7 @@ import {
     for (const item of presets.presets) {
         console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
     }
+    console.log(`preset toString: ${preset.toString()}`);
 
     // Exception responses
     try {
