@@ -1568,6 +1568,7 @@ extension Push {
         guard !Shared.inServiceExtension else {
             return
         }
+        Shared.clearPending()
         let filters = sync.sync { subscriptions.values.map { $0.filter } }
         let messages = Shared.takeHandedOff { topic in
             filters.contains { matches(filter: $0, topic: topic) }

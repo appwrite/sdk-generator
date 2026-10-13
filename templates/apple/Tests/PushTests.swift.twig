@@ -212,6 +212,14 @@ final class PushTests {
         }
     }
 
+    @Test func clearedQueueShowsNothingStale() {
+        withSharedDefaults {
+            Push.Shared.enqueue([message("news", "1")])
+            Push.Shared.clearPending()
+            #expect(Push.Shared.dequeue() == nil)
+        }
+    }
+
     @Test func theAppAndTheExtensionSeeEachOthersDeliveries() {
         let shared = defaults()
         let app = Push.Deliveries(defaults: shared)

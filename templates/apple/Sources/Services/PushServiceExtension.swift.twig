@@ -14,6 +14,7 @@ extension Push {
         static let bannerKey = "{{ spec.info.title | caseLower }}.push.banner"
         static let heartbeatInterval = DispatchTimeInterval.seconds(3)
         static let liveWindow: TimeInterval = 10
+        static let pendingLifetime: TimeInterval = 30
         static var inServiceExtension = false
 
         private static let prefix = "{{ spec.info.title | caseLower }}.push.shared"
@@ -94,11 +95,13 @@ extension Push {
             let topic: String
             let payload: Data
             let qos: Int
+            let at: Date
 
             init(_ message: PushMessage) {
                 topic = message.topic
                 payload = Data(message.payload)
                 qos = message.qos
+                at = Date()
             }
 
             var message: PushMessage {
@@ -123,6 +126,12 @@ extension Push {
             return taken.map(\.message)
         }
 
+        static func clearPending() {
+            lock.lock()
+            defer { lock.unlock() }
+            write([], to: "\(prefix).pending")
+        }
+
         static func enqueue(_ messages: [PushMessage]) {
             append(messages, to: "\(prefix).pending")
         }
@@ -131,7 +140,7 @@ extension Push {
             lock.lock()
             defer { lock.unlock() }
             let key = "\(prefix).pending"
-            var stored = read(key)
+            var stored = read(key).filter { Date().timeIntervalSince($0.at) < pendingLifetime }
             guard !stored.isEmpty else {
                 return nil
             }
