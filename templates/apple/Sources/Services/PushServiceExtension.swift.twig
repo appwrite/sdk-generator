@@ -19,6 +19,31 @@ extension Push {
 
         private static let prefix = "{{ spec.info.title | caseLower }}.push.shared"
         private static let lock = NSLock()
+        #if canImport(Darwin)
+            private static let lockFile: Int32 = {
+                guard let group = appGroup, let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group) else {
+                    return -1
+                }
+                return open(url.appendingPathComponent("\(prefix).lock").path, O_RDWR | O_CREAT, 0o600)
+            }()
+        #endif
+
+        /// Run `body` while holding the lock the app and its extension share, as both write this state.
+        static func locked<T>(_ body: () throws -> T) rethrows -> T {
+            lock.lock()
+            defer { lock.unlock() }
+            #if canImport(Darwin)
+                if lockFile >= 0 {
+                    flock(lockFile, LOCK_EX)
+                }
+                defer {
+                    if lockFile >= 0 {
+                        flock(lockFile, LOCK_UN)
+                    }
+                }
+            #endif
+            return try body()
+        }
 
         static var appGroup: String? {
             guard let group = Bundle.main.object(forInfoDictionaryKey: appGroupKey) as? String, !group.isEmpty else {
@@ -114,48 +139,43 @@ extension Push {
         }
 
         static func takeHandedOff(matching: (String) -> Bool) -> [PushMessage] {
-            lock.lock()
-            defer { lock.unlock() }
-            let key = "\(prefix).handedOff"
-            let stored = read(key)
-            let taken = stored.filter { matching($0.topic) }
-            guard !taken.isEmpty else {
-                return []
+            locked {
+                let key = "\(prefix).handedOff"
+                let stored = read(key)
+                let taken = stored.filter { matching($0.topic) }
+                guard !taken.isEmpty else {
+                    return []
+                }
+                write(stored.filter { !matching($0.topic) }, to: key)
+                return taken.map(\.message)
             }
-            write(stored.filter { !matching($0.topic) }, to: key)
-            return taken.map(\.message)
-        }
-
-        static func clearPending() {
-            lock.lock()
-            defer { lock.unlock() }
-            write([], to: "\(prefix).pending")
         }
 
         static func enqueue(_ messages: [PushMessage]) {
             append(messages, to: "\(prefix).pending")
         }
 
-        static func dequeue() -> PushMessage? {
-            lock.lock()
-            defer { lock.unlock() }
-            let key = "\(prefix).pending"
-            var stored = read(key).filter { Date().timeIntervalSince($0.at) < pendingLifetime }
-            guard !stored.isEmpty else {
-                return nil
+        static func dequeue(at date: Date = Date()) -> PushMessage? {
+            locked {
+                let key = "\(prefix).pending"
+                var stored = read(key).filter { date.timeIntervalSince($0.at) < pendingLifetime }
+                guard !stored.isEmpty else {
+                    write([], to: key)
+                    return nil
+                }
+                let first = stored.removeFirst()
+                write(stored, to: key)
+                return first.message
             }
-            let first = stored.removeFirst()
-            write(stored, to: key)
-            return first.message
         }
 
         private static func append(_ messages: [PushMessage], to key: String) {
             guard !messages.isEmpty else {
                 return
             }
-            lock.lock()
-            defer { lock.unlock() }
-            write(read(key) + messages.map(Stored.init), to: key)
+            locked {
+                write(read(key) + messages.map(Stored.init), to: key)
+            }
         }
 
         private static func read(_ key: String) -> [Stored] {
@@ -270,12 +290,12 @@ extension Push {
             guard let session = Push.Shared.loadSession(), let credential = Push.Shared.loadCredential() else {
                 return
             }
+            var message = Push.Shared.dequeue()
             // The session allows one connection, and the live app already has the message. An app killed
             // moments ago still looks live but posted no banner, so fetch then.
-            if Push.Shared.isAppLive(), await replaceAppBanner(in: content) {
+            if message == nil, Push.Shared.isAppLive(), await replaceAppBanner(in: content) {
                 return
             }
-            var message = Push.Shared.dequeue()
             if message == nil {
                 let fetched = await fetch(session, credential: credential)
                 Push.Shared.handOff(fetched)

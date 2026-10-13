@@ -212,10 +212,10 @@ final class PushTests {
         }
     }
 
-    @Test func clearedQueueShowsNothingStale() {
+    @Test func expiredQueuedMessagesAreDropped() {
         withSharedDefaults {
             Push.Shared.enqueue([message("news", "1")])
-            Push.Shared.clearPending()
+            #expect(Push.Shared.dequeue(at: Date().addingTimeInterval(Push.Shared.pendingLifetime + 1)) == nil)
             #expect(Push.Shared.dequeue() == nil)
         }
     }

@@ -1568,7 +1568,6 @@ extension Push {
         guard !Shared.inServiceExtension else {
             return
         }
-        Shared.clearPending()
         let filters = sync.sync { subscriptions.values.map { $0.filter } }
         let messages = Shared.takeHandedOff { topic in
             filters.contains { matches(filter: $0, topic: topic) }
@@ -1698,7 +1697,6 @@ extension Push {
         static let capacity = 500
         static let key = "{{ spec.info.title | caseLower }}.push.delivered"
 
-        private let lock = NSLock()
         private let defaults: UserDefaults
         private var ids: [String]
         private var lookup: Set<String>
@@ -1712,28 +1710,28 @@ extension Push {
 
         /// Whether `id` was delivered before.
         func contains(_ id: String) -> Bool {
-            lock.lock()
-            defer { lock.unlock() }
-            reload()
-            return lookup.contains(id)
+            Shared.locked {
+                reload()
+                return lookup.contains(id)
+            }
         }
 
         /// Record `id`: true when it is new, false when it was delivered before.
         @discardableResult
         func record(_ id: String) -> Bool {
-            lock.lock()
-            defer { lock.unlock() }
-            reload()
-            guard lookup.insert(id).inserted else {
-                return false
+            Shared.locked {
+                reload()
+                guard lookup.insert(id).inserted else {
+                    return false
+                }
+                ids.append(id)
+                if ids.count > Deliveries.capacity {
+                    ids.removeFirst(ids.count - Deliveries.capacity)
+                    lookup = Set(ids)
+                }
+                defaults.set(ids, forKey: Deliveries.key)
+                return true
             }
-            ids.append(id)
-            if ids.count > Deliveries.capacity {
-                ids.removeFirst(ids.count - Deliveries.capacity)
-                lookup = Set(ids)
-            }
-            defaults.set(ids, forKey: Deliveries.key)
-            return true
         }
 
         private func reload() {
