@@ -94,6 +94,7 @@ CMD;
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
+        ...Base::QUERY_ENCODING_RESPONSES,
         ...Base::TEXT_RESPONSES,
         ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::OPTIONAL_ATTACHMENT_RESPONSES,

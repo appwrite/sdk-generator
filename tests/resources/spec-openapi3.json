@@ -2152,6 +2152,74 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/query": {
+      "get": {
+        "summary": "Query Param",
+        "operationId": "generalGetQuery",
+        "tags": [
+          "general"
+        ],
+        "description": "",
+        "x-appwrite": {
+          "demo": "general\/get-query.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "value",
+            "description": "Query value.",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "a&b"
+            }
+          },
+          {
+            "name": "values",
+            "description": "Query values.",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/path\/{pathId}": {
       "get": {
         "summary": "Path Param",

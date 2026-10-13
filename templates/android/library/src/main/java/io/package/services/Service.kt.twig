@@ -116,11 +116,11 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
                 }
                 is List<*> -> {
                     (it.value as List<*>).forEach { v ->
-                        apiQuery.add("${it.key}[]=${v.toString()}")
+                        apiQuery.add("${Uri.encode(it.key)}[]=${Uri.encode(v.toString())}")
                     }
                 }
                 else -> {
-                    apiQuery.add("${it.key}=${it.value.toString()}")
+                    apiQuery.add("${Uri.encode(it.key)}=${Uri.encode(it.value.toString())}")
                 }
             }
         }
