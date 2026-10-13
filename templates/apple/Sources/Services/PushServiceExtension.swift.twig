@@ -1,0 +1,408 @@
+import Foundation
+
+#if canImport(Security)
+    import Security
+#endif
+#if canImport(UserNotifications)
+    import UserNotifications
+#endif
+
+extension Push {
+    /// State the app and its Notification Service Extension share through their App Group.
+    enum Shared {
+        static let appGroupKey = "AppwritePushAppGroup"
+        static let bannerKey = "{{ spec.info.title | caseLower }}.push.banner"
+        static let heartbeatInterval = DispatchTimeInterval.seconds(3)
+        static let liveWindow: TimeInterval = 10
+        static let pendingLifetime: TimeInterval = 30
+        static var inServiceExtension = false
+
+        private static let prefix = "{{ spec.info.title | caseLower }}.push.shared"
+        private static let lock = NSLock()
+        #if canImport(Darwin)
+            private static let lockFile: Int32 = {
+                guard let group = appGroup, let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group) else {
+                    return -1
+                }
+                return open(url.appendingPathComponent("\(prefix).lock").path, O_RDWR | O_CREAT, 0o600)
+            }()
+        #endif
+
+        /// Run `body` while holding the lock the app and its extension share, as both write this state.
+        static func locked<T>(_ body: () throws -> T) rethrows -> T {
+            lock.lock()
+            defer { lock.unlock() }
+            #if canImport(Darwin)
+                if lockFile >= 0 {
+                    flock(lockFile, LOCK_EX)
+                }
+                defer {
+                    if lockFile >= 0 {
+                        flock(lockFile, LOCK_UN)
+                    }
+                }
+            #endif
+            return try body()
+        }
+
+        static var appGroup: String? {
+            guard let group = Bundle.main.object(forInfoDictionaryKey: appGroupKey) as? String, !group.isEmpty else {
+                return nil
+            }
+            return group
+        }
+
+        static var defaults: UserDefaults = appGroup.flatMap { UserDefaults(suiteName: $0) } ?? .standard
+
+        // MARK: Session
+
+        struct Session: Codable, Equatable {
+            var endpoint: String
+            var pushEndpoint: String?
+            var project: String
+            var clientId: String
+            /// Background topic filters and their notification titles.
+            var topics: [String: String]
+            var jwt: Bool
+        }
+
+        /// What the extension needs to connect as this app, kept while `push` has background subscriptions.
+        static func share(_ push: Push) {
+            guard appGroup != nil, !inServiceExtension else {
+                return
+            }
+            let topics = push.backgroundTitles()
+            guard !topics.isEmpty else {
+                save(nil)
+                saveCredential(nil)
+                return
+            }
+            let jwt = push.client.config["jwt"] ?? ""
+            save(
+                Session(
+                    endpoint: push.client.endPoint,
+                    pushEndpoint: push.client.endPointPush,
+                    project: push.client.config["project"] ?? "",
+                    clientId: push.client.pushClientId ?? "",
+                    topics: topics,
+                    jwt: !jwt.isEmpty
+                ))
+            saveCredential(jwt.isEmpty ? push.session() : jwt)
+        }
+
+        static func save(_ session: Session?) {
+            let key = "\(prefix).session"
+            if let session, let data = try? JSONEncoder().encode(session) {
+                defaults.set(data, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+
+        static func loadSession() -> Session? {
+            defaults.data(forKey: "\(prefix).session").flatMap { try? JSONDecoder().decode(Session.self, from: $0) }
+        }
+
+        // MARK: Heartbeat
+
+        static func markLive(at date: Date = Date()) {
+            defaults.set(date.timeIntervalSince1970, forKey: "\(prefix).live")
+        }
+
+        static func isAppLive(at date: Date = Date()) -> Bool {
+            let live = defaults.double(forKey: "\(prefix).live")
+            return live > 0 && date.timeIntervalSince1970 - live < liveWindow
+        }
+
+        // MARK: Messages
+
+        private struct Stored: Codable {
+            let topic: String
+            let payload: Data
+            let qos: Int
+            let at: Date
+
+            init(_ message: PushMessage) {
+                topic = message.topic
+                payload = Data(message.payload)
+                qos = message.qos
+                at = Date()
+            }
+
+            var message: PushMessage {
+                PushMessage(topic: topic, payload: [UInt8](payload), qos: qos)
+            }
+        }
+
+        static func handOff(_ messages: [PushMessage]) {
+            append(messages, to: "\(prefix).handedOff")
+        }
+
+        static func takeHandedOff(matching: (String) -> Bool) -> [PushMessage] {
+            locked {
+                let key = "\(prefix).handedOff"
+                let stored = read(key)
+                let taken = stored.filter { matching($0.topic) }
+                guard !taken.isEmpty else {
+                    return []
+                }
+                write(stored.filter { !matching($0.topic) }, to: key)
+                return taken.map(\.message)
+            }
+        }
+
+        static func enqueue(_ messages: [PushMessage]) {
+            append(messages, to: "\(prefix).pending")
+        }
+
+        static func dequeue(at date: Date = Date()) -> PushMessage? {
+            locked {
+                let key = "\(prefix).pending"
+                var stored = read(key).filter { date.timeIntervalSince($0.at) < pendingLifetime }
+                guard !stored.isEmpty else {
+                    write([], to: key)
+                    return nil
+                }
+                let first = stored.removeFirst()
+                write(stored, to: key)
+                return first.message
+            }
+        }
+
+        private static func append(_ messages: [PushMessage], to key: String) {
+            guard !messages.isEmpty else {
+                return
+            }
+            locked {
+                write(read(key) + messages.map(Stored.init), to: key)
+            }
+        }
+
+        private static func read(_ key: String) -> [Stored] {
+            defaults.data(forKey: key).flatMap { try? JSONDecoder().decode([Stored].self, from: $0) } ?? []
+        }
+
+        private static func write(_ stored: [Stored], to key: String) {
+            if stored.isEmpty {
+                defaults.removeObject(forKey: key)
+            } else if let data = try? JSONEncoder().encode(stored) {
+                defaults.set(data, forKey: key)
+            }
+        }
+
+        // MARK: Credential
+
+        static func loadCredential() -> String? {
+            #if canImport(Security)
+                var query = credentialQuery()
+                query[kSecReturnData as String] = true
+                query[kSecMatchLimit as String] = kSecMatchLimitOne
+                var result: AnyObject?
+                guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess, let data = result as? Data else {
+                    return nil
+                }
+                return String(data: data, encoding: .utf8)
+            #else
+                return nil
+            #endif
+        }
+
+        private static func saveCredential(_ credential: String?) {
+            #if canImport(Security)
+                let query = credentialQuery()
+                SecItemDelete(query as CFDictionary)
+                guard let credential, !credential.isEmpty else {
+                    return
+                }
+                var item = query
+                item[kSecValueData as String] = Data(credential.utf8)
+                item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+                SecItemAdd(item as CFDictionary, nil)
+            #endif
+        }
+
+        #if canImport(Security)
+            private static func credentialQuery() -> [String: Any] {
+                var query: [String: Any] = [
+                    kSecClass as String: kSecClassGenericPassword,
+                    kSecAttrService as String: prefix,
+                    kSecAttrAccount as String: "credential",
+                ]
+                if let appGroup {
+                    query[kSecAttrAccessGroup as String] = appGroup
+                }
+                return query
+            }
+        #endif
+    }
+}
+
+#if os(iOS) && canImport(UserNotifications)
+    /// The base class of an app's Notification Service Extension, which is all of its code:
+    ///
+    ///     import {{ spec.info.title | caseUcfirst }}
+    ///
+    ///     class NotificationService: {{ spec.info.title | caseUcfirst }}NotificationService {}
+    ///
+    /// iOS runs it for each visible push with `mutable-content`, even when the app was swiped away.
+    /// It fetches the messages waiting for the app over MQTT, with the app's session, and shows one in
+    /// place of the push's placeholder. The app and the extension must share an App Group, named by
+    /// `AppwritePushAppGroup` in both Info.plists.
+    open class {{ spec.info.title | caseUcfirst }}NotificationService: UNNotificationServiceExtension {
+        private let lock = NSLock()
+        private var contentHandler: ((UNNotificationContent) -> Void)?
+        private var content: UNMutableNotificationContent?
+        private var push: Push?
+
+        open override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
+            let content = (request.content.mutableCopy() as? UNMutableNotificationContent) ?? UNMutableNotificationContent()
+            lock.lock()
+            self.contentHandler = contentHandler
+            self.content = content
+            lock.unlock()
+            Task {
+                await self.fill(content)
+                self.finish()
+            }
+        }
+
+        open override func serviceExtensionTimeWillExpire() {
+            lock.lock()
+            let push = self.push
+            lock.unlock()
+            push?.close()
+            finish()
+        }
+
+        private func finish() {
+            lock.lock()
+            let handler = contentHandler
+            contentHandler = nil
+            let content = self.content
+            lock.unlock()
+            if let handler, let content {
+                handler(content)
+            }
+        }
+
+        private func fill(_ content: UNMutableNotificationContent) async {
+            Push.Shared.inServiceExtension = true
+            guard let session = Push.Shared.loadSession(), let credential = Push.Shared.loadCredential() else {
+                return
+            }
+            var message = Push.Shared.dequeue()
+            // The session allows one connection, and the live app already has the message. An app killed
+            // moments ago still looks live but posted no banner, so fetch then.
+            if message == nil, Push.Shared.isAppLive(), await replaceAppBanner(in: content) {
+                return
+            }
+            if message == nil {
+                let fetched = await fetch(session, credential: credential)
+                Push.Shared.handOff(fetched)
+                message = fetched.first
+                Push.Shared.enqueue(Array(fetched.dropFirst()))
+            }
+            if let message {
+                await show(message, titles: session.topics, in: content)
+            }
+        }
+
+        private func fetch(_ session: Push.Shared.Session, credential: String) async -> [PushMessage] {
+            let client = Client().setEndpoint(session.endpoint).setProject(session.project)
+            if let pushEndpoint = session.pushEndpoint {
+                _ = client.setPushEndpoint(pushEndpoint)
+            }
+            if !session.clientId.isEmpty {
+                _ = client.setPushClientId(session.clientId)
+            }
+            _ = session.jwt ? client.setJWT(credential) : client.setSession(credential)
+            let push = Push(client)
+            keep(push)
+
+            let received = Received()
+            do {
+                _ = try await push.subscribe(Array(session.topics.keys), retry: true) { received.add($0) }
+            } catch {
+                push.close()
+                return []
+            }
+            let started = Date()
+            while Date().timeIntervalSince(started) < 20 {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                if let last = received.lastAt {
+                    if Date().timeIntervalSince(last) > 1.5 {
+                        break
+                    }
+                } else if Date().timeIntervalSince(started) > 5 {
+                    break
+                }
+            }
+            push.close()
+            return received.messages
+        }
+
+        private func keep(_ push: Push) {
+            lock.lock()
+            self.push = push
+            lock.unlock()
+        }
+
+        private func show(_ message: PushMessage, titles: [String: String], in content: UNMutableNotificationContent) async {
+            let notification = PushNotificationContent(message: message)
+            let title = titles.first { matches(filter: $0.key, topic: message.topic) }?.value
+            content.title = notification.title ?? title ?? message.topic
+            content.body = notification.body ?? (notification.present ? "" : message.data)
+            content.userInfo = ["topic": message.topic, "payload": message.data]
+            if let image = notification.image.flatMap(URL.init(string:)) {
+                let attachment = await withCheckedContinuation { continuation in
+                    Push.downloadAttachment(image) { continuation.resume(returning: $0) }
+                }
+                if let attachment {
+                    content.attachments = [attachment]
+                }
+            }
+        }
+
+        private func replaceAppBanner(in content: UNMutableNotificationContent) async -> Bool {
+            let center = UNUserNotificationCenter.current()
+            let delivered = await center.deliveredNotifications()
+            guard
+                let latest = delivered.filter({ $0.request.content.userInfo[Push.Shared.bannerKey] as? Bool == true })
+                    .max(by: { $0.date < $1.date }),
+                Date().timeIntervalSince(latest.date) < Push.Shared.liveWindow
+            else {
+                return false
+            }
+            content.title = latest.request.content.title
+            content.body = latest.request.content.body
+            content.userInfo = latest.request.content.userInfo
+            center.removeDeliveredNotifications(withIdentifiers: [latest.request.identifier])
+            return true
+        }
+    }
+
+    private final class Received: @unchecked Sendable {
+        private let lock = NSLock()
+        private var stored: [PushMessage] = []
+        private var last: Date?
+
+        var messages: [PushMessage] {
+            lock.lock()
+            defer { lock.unlock() }
+            return stored
+        }
+
+        var lastAt: Date? {
+            lock.lock()
+            defer { lock.unlock() }
+            return last
+        }
+
+        func add(_ message: PushMessage) {
+            lock.lock()
+            stored.append(message)
+            last = Date()
+            lock.unlock()
+        }
+    }
+#endif

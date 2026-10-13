@@ -275,6 +275,8 @@ open class Push: Service {
     private var closedClients = Set<ObjectIdentifier>()
     private var closeGeneration = 0
 
+    private var heartbeat: DispatchSourceTimer?
+
     private var onOpenCb: (() -> Void)?
     private var onCloseCb: (() -> Void)?
     private var onErrorCb: ((Swift.Error) -> Void)?
@@ -585,6 +587,7 @@ open class Push: Service {
         if background {
             Push.apnsEnable(self, topics: topics)
         }
+        deliverHandedOff()
 
         let unsubscribe: () -> Void = { [weak self] in
             guard let self else { return }
@@ -697,6 +700,7 @@ open class Push: Service {
             }
             return existing
         }
+        stopHeartbeat()
         guard let client else { return }
         DispatchQueue.global().async { [weak self] in
             do {
@@ -788,7 +792,7 @@ open class Push: Service {
 
     /// The session set on the client (`Client.setSession`), else the one the app signed in with
     /// through it (e.g. `Account.createEmailPasswordSession`), read from the cookies it saved.
-    private func session() -> String {
+    func session() -> String {
         if let session = client.config["session"], !session.isEmpty {
             return session
         }
@@ -931,9 +935,11 @@ open class Push: Service {
                 return
             }
             if let self, let mqtt, self.sync.sync(execute: { self.closedClients.remove(ObjectIdentifier(mqtt)) != nil }) {
+                self.stopHeartbeat()
                 self.onCloseCb?()
                 return
             }
+            self?.stopHeartbeat()
             if case .failure(let error) = result {
                 self?.surface(Push.describe(error))
             } else if let self, !self.sync.sync(execute: { self.closing }) {
@@ -966,6 +972,7 @@ open class Push: Service {
             throw described
         }
 
+        startHeartbeat()
         onOpenCb?()
         return mqtt
     }
@@ -1024,6 +1031,7 @@ open class Push: Service {
                 if !infos.isEmpty {
                     try await brokerSubscribe(client, infos)
                 }
+                startHeartbeat()
                 onOpenCb?()
                 return
             } catch {
@@ -1155,16 +1163,17 @@ open class Push: Service {
             content.title = title
             content.body = notification.body ?? (notification.present ? "" : message.data)
             content.sound = .default
-            content.userInfo = ["topic": message.topic, "payload": message.data]
+            content.userInfo = ["topic": message.topic, "payload": message.data, Shared.bannerKey: true]
+            let identifier = RemoteMessage.id(payload: message.payload) ?? UUID().uuidString
             guard let image = notification.image.flatMap(URL.init(string:)) else {
-                post(content)
+                post(content, identifier: identifier)
                 return
             }
             Push.downloadAttachment(image) { [weak self] attachment in
                 if let attachment {
                     content.attachments = [attachment]
                 }
-                self?.post(content)
+                self?.post(content, identifier: identifier)
             }
         #endif
     }
@@ -1180,8 +1189,8 @@ open class Push: Service {
             "image/heic": "heic",
         ]
 
-        private func post(_ content: UNNotificationContent) {
-            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        private func post(_ content: UNNotificationContent, identifier: String) {
+            let request = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
             UNUserNotificationCenter.current().add(request) { [weak self] error in
                 if let error {
                     self?.surface(error)
@@ -1191,7 +1200,7 @@ open class Push: Service {
 
         /// Download a notification image into a file a notification can attach, or nil when it cannot be fetched or is
         /// not an image type notifications show.
-        private static func downloadAttachment(_ url: URL, completion: @escaping (UNNotificationAttachment?) -> Void) {
+        static func downloadAttachment(_ url: URL, completion: @escaping (UNNotificationAttachment?) -> Void) {
             URLSession.shared.downloadTask(with: URLRequest(url: url, timeoutInterval: 10)) { location, response, _ in
                 guard let location, let fileExtension = attachmentExtension(url, mimeType: response?.mimeType) else {
                     completion(nil)
@@ -1269,7 +1278,7 @@ private func jsonString(base64: String, key: String) -> String? {
 }
 
 /// MQTT topic-filter match with `+` (single level) and `#` (multi level).
-private func matches(filter: String, topic: String) -> Bool {
+func matches(filter: String, topic: String) -> Bool {
     let filterParts = filter.split(separator: "/", omittingEmptySubsequences: false)
     let topicParts = topic.split(separator: "/", omittingEmptySubsequences: false)
     for (index, part) in filterParts.enumerated() {
@@ -1308,7 +1317,7 @@ extension Push {
     private static var apnsLinked: [String: Set<String>] = [:]
     private static var apnsProxyInstalled = false
     private static var apnsRegistrationRequested = false
-    static var apnsDeliveries = Deliveries(defaults: .standard)
+    static var apnsDeliveries = Deliveries(defaults: Shared.defaults)
 
     private final class WeakPush {
         weak var push: Push?
@@ -1349,6 +1358,7 @@ extension Push {
 
     /// Start APNs for a push with background subscriptions on `topics`.
     static func apnsEnable(_ push: Push, topics: [String]) {
+        Shared.share(push)
         apnsPrepare(push)
         let token = apnsLocked { apnsToken }
         if autoRegistration {
@@ -1361,6 +1371,7 @@ extension Push {
 
     /// Unlink `topics` from APNs once they have no background subscription left.
     static func apnsDisable(_ push: Push, topics: [String]) {
+        Shared.share(push)
         guard let userId = push.remoteUserId() else {
             return
         }
@@ -1541,6 +1552,56 @@ extension Push {
         sync.sync { Array(Set(subscriptions.values.filter { $0.background }.map { $0.filter })) }
     }
 
+    /// The notification title of each background topic.
+    func backgroundTitles() -> [String: String] {
+        sync.sync {
+            var titles: [String: String] = [:]
+            for entry in subscriptions.values where entry.background {
+                titles[entry.filter] = entry.title ?? titles[entry.filter] ?? entry.filter
+            }
+            return titles
+        }
+    }
+
+    /// Deliver what the Notification Service Extension fetched, without banners: iOS already showed them.
+    func deliverHandedOff() {
+        guard !Shared.inServiceExtension else {
+            return
+        }
+        let filters = sync.sync { subscriptions.values.map { $0.filter } }
+        let messages = Shared.takeHandedOff { topic in
+            filters.contains { matches(filter: $0, topic: topic) }
+        }
+        for message in messages {
+            deliver(message, notifyLocally: false)
+        }
+    }
+
+    private func startHeartbeat() {
+        guard Shared.appGroup != nil, !Shared.inServiceExtension else {
+            return
+        }
+        let timer = DispatchSource.makeTimerSource(queue: .global())
+        timer.schedule(deadline: .now(), repeating: Shared.heartbeatInterval)
+        timer.setEventHandler { Shared.markLive() }
+        let previous = sync.sync { () -> DispatchSourceTimer? in
+            let previous = heartbeat
+            heartbeat = timer
+            return previous
+        }
+        previous?.cancel()
+        timer.resume()
+    }
+
+    private func stopHeartbeat() {
+        let timer = sync.sync { () -> DispatchSourceTimer? in
+            let timer = heartbeat
+            heartbeat = nil
+            return timer
+        }
+        timer?.cancel()
+    }
+
     /// The signed-in user's id, or nil without a credential.
     func remoteUserId() -> String? {
         try? currentUserId()
@@ -1571,6 +1632,7 @@ extension Push {
             let connected: MQTTClient
             if let client {
                 _ = try await client.v5.connect(cleanStart: false, properties: try connectProperties())
+                startHeartbeat()
                 connected = client
             } else {
                 connected = try await connect()
@@ -1635,7 +1697,6 @@ extension Push {
         static let capacity = 500
         static let key = "{{ spec.info.title | caseLower }}.push.delivered"
 
-        private let lock = NSLock()
         private let defaults: UserDefaults
         private var ids: [String]
         private var lookup: Set<String>
@@ -1649,26 +1710,36 @@ extension Push {
 
         /// Whether `id` was delivered before.
         func contains(_ id: String) -> Bool {
-            lock.lock()
-            defer { lock.unlock() }
-            return lookup.contains(id)
+            Shared.locked {
+                reload()
+                return lookup.contains(id)
+            }
         }
 
         /// Record `id`: true when it is new, false when it was delivered before.
         @discardableResult
         func record(_ id: String) -> Bool {
-            lock.lock()
-            defer { lock.unlock() }
-            guard lookup.insert(id).inserted else {
-                return false
+            Shared.locked {
+                reload()
+                guard lookup.insert(id).inserted else {
+                    return false
+                }
+                ids.append(id)
+                if ids.count > Deliveries.capacity {
+                    ids.removeFirst(ids.count - Deliveries.capacity)
+                    lookup = Set(ids)
+                }
+                defaults.set(ids, forKey: Deliveries.key)
+                return true
             }
-            ids.append(id)
-            if ids.count > Deliveries.capacity {
-                ids.removeFirst(ids.count - Deliveries.capacity)
-                lookup = Set(ids)
+        }
+
+        private func reload() {
+            let saved = defaults.stringArray(forKey: Deliveries.key) ?? []
+            if saved != ids {
+                ids = saved
+                lookup = Set(saved)
             }
-            defaults.set(ids, forKey: Deliveries.key)
-            return true
         }
     }
 
