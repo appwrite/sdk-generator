@@ -181,11 +181,20 @@ func AppIDName(bundleID string) string {
 
 var bundleIDPattern = regexp.MustCompile(`^[A-Za-z0-9.-]+$`)
 
+// CheckBundleID reports whether bundleID is shaped like an iOS bundle ID.
+func CheckBundleID(bundleID string) error {
+	if !bundleIDPattern.MatchString(bundleID) {
+		return fmt.Errorf("%q is not a bundle ID: a bundle ID has letters, digits, hyphens and dots", bundleID)
+	}
+
+	return nil
+}
+
 // PrepareAppID checks the request, runs the adapter, and checks what it
 // returned, so every adapter is held to the same contract.
 func PrepareAppID(ctx context.Context, adapter Adapter, request Request, appID AppIDRequest) (AppIDResult, error) {
-	if !bundleIDPattern.MatchString(appID.BundleID) {
-		return AppIDResult{}, fmt.Errorf("%q is not a bundle ID: a bundle ID has letters, digits, hyphens and dots", appID.BundleID)
+	if err := CheckBundleID(appID.BundleID); err != nil {
+		return AppIDResult{}, err
 	}
 	if request.TeamID != "" && !teamIDPattern.MatchString(request.TeamID) {
 		return AppIDResult{}, fmt.Errorf("%q is not an Apple team ID: a team ID is 10 uppercase letters or digits", request.TeamID)

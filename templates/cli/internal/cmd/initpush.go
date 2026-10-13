@@ -393,11 +393,17 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 	if err != nil {
 		return err
 	}
+	// A setup chosen by name must exist before anything is written.
+	if options.setup != "" || s.env(apnsSetupVariable) != "" {
+		if _, err := s.apnsAdapter(options.setup); err != nil {
+			return err
+		}
+	}
 	wantProduction := environment != apns.EnvironmentSandbox
 	wantSandbox := environment != apns.EnvironmentProduction
 
 	bundleID, err := s.pick(options.bundleID, detected.BundleIDs,
-		"Which iOS bundle ID should receive push notifications?", "--bundle-id", requiredValue("bundle ID"))
+		"Which iOS bundle ID should receive push notifications?", "--bundle-id", apns.CheckBundleID)
 	if err != nil {
 		return err
 	}

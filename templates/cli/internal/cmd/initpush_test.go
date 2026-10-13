@@ -1558,6 +1558,37 @@ func TestInitApnsPicksTheSetupFromTheFlagThenTheEnvironment(t *testing.T) {
 	}
 }
 
+func TestInitApnsRejectsAMalformedBundleID(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	setup, _ := newTestPushSetup(t, server, &prompt.Scripted{}, t.TempDir())
+	err := setup.apns(apnsOptions{bundleID: "not a bundle id!", environment: "sandbox"}, appleApp{})
+	if err == nil || !strings.Contains(err.Error(), "is not a bundle ID") {
+		t.Fatalf("err = %v", err)
+	}
+	if len(messaging.requests) != 0 {
+		t.Errorf("requests = %v", messaging.requests)
+	}
+}
+
+func TestInitApnsRejectsAnUnknownSetupBeforeAnyRequest(t *testing.T) {
+	messaging := &fakeMessaging{}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	setup, _ := newTestPushSetup(t, server, &prompt.Scripted{}, t.TempDir())
+	setup.apnsAdapters = apns.NewRegistry(&apnstest.Adapter{AdapterName: "appwrite"})
+	err := setup.apns(apnsOptions{bundleID: "com.example.app", environment: "all", setup: "nope"}, appleApp{})
+	if err == nil || !strings.Contains(err.Error(), `unknown APNs key setup "nope"`) {
+		t.Fatalf("err = %v", err)
+	}
+	if len(messaging.requests) != 0 {
+		t.Errorf("requests = %v", messaging.requests)
+	}
+}
+
 func TestInitApnsReportsAnUnknownSetup(t *testing.T) {
 	messaging := &fakeMessaging{}
 	server := httptest.NewServer(messaging)
