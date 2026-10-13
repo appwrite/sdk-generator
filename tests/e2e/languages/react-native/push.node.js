@@ -284,6 +284,30 @@ async function main() {
     iosPush.close();
     Platform.OS = 'android';
     console.log(iosLaunched?.data.saleId === '1' && iosCleared && iosForeign === null && iosTapped.length === 1 && iosTapped[0].data.saleId === '2' ? 'Push notification opened expo:passed' : 'Push notification opened expo:failed');
+
+    // What a background notification shows: a raw payload falls back to the subscription title and
+    // the payload, a server title and body replace them, and an envelope with neither (data-only,
+    // an empty notification block, image-only or contentAvailable/badge-only) posts nothing.
+    const contentMessage = (topic, data) => ({ topic, data, payload: Buffer.from(data), qos: 1 });
+    expoNotifications.scheduled = [];
+    await firstUser.notify(contentMessage('e2e-push', 'push-payload'), 'E2E title');
+    await firstUser.notify(
+        contentMessage('users/e2e-user', JSON.stringify({ notification: { title: 'Server title', body: 'Server body' }, data: { saleId: '42' } })),
+        'E2E title',
+    );
+    await firstUser.notify(
+        contentMessage('users/e2e-user', JSON.stringify({ messageId: 'e2e-data', data: { saleId: '42' }, priority: 'high' })),
+        'E2E title',
+    );
+    await firstUser.notify(contentMessage('users/e2e-user', JSON.stringify({ notification: {} })), 'E2E title');
+    await firstUser.notify(contentMessage('users/e2e-user', JSON.stringify({ notification: { image: 'http://127.0.0.1:1/x.png' } })), 'E2E title');
+    await firstUser.notify(contentMessage('users/e2e-user', JSON.stringify({ notification: { contentAvailable: true, badge: 3 } })), 'E2E title');
+    const posted = expoNotifications.scheduled.map(({ content }) => `${content.title}/${content.body}`);
+    console.log(
+        posted.join() === 'E2E title/push-payload,Server title/Server body'
+            ? 'Push notification content JS:passed'
+            : `Push notification content JS:failed (${JSON.stringify(posted)})`,
+    );
     firstUser.close();
     secondUser.close();
     delete NativeModules.AppwritePush;
