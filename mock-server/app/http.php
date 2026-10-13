@@ -615,6 +615,31 @@ App::get('/v1/mock/tests/general/path/grant%2Fspecial%26id')
     ->action(function () {
     });
 
+// Query values must arrive intact: a raw `&`, `+` or `#` splits, decodes to a space or truncates them.
+App::get('/v1/mock/tests/general/query')
+    ->desc('Query Param')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'getQuery')
+    ->label('sdk.description', 'Mock a request with query values that need encoding.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('value', '', new Text(100), 'Query value.')
+    ->param('values', [], new ArrayList(new Text(100), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Query values.')
+    ->action(function (string $value, array $values) {
+        if ($value !== 'a&b+c#d=e%f') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Query value was not encoded: ' . $value);
+        }
+
+        if ($values !== ['a&b', 'c+d#e']) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Query values were not encoded: ' . \implode(',', $values));
+        }
+    });
+
 // Shared nullable-path e2e contract. Null is serialized literally by targets
 // that previously could not compile nullable string interpolation.
 foreach (['0', 'null'] as $id) {

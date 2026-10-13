@@ -85,6 +85,7 @@ namespace AppwriteTests
                 }
             }
             TestContext.WriteLine((await general.ValidatePath("0", "0")).Result);
+            TestContext.WriteLine((await general.GetQuery("a&b+c#d=e%f", new List<string>() { "a&b", "c+d#e" })).Result);
 
             string zone = await new Plaintext(client).GetZone();
             TestContext.WriteLine(zone);

@@ -68,6 +68,11 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/path-validation/null/0:passed',
     ];
 
+    // Query values containing `&`, `+` and `#` reach the server unchanged.
+    protected const QUERY_ENCODING_RESPONSES = [
+        'GET:/v1/mock/tests/general/query:passed',
+    ];
+
     protected const OAUTH_RESPONSES = [
         'https://localhost?code=abcdef&state=123456',
     ];
