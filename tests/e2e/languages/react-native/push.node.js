@@ -197,7 +197,7 @@ async function main() {
             NativeModules.AppwritePush.resumed.push(args);
         },
         backgroundStatus: async () =>
-            JSON.stringify({ exactAlarms: false, ignoringBatteryOptimizations: false, foregroundService: false, bestEffort: true }),
+            JSON.stringify({ exactAlarms: false, ignoringBatteryOptimizations: false, foregroundService: false, bestEffort: true, backgroundRestricted: true }),
         requestExactAlarms: async () => true,
         requestIgnoreBatteryOptimizations: async () => false,
         setErrorCallback: async () => null,
@@ -260,7 +260,7 @@ async function main() {
     const askedBattery = await firstUser.requestIgnoreBatteryOptimizations();
     const resumed = NativeModules.AppwritePush.resumed.find((args) => args[0] === 'appwrite-session');
     console.log(nativeConnection);
-    console.log(status?.bestEffort === true && askedExact === true && askedBattery === false && resumed?.[1] === e2eSession && resumed?.[2] === false ? 'Push background status JS:passed' : 'Push background status JS:failed');
+    console.log(status?.bestEffort === true && status?.backgroundRestricted === true && askedExact === true && askedBattery === false && resumed?.[1] === e2eSession && resumed?.[2] === false ? 'Push background status JS:passed' : 'Push background status JS:failed');
     console.log(launched?.topic === 'news' && launched.data.saleId === '42' && tapped.length === 1 && tapped[0].data.saleId === '7' && NativeModules.AppwritePush.listening.join() === 'true,false' ? 'Push notification opened JS:passed' : 'Push notification opened JS:failed');
 
     // The same taps outside Android, where expo-notifications posted the notification: the launching

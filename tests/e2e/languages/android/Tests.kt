@@ -25,6 +25,7 @@ import io.appwrite.services.Foo
 import io.appwrite.services.General
 import io.appwrite.services.Plaintext
 import io.appwrite.services.Push
+import io.appwrite.services.PushBackgroundStatus
 import io.appwrite.services.Realtime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -981,6 +982,26 @@ class ServiceTest {
             )
             refusedPush.close()
 
+            // Restricted background usage (the app's battery settings) makes delivery best effort. Android
+            // reports it from 9 on; PushBackgroundRestrictedTest covers it there.
+            val shadow = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.ActivityManager::class.java))
+            val unrestrictedStatus = Push.backgroundStatus(context)
+            shadow.setBackgroundRestricted(true)
+            val restrictedStatus = Push.backgroundStatus(context)
+            shadow.setBackgroundRestricted(false)
+            val resetStatus = Push.backgroundStatus(context)
+            val restrictionReported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P
+            writeToFile(
+                if (restrictedStatus == unrestrictedStatus.copy(backgroundRestricted = restrictionReported) &&
+                    !unrestrictedStatus.backgroundRestricted &&
+                    resetStatus == unrestrictedStatus
+                ) {
+                    "Push background restricted:passed"
+                } else {
+                    "Push background restricted:failed (sdk: ${android.os.Build.VERSION.SDK_INT}, restricted: $restrictedStatus, unrestricted: $unrestrictedStatus, reset: $resetStatus)"
+                },
+            )
+
             // A message from createPush: the notification shows the server's title and body, not the
             // raw JSON, and still posts when its image cannot be fetched. One with neither a title nor
             // a body (an empty notification block, a data-only push, a badge or an image alone) posts
@@ -1198,6 +1219,56 @@ class ServiceTest {
         } catch (exception: Exception) {
             null
         }
+    }
+}
+
+@Config(manifest=Config.NONE, sdk=[android.os.Build.VERSION_CODES.P])
+@RunWith(AndroidJUnit4::class)
+class PushBackgroundRestrictedTest {
+    private val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    private val shadow = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.ActivityManager::class.java))
+    private val power = org.robolectric.Shadows.shadowOf(context.getSystemService(android.os.PowerManager::class.java))
+
+    @Test
+    fun testRestrictedBackgroundUsageMakesDeliveryBestEffort() {
+        val unrestricted = Push.backgroundStatus(context)
+        shadow.setBackgroundRestricted(true)
+        val restricted = Push.backgroundStatus(context)
+        shadow.setBackgroundRestricted(false)
+        val reset = Push.backgroundStatus(context)
+
+        assertFalse("unrestricted: $unrestricted", unrestricted.backgroundRestricted)
+        assertFalse("unrestricted: $unrestricted", unrestricted.bestEffort)
+        assertTrue("restricted: $restricted", restricted.backgroundRestricted)
+        assertTrue("restricted: $restricted", restricted.bestEffort)
+        assertTrue("reset: $reset, unrestricted: $unrestricted", reset == unrestricted)
+    }
+
+    @Test
+    fun testBatteryOptimisationExemptionLiftsRestrictedBackgroundUsage() {
+        shadow.setBackgroundRestricted(true)
+        power.setIgnoringBatteryOptimizations(context.packageName, true)
+        val exempt = Push.backgroundStatus(context)
+        power.setIgnoringBatteryOptimizations(context.packageName, false)
+        shadow.setBackgroundRestricted(false)
+
+        assertTrue("exempt: $exempt", exempt.exactAlarms)
+        assertTrue("exempt: $exempt", exempt.ignoringBatteryOptimizations)
+        assertTrue("exempt: $exempt", exempt.backgroundRestricted)
+        assertFalse("exempt: $exempt", exempt.bestEffort)
+    }
+
+    @Test
+    fun testForegroundModeDoesNotLiftRestrictedBackgroundUsage() {
+        assertTrue(
+            PushBackgroundStatus(exactAlarms = false, ignoringBatteryOptimizations = true, foregroundService = true, backgroundRestricted = true).bestEffort,
+        )
+        assertTrue(
+            PushBackgroundStatus(exactAlarms = false, ignoringBatteryOptimizations = false, foregroundService = true, backgroundRestricted = true).bestEffort,
+        )
+        assertFalse(
+            PushBackgroundStatus(exactAlarms = true, ignoringBatteryOptimizations = true, foregroundService = true, backgroundRestricted = true).bestEffort,
+        )
     }
 }
 

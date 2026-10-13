@@ -327,8 +327,8 @@ abstract class Base extends TestCase
         'Push background drain:passed',
     ];
 
-    // Android only: no notification while the app is on screen, the watchdog job, and resume with
-    // the current credential.
+    // Android only: no notification while the app is on screen, the watchdog job, resume with the
+    // current credential, and restricted background usage.
     protected const ANDROID_PUSH_BACKGROUND_RESPONSES = [
         'Push background message:passed',
         'Push foreground no notification:passed',
@@ -337,6 +337,7 @@ abstract class Base extends TestCase
         'Push background resume credential:passed',
         'Push background close:passed',
         'Push background refused:passed',
+        'Push background restricted:passed',
     ];
 
     protected const PUSH_BACKGROUND_RESPONSES = [

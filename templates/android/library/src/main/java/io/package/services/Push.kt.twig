@@ -828,10 +828,14 @@ class Push(
         const val EXTRA_PAYLOAD = PushBackground.EXTRA_PAYLOAD
 
         /**
-         * What background delivery can rely on: exact alarms, battery-optimisation exemption and
-         * foreground mode. When [PushBackgroundStatus.bestEffort] is true, wake-ups are inexact and
-         * messages can arrive late while the app is closed; explain why before asking with
-         * [requestExactAlarms] or [requestIgnoreBatteryOptimizations].
+         * What background delivery can rely on: exact alarms, battery-optimisation exemption,
+         * foreground mode and restricted background usage. When [PushBackgroundStatus.bestEffort]
+         * is true, messages can arrive late while the app is closed; explain why before asking with
+         * [requestExactAlarms] or [requestIgnoreBatteryOptimizations]. When
+         * [PushBackgroundStatus.backgroundRestricted] is true, neither exact alarms nor foreground
+         * mode lift it: ask the user to choose Unrestricted in the app's battery settings
+         * (Settings > Apps > your app > Battery), or for the battery-optimisation exemption, which
+         * also lets the SDK's alarms and jobs run.
          */
         @JvmStatic
         fun backgroundStatus(context: Context): PushBackgroundStatus = PushBackground.backgroundStatus(context)

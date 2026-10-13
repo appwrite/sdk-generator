@@ -1215,6 +1215,8 @@ internal object PushBackground {
                 app.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true,
             ignoringBatteryOptimizations = app.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(app.packageName) == true,
             foregroundService = PushStore.foreground(app),
+            backgroundRestricted = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&
+                app.getSystemService(ActivityManager::class.java)?.isBackgroundRestricted == true,
         )
     }
 
