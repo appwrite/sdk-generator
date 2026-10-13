@@ -1447,7 +1447,7 @@ extension Push {
             "environment": Environment.current.rawValue,
             "bundleId": Bundle.main.bundleIdentifier,
         ]
-        let headers = ["X-Appwrite-Project": push.client.config["project"] ?? "", "content-type": "application/json"]
+        let headers = projectHeaders(push)
         do {
             let _: Any = try await push.client.call(
                 method: "POST",
@@ -1470,16 +1470,23 @@ extension Push {
         }
     }
 
+    // Push calls the API directly, so it doesn't depend on a Messaging service being generated.
+    private static func projectHeaders(_ push: Push) -> [String: String] {
+        ["X-Appwrite-Project": push.client.config["project"] ?? "", "content-type": "application/json"]
+    }
+
     private static func link(_ push: Push, targetId: String, topic: String) async {
         let already = apnsLocked { apnsLinked[targetId]?.contains(topic) ?? false }
         guard !already else {
             return
         }
         do {
-            _ = try await Messaging(push.client).createSubscriber(
-                topicId: topic,
-                subscriberId: Ids.subscriber(targetId: targetId, topic: topic),
-                targetId: targetId
+            let _: Any = try await push.client.call(
+                method: "POST",
+                path: "/messaging/topics/\(topic)/subscribers",
+                headers: projectHeaders(push),
+                params: ["subscriberId": Ids.subscriber(targetId: targetId, topic: topic), "targetId": targetId],
+                converter: { $0 }
             )
         } catch let error as {{ spec.info.title | caseUcfirst }}Error where error.code == 409 {
             // Subscribed already.
@@ -1497,9 +1504,11 @@ extension Push {
 
     private static func unlink(_ push: Push, targetId: String, topic: String) async {
         do {
-            _ = try await Messaging(push.client).deleteSubscriber(
-                topicId: topic,
-                subscriberId: Ids.subscriber(targetId: targetId, topic: topic)
+            let _: Any = try await push.client.call(
+                method: "DELETE",
+                path: "/messaging/topics/\(topic)/subscribers/\(Ids.subscriber(targetId: targetId, topic: topic))",
+                headers: projectHeaders(push),
+                converter: { $0 }
             )
         } catch let error as {{ spec.info.title | caseUcfirst }}Error where error.code == 404 {
             // Gone already.
