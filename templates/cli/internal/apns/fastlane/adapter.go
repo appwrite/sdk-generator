@@ -9,6 +9,7 @@
 package fastlane
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"encoding/json"
@@ -204,7 +205,13 @@ func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string
 	}
 	command := runner.command(ctx, arguments...)
 	command.Dir = scratch
-	command.Stdin, command.Stdout, command.Stderr = a.terminal()
+	stdin, stdout, stderr := a.terminal()
+	// A saved sign-in asks nothing, so fastlane's log is shown only if the lane fails.
+	var log bytes.Buffer
+	if request.SavedSignInOnly {
+		stdout, stderr = &log, &log
+	}
+	command.Stdin, command.Stdout, command.Stderr = stdin, stdout, stderr
 	command.Env = append(command.Env,
 		"FASTLANE_USER="+appleID,
 		"FASTLANE_SKIP_UPDATE_CHECK=1",
@@ -215,6 +222,10 @@ func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string
 		command.Env = append(command.Env, "FASTLANE_PASSWORD="+password)
 	}
 	runErr := command.Run()
+	if runErr != nil && log.Len() > 0 {
+		_, _, terminalErr := a.terminal()
+		_, _ = log.WriteTo(terminalErr)
+	}
 
 	contents, err := os.ReadFile(out)
 	if err != nil {
