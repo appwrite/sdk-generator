@@ -769,7 +769,7 @@ func (s *pushSetup) prepareAppID(teamID, bundleID string, options apnsOptions, s
 	}
 	var unanswered *prompt.NonInteractiveError
 	if errors.As(err, &unanswered) {
-		return fail("Could not check the App ID for %s: %q needs an interactive terminal. Pass --register-app-id to register it without asking", bundleID, unanswered.Message)
+		return fail("Could not check the App ID for %s: %s", bundleID, needsTerminal(unanswered))
 	}
 	if err != nil {
 		return fail("Could not check the App ID for %s: %s", bundleID, err)
@@ -791,6 +791,11 @@ func (s *pushSetup) prepareAppID(teamID, bundleID string, options apnsOptions, s
 	}
 
 	return nil
+}
+
+// needsTerminal says that signing in to Apple asked a question without a terminal.
+func needsTerminal(unanswered *prompt.NonInteractiveError) string {
+	return fmt.Sprintf("signing in to Apple asked %q, which needs an interactive terminal. %s and %s answer the Apple ID and password, but the two-factor code always needs one", unanswered.Message, appleIDVariable, applePasswordVariable)
 }
 
 // provisionedTeam is the team of an existing APNs provider for the bundle ID,
@@ -826,7 +831,7 @@ func (s *pushSetup) createApnsKey(teamID string, options apnsOptions, environmen
 	}
 	var unanswered *prompt.NonInteractiveError
 	if errors.As(err, &unanswered) {
-		return "", "", "", fmt.Errorf("signing in to Apple asked %q, which needs an interactive terminal. %s and %s answer the Apple ID and password, but the two-factor code always needs one. Without a terminal, pass --key-path with an existing .p8 instead of --create-key", unanswered.Message, appleIDVariable, applePasswordVariable)
+		return "", "", "", fmt.Errorf("%s. Without a terminal, pass --key-path with an existing .p8 instead of --create-key", needsTerminal(unanswered))
 	}
 	if err != nil {
 		return "", "", "", err

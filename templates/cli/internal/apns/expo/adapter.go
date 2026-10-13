@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apns"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
 
 //go:embed helper/helper.js helper/package.json helper/package-lock.json
@@ -160,7 +161,9 @@ func (a *Adapter) runHelper(ctx context.Context, request *apns.Request, argument
 	// For a reset the helper signs out of apple-utils before signing in. Its
 	// sign out asks for the Apple ID and forgets it, so the sign-in would ask
 	// again; asking here once and passing it to both avoids that.
-	if request.Reset && strings.TrimSpace(request.AppleID) == "" && request.Asker != nil {
+	// Without a terminal, asking here fails the same way the other setups do,
+	// instead of with apple-utils' own message.
+	if (request.Reset || !prompt.Interactive()) && !request.SavedSignInOnly && strings.TrimSpace(request.AppleID) == "" && request.Asker != nil {
 		answer, err := request.Asker.Ask("Apple ID (email)", false)
 		if err != nil {
 			return nil, err
