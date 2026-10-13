@@ -1525,7 +1525,7 @@ func (s *pushSetup) configureXcode(detected appleApp, bundleID string) {
 		output.Hint(s.out, "In Xcode, add Background Modes and tick Remote notifications.")
 	}
 	if detected.ExpoConfig != "" {
-		output.Hint(s.out, "Expo regenerates ios/ on prebuild. To keep these settings, add \"remote-notification\" to expo.ios.infoPlist.UIBackgroundModes in %s.",
+		output.Hint(s.out, "Expo regenerates ios/ on prebuild. In %s, set expo.ios.entitlements[\"aps-environment\"] to \"development\" and add \"remote-notification\" to expo.ios.infoPlist.UIBackgroundModes.",
 			filepath.Base(detected.ExpoConfig))
 	}
 }
