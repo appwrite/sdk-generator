@@ -1447,11 +1447,12 @@ extension Push {
             "environment": Environment.current.rawValue,
             "bundleId": Bundle.main.bundleIdentifier,
         ]
+        let headers = ["X-Appwrite-Project": push.client.config["project"] ?? "", "content-type": "application/json"]
         do {
             let _: Any = try await push.client.call(
                 method: "POST",
                 path: "/account/targets/push",
-                headers: ["content-type": "application/json"],
+                headers: headers,
                 params: params,
                 converter: { $0 }
             )
@@ -1462,7 +1463,7 @@ extension Push {
             let _: Any = try await push.client.call(
                 method: "PUT",
                 path: "/account/targets/\(targetId)/push",
-                headers: ["content-type": "application/json"],
+                headers: headers,
                 params: params.filter { $0.key != "targetId" },
                 converter: { $0 }
             )
