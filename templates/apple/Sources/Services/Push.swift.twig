@@ -1156,7 +1156,7 @@ open class Push: Service {
         for entry in matched {
             entry.callback(pushMessage)
             let title = notification.title ?? entry.title ?? pushMessage.topic
-            if notifyLocally && entry.background && postedTitles.insert(title).inserted {
+            if notifyLocally && entry.background && notification.present && postedTitles.insert(title).inserted {
                 notify(pushMessage, title: title, notification: notification)
             }
         }
@@ -1166,7 +1166,7 @@ open class Push: Service {
         #if canImport(UserNotifications)
             let content = UNMutableNotificationContent()
             content.title = title
-            content.body = notification.body ?? (notification.present ? "" : message.data)
+            content.body = notification.body ?? ""
             content.sound = .default
             content.userInfo = ["topic": message.topic, "payload": message.data, Shared.bannerKey: true]
             let identifier = RemoteMessage.id(payload: message.payload) ?? UUID().uuidString
