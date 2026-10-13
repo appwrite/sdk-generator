@@ -1127,6 +1127,21 @@ class CLI extends Go
                 'template'      => 'cli/internal/cmd/initskill.go',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/initpush.go',
+                'template'      => 'cli/internal/cmd/initpush.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/initpushdetect.go',
+                'template'      => 'cli/internal/cmd/initpushdetect.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/initpush_test.go',
+                'template'      => 'cli/internal/cmd/initpush_test.go',
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => 'internal/apns/apns.go',
                 'template'      => 'cli/internal/apns/apns.go',
