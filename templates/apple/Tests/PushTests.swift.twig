@@ -157,6 +157,69 @@ final class PushTests {
         #expect(results == [true, false], "delivered once")
         #expect(Push.apnsDeliveries.contains("m6"))
     }
+
+    // MARK: Shared with the Notification Service Extension
+
+    private func withSharedDefaults(_ body: () -> Void) {
+        let previous = Push.Shared.defaults
+        Push.Shared.defaults = defaults()
+        defer { Push.Shared.defaults = previous }
+        body()
+    }
+
+    private func message(_ topic: String, _ text: String) -> PushMessage {
+        PushMessage(topic: topic, payload: Array(text.utf8), qos: 1)
+    }
+
+    @Test func theSessionIsKeptForTheExtension() {
+        withSharedDefaults {
+            let session = Push.Shared.Session(
+                endpoint: "https://cloud.appwrite.io/v1", pushEndpoint: "mqtts://push.cloud.appwrite.io:8883", project: "p1",
+                clientId: "", topics: ["news": "News"], jwt: false)
+            Push.Shared.save(session)
+            #expect(Push.Shared.loadSession() == session)
+            Push.Shared.save(nil)
+            #expect(Push.Shared.loadSession() == nil)
+        }
+    }
+
+    @Test func theAppIsLiveOnlyWhileItKeepsMarkingIt() {
+        withSharedDefaults {
+            let now = Date()
+            #expect(!Push.Shared.isAppLive(at: now))
+            Push.Shared.markLive(at: now)
+            #expect(Push.Shared.isAppLive(at: now.addingTimeInterval(5)))
+            #expect(!Push.Shared.isAppLive(at: now.addingTimeInterval(Push.Shared.liveWindow + 1)))
+        }
+    }
+
+    @Test func handedOffMessagesGoToTheMatchingTopicsOnce() {
+        withSharedDefaults {
+            Push.Shared.handOff([message("news", "a"), message("sales", "b"), message("news", "c")])
+            let news = Push.Shared.takeHandedOff { $0 == "news" }
+            #expect(news.map(\.data) == ["a", "c"])
+            #expect(Push.Shared.takeHandedOff { $0 == "news" }.isEmpty)
+            #expect(Push.Shared.takeHandedOff { _ in true }.map(\.data) == ["b"])
+        }
+    }
+
+    @Test func queuedMessagesComeOutInOrder() {
+        withSharedDefaults {
+            Push.Shared.enqueue([message("news", "1"), message("news", "2")])
+            #expect(Push.Shared.dequeue()?.data == "1")
+            #expect(Push.Shared.dequeue()?.data == "2")
+            #expect(Push.Shared.dequeue() == nil)
+        }
+    }
+
+    @Test func theAppAndTheExtensionSeeEachOthersDeliveries() {
+        let shared = defaults()
+        let app = Push.Deliveries(defaults: shared)
+        let serviceExtension = Push.Deliveries(defaults: shared)
+        #expect(serviceExtension.record("m8"))
+        #expect(app.contains("m8"))
+        #expect(!app.record("m8"))
+    }
 }
 
 // The delegate proxy needs the Objective-C runtime.
