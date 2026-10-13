@@ -200,6 +200,7 @@ async function start() {
     for (const item of presets.presets) {
         console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
     }
+    console.log(`preset toString: ${preset.toString()}`);
 
     try {
         response = await general.error400();

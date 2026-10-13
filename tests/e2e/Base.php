@@ -96,6 +96,10 @@ abstract class Base extends TestCase
         'preset: name=server, count=25, enabled=true',
     ];
 
+    protected const JS_MODEL_TO_STRING_RESPONSES = [
+        'preset toString: {"name":"guest","count":25,"enabled":false,"tier":"free"}',
+    ];
+
     protected const PYTHON_MODEL_DEFAULT_RESPONSES = [
         'preset tier: PresetTier.FREE',
     ];

@@ -85,6 +85,15 @@ function fillDefaults(
             result[key] = fillDefaults(result[key], child, models);
         }
     }
+    // The spread drops the non-enumerable JSON toString that Client.call attaches.
+    if (Object.prototype.hasOwnProperty.call(value, 'toString')) {
+        Object.defineProperty(result, 'toString', {
+            value: () => JSONbig.stringify(result),
+            writable: true,
+            enumerable: false,
+            configurable: true,
+        });
+    }
     return result;
 }
 
