@@ -285,6 +285,7 @@ async function start() {
         console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
     }
     console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
+    console.log(`preset toString: ${preset.toString()}`);
 
     try {
         response = await general.error400();

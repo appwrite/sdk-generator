@@ -983,7 +983,10 @@ class ServiceTest {
             refusedPush.close()
 
             // A message from createPush: the notification shows the server's title and body, not the
-            // raw JSON, and still posts when its image cannot be fetched.
+            // raw JSON, and still posts when its image cannot be fetched. One with neither a title nor
+            // a body (an empty notification block, a data-only push, a badge or an image alone) posts
+            // nothing, so neither the topic nor the raw JSON is ever shown, yet a data-only push still
+            // reaches a live callback and, with none, the PushReceiver.
             notifications.cancelAll()
             val serverPayload = org.json.JSONObject()
                 .put("messageId", "e2e-message")
@@ -995,18 +998,58 @@ class ServiceTest {
             val content = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()?.extras
             val contentTitle = content?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
             val contentText = content?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
-            // An empty notification block shows the subscription's title, never the raw JSON.
+            val dataPayload = org.json.JSONObject()
+                .put("messageId", "e2e-data")
+                .put("data", org.json.JSONObject().put("saleId", "42"))
+                .put("priority", "high")
+                .toString()
+            val silentPayloads = listOf(
+                "e2e-push" to "{\"notification\":{}}",
+                "users/e2e-user" to dataPayload,
+                "e2e-push" to "{\"notification\":{\"contentAvailable\":true,\"badge\":3}}",
+                "e2e-push" to "{\"notification\":{\"image\":\"http://127.0.0.1:1/x.png\"}}",
+            )
+            val silentPosted = silentPayloads.flatMap { (topic, payload) ->
+                notifications.cancelAll()
+                io.appwrite.services.PushBackground.notify(context, io.appwrite.services.PushMessage(topic, payload.toByteArray(), 1), "E2E title")
+                org.robolectric.Shadows.shadowOf(notifications).allNotifications.map {
+                    "${it.extras.getCharSequence(android.app.Notification.EXTRA_TITLE)}/${it.extras.getCharSequence(android.app.Notification.EXTRA_TEXT)}"
+                }
+            }
+            val dataMessage = io.appwrite.services.PushMessage("e2e-push", dataPayload.toByteArray(), 1)
+            val callbackMessages = java.util.concurrent.CopyOnWriteArrayList<String>()
+            val dataListener = io.appwrite.services.PushListener(
+                topics = setOf("e2e-push"),
+                callback = { callbackMessages.add(it.data) },
+                background = true,
+                title = "E2E title",
+                retry = false,
+            )
             notifications.cancelAll()
-            val emptyMessage = io.appwrite.services.PushMessage("e2e-push", "{\"notification\":{}}".toByteArray(), 1)
-            io.appwrite.services.PushBackground.notify(context, emptyMessage, "E2E title")
-            val empty = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()?.extras
-            val emptyTitle = empty?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
-            val emptyText = empty?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
+            io.appwrite.services.PushBackground.listeners.add(dataListener)
+            io.appwrite.services.PushBackground.deliverMessage(context, dataMessage) { {} }
+            io.appwrite.services.PushBackground.listeners.remove(dataListener)
+            io.appwrite.services.PushStore.saveState(
+                context,
+                io.appwrite.services.PushConfig("127.0.0.1", 1883, false, false, "e2e-data", 60, "appwrite-jwt", "e2e-jwt", "e2e"),
+                listOf(io.appwrite.services.PushEntry("e2e-push", false, "E2E title")),
+            )
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            E2EPushReceiver.messages.clear()
+            val dataSaved = io.appwrite.services.PushBackground.hasSaved(context)
+            io.appwrite.services.PushBackground.deliverMessage(context, dataMessage) { {} }
+            val receiverMessages = E2EPushReceiver.messages.toList()
+            val dataPosted = org.robolectric.Shadows.shadowOf(notifications).allNotifications.size
+            io.appwrite.services.PushBackground.stop(context)
+            E2EPushReceiver.messages.clear()
+            val dataDelivered = callbackMessages.toList() == listOf(dataPayload) && dataSaved &&
+                receiverMessages == listOf(dataPayload) && dataPosted == 0
             writeToFile(
-                if (contentTitle == "Server title" && contentText == "Server body" && emptyTitle == "E2E title" && emptyText == null) {
+                if (contentTitle == "Server title" && contentText == "Server body" && silentPosted.isEmpty() && dataDelivered) {
                     "Push notification content:passed"
                 } else {
-                    "Push notification content:failed (title: $contentTitle, text: $contentText, empty: $emptyTitle/$emptyText)"
+                    "Push notification content:failed (title: $contentTitle, text: $contentText, without title or body: $silentPosted, " +
+                        "data-only callback: $callbackMessages, receiver: $receiverMessages, posted: $dataPosted)"
                 },
             )
             notifications.cancelAll()

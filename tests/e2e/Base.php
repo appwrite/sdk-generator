@@ -97,6 +97,10 @@ abstract class Base extends TestCase
         'empty presets: 0',
     ];
 
+    protected const JS_MODEL_TO_STRING_RESPONSES = [
+        'preset toString: {"name":"guest","count":25,"enabled":false,"tier":"free"}',
+    ];
+
     protected const PYTHON_MODEL_DEFAULT_RESPONSES = [
         'preset tier: PresetTier.FREE',
     ];
@@ -304,11 +308,12 @@ abstract class Base extends TestCase
         'Push notification permission:passed',
     ];
 
-    protected const REACT_NATIVE_PUSH_OPENED_RESPONSES = [
+    protected const REACT_NATIVE_PUSH_JS_RESPONSES = [
         'Push native connection JS:passed',
         'Push background status JS:passed',
         'Push notification opened JS:passed',
         'Push notification opened expo:passed',
+        'Push notification content JS:passed',
     ];
 
     // React Native on Android: the tap that launched the app is reported once, later taps as events.
