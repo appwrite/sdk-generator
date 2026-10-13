@@ -297,9 +297,7 @@ extension Push {
             }
             _ = session.jwt ? client.setJWT(credential) : client.setSession(credential)
             let push = Push(client)
-            lock.lock()
-            self.push = push
-            lock.unlock()
+            keep(push)
 
             let received = Received()
             do {
@@ -321,6 +319,12 @@ extension Push {
             }
             push.close()
             return received.messages
+        }
+
+        private func keep(_ push: Push) {
+            lock.lock()
+            self.push = push
+            lock.unlock()
         }
 
         private func show(_ message: PushMessage, titles: [String: String], in content: UNMutableNotificationContent) async {
