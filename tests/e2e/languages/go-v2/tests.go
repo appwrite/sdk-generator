@@ -208,6 +208,12 @@ func testGeneralService(client client.Client, stringInArray []string) {
 			fmt.Printf("preset: name=%s, count=%d, enabled=%t\n", item.Name, item.Count, item.Enabled)
 		}
 	}
+	emptyPresets, err := general.ListEmptyPresets()
+	if err != nil {
+		fmt.Printf("general.ListEmptyPresets => error %v\n", err)
+	} else {
+		fmt.Printf("empty presets: %d\n", len(emptyPresets.Presets))
+	}
 
 	// Exception Responses
 	_, err = general.Error400()

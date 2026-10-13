@@ -151,6 +151,7 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     for item in general.list_presets().await?.presets {
         println!("preset: name={}, count={}, enabled={}", item.name, item.count, item.enabled);
     }
+    println!("empty presets: {}", general.list_empty_presets().await?.presets.len());
 
     // Exception Responses
     match general.error400().await {

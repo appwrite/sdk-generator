@@ -859,6 +859,15 @@ App::get('/v1/mock/tests/general/presets')
         ]);
     });
 
+App::get('/v1/mock/tests/general/presets/empty')
+    ->desc('List Empty Presets')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json(['total' => 0]);
+    });
+
 App::get('/v1/mock/tests/compound')
     ->desc('Get compound union')
     ->groups(['mock'])

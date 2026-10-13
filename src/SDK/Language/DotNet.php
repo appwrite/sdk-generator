@@ -600,7 +600,7 @@ class DotNet extends Language
 
     protected function formatCSharpDefault(Schema $property): string
     {
-        $value = $this->getSchema($property)->default;
+        $value = $this->getModelDefault($this->getSchema($property), true);
 
         if (is_array($value) && $this->getSchemaType($property) === self::TYPE_OBJECT) {
             return $this->formatCSharpDictionary($value);

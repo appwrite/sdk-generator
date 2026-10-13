@@ -3,7 +3,7 @@
 {% set usesException = false %}
 {% set usesDefaults = false %}
 {% for method in (service | operations) %}
-{% if (method | responseDefaults(spec, 8)) is not empty %}{% set usesDefaults = true %}{% endif %}
+{% if 'multipart/form-data' not in (method | consumes) and (method | responseDefaults(spec, 8)) is not empty %}{% set usesDefaults = true %}{% endif %}
 {% if 'multipart/form-data' in (method | consumes) %}{% set usesUpload = true %}{% endif %}
 {% if 'Models.' in (method | getReturn(spec)) or 'Models.' in ((method | responseModel) | getGenerics(spec)) %}{% set usesModels = true %}{% endif %}
 {% for parameter in (method | parameters('all')) %}

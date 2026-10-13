@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 {% endif %}
 {% set additionalFieldName = definition.properties.data is defined ? 'additional_data' : 'data' %}
-{% set defaultedProperties = definition.properties | filter((property) => (property | schemaRequired) and (property | schemaDefault) is not null) %}
+{% set defaultedProperties = definition.properties | filter((property) => (property | modelDefault) is not null) %}
 
 {{ definition.description | rustdocComment }}
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,7 +17,7 @@ pub struct {{ definitionName | caseUcfirst | overrideIdentifier }} {
 {% set fieldName = fieldName | overrideIdentifier %}
     {{ property.description | rustdocComment(4) }}
     #[serde(rename = "{{ (property | schemaName) }}")]
-{% if (property | schemaRequired) and (property | schemaDefault) is not null %}
+{% if (property | modelDefault) is not null %}
     #[serde(default = "default_{{ fieldName | replace({'r#': ''}) }}")]
 {% endif %}
 {% if (property | schemaRequired) and not (property | schemaNullable) %}

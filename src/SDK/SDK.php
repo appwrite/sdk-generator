@@ -168,6 +168,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('schemaRequired', fn(Schema|Parameter $value): bool => $value instanceof Parameter ? $value->required : isset($this->requiredSchemas[\spl_object_id($value)])));
         $this->twig->addFilter(new TwigFilter('schemaExample', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->example));
         $this->twig->addFilter(new TwigFilter('schemaDefault', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->default));
+        $this->twig->addFilter(new TwigFilter('modelDefault', fn(Schema $value): mixed => $this->language->getModelDefault($value, isset($this->requiredSchemas[\spl_object_id($value)]))));
         $this->twig->addFilter(new TwigFilter('enumName', fn(Schema|Parameter $value): string => $this->getEnumName($value)));
         $this->twig->addFilter(new TwigFilter('enumKeys', fn(Schema|Parameter $value): array => $this->language->resolveEnumKeys($value)));
         $this->twig->addFilter(new TwigFilter('operations', fn(Tag $tag): array => $this->getFilteredMethods($this->getMethods($tag->name), $tag->name)));

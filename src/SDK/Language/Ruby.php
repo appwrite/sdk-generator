@@ -341,7 +341,7 @@ class Ruby extends Language
 
     protected function formatRubyDefault(Schema|Parameter $property): string
     {
-        $default = $this->getSchema($property)->default;
+        $default = $this->getModelDefault($this->getSchema($property), true);
 
         if (is_array($default) && $this->getSchemaType($property) === self::TYPE_OBJECT) {
             return $this->formatRubyHash($default);

@@ -30,7 +30,7 @@ class {{ definitionName | caseUcfirst | overrideIdentifier }} implements Model {
   factory {{ definitionName | caseUcfirst | overrideIdentifier }}.fromMap(
     Map<String, dynamic> map,
   ) {
-{% set defaultedProperties = definition.properties | filter((property) => (property | schemaRequired) and (property | schemaDefault) is not null) %}
+{% set defaultedProperties = definition.properties | filter((property) => (property | modelDefault) is not null) %}
 {% if defaultedProperties is not empty %}
     map = {
 {% for property in defaultedProperties %}

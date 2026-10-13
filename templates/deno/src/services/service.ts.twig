@@ -30,7 +30,7 @@ import { basename } from "https://deno.land/std@0.122.0/path/mod.ts";
 import { Service } from '../service.ts';
 {% set usesDefaults = false %}
 {% for method in (service | operations) %}
-{% if (method | responseDefaults(spec, 8)) is not empty %}{% set usesDefaults = true %}{% endif %}
+{% if 'multipart/form-data' not in (method | consumes) and (method | responseDefaults(spec, 8)) is not empty %}{% set usesDefaults = true %}{% endif %}
 {% endfor %}
 import { Payload, Client{% if usesDefaults %}, applyDefaults{% endif %} } from '../client.ts';
 import { InputFile } from '../inputFile.ts';
