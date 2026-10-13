@@ -759,7 +759,11 @@ func (s *pushSetup) prepareAppID(teamID, bundleID string, options apnsOptions, s
 			},
 		})
 		if askErr != nil || answer != "check" {
-			output.Hint(s.out, "Skipped the App ID check. Run `appwrite init apns --register-app-id`, or check %s at %s.", bundleID, appIDsPage)
+			reason := ""
+			if askErr != nil {
+				reason = ": there is no saved Apple sign-in, and no terminal to sign in"
+			}
+			output.Hint(s.out, "Skipped the App ID check%s. Run `appwrite init apns --register-app-id` in a terminal, or check %s at %s.", reason, bundleID, appIDsPage)
 
 			return nil
 		}
