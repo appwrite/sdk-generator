@@ -44,8 +44,20 @@ export interface PushBackgroundStatus {
     ignoringBatteryOptimizations: boolean;
     /** Foreground mode ({@link Push.setForeground}) keeps the connection open in a service. */
     foregroundService: boolean;
-    /** Wake-ups may be deferred by Doze, so messages can arrive late while the app is closed. */
+    /**
+     * Messages can arrive late, or not until the app is opened, while the app is closed: background
+     * usage is restricted without a battery optimisation exemption, or wake-ups may be deferred by
+     * Doze without exact alarms or foreground mode.
+     */
     bestEffort: boolean;
+    /**
+     * The user restricted the app's background usage in the app's battery settings (Settings >
+     * Apps > your app > Battery), Android 9+. Android may then hold its alarms, jobs and foreground
+     * service while it is closed, so messages can wait until the app is opened. The battery
+     * optimisation exemption lets the alarms and jobs run again, but foreground mode still stops
+     * once the app leaves the screen. False below Android 9.
+     */
+    backgroundRestricted: boolean;
 }
 
 /** A background notification the user tapped. */
@@ -293,9 +305,12 @@ export class Push extends Service {
     }
 
     /**
-     * Android: what background delivery can rely on. When `bestEffort` is true the scheduled
-     * wake-ups are inexact and Doze can defer them, so messages may arrive late while the app is
-     * closed; explain why, then ask with {@link requestExactAlarms} or
+     * Android: what background delivery can rely on. When `bestEffort` is true messages may arrive
+     * late, or not until the app is opened, while the app is closed, so explain why, then ask. If
+     * `backgroundRestricted` is true and the app is not `ignoringBatteryOptimizations`, ask the user
+     * to choose Unrestricted in the app's battery settings (Settings > Apps > your app > Battery),
+     * or ask with {@link requestIgnoreBatteryOptimizations}; otherwise the scheduled wake-ups are
+     * inexact and Doze can defer them, so ask with {@link requestExactAlarms} or
      * {@link requestIgnoreBatteryOptimizations}. Null elsewhere.
      */
     async backgroundStatus(): Promise<PushBackgroundStatus | null> {

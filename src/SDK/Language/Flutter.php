@@ -445,6 +445,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/src/push_background_status_test.dart',
+                'template'      => 'flutter/test/src/push_background_status_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/realtime_response_test.dart',
                 'template'      => 'flutter/test/src/realtime_response_test.dart.twig',
             ],
