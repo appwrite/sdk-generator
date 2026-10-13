@@ -1376,21 +1376,28 @@ extension Push {
 
     /// Unlink `topics` from APNs once they have no background subscription left.
     static func apnsDisable(_ push: Push, topics: [String]) {
-        Shared.share(push)
         guard let userId = push.remoteUserId() else {
+            Shared.share(push)
             return
         }
+        Shared.share(backgroundPush(userId: userId) ?? push)
         let targetId = Ids.target(installation: Installation.id, userId: userId)
         let linked = apnsLocked { apnsLinked[targetId] ?? [] }
-        let retire = !Shared.inServiceExtension && push.backgroundTopics().isEmpty
         Task {
             for topic in topics where linked.contains(topic) {
                 await unlink(push, targetId: targetId, topic: topic)
             }
-            if retire {
+            // The target is shared by every Push of the user, so check again just before deleting it.
+            if !Shared.inServiceExtension, backgroundPush(userId: userId) == nil {
                 await deleteTarget(push, targetId: targetId)
             }
         }
+    }
+
+    /// A `Push` of `userId` that still has background subscriptions.
+    private static func backgroundPush(userId: String) -> Push? {
+        apnsLocked { apnsPushes.values.compactMap { $0.push } }
+            .first { $0.remoteUserId() == userId && !$0.backgroundTopics().isEmpty }
     }
 
     /// With no background subscription left, the server stops pushing to this device for the user.
