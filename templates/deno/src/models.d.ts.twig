@@ -58,7 +58,7 @@ export namespace Models {
         /**
          * {{ property.description }}
          */
-        {{ (property | schemaName) | escapeKeyword }}{% if not (property | schemaRequired) %}?{% endif %}: {{_self.sub_schema(property, definition, definitions)}};
+        {{ (property | schemaName) | escapeKeyword }}{% if not (property | schemaRequired) %}?{% endif %}: {{_self.sub_schema(property, definition, definitions)}}{% if (property | schemaNullable) %} | null{% endif %};
 {% endfor %}
     }
 {% endfor %}

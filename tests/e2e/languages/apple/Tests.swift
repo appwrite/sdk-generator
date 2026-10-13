@@ -250,6 +250,7 @@ class Tests: XCTestCase {
             print("preset: name=\(item.name), count=\(item.count), enabled=\(item.enabled)")
         }
         print("empty presets: \(try await general.listEmptyPresets().presets.count)")
+        print("preset verified: \(preset.verified.map { String($0) } ?? "null")")
 
         do {
             try await general.error400()

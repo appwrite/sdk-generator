@@ -52,6 +52,7 @@ final class AppleSwift61Test extends Base
         ...Base::MODEL_RESPONSES,
         ...Base::OBJECT_ARRAY_RESPONSES,
         ...Base::MODEL_DEFAULT_RESPONSES,
+        ...Base::NULLABLE_MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,

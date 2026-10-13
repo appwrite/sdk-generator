@@ -232,6 +232,7 @@ import {
         console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
     }
     console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
+    console.log(`preset verified: ${preset.verified}`);
     console.log(`preset toString: ${preset.toString()}`);
 
     // Exception responses
