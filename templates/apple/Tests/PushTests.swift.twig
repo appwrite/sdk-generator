@@ -186,6 +186,17 @@ final class PushTests {
         #expect(Push.LinkedTopics(defaults: shared).topics("t1").isEmpty)
     }
 
+    @Test func aRegisteredTargetIsKeptUntilItIsDeleted() {
+        let links = Push.LinkedTopics(defaults: defaults())
+        #expect(!links.isRegistered("t1"))
+        links.register("t1")
+        links.add("news", to: "t1")
+        links.remove("news", from: "t1")
+        #expect(links.isRegistered("t1"))
+        links.removeTarget("t1")
+        #expect(!links.isRegistered("t1"))
+    }
+
     @Test func topicsNoSubscriptionClaimsAreStale() {
         #expect(Push.LinkedTopics.stale(saved: ["news", "sales", "users-1"], claimed: ["news"]) == ["sales", "users-1"])
         #expect(Push.LinkedTopics.stale(saved: ["news"], claimed: ["news", "deals"]).isEmpty)

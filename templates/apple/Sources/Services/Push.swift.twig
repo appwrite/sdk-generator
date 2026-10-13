@@ -515,6 +515,7 @@ open class Push: Service {
             Push.apnsPrepare(self)
         }
 
+        Push.scheduleReconcile(self)
         let generation = sync.sync { closeGeneration }
         let mqtt: MQTTClient
         do {
@@ -1429,19 +1430,28 @@ extension Push {
     /// Once per launch, after the app has had time to subscribe again, unlink the topics an earlier
     /// launch linked that no background subscription claims now, so the server stops waking the
     /// device for them. A topic subscribed later is linked again.
-    private static func scheduleReconcile(userId: String, targetId: String) {
-        guard !Shared.inServiceExtension, apnsLocked({ apnsReconciled.insert(targetId).inserted }) else {
+    static func scheduleReconcile(_ push: Push) {
+        guard !Shared.inServiceExtension, let userId = push.remoteUserId() else {
             return
         }
+        let targetId = Ids.target(installation: Installation.id, userId: userId)
+        guard apnsLocked({ apnsReconciled.insert(targetId).inserted }) else {
+            return
+        }
+        let scheduler = WeakPush(push)
         Task {
             try? await Task.sleep(nanoseconds: UInt64(reconcileDelay * 1_000_000_000))
-            await reconcile(userId: userId, targetId: targetId)
+            await reconcile(userId: userId, targetId: targetId, fallback: scheduler.push)
         }
     }
 
-    static func reconcile(userId: String, targetId: String) async {
+    static func reconcile(userId: String, targetId: String, fallback: Push?) async {
         let pushes = apnsLocked { apnsPushes.values.compactMap { $0.push } }.filter { $0.remoteUserId() == userId }
         guard let push = pushes.first(where: { !$0.backgroundTopics().isEmpty }) else {
+            // No background subscription this launch: the target and its subscribers go, as on close().
+            if apnsLinkedTopics.isRegistered(targetId), let push = fallback ?? pushes.first {
+                await deleteTarget(push, targetId: targetId)
+            }
             return
         }
         let claimed = Set(pushes.flatMap { $0.backgroundTopics() })
@@ -1497,7 +1507,8 @@ extension Push {
             return
         }
         apnsLocked { apnsLinked[targetId] = apnsLinked[targetId] ?? [] }
-        scheduleReconcile(userId: userId, targetId: targetId)
+        apnsLinkedTopics.register(targetId)
+        scheduleReconcile(push)
         // A topic unsubscribed while the target request was in flight is not linked.
         let wanted = Set(push.backgroundTopics())
         for topic in topics where Ids.isMessagingTopic(topic) && wanted.contains(topic) {
@@ -1589,10 +1600,13 @@ extension Push {
         if unlinked {
             apnsLinkedTopics.remove(topic, from: targetId)
         }
-        // Back in a background subscription while the delete was in flight: `link` saw the topic
-        // still linked then and skipped it, so link it again now.
-        if push.backgroundTopics().contains(topic) {
-            await link(push, targetId: targetId, topic: topic)
+        // Back in a background subscription of any Push of the user while the delete was in flight:
+        // `link` saw the topic still linked then and skipped it, so link it again now.
+        let userId = push.remoteUserId()
+        let claimer = apnsLocked { apnsPushes.values.compactMap { $0.push } }
+            .first { $0.remoteUserId() == userId && $0.backgroundTopics().contains(topic) }
+        if let claimer {
+            await link(claimer, targetId: targetId, topic: topic)
         }
     }
 
@@ -1792,7 +1806,8 @@ extension Push {
 
     /// Message ids already delivered, by MQTT or APNs, so each message reaches the app once.
     /// Bounded, and kept across launches.
-    /// The topics linked to each target, kept across launches and shared with the extension.
+    /// The targets this install registered and the topics linked to each, kept across launches and
+    /// shared with the extension.
     final class LinkedTopics {
         static let key = "{{ spec.info.title | caseLower }}.push.linked"
 
@@ -1818,6 +1833,15 @@ extension Push {
             change { $0[targetId] = nil }
         }
 
+        /// Record a target this install registered, linked topics or not.
+        func register(_ targetId: String) {
+            change { $0[targetId] = $0[targetId] ?? [] }
+        }
+
+        func isRegistered(_ targetId: String) -> Bool {
+            Shared.locked { read()[targetId] != nil }
+        }
+
         /// Saved topics no background subscription claims.
         static func stale(saved: Set<String>, claimed: Set<String>) -> [String] {
             saved.subtracting(claimed).sorted()
@@ -1831,7 +1855,6 @@ extension Push {
             Shared.locked {
                 var links = read()
                 body(&links)
-                links = links.filter { !$0.value.isEmpty }
                 if links.isEmpty {
                     defaults.removeObject(forKey: LinkedTopics.key)
                 } else {
