@@ -1610,7 +1610,23 @@ extension Push {
         for message in messages {
             deliver(message, notifyLocally: false)
         }
+        #if canImport(UserNotifications)
+            Task { await Push.clearPlaceholders() }
+        #endif
     }
+
+    #if canImport(UserNotifications)
+        /// Remove the placeholders the extension couldn't fill: the connected app delivers their messages.
+        static func clearPlaceholders() async {
+            let center = UNUserNotificationCenter.current()
+            let stale = await center.deliveredNotifications()
+                .filter { $0.request.content.userInfo[Shared.placeholderKey] as? Bool == true }
+                .map(\.request.identifier)
+            if !stale.isEmpty {
+                center.removeDeliveredNotifications(withIdentifiers: stale)
+            }
+        }
+    #endif
 
     private func startHeartbeat() {
         guard Shared.appGroup != nil, !Shared.inServiceExtension else {
