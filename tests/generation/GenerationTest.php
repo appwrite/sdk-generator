@@ -705,7 +705,7 @@ final class GenerationTest extends TestCase
         $service = (string) \file_get_contents($dir . '/src/services/general.ts');
 
         $this->assertStringNotContainsString('...response', $service);
-        $this->assertSame(4, \substr_count($service, 'return request.then((response) => applyDefaults(response, defaults));'));
+        $this->assertSame(5, \substr_count($service, 'return request.then((response) => applyDefaults(response, defaults));'));
         $this->assertSame(2, \substr_count($service, <<<'TS'
                     const defaults = {
                         root: 'preset',
@@ -729,6 +729,9 @@ final class GenerationTest extends TestCase
                         root: 'presetList',
                         models: {
                             presetList: {
+                                defaults: {
+                                    presets: [],
+                                },
                                 properties: {
                                     presets: {
                                         items: 'preset',

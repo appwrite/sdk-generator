@@ -144,6 +144,7 @@ puts "preset: name=#{preset.name}, count=#{preset.count}, enabled=#{preset.enabl
 general.list_presets().presets.each do |item|
     puts "preset: name=#{item.name}, count=#{item.count}, enabled=#{item.enabled}"
 end
+puts "empty presets: #{general.list_empty_presets().presets.length}"
 
 begin
     general.error400()

@@ -6,8 +6,8 @@ namespace {{ namespace | caseNamespace }}\Models;
 
 {% set requiredProperties = definition.properties | filter((property) => (property | schemaRequired)) %}
 {% set optionalProperties = definition.properties | filter((property) => not (property | schemaRequired)) %}
-{% set defaultedProperties = requiredProperties | filter((property) => (property | schemaDefault) is not null) %}
-{% set checkedProperties = requiredProperties | filter((property) => (property | schemaDefault) is null) %}
+{% set defaultedProperties = requiredProperties | filter((property) => (property | modelDefault) is not null) %}
+{% set checkedProperties = requiredProperties | filter((property) => (property | modelDefault) is null) %}
 {% set enumImports = [] %}
 {% for property in definition.properties %}
 {% if (property | enumValues) is not empty %}
@@ -83,7 +83,7 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {% if defaultedProperties is not empty %}
         $data += [
 {% for property in defaultedProperties %}
-            '{{ (property | schemaName) }}' => {{ property | schemaDefault | phpLiteral }},
+            '{{ (property | schemaName) }}' => {{ property | modelDefault | phpLiteral }},
 {% endfor %}
         ];
 {% if checkedProperties is not empty %}

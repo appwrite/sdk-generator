@@ -284,6 +284,7 @@ async function start() {
     for (const item of presets.presets) {
         console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
     }
+    console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
 
     try {
         response = await general.error400();

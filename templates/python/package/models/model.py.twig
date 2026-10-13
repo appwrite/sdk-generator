@@ -1,6 +1,6 @@
 {% set hasGenericProperty = definition.properties|hasGenericTypeProperty(spec) %}
 {% set isGeneric = definition.additionalProperties or hasGenericProperty %}
-{% set defaulted = definition.properties | filter(property => (property | schemaRequired) and (property | schemaDefault) is not null) %}
+{% set defaulted = definition.properties | filter(property => (property | modelDefault) is not null) %}
 from typing import Any, Dict, List, Optional, Union, cast{% if isGeneric %}, Generic, TypeVar, Type{% endif %}
 
 from pydantic import Field, PrivateAttr{{ definition.additionalProperties ? ', TypeAdapter' : '' }}{{ defaulted is not empty ? ', model_validator' : '' }}{{ definition.additionalProperties ? ', model_serializer' : '' }}
@@ -82,7 +82,7 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
 {% for property in defaulted %}
 {% set fieldName = property | getModelFieldName(definition.properties) %}
         if '{{ property | schemaName }}' not in data{% if fieldName != (property | schemaName) %} and '{{ fieldName }}' not in data{% endif %}:
-            data['{{ property | schemaName }}'] = {{ property | schemaDefault | pythonLiteral | raw }}
+            data['{{ property | schemaName }}'] = {{ property | modelDefault | pythonLiteral | raw }}
 {% endfor %}
         return data
 {% endif %}

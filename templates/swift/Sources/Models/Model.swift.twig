@@ -50,7 +50,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
-        {%~ set fallback = (property | schemaRequired) ? (property | schemaDefault) : null %}
+        {%~ set fallback = property | modelDefault %}
         {%~ if (property | schemaType) != 'array' and (property | enumValues) is not empty %}
         {%~ if (property | schemaRequired) %}
         self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: {% if fallback is not null %}try container.contains(.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}) ? container.decode(String.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}) : {{ fallback | swiftLiteral }}{% else %}try container.decode(String.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}){% endif %})!
@@ -107,7 +107,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     }
 
     public static func from(map: [String: Any]) -> {{ definitionName | caseUcfirst }} {
-        {%~ set defaults = definition.properties | filter(p => (p | schemaRequired) and (p | schemaDefault) is not null) %}
+        {%~ set defaults = definition.properties | filter(p => (p | modelDefault) is not null) %}
         {%~ if defaults | length > 0 %}
         let defaults: [String: Any] = [
             {%~ for property in defaults %}

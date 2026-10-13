@@ -2749,6 +2749,48 @@
         }
       }
     },
+    "\/mock\/tests\/general\/presets\/empty": {
+      "get": {
+        "summary": "List Empty Presets",
+        "operationId": "generalListEmptyPresets",
+        "tags": [
+          "general"
+        ],
+        "description": "Return a preset list that omits its required presets collection.",
+        "x-appwrite": {
+          "demo": "general\/list-empty-presets.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset list",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/presetList"}
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/union": {
       "get": {
         "summary": "Get Union",

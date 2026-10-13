@@ -649,7 +649,7 @@ class Swift extends Language
             }),
             new TwigFilter('modelToMapValue', fn(Schema $property, string $name, bool $required): string => $this->getModelToMapValue($property, $name, $required), ['is_safe' => ['html']]),
             new TwigFilter('swiftLiteral', fn(mixed $value): string => $this->swiftLiteral($value, 0), ['is_safe' => ['html']]),
-            new TwigFilter('swiftErasedDefault', fn(Schema $property): string => $this->erasedLiteral($property->default, $property instanceof ArraySchema ? false : ($property->default === [] ? true : null), $property instanceof NumberSchema), ['is_safe' => ['html']]),
+            new TwigFilter('swiftErasedDefault', fn(Schema $property): string => $this->erasedLiteral($this->getModelDefault($property, true), $property instanceof ArraySchema ? false : ($property->default === [] ? true : null), $property instanceof NumberSchema), ['is_safe' => ['html']]),
             new TwigFilter('swiftDoc', fn(string $value, int $width = 75, string $prefix = '    ///'): string => $this->swiftDoc($value, $width, $prefix), ['is_safe' => ['html']]),
         ];
     }

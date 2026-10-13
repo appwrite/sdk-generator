@@ -40,7 +40,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Models
 
         public static {{ definitionName | caseUcfirst | overrideIdentifier }} From(Dictionary<string, object> map) => new {{ definitionName | caseUcfirst | overrideIdentifier }}(
             {%~ for property in definition.properties %}
-            {%- set source = (property | schemaDefault) is not null
+            {%- set source = (property | modelDefault) is not null
                 ? '(map.ContainsKey("' ~ (property | schemaName) ~ '") ? map["' ~ (property | schemaName) ~ '"] : ' ~ (property | csharpDefault) ~ ')'
                 : 'map["' ~ (property | schemaName) ~ '"]' %}
             {{ (property | schemaName) | caseCamel | escapeKeyword | removeDollarSign }}:{{' '}}

@@ -590,7 +590,7 @@ class Rust extends Language
             }, ["is_safe" => ["html"]]),
             new TwigFilter("inputType", fn(Schema|Parameter $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getInputType($property, $spec)),
             new TwigFilter("paramValue", fn(Schema|Parameter $property, string $paramName, ?Specification $spec = null): string => $this->getParamValue($property, $paramName, $spec), ["is_safe" => ["html"]]),
-            new TwigFilter("rustDefault", fn(Schema $property, ?Specification $spec = null): string => $this->getModelDefault($property, $spec), ["is_safe" => ["html"]]),
+            new TwigFilter("rustDefault", fn(Schema $property, ?Specification $spec = null): string => $this->getRustDefault($property, $spec), ["is_safe" => ["html"]]),
             new TwigFilter("rustType", fn($value): string|array => str_replace(['&lt;', '&gt;'], ['<', '>'], $value), ["is_safe" => ["html"]]),
             new TwigFilter("rustCrateName", fn($value): string|array => str_replace('-', '_', $value)),
             new TwigFilter("stripProtocol", fn($value): string|array => str_replace(['https://', 'http://'], '', $value)),
@@ -864,9 +864,9 @@ class Rust extends Language
         return $this->rustfmtCall($indent, 'next.config.headers.insert', $args);
     }
 
-    protected function getModelDefault(Schema $property, ?Specification $spec = null): string
+    protected function getRustDefault(Schema $property, ?Specification $spec = null): string
     {
-        $value = $this->getSchema($property)->default;
+        $value = $this->getModelDefault($this->getSchema($property), true);
         $json = is_array($value) && $this->getSchemaType($property) === self::TYPE_OBJECT
             ? $this->getRustJsonMap($value)
             : $this->getRustJson($value);

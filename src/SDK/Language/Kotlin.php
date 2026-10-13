@@ -624,8 +624,8 @@ class Kotlin extends Language
         }
 
         $mapKey = 'map["' . \str_replace('$', '\\$', $propertyName) . '"]';
-        $default = $this->getSchema($property)->default;
-        if ($required && $default !== null) {
+        $default = $this->getModelDefault($property, $required);
+        if ($default !== null) {
             $mapKey = '(if (map.containsKey(' . $this->getStringLiteral($propertyName, 'kotlin') . ')) ' . $mapKey
                 . ' else ' . $this->getValueLiteral($default, $property, $spec) . ')';
         }

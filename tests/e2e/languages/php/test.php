@@ -267,6 +267,7 @@ echo 'preset: name=' . $preset->name . ', count=' . $preset->count . ', enabled=
 foreach ($general->listPresets()->presets as $item) {
     echo 'preset: name=' . $item->name . ', count=' . $item->count . ', enabled=' . ($item->enabled ? 'true' : 'false') . "\n";
 }
+echo 'empty presets: ' . count($general->listEmptyPresets()->presets) . "\n";
 
 try {
     $response = $general->error400();

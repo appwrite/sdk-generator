@@ -37,7 +37,7 @@ module {{ spec.info.title | caseUcfirst }}
             end
 
             def self.from(map:)
-{% set defaults = definition.properties | filter(p => (p | schemaRequired) and (p | schemaDefault) is not null) %}
+{% set defaults = definition.properties | filter(p => (p | modelDefault) is not null) %}
 {% if defaults | length > 0 %}
                 map = { {% for property in defaults %}"{{ property | schemaName }}" => {{ property | rubyDefault }}{% if not loop.last %}, {% endif %}{% endfor %} }.merge(map)
 {% endif %}

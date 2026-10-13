@@ -248,6 +248,7 @@ class Tests: XCTestCase {
         for item in try await general.listPresets().presets {
             print("preset: name=\(item.name), count=\(item.count), enabled=\(item.enabled)")
         }
+        print("empty presets: \(try await general.listEmptyPresets().presets.count)")
 
         do {
             try await general.error400()

@@ -529,8 +529,9 @@ abstract class JS extends Language
             }
             $models[$name] = ['defaults' => [], 'properties' => []];
             foreach ($model->properties as $key => $property) {
-                if ($property->default !== null && \in_array($key, $model->required, true)) {
-                    $models[$name]['defaults'][$key] = $this->getLiteral($property->default);
+                $default = $this->getModelDefault($property, \in_array($key, $model->required, true));
+                if ($default !== null) {
+                    $models[$name]['defaults'][$key] = $this->getLiteral($default);
                 }
                 $shape = $this->getDefaultsShape($property, $spec);
                 if ($shape !== null) {
