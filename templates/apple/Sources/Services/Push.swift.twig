@@ -1425,6 +1425,13 @@ extension Push {
             return
         }
         apnsLinkedTopics.removeTarget(targetId)
+        // A background subscription that registered while the DELETE was in flight lost its target:
+        // register the device again for it.
+        if !Shared.inServiceExtension, let userId = push.remoteUserId(), let claimer = backgroundPush(userId: userId),
+            let token = apnsLocked({ apnsToken })
+        {
+            await register(claimer, token: token, topics: claimer.backgroundTopics())
+        }
     }
 
     /// Once per launch, after the app has had time to subscribe again, unlink the topics an earlier
