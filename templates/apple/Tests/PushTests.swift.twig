@@ -171,6 +171,26 @@ final class PushTests {
         PushMessage(topic: topic, payload: Array(text.utf8), qos: 1)
     }
 
+    @Test func linkedTopicsAreKeptAcrossLaunches() {
+        let shared = defaults()
+        let launch = Push.LinkedTopics(defaults: shared)
+        launch.add("news", to: "t1")
+        launch.add("sales", to: "t1")
+        launch.add("news", to: "t2")
+        launch.remove("sales", from: "t1")
+
+        let next = Push.LinkedTopics(defaults: shared)
+        #expect(next.topics("t1") == ["news"])
+        #expect(next.topics("t2") == ["news"])
+        next.removeTarget("t1")
+        #expect(Push.LinkedTopics(defaults: shared).topics("t1").isEmpty)
+    }
+
+    @Test func topicsNoSubscriptionClaimsAreStale() {
+        #expect(Push.LinkedTopics.stale(saved: ["news", "sales", "users-1"], claimed: ["news"]) == ["sales", "users-1"])
+        #expect(Push.LinkedTopics.stale(saved: ["news"], claimed: ["news", "deals"]).isEmpty)
+    }
+
     @Test func onlyRawPayloadsAndEnvelopesWithTextAreShown() {
         let shown: [(String, Bool, Bool)] = [
             ("plain text", true, true),

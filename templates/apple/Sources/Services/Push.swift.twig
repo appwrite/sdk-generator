@@ -1326,6 +1326,10 @@ extension Push {
     private static var apnsProxyInstalled = false
     private static var apnsRegistrationRequested = false
     static var apnsDeliveries = Deliveries(defaults: Shared.defaults)
+    static var apnsLinkedTopics = LinkedTopics(defaults: Shared.defaults)
+    private static var apnsReconciled: Set<String> = []
+    /// How long a launch has to subscribe again before the topics it doesn't claim are unlinked.
+    static var reconcileDelay: TimeInterval = 30
 
     private final class WeakPush {
         weak var push: Push?
@@ -1417,6 +1421,32 @@ extension Push {
             // Gone already, or the session was ended first.
         } catch {
             push.surface(error)
+            return
+        }
+        apnsLinkedTopics.removeTarget(targetId)
+    }
+
+    /// Once per launch, after the app has had time to subscribe again, unlink the topics an earlier
+    /// launch linked that no background subscription claims now, so the server stops waking the
+    /// device for them. A topic subscribed later is linked again.
+    private static func scheduleReconcile(userId: String, targetId: String) {
+        guard !Shared.inServiceExtension, apnsLocked({ apnsReconciled.insert(targetId).inserted }) else {
+            return
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: UInt64(reconcileDelay * 1_000_000_000))
+            await reconcile(userId: userId, targetId: targetId)
+        }
+    }
+
+    static func reconcile(userId: String, targetId: String) async {
+        let pushes = apnsLocked { apnsPushes.values.compactMap { $0.push } }.filter { $0.remoteUserId() == userId }
+        guard let push = pushes.first(where: { !$0.backgroundTopics().isEmpty }) else {
+            return
+        }
+        let claimed = Set(pushes.flatMap { $0.backgroundTopics() })
+        for topic in LinkedTopics.stale(saved: apnsLinkedTopics.topics(targetId), claimed: claimed) {
+            await unlink(push, targetId: targetId, topic: topic)
         }
     }
 
@@ -1467,6 +1497,7 @@ extension Push {
             return
         }
         apnsLocked { apnsLinked[targetId] = apnsLinked[targetId] ?? [] }
+        scheduleReconcile(userId: userId, targetId: targetId)
         // A topic unsubscribed while the target request was in flight is not linked.
         let wanted = Set(push.backgroundTopics())
         for topic in topics where Ids.isMessagingTopic(topic) && wanted.contains(topic) {
@@ -1531,6 +1562,7 @@ extension Push {
             return
         }
         apnsLocked { _ = apnsLinked[targetId, default: []].insert(topic) }
+        apnsLinkedTopics.add(topic, to: targetId)
         // Unsubscribed while the subscriber was being created: `apnsDisable` found nothing to
         // unlink then, so undo it here.
         if !push.backgroundTopics().contains(topic) {
@@ -1539,6 +1571,7 @@ extension Push {
     }
 
     private static func unlink(_ push: Push, targetId: String, topic: String) async {
+        var unlinked = true
         do {
             let _: Any = try await push.client.call(
                 method: "DELETE",
@@ -1550,8 +1583,12 @@ extension Push {
             // Gone already.
         } catch {
             push.surface(error)
+            unlinked = false
         }
         apnsLocked { _ = apnsLinked[targetId]?.remove(topic) }
+        if unlinked {
+            apnsLinkedTopics.remove(topic, from: targetId)
+        }
         // Back in a background subscription while the delete was in flight: `link` saw the topic
         // still linked then and skipped it, so link it again now.
         if push.backgroundTopics().contains(topic) {
@@ -1755,6 +1792,55 @@ extension Push {
 
     /// Message ids already delivered, by MQTT or APNs, so each message reaches the app once.
     /// Bounded, and kept across launches.
+    /// The topics linked to each target, kept across launches and shared with the extension.
+    final class LinkedTopics {
+        static let key = "{{ spec.info.title | caseLower }}.push.linked"
+
+        private let defaults: UserDefaults
+
+        init(defaults: UserDefaults) {
+            self.defaults = defaults
+        }
+
+        func topics(_ targetId: String) -> Set<String> {
+            Shared.locked { Set(read()[targetId] ?? []) }
+        }
+
+        func add(_ topic: String, to targetId: String) {
+            change { $0[targetId] = Array(Set($0[targetId] ?? []).union([topic])).sorted() }
+        }
+
+        func remove(_ topic: String, from targetId: String) {
+            change { $0[targetId] = $0[targetId]?.filter { $0 != topic } }
+        }
+
+        func removeTarget(_ targetId: String) {
+            change { $0[targetId] = nil }
+        }
+
+        /// Saved topics no background subscription claims.
+        static func stale(saved: Set<String>, claimed: Set<String>) -> [String] {
+            saved.subtracting(claimed).sorted()
+        }
+
+        private func read() -> [String: [String]] {
+            defaults.dictionary(forKey: LinkedTopics.key) as? [String: [String]] ?? [:]
+        }
+
+        private func change(_ body: (inout [String: [String]]) -> Void) {
+            Shared.locked {
+                var links = read()
+                body(&links)
+                links = links.filter { !$0.value.isEmpty }
+                if links.isEmpty {
+                    defaults.removeObject(forKey: LinkedTopics.key)
+                } else {
+                    defaults.set(links, forKey: LinkedTopics.key)
+                }
+            }
+        }
+    }
+
     final class Deliveries {
         static let capacity = 500
         static let key = "{{ spec.info.title | caseLower }}.push.delivered"
