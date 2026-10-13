@@ -171,6 +171,24 @@ final class PushTests {
         PushMessage(topic: topic, payload: Array(text.utf8), qos: 1)
     }
 
+    @Test func onlyRawPayloadsAndEnvelopesWithTextAreShown() {
+        let shown: [(String, Bool, Bool)] = [
+            ("plain text", true, true),
+            ("[1, 2]", true, true),
+            (#"{"notification":{"title":"Sale"}}"#, false, true),
+            (#"{"notification":{"body":"50% off"}}"#, false, true),
+            (#"{"messageId":"m1","data":{"saleId":"1"}}"#, false, false),
+            (#"{"notification":{}}"#, false, false),
+            (#"{"notification":{"image":"https://example.com/a.png"}}"#, false, false),
+            (#"{"notification":{"title":""},"contentAvailable":true,"badge":1}"#, false, false),
+        ]
+        for (payload, raw, visible) in shown {
+            let content = PushNotificationContent(message: message("news", payload))
+            #expect(content.raw == raw, "\(payload)")
+            #expect(content.visible == visible, "\(payload)")
+        }
+    }
+
     @Test func theSessionIsKeptForTheExtension() {
         withSharedDefaults {
             let session = Push.Shared.Session(
