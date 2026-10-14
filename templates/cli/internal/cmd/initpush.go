@@ -457,8 +457,8 @@ const (
 	applePasswordVariable = "APPWRITE_APPLE_PASSWORD"
 )
 
-// e2eAppleHosts is set only in builds with the e2e tag, which point Apple's
-// sign-in and Developer portal at the mock API.
+// e2eAppleHosts is set only in the CLI e2e build, which points Apple's sign-in
+// and Developer portal at the mock API.
 var e2eAppleHosts func() appwrite.Hosts
 
 // apnsAdapters lists the APNs key setups this build offers. Each lives in its

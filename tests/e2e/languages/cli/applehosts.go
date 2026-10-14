@@ -1,11 +1,9 @@
-//go:build e2e
-
 package cmd
 
 import (
 	"os"
 
-	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apns/appwrite"
+	"github.com/repoowner/reponame/internal/apns/appwrite"
 )
 
 func init() {
