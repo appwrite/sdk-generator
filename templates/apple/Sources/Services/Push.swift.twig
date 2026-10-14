@@ -1369,9 +1369,27 @@ extension Push {
         }
     }
 
+    private static var appGroupWarned = false
+
+    /// Without the App Group the Notification Service Extension can't fetch, and the placeholder stays.
+    private static func warnWithoutAppGroup() {
+        let first = apnsLocked { () -> Bool in
+            defer { appGroupWarned = true }
+            return !appGroupWarned
+        }
+        guard Shared.appGroup == nil, first else {
+            return
+        }
+        FileHandle.standardError.write(
+            Data(
+                "{{ spec.info.title | caseUcfirst }} Push: AppwritePushAppGroup is not set, so a Notification Service Extension can't fetch messages and their banners stay as placeholders. Set it to the App Group shared with the extension, in both Info.plists.\n"
+                    .utf8))
+    }
+
     /// Start APNs for a push with background subscriptions on `topics`.
     static func apnsEnable(_ push: Push, topics: [String]) {
         Shared.share(push)
+        warnWithoutAppGroup()
         apnsPrepare(push)
         let token = apnsLocked { apnsToken }
         if autoRegistration {
@@ -1457,6 +1475,10 @@ extension Push {
 
     static func reconcile(userId: String, targetId: String, fallback: Push?) async {
         let pushes = apnsLocked { apnsPushes.values.compactMap { $0.push } }.filter { $0.remoteUserId() == userId }
+        let claimed = Set(pushes.flatMap { $0.backgroundTopics() })
+        #if canImport(UserNotifications)
+            await clearDroppedPlaceholders(claimed: claimed)
+        #endif
         guard let push = pushes.first(where: { !$0.backgroundTopics().isEmpty }) else {
             // No background subscription this launch: the target and its subscribers go, as on close().
             if apnsLinkedTopics.isRegistered(targetId), let push = fallback ?? pushes.first {
@@ -1464,7 +1486,6 @@ extension Push {
             }
             return
         }
-        let claimed = Set(pushes.flatMap { $0.backgroundTopics() })
         for topic in LinkedTopics.stale(saved: apnsLinkedTopics.topics(targetId), claimed: claimed) {
             await unlink(push, targetId: targetId, topic: topic)
         }
@@ -1480,7 +1501,7 @@ extension Push {
         guard changed else {
             return
         }
-        for push in pushes {
+        for push in pushes where !push.backgroundTopics().isEmpty {
             Task { await register(push, token: hex, topics: push.backgroundTopics()) }
         }
     }
@@ -1738,9 +1759,19 @@ extension Push {
         /// Remove the placeholders the extension couldn't fill once every topic it fetched for is
         /// subscribed here: the broker replays their messages to these callbacks.
         static func clearPlaceholders(subscribed: Set<String>) async {
+            await clearPlaceholders { $0.allSatisfy(subscribed.contains) }
+        }
+
+        /// Remove the placeholders for topics no background subscription claims any more: their messages
+        /// will not be delivered here.
+        static func clearDroppedPlaceholders(claimed: Set<String>) async {
+            await clearPlaceholders { !$0.allSatisfy(claimed.contains) }
+        }
+
+        private static func clearPlaceholders(where isStale: ([String]) -> Bool) async {
             let center = UNUserNotificationCenter.current()
             let stale = await center.deliveredNotifications()
-                .filter { ($0.request.content.userInfo[Shared.placeholderKey] as? [String])?.allSatisfy(subscribed.contains) == true }
+                .filter { ($0.request.content.userInfo[Shared.placeholderKey] as? [String]).map(isStale) == true }
                 .map(\.request.identifier)
             if !stale.isEmpty {
                 center.removeDeliveredNotifications(withIdentifiers: stale)
@@ -1754,7 +1785,15 @@ extension Push {
         }
         let timer = DispatchSource.makeTimerSource(queue: .global())
         timer.schedule(deadline: .now(), repeating: Shared.heartbeatInterval)
-        timer.setEventHandler { Shared.markLive() }
+        timer.setEventHandler { [weak self] in
+            Shared.markLive()
+            #if canImport(UserNotifications)
+                if let self {
+                    let filters = Set(self.sync.sync { self.subscriptions.values.map { $0.filter } })
+                    Task { await Push.clearPlaceholders(subscribed: filters) }
+                }
+            #endif
+        }
         let previous = sync.sync { () -> DispatchSourceTimer? in
             let previous = heartbeat
             heartbeat = timer
@@ -1862,8 +1901,6 @@ extension Push {
         }
     }
 
-    /// Message ids already delivered, by MQTT or APNs, so each message reaches the app once.
-    /// Bounded, and kept across launches.
     /// The targets this install registered and the topics linked to each, kept across launches and
     /// shared with the extension.
     final class LinkedTopics {
@@ -1922,6 +1959,8 @@ extension Push {
         }
     }
 
+    /// Message ids already delivered, by MQTT or APNs, so each message reaches the app once.
+    /// Bounded, and kept across launches.
     final class Deliveries {
         static let capacity = 500
         static let key = "{{ spec.info.title | caseLower }}.push.delivered"
