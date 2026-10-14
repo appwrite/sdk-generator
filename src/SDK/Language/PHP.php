@@ -424,7 +424,11 @@ class PHP extends Language
                     if ($this->isPermissionString($example)) {
                         $output .= $this->getPermissionExample($example);
                     } else {
-                        $output .= \is_array($example) ? $this->jsonToAssoc($example) : (string) $example;
+                        $decoded = \is_string($example) ? \json_decode($example, true) : $example;
+                        // A list of scalars is already valid PHP as JSON; anything holding objects needs PHP arrays
+                        $output .= \is_array($decoded) && \array_filter($decoded, \is_array(...)) !== []
+                            ? $this->jsonToAssoc($decoded)
+                            : (string) $example;
                     }
                     break;
                 case self::TYPE_OBJECT:
@@ -468,7 +472,7 @@ class PHP extends Language
             if (is_array($node)) {
                 $value = $this->jsonToAssoc($node, $indent + 1);
             } elseif (is_string($node)) {
-                $value = '\'' . $node . '\'';
+                $value = '\'' . \addcslashes($node, '\'\\') . '\'';
             } elseif (is_bool($node)) {
                 $value = $node ? 'true' : 'false';
             } elseif (is_null($node)) {
@@ -478,7 +482,8 @@ class PHP extends Language
             }
 
             $comma = ($index < count($keys) - 1) ? ',' : '';
-            $output .= '    ' . $itemIndent . '\'' . $key . '\' => ' . $value . $comma . "\n";
+            $prefix = \array_is_list($data) ? '' : '\'' . \addcslashes((string) $key, '\'\\') . '\' => ';
+            $output .= '    ' . $itemIndent . $prefix . $value . $comma . "\n";
         }
 
         return $output . ($baseIndent . '    ]');
