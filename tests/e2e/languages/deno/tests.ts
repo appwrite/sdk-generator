@@ -180,6 +180,9 @@ async function start() {
   console.log(`preset verified: ${verified}`);
   console.log(`preset scopes: ${(preset.scopes ?? []).join(',')}`);
 
+  response = await general.nullable("required", null, undefined, undefined, null);
+  console.log(response.result);
+
   try {
     response = await general.error400();
   } catch (error) {

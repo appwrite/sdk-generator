@@ -703,6 +703,31 @@ impl Client {
         .await
     }
 
+    /// Upload a file in one request whatever the configured chunk size, for
+    /// endpoints that do not accept chunked uploads
+    pub async fn single_upload<T: DeserializeOwned>(
+        &self,
+        method: Method,
+        path: &str,
+        headers: Option<HashMap<String, String>>,
+        params: HashMap<String, Value>,
+        param_name: &str,
+        input_file: InputFile,
+    ) -> Result<T> {
+        let url = format!("{}{}", self.state.load().config.endpoint, path);
+
+        self.single_file_upload(
+            method,
+            &url,
+            headers,
+            params,
+            param_name,
+            &input_file,
+            ResponseFormat::Json,
+        )
+        .await
+    }
+
     /// Upload a file with POST and return the plain-text response body
     pub async fn file_upload_text(
         &self,

@@ -755,10 +755,19 @@ App::post('/v1/mock/tests/general/nullable')
     ->label('sdk.method', 'nullable')
     ->label('sdk.description', 'Mock a nullable parameter.')
     ->label('sdk.mock', true)
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
     ->param('required', '', new Text(100), 'Sample string param')
     ->param('nullable', '', new Nullable(new Text(100)), 'Sample string param')
     ->param('optional', '', new Text(100), 'Sample string param', true)
-    ->action(function (string $required, string $nullable, ?string $optional) {
+    ->param('nullableInteger', null, new Nullable(new Integer()), 'Optional nullable integer param', true)
+    ->inject('request')
+    ->action(function (string $required, ?string $nullable, ?string $optional, ?int $nullableInteger, Request $request) {
+        $params = $request->getParams();
+        if (!\array_key_exists('nullable', $params) || $nullable !== null || !\array_key_exists('nullableInteger', $params) || $nullableInteger !== null) {
+            throw new Exception(Exception::GENERAL_MOCK, 'nullable and nullableInteger must be sent as null', 400);
+        }
     });
 
 App::post('/v1/mock/tests/general/enum')

@@ -1,5 +1,6 @@
 use appwrite::{
     Client,
+    enums::PresetQuality,
     id::ID,
     input_file::InputFile,
     operator::{self, Condition},
@@ -140,19 +141,22 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
 
     test_general_upload(client, string_in_array).await?;
     test_large_upload(client, string_in_array).await?;
-    let profile = general.upload_generic(InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?).await?;
+    // A PUT upload has no chunked form, so it must go in one request even with tiny chunks.
+    let small_chunks = client.set_chunk_size(1024);
+    let profile = General::new(&small_chunks).upload_generic(InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?).await?;
     println!("{}", profile.prefs().get::<String>("result").unwrap_or_default());
 
     // Extended General Responses
     test_general_download(client).await?;
 
-    let preset = general.get_preset().await?;
+    let preset = general.get_preset(None).await?;
     println!("preset: name={}, count={}, enabled={}", preset.name, preset.count, preset.enabled);
     for item in general.list_presets().await?.presets {
         println!("preset: name={}, count={}, enabled={}", item.name, item.count, item.enabled);
     }
     println!("empty presets: {}", general.list_empty_presets().await?.presets.len());
     println!("preset verified: {}", preset.verified.map_or("null".to_string(), |verified| verified.to_string()));
+    println!("preset quality default: {}", PresetQuality::default());
 
     // Exception Responses
     match general.error400().await {

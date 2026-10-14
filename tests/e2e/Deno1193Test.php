@@ -49,6 +49,7 @@ final class Deno1193Test extends Base
         ...Base::MODEL_DEFAULT_RESPONSES,
         ...Base::NULLABLE_MODEL_RESPONSES,
         ...Base::ENUM_ARRAY_MODEL_RESPONSES,
+        ...Base::NULLABLE_PARAM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
