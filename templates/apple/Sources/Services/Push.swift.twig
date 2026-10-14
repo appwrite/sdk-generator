@@ -1472,6 +1472,10 @@ extension Push {
 
     static func reconcile(userId: String, targetId: String, fallback: Push?) async {
         let pushes = apnsLocked { apnsPushes.values.compactMap { $0.push } }.filter { $0.remoteUserId() == userId }
+        let claimed = Set(pushes.flatMap { $0.backgroundTopics() })
+        #if canImport(UserNotifications)
+            await clearDroppedPlaceholders(claimed: claimed)
+        #endif
         guard let push = pushes.first(where: { !$0.backgroundTopics().isEmpty }) else {
             // No background subscription this launch: the target and its subscribers go, as on close().
             if apnsLinkedTopics.isRegistered(targetId), let push = fallback ?? pushes.first {
@@ -1479,10 +1483,6 @@ extension Push {
             }
             return
         }
-        let claimed = Set(pushes.flatMap { $0.backgroundTopics() })
-        #if canImport(UserNotifications)
-            await clearDroppedPlaceholders(claimed: claimed)
-        #endif
         for topic in LinkedTopics.stale(saved: apnsLinkedTopics.topics(targetId), claimed: claimed) {
             await unlink(push, targetId: targetId, topic: topic)
         }
