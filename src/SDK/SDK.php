@@ -783,6 +783,7 @@ class SDK
                     if ($enumSchema->enum !== []) {
                         $schemas[] = new StringSchema(
                             title: $this->getEnumName($parameter),
+                            default: $this->enumDefault($parameter, $enumSchema->enum),
                             enum: $enumSchema->enum,
                             enumKeys: $this->language->resolveEnumKeys($parameter),
                             open: $this->language->isOpenStringEnum($parameter),
@@ -832,6 +833,7 @@ class SDK
                 if ($enumSchema->enum !== []) {
                     $enums[] = new StringSchema(
                         title: $this->getEnumName($property),
+                        default: $this->enumDefault($property, $enumSchema->enum),
                         enum: $enumSchema->enum,
                         enumKeys: $this->language->resolveEnumKeys($property),
                         open: $this->language->isOpenStringEnum($property),
@@ -842,18 +844,38 @@ class SDK
         return $this->mergeEnums($enums);
     }
 
+    /**
+     * The spec default of an enum param or property, when it is one of the enum's values.
+     *
+     * @param list<mixed> $values
+     */
+    protected function enumDefault(Schema|Parameter $value, array $values): ?string
+    {
+        $schema = $value instanceof Parameter ? $value->schema : $value;
+        $default = $schema?->default;
+
+        return \is_string($default) && \in_array($default, $values, true) ? $default : null;
+    }
+
     /** @param list<Schema> $schemas @return list<StringSchema> */
     protected function mergeEnums(array $schemas): array
     {
         $values = [];
         $keys = [];
         $open = [];
+        $defaults = [];
         foreach ($schemas as $schema) {
             $name = $this->getEnumName($schema);
             if ($name === '') {
                 continue;
             }
             $open[$name] = ($open[$name] ?? true) && $this->language->isOpenStringEnum($schema);
+            // An enum shared by several params keeps a default only when they all agree on it.
+            if (!\array_key_exists($name, $defaults)) {
+                $defaults[$name] = $schema->default;
+            } elseif ($defaults[$name] !== $schema->default) {
+                $defaults[$name] = null;
+            }
             foreach ($schema->enum as $index => $value) {
                 if (!\in_array($value, $values[$name] ?? [], true)) {
                     $values[$name][] = $value;
@@ -872,6 +894,7 @@ class SDK
             );
             $enums[] = new StringSchema(
                 title: $name,
+                default: $defaults[$name] ?? null,
                 enum: $enumValues,
                 enumKeys: $this->language->resolveEnumKeys($merged),
                 open: $open[$name],
