@@ -223,42 +223,42 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushCore.kt',
+                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/flutter/services/PushCore.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushCore.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushBackground.kt',
+                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/flutter/services/PushBackground.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushBackground.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushWakeups.kt',
+                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/flutter/services/PushWakeups.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushWakeups.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushService.kt',
+                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/flutter/services/PushService.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushService.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushReceiver.kt',
+                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/flutter/services/PushReceiver.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushReceiver.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushOpenActivity.kt',
+                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/flutter/services/PushOpenActivity.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushOpenActivity.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushBridge.kt',
+                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/flutter/services/PushBridge.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushBridge.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/exceptions/{{ spec.info.title | caseUcfirst }}Exception.kt',
+                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/flutter/exceptions/{{ spec.info.title | caseUcfirst }}Exception.kt',
                 'template'      => 'android/push/Exception.kt.twig',
             ],
             [

@@ -1,4 +1,4 @@
-{%- set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) -%}
+{%- set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) ~ '.' ~ (language.name | lower) -%}
 package {{ pushNamespace }}.services
 
 import android.content.Context
