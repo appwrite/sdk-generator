@@ -1369,9 +1369,27 @@ extension Push {
         }
     }
 
+    private static var appGroupWarned = false
+
+    /// Without the App Group the Notification Service Extension can't fetch, and the placeholder stays.
+    private static func warnWithoutAppGroup() {
+        let first = apnsLocked { () -> Bool in
+            defer { appGroupWarned = true }
+            return !appGroupWarned
+        }
+        guard Shared.appGroup == nil, first else {
+            return
+        }
+        FileHandle.standardError.write(
+            Data(
+                "{{ spec.info.title | caseUcfirst }} Push: AppwritePushAppGroup is not set, so a Notification Service Extension can't fetch messages and their banners stay as placeholders. Set it to the App Group shared with the extension, in both Info.plists.\n"
+                    .utf8))
+    }
+
     /// Start APNs for a push with background subscriptions on `topics`.
     static func apnsEnable(_ push: Push, topics: [String]) {
         Shared.share(push)
+        warnWithoutAppGroup()
         apnsPrepare(push)
         let token = apnsLocked { apnsToken }
         if autoRegistration {

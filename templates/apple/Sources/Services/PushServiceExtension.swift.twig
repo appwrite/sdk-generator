@@ -296,6 +296,8 @@ extension Push {
         private func fill(_ content: UNMutableNotificationContent) async {
             Push.Shared.inServiceExtension = true
             guard let session = Push.Shared.loadSession(), let credential = Push.Shared.loadCredential() else {
+                FileHandle.standardError.write(
+                    Data("{{ spec.info.title | caseUcfirst }} Push: no shared session, so the placeholder stays. Set AppwritePushAppGroup in both Info.plists and subscribe with background: true.\n".utf8))
                 return
             }
             // Unfilled, the placeholder shows until the app subscribes to these topics and gets the messages.
