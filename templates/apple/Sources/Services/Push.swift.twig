@@ -1543,7 +1543,6 @@ extension Push {
         }
         apnsLocked { apnsLinked[targetId] = apnsLinked[targetId] ?? [] }
         apnsLinkedTopics.register(targetId)
-        scheduleReconcile(push)
         // A topic unsubscribed while the target request was in flight is not linked.
         let wanted = Set(push.backgroundTopics())
         for topic in topics where Ids.isMessagingTopic(topic) && wanted.contains(topic) {
