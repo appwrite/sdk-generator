@@ -421,8 +421,10 @@ class Client {
     config: {
         endpoint: string;
         endpointRealtime: string;
+{% if sdk.push %}
         endpointPush: string;
         pushClientId: string;
+{% endif %}
 {%~ for headerKey, header in globalHeaders %}
         {{ headerKey | caseLower }}: string;
 {%~ endfor %}
@@ -433,8 +435,10 @@ class Client {
     } = {
         endpoint: '{{ (spec | endpoint) }}',
         endpointRealtime: '',
+{% if sdk.push %}
         endpointPush: '',
         pushClientId: '',
+{% endif %}
 {%~ for headerKey, header in globalHeaders %}
         {{ headerKey | caseLower }}: '',
 {%~ endfor %}
@@ -522,6 +526,7 @@ class Client {
         return this;
     }
 
+{% if sdk.push %}
     /**
      * Set Push Endpoint
      *
@@ -572,6 +577,7 @@ class Client {
         return this;
     }
 
+{% endif %}
 {%~ if sdk.platform == 'console' %}
     /**
      * Set self-signed

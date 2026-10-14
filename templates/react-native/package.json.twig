@@ -16,6 +16,7 @@
     "module": "dist/esm/sdk.js",
     "types": "types/index.d.ts",
     "files": [
+{% if sdk.push %}
         "android",
         "!android/build",
         "dist",
@@ -23,6 +24,10 @@
         "*.podspec",
         "react-native.config.js",
         "types"
+{% else %}
+        "dist",
+        "types"
+{% endif %}
     ],
     "repository": {
         "type": "git",

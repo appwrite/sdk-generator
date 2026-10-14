@@ -62,6 +62,7 @@ class Web extends JS
                 'scope'         => 'default',
                 'destination'   => 'src/services/push.ts',
                 'template'      => 'web/src/services/push.ts.twig',
+                'push'          => true,
             ],
             [
                 'scope'         => 'default',
@@ -93,6 +94,7 @@ class Web extends JS
                 'scope'         => 'default',
                 'destination'   => 'src/topic.ts',
                 'template'      => 'web/src/topic.ts.twig',
+                'push'          => true,
             ],
             [
                 'scope'         => 'default',

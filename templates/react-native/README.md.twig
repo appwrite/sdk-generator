@@ -28,6 +28,7 @@ To install
 npx expo install react-native-appwrite react-native-url-polyfill
 ```
 
+{% if sdk.push %}
 ### Push
 
 `Push` connects over a raw TCP socket, so it needs `react-native-tcp-socket` and a development
@@ -162,6 +163,7 @@ declare in the Play Console. Apps that never enable it can remove the service fr
 manifest with `tools:node="remove"` on `io.{{ spec.info.title | caseLower }}.services.PushService` and
 `android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING`.
 
+{% endif %}
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|raw }}

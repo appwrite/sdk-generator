@@ -257,16 +257,19 @@ class PHP extends Language
                 'scope'         => 'default',
                 'destination'   => 'src/{{ namespace | caseNamespacePath }}/Topic.php',
                 'template'      => 'php/src/Topic.php.twig',
+                'push'          => true,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'src/{{ namespace | caseNamespacePath }}/ResolvedTopic.php',
                 'template'      => 'php/src/ResolvedTopic.php.twig',
+                'push'          => true,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'tests/{{ namespace | caseNamespacePath }}/TopicTest.php',
                 'template'      => 'php/tests/TopicTest.php.twig',
+                'push'          => true,
             ],
             [
                 'scope'         => 'default',

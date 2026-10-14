@@ -112,6 +112,7 @@ class Unity extends DotNet
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Push.cs',
                 'template'      => 'unity/Assets/Runtime/Push.cs.twig',
+                'push'          => true,
             ],
             [
                 'scope'         => 'default',
@@ -158,6 +159,7 @@ class Unity extends DotNet
                 'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Topic.cs',
                 'template'      => 'dotnet/Package/Topic.cs.twig',
+                'push'          => true,
             ],
             [
                 'scope'         => 'default',
@@ -314,19 +316,21 @@ class Unity extends DotNet
                 'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/MQTTnet.dll',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/MQTTnet.dll',
+                'push'          => true,
             ],
             [
                 'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/MQTTnet.dll.meta',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/MQTTnet.dll.meta',
+                'push'          => true,
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Plugins/THIRD_PARTY_NOTICES.md',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/THIRD_PARTY_NOTICES.md',
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Plugins/dependencies.lock.json',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/dependencies.lock.json',
             ],

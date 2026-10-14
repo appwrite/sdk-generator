@@ -164,9 +164,9 @@ final class GenerationTest extends TestCase
      *
      * @return array<string, string>
      */
-    private function generate(string $name, string $platform, string $unionVariant = ''): array
+    private function generate(string $name, string $platform, string $unionVariant = '', bool $push = true): array
     {
-        $key = $platform . $unionVariant;
+        $key = $platform . $unionVariant . ($push ? '' : '-without-push');
         if (isset(self::$generated[$name][$key])) {
             return self::$generated[$name][$key];
         }
@@ -199,6 +199,7 @@ final class GenerationTest extends TestCase
                 ],
             ])
             ->setTest('true')
+            ->setPush($push)
             ->generate($dir);
 
         $files = [];
@@ -207,6 +208,11 @@ final class GenerationTest extends TestCase
             if ($file->isFile()) {
                 $files[\substr((string) $file->getPathname(), \strlen($dir) + 1)] = \strtolower((string) \file_get_contents($file->getPathname()));
             }
+        }
+
+        // Trees without Push are checked once; caching them as well exhausts memory.
+        if (!$push) {
+            return $files;
         }
 
         return self::$generated[$name][$key] = $files;
@@ -350,6 +356,7 @@ final class GenerationTest extends TestCase
             ->setPlatform('client')
             ->setNamespace('appwrite')
             ->setTest('true')
+            ->setPush(true)
             ->generate($dir);
 
         $files = [];
@@ -361,6 +368,43 @@ final class GenerationTest extends TestCase
         }
 
         return $files;
+    }
+
+    /**
+     * Push is off unless an SDK asks for it, so a release cannot ship it by accident:
+     * no Push, MQTT or Topic file is emitted, and no other file mentions them.
+     */
+    #[DataProvider('languages')]
+    public function testPushIsLeftOutUnlessEnabled(string $name): void
+    {
+        $with = $this->generate($name, 'client');
+        $generated = $this->generate($name, 'client', push: false);
+        $removed = \array_keys(\array_diff_key($with, $generated));
+        // The npm manifests keep Push's dependencies so they match the one lockfile.
+        $without = \array_filter($generated, fn (string $path): bool => !\in_array(\basename($path), ['package.json', 'package-lock.json'], true), ARRAY_FILTER_USE_KEY);
+
+        foreach ($without as $path => $contents) {
+            // The CLI's `push` command deploys resources; it is not the Push service.
+            if ($name !== 'cli') {
+                $this->assertDoesNotMatchRegularExpression('/(^|\/)(push|mqtt|topic|resolvedtopic)[^\/]*$|consumer-rules|pushplugin|pushmodule|pushpackage/', \strtolower($path), "{$name} generated {$path} without Push");
+            }
+            foreach (['mqtt', 'setpushendpoint', 'setpushclientid', 'resolvedtopic'] as $token) {
+                $this->assertStringNotContainsString($token, $contents, "{$name} {$path} mentions {$token} without Push");
+            }
+        }
+
+        foreach ($removed as $path) {
+            $this->assertMatchesRegularExpression('/push|mqtt|topic|consumer-rules|\/android\/|^android\/|^ios\/|cookies|\.podspec$|react-native\.config\.js$|polyfills|tcp-stream|third_party_notices|dependencies\.lock/', \strtolower($path), "{$name} drops {$path}, which is not part of Push");
+        }
+
+        // Nothing left behind names a file that was left out, by path, module or part.
+        $stems = \array_map(fn (string $path): string => \explode('.', \basename($path))[0], $removed);
+        foreach (\array_unique(\preg_grep('/push|mqtt|topic/', $stems)) as $stem) {
+            $reference = '/[\'"\/]' . \preg_quote((string) $stem, '/') . '(\.[a-z]+)*[\'"]|mod ' . \preg_quote((string) $stem, '/') . ';/';
+            foreach ($without as $path => $contents) {
+                $this->assertDoesNotMatchRegularExpression($reference, $contents, "{$name} {$path} references {$stem}, which is only generated with Push");
+            }
+        }
     }
 
     public function testJavascriptClientOwnership(): void

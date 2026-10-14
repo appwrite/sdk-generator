@@ -309,6 +309,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             return this;
         }
 
+{% if sdk.push %}
         /// <summary>
         /// Set the push endpoint
         ///
@@ -338,6 +339,7 @@ namespace {{ spec.info.title | caseUcfirst }}
             return this;
         }
 
+{% endif %}
         public Dictionary<string, string> GetHeaders()
         {
             return new Dictionary<string, string>(_headers);
