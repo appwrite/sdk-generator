@@ -1457,6 +1457,28 @@
         }
       }
     },
+    "\/mock\/tests\/general\/bodyless": {
+      "delete": {
+        "summary": "Delete Bodyless",
+        "operationId": "generalDeleteBodyless",
+        "tags": [
+          "general"
+        ],
+        "description": "Delete fixture without parameters, so the request carries no body.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/list-rows": {
       "get": {
         "summary": "List Rows",

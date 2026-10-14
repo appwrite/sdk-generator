@@ -45,6 +45,12 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
+    // The mock rejects any request body, so Dart/Flutter pass only by sending
+    // a DELETE without params with no body at all.
+    protected const BODYLESS_DELETE_RESPONSE = [
+        'DELETE:/v1/mock/tests/general/bodyless:passed',
+    ];
+
     protected const LOCATION_RESPONSES = [
         'GET:/v1/mock/tests/general/download:passed',
         'GET:/v1/mock/tests/general/download:passed:as:impersonated',
