@@ -146,6 +146,7 @@ general.list_presets().presets.each do |item|
 end
 puts "empty presets: #{general.list_empty_presets().presets.length}"
 puts "preset verified: #{preset.verified.nil? ? 'null' : preset.verified}"
+puts "preset scopes: #{(preset.scopes || []).join(',')}"
 
 begin
     general.error400()

@@ -866,7 +866,7 @@ App::get('/v1/mock/tests/general/preset')
     ->label('scope', 'public')
     ->inject('response')
     ->action(function (UtopiaSwooleResponse $response) {
-        $response->json(['enabled' => false, 'verified' => null]);
+        $response->json(['enabled' => false, 'verified' => null, 'scopes' => ['read', 'write']]);
     });
 
 App::get('/v1/mock/tests/general/presets')

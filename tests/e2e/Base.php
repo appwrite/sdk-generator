@@ -103,11 +103,15 @@ abstract class Base extends TestCase
     ];
 
     protected const JS_MODEL_TO_STRING_RESPONSES = [
-        'preset toString: {"name":"guest","count":25,"enabled":false,"tier":"free","verified":null}',
+        'preset toString: {"name":"guest","count":25,"enabled":false,"tier":"free","verified":null,"scopes":["read","write"]}',
     ];
 
     protected const NULLABLE_MODEL_RESPONSES = [
         'preset verified: null',
+    ];
+
+    protected const ENUM_ARRAY_MODEL_RESPONSES = [
+        'preset scopes: read,write',
     ];
 
     protected const PYTHON_MODEL_DEFAULT_RESPONSES = [
