@@ -41,7 +41,7 @@ commands/                    # Agent-executable commands
 This plugin includes {{ spec.info.title }} SDK skills for the following languages:
 
 {% for lang in languages %}
-- **{{ lang | capitalize }}** — `skills/{{ spec.info.title | caseLower }}-{{ lang }}/SKILL.md`
+- **{{ lang | capitalize }}**: `skills/{{ spec.info.title | caseLower }}-{{ lang }}/SKILL.md`
 {% endfor %}
 
 Each skill provides comprehensive SDK usage examples including authentication, database operations, file storage, real-time subscriptions, and more.
@@ -62,8 +62,8 @@ If the server does not connect, open Cursor's MCP settings, restart the `{{ spec
 
 Agent-executable commands for deploying directly from your editor:
 
-- **deploy-site** — Deploy an {{ spec.info.title }} site using the CLI. Covers init, push, CI/CD non-interactive mode, site management, variables, and logs.
-- **deploy-function** — Deploy an {{ spec.info.title }} function using the CLI. Covers init, push, CI/CD non-interactive mode, function management, executions, variables, and local development.
+- **deploy-site**: Deploy an {{ spec.info.title }} site using the CLI. Covers init, push, CI/CD non-interactive mode, site management, variables, and logs.
+- **deploy-function**: Deploy an {{ spec.info.title }} function using the CLI. Covers init, push, CI/CD non-interactive mode, function management, executions, variables, and local development.
 
 {% if sdk.gettingStarted %}
 

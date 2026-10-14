@@ -1,6 +1,6 @@
 {% set lang = 'rust' %}
 {% set langName = 'Rust' %}
-{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Rust applications with {{ spec.info.title }}. Covers async client setup with API keys, user management, TablesDB database/table/row operations, file storage, function executions, permissions, queries, and error handling. Uses the crates.io `{{ spec.info.title | caseLower }}` package and Tokio.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side Rust applications with {{ spec.info.title }}. Covers async client setup with API keys, user management, TablesDB database/table/row operations, file storage, function executions, permissions, queries, and error handling. Uses the crates.io `{{ spec.info.title | caseLower }}` package and Tokio. Also covers multi-tenant apps with Teams (tenant isolation, invites, memberships).{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
 # {{ spec.info.title }} {{ langName }} SDK
@@ -401,6 +401,252 @@ match users.get("[USER_ID]").await {
 }
 ```
 
+## Multi-tenancy with Teams
+
+Model each tenant (an organization, workspace, school, or customer account) as a **team**. Memberships carry the tenant roles, and `Role::team()` permissions keep one tenant's rows and files invisible to every other tenant. All tenants share one project and one set of tables.
+
+| Tenant concept | {{ spec.info.title }} primitive |
+|----------------|---------------------|
+| Tenant | Team (the team ID is the tenant ID) |
+| User belongs to a tenant | Membership (`confirm` is `true` once joined) |
+| Tenant roles (`owner`, `admin`, `member`) | Membership `roles` (free-form strings) |
+| Tenant-only data | Row/file permissions with `Role::team(tenant_id, None)` or `Role::team(tenant_id, Some("admin"))` |
+| Tenant settings (plan, branding) | Team prefs (`get_prefs` / `update_prefs`). Every member can read them, so never store secrets there |
+| Platform staff across all tenants | A user label set with `Users::update_labels`, granted through `Role::label("staff")` |
+
+### Configure Tenant Tables (once)
+
+Turn on row security and keep table-level permissions to `create`. Table-level permissions apply to **every row**, and a user needs access at the table level *or* the row level, so `Permission::read(Role::users(None))` on the table lets every signed-in user read every tenant's rows.
+
+```rust
+use {{ spec.info.title | caseLower }}::enums::TablesDBIndexType;
+use {{ spec.info.title | caseLower }}::id::ID;
+use {{ spec.info.title | caseLower }}::permission::Permission;
+use {{ spec.info.title | caseLower }}::query::Query;
+use {{ spec.info.title | caseLower }}::role::Role;
+use {{ spec.info.title | caseLower }}::services::{TablesDB, Teams};
+use serde_json::json;
+
+let tables_db = TablesDB::new(&client); // API key client
+
+tables_db
+    .create_table(
+        "[DATABASE_ID]",
+        "invoices",
+        "Invoices",
+        // Signed-in users may create rows; nothing else table-wide
+        Some(vec![Permission::create(Role::users(None)).to_string()]),
+        Some(true), // row_security: row permissions decide who sees each row
+        None,
+        Some(vec![
+            json!({ "key": "tenantId", "type": "varchar", "size": 36, "required": true }),
+            json!({ "key": "title", "type": "varchar", "size": 255, "required": true }),
+            json!({ "key": "amount", "type": "double", "required": true }),
+        ]),
+        None,
+    )
+    .await?;
+
+// Index tenantId so per-tenant filters stay fast (the column must be available first)
+tables_db
+    .create_index(
+        "[DATABASE_ID]",
+        "invoices",
+        "tenant_idx",
+        TablesDBIndexType::Key,
+        vec!["tenantId"],
+        None,
+        None,
+    )
+    .await?;
+```
+
+If only server code creates rows, leave the table-level permissions as `None`.
+
+### Create a Tenant
+
+With an API key, `create` makes a team with **no members**. Add the owner yourself:
+
+```rust
+let teams = Teams::new(&client);
+
+let tenant = teams.create(ID::unique(), "Example Corp", None).await?;
+teams
+    .create_membership(
+        &tenant.id,
+        ["owner", "admin"],
+        None,
+        Some("[USER_ID]"), // with an API key the user joins at once; no invite email
+        None,
+        None,
+        None,
+    )
+    .await?;
+```
+
+Calling `create` through a client that acts as a user (JWT or session) instead makes that user the owner, and `roles` sets the **creator's** roles (default `owner`).
+
+> **Teams have no fixed role list.** A role exists as soon as a membership carries it. Roles are flat strings: `owner` does not imply `admin`. Only `owner` is special: owners invite and remove members, change roles, update the team, and delete it.
+
+### Act as the User
+
+The Rust SDK has no browser session flow, so act on behalf of a user with a **JWT**. The frontend calls `account.createJWT()` and sends the token with each request; inside an Appwrite Function, the `x-appwrite-user-jwt` header carries it. JWTs expire after 15 minutes by default.
+
+```rust
+// One per request; never share a user client between users
+let user_client = Client::new()
+    .set_endpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .set_project(env::var("{{ spec.info.title | caseUpper }}_PROJECT_ID")?)
+    .set_jwt(jwt);
+```
+
+### Invite and Manage Members
+
+Which client calls `create_membership` decides what happens:
+
+- **User client** (JWT of a tenant owner): sends an invite email and creates a pending membership (`confirm` is `false`) until the user accepts.
+- **API key client**: sends no email and adds the user immediately. Use it for SSO provisioning, bulk imports, or a custom invite flow.
+
+```rust
+// As the signed-in owner: send an invite email
+let user_teams = Teams::new(&user_client);
+user_teams
+    .create_membership(
+        "[TENANT_ID]",
+        ["member"],
+        Some("user@example.com"),
+        None,
+        None,
+        Some("https://example.com/accept-invite"), // hostname must be registered as a platform
+        None,
+    )
+    .await?;
+
+// /accept-invite route: {{ spec.info.title }} appended teamId, membershipId, userId, and secret to the url.
+// No session is needed: the secret authorizes the accept.
+let guest_client = Client::new()
+    .set_endpoint("https://<REGION>.cloud.appwrite.io/v1")
+    .set_project(env::var("{{ spec.info.title | caseUpper }}_PROJECT_ID")?);
+Teams::new(&guest_client)
+    .update_membership_status(team_id, membership_id, user_id, secret)
+    .await?;
+
+// One user's membership and roles in a tenant
+let mine = teams
+    .list_memberships(
+        "[TENANT_ID]",
+        Some(vec![Query::equal("userId", "[USER_ID]").to_string()]),
+        None,
+        None,
+    )
+    .await?;
+
+// Change a member's roles (owners only, or an API key)
+teams
+    .update_membership("[TENANT_ID]", "[MEMBERSHIP_ID]", ["admin"])
+    .await?;
+
+// Remove a member, revoke a pending invite, or leave the tenant (users can delete their own membership)
+teams.delete_membership("[TENANT_ID]", "[MEMBERSHIP_ID]").await?;
+```
+
+Deleting a membership revokes access at once: the user stops matching every `Role::team()` permission for that tenant. To hide member names, emails, and MFA status from other members, enable membership privacy in the Console under **Auth** > **Policies** > **Memberships**.
+
+### Write and Read Tenant Data
+
+Use the user client so permissions apply:
+
+```rust
+let user_db = TablesDB::new(&user_client);
+
+// Tag every row with its tenant and grant access through the tenant's team
+user_db
+    .create_row(
+        "[DATABASE_ID]",
+        "invoices",
+        ID::unique(),
+        json!({ "tenantId": "[TENANT_ID]", "title": "Q2 Invoice", "amount": 2500 }),
+        Some(vec![
+            Permission::read(Role::team("[TENANT_ID]", None)).to_string(), // every member of the tenant
+            Permission::update(Role::team("[TENANT_ID]", Some("admin"))).to_string(), // tenant admins only
+            Permission::delete(Role::team("[TENANT_ID]", Some("admin"))).to_string(),
+        ]),
+        None,
+    )
+    .await?;
+
+// Returns only rows the user can read, from ALL of the user's tenants.
+// Filter by tenantId to show the active tenant.
+let invoices = user_db
+    .list_rows(
+        "[DATABASE_ID]",
+        "invoices",
+        Some(vec![Query::equal("tenantId", "[TENANT_ID]").to_string()]),
+        None,
+        None,
+        None,
+    )
+    .await?;
+```
+
+> **A JWT or session client can only grant roles the user holds.** A user whose only role is `member` gets `401` when setting `Permission::update(Role::team("[TENANT_ID]", Some("admin")))`. Grant roles the user has (such as `Role::team("[TENANT_ID]", None)`), or write the row with the API key client, which can grant any role.
+
+Files follow the same pattern: create the bucket with file security on and give each file `Role::team()` permissions. Realtime needs no extra work: subscribers only receive events for rows and files they can read.
+
+### API Keys Ignore Tenant Boundaries
+
+An API key bypasses all permissions, so the API key client sees every tenant's data. Serve user requests with the user client. If you must use the API key, confirm the caller's membership and roles first, then filter every query by `tenantId`. Take the user ID from a verified JWT (`Account::get` on the user client) or the `x-appwrite-user-id` function header, never from the request body.
+
+```rust
+use {{ spec.info.title | caseLower }}::models::Membership;
+
+async fn require_tenant_role(
+    teams: &Teams,
+    tenant_id: &str,
+    user_id: &str,
+    role: Option<&str>,
+) -> Result<Membership, Box<dyn std::error::Error>> {
+    let list = teams
+        .list_memberships(
+            tenant_id,
+            Some(vec![Query::equal("userId", user_id).to_string()]),
+            None,
+            None,
+        )
+        .await?;
+
+    list.memberships
+        .into_iter()
+        .find(|m| m.confirm && role.map_or(true, |r| m.roles.iter().any(|held| held == r)))
+        .ok_or_else(|| "forbidden".into())
+}
+```
+
+### Offboard a Tenant
+
+Deleting a team removes its memberships, not the rows and files that grant it access, and a team created later with the same ID would inherit them. Delete tenant data first, with the API key client, in every tenant table and bucket:
+
+```rust
+tables_db
+    .delete_rows(
+        "[DATABASE_ID]",
+        "invoices",
+        Some(vec![Query::equal("tenantId", "[TENANT_ID]").to_string()]),
+        None,
+    )
+    .await?;
+
+teams.delete("[TENANT_ID]").await?;
+```
+
+### Choosing an Isolation Model
+
+| Model | Use when | Trade-off |
+|-------|----------|-----------|
+| Shared tables + team permissions (default) | Most SaaS apps | One schema for all tenants; isolation depends on correct permissions |
+| Table or database per tenant | Tenants need their own schema, or their data must be exported or dropped as a unit | Every schema change runs once per tenant. Put `Role::team(tenant_id, None)` in the table-level permissions and leave row security off |
+| Project per tenant | Tenants need separate users, auth settings, or regions | Users and sessions cannot cross projects; far more to operate |
+
 ## Common Pitfalls
 
 - The Rust SDK is currently a server-side SDK. Prefer TypeScript/Web, Flutter, Apple, Android, or React Native SDKs for browser/mobile client auth flows.
@@ -410,3 +656,8 @@ match users.get("[USER_ID]").await {
 - Convert queries with `.to_string()` before passing them to APIs that expect `Option<Vec<String>>`.
 - Use `serde_json::json!({...})` for row data and JSON bodies.
 - Use `InputFile::from_path(...).await?` or `InputFile::from_bytes(...)` for uploads.
+- Tenant tables need row security on and no table-level `read`/`update`/`delete` for `Role::users(None)` or `Role::any()`; otherwise every tenant sees every row.
+- Treat `tenantId` as a filter, not a security boundary. Clients can write any value into it; permissions are the boundary.
+- An API key sees every tenant. Serve user requests with a per-request JWT client, or check membership before using the key.
+- Team roles are flat strings: `owner` does not imply `admin`. Give users every role your permissions check.
+- Deleting a team leaves its rows and files behind. Delete tenant data first.

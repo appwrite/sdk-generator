@@ -1,6 +1,6 @@
 {% set lang = 'php' %}
 {% set langName = 'PHP' %}
-{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side PHP applications with {{ spec.info.title }}, including Laravel and Symfony integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side PHP applications with {{ spec.info.title }}, including Laravel and Symfony integrations. Covers user management, database/table CRUD, file storage, and functions via API keys. Also covers multi-tenant apps with Teams (tenant isolation, invites, memberships).{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
 # {{ spec.info.title }} {{ langName }} SDK
@@ -192,6 +192,8 @@ $teams->delete('[TEAM_ID]');
 
 > **Role-based access:** Use `Role::team('[TEAM_ID]')` for all team members or `Role::team('[TEAM_ID]', 'editor')` for a specific team role when setting permissions.
 
+> **Multi-tenant apps:** to give each organization or workspace its own isolated data, invites, and roles, see **Multi-tenancy with Teams** below.
+
 ### Serverless Functions
 
 ```php
@@ -207,14 +209,14 @@ $executions = $functions->listExecutions('[FUNCTION_ID]');
 #### Writing a Function Handler (PHP runtime)
 
 ```php
-// src/main.php — Appwrite Function entry point
+// src/main.php: Appwrite Function entry point
 return function ($context) {
-    // $context->req->body        — raw body (string)
-    // $context->req->bodyJson    — parsed JSON (array or null)
-    // $context->req->headers     — headers (array)
-    // $context->req->method      — HTTP method
-    // $context->req->path        — URL path
-    // $context->req->query       — query params (array)
+    // $context->req->body:        raw body (string)
+    // $context->req->bodyJson:    parsed JSON (array or null)
+    // $context->req->headers:     headers (array)
+    // $context->req->method:      HTTP method
+    // $context->req->path:        URL path
+    // $context->req->query:       query params (array)
 
     $context->log('Processing: ' . $context->req->method . ' ' . $context->req->path);
 
@@ -239,8 +241,8 @@ return function ($context) {
 
 SSR apps (Laravel, Symfony, etc.) use the **server SDK** to handle auth. You need two clients:
 
-- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
-- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+- **Admin client**: uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client**: uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```php
 use {{ spec.info.title }}\Client;
@@ -305,7 +307,7 @@ $redirectUrl = $account->createOAuth2Token(
 );
 header('Location: ' . $redirectUrl);
 
-// Step 2: Handle callback — exchange token for session
+// Step 2: Handle the callback and exchange the token for a session
 $account = new Account($adminClient);
 $session = $account->createSession($_GET['userId'], $_GET['secret']);
 
@@ -338,11 +340,11 @@ try {
 
 | Code | Meaning |
 |------|---------|
-| `401` | Unauthorized — missing or invalid session/API key |
-| `403` | Forbidden — insufficient permissions for this action |
-| `404` | Not found — resource does not exist |
-| `409` | Conflict — duplicate ID or unique constraint violation |
-| `429` | Rate limited — too many requests, retry after backoff |
+| `401` | Unauthorized: missing or invalid session/API key |
+| `403` | Forbidden: insufficient permissions for this action |
+| `404` | Not found: resource does not exist |
+| `409` | Conflict: duplicate ID or unique constraint violation |
+| `429` | Rate limited: too many requests, retry after backoff |
 
 ## Permissions & Roles (Critical)
 
@@ -379,7 +381,229 @@ $file = $storage->createFile('[BUCKET_ID]', ID::unique(), InputFile::withPath('/
 > **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
-> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
-> - **`Role::any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
-> - **`Permission::read(Role::any())` on sensitive data** — makes the resource publicly readable
+> - **Forgetting permissions**: the resource becomes inaccessible to all users (including the creator)
+> - **`Role::any()` with `write`/`update`/`delete`**: allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission::read(Role::any())` on sensitive data**: makes the resource publicly readable
+
+## Multi-tenancy with Teams
+
+Model each tenant (an organization, workspace, school, or customer account) as a **team**. Memberships carry the tenant roles, and `Role::team()` permissions keep one tenant's rows and files invisible to every other tenant. All tenants share one project and one set of tables.
+
+| Tenant concept | {{ spec.info.title }} primitive |
+|----------------|---------------------|
+| Tenant | Team (the team ID is the tenant ID) |
+| User belongs to a tenant | Membership (`confirm` is `true` once joined) |
+| Tenant roles (`owner`, `admin`, `member`) | Membership `roles` (free-form strings) |
+| Tenant-only data | Row/file permissions with `Role::team($tenantId)` or `Role::team($tenantId, 'admin')` |
+| Tenant settings (plan, branding) | Team prefs (`getPrefs` / `updatePrefs`). Every member can read them, so never store secrets there |
+| Platform staff across all tenants | A user label set with `$users->updateLabels()`, granted through `Role::label('staff')` |
+
+### Configure Tenant Tables (once)
+
+Turn on row security and keep table-level permissions to `create`. Table-level permissions apply to **every row**, and a user needs access at the table level *or* the row level, so `Permission::read(Role::users())` on the table lets every signed-in user read every tenant's rows.
+
+```php
+use {{ spec.info.title }}\Enums\TablesDBIndexType;
+use {{ spec.info.title }}\Permission;
+use {{ spec.info.title }}\Role;
+use {{ spec.info.title }}\Services\Teams;
+
+$tablesDB = new TablesDB($adminClient); // API key client
+
+$tablesDB->createTable(
+    databaseId: '[DATABASE_ID]',
+    tableId: 'invoices',
+    name: 'Invoices',
+    permissions: [Permission::create(Role::users())],  // signed-in users may create rows; nothing else table-wide
+    rowSecurity: true,                                 // row permissions decide who sees each row
+    columns: [
+        ['key' => 'tenantId', 'type' => 'varchar', 'size' => 36,  'required' => true],
+        ['key' => 'title',    'type' => 'varchar', 'size' => 255, 'required' => true],
+        ['key' => 'amount',   'type' => 'double',                 'required' => true],
+    ]
+);
+
+// Index tenantId so per-tenant filters stay fast (the column must be available first)
+$tablesDB->createIndex(
+    databaseId: '[DATABASE_ID]',
+    tableId: 'invoices',
+    key: 'tenant_idx',
+    type: TablesDBIndexType::KEY(),
+    columns: ['tenantId']
+);
+```
+
+If only server code creates rows, leave the table-level `permissions` empty.
+
+### Create a Tenant
+
+With an API key, `create()` makes a team with **no members**. Add the owner yourself:
+
+```php
+$adminTeams = new Teams($adminClient);
+
+$tenant = $adminTeams->create(teamId: ID::unique(), name: 'Example Corp');
+$adminTeams->createMembership(
+    teamId: $tenant->id,
+    roles: ['owner', 'admin'],
+    userId: '[USER_ID]'          // with an API key the user joins at once; no invite email
+);
+```
+
+Calling `create()` through a user's session client instead makes that user the owner, and `roles` sets the **creator's** roles (default `['owner']`).
+
+> **Teams have no fixed role list.** A role exists as soon as a membership carries it. Roles are flat strings: `owner` does not imply `admin`. Only `owner` is special: owners invite and remove members, change roles, update the team, and delete it.
+
+### Invite and Manage Members
+
+Which client calls `createMembership()` decides what happens:
+
+- **Session client** (acting as a tenant owner): sends an invite email and creates a pending membership (`confirm` is `false`) until the user accepts.
+- **Admin client** (API key): sends no email and adds the user immediately. Use it for SSO provisioning, bulk imports, or a custom invite flow.
+
+```php
+// As the signed-in owner: send an invite email
+$teams = new Teams($sessionClient);
+$teams->createMembership(
+    teamId: '[TENANT_ID]',
+    roles: ['member'],
+    email: 'user@example.com',
+    url: 'https://example.com/accept-invite'   // hostname must be registered as a platform
+);
+
+// /accept-invite route: {{ spec.info.title }} appended teamId, membershipId, userId, and secret to the url.
+// No session is needed: the secret authorizes the accept.
+$teams->updateMembershipStatus(
+    teamId: $_GET['teamId'],
+    membershipId: $_GET['membershipId'],
+    userId: $_GET['userId'],
+    secret: $_GET['secret']
+);
+
+// Members of a tenant
+$members = $teams->listMemberships(teamId: '[TENANT_ID]');
+
+// One user's membership and roles in a tenant
+$mine = $teams->listMemberships(
+    teamId: '[TENANT_ID]',
+    queries: [Query::equal('userId', ['[USER_ID]'])]
+);
+
+// Change a member's roles (owners only, or an API key)
+$teams->updateMembership(teamId: '[TENANT_ID]', membershipId: '[MEMBERSHIP_ID]', roles: ['admin']);
+
+// Remove a member, revoke a pending invite, or leave the tenant (users can delete their own membership)
+$teams->deleteMembership(teamId: '[TENANT_ID]', membershipId: '[MEMBERSHIP_ID]');
+```
+
+Deleting a membership revokes access at once: the user stops matching every `Role::team()` permission for that tenant. To hide member names, emails, and MFA status from other members, enable membership privacy in the Console under **Auth** > **Policies** > **Memberships**.
+
+### Write and Read Tenant Data
+
+Use the per-request session client so permissions apply:
+
+```php
+$tablesDB = new TablesDB($sessionClient);
+
+// Tag every row with its tenant and grant access through the tenant's team
+$tablesDB->createRow(
+    databaseId: '[DATABASE_ID]',
+    tableId: 'invoices',
+    rowId: ID::unique(),
+    data: ['tenantId' => '[TENANT_ID]', 'title' => 'Q2 Invoice', 'amount' => 2500],
+    permissions: [
+        Permission::read(Role::team('[TENANT_ID]')),             // every member of the tenant
+        Permission::update(Role::team('[TENANT_ID]', 'admin')),  // tenant admins only
+        Permission::delete(Role::team('[TENANT_ID]', 'admin')),
+    ]
+);
+
+// Returns only rows the user can read, from ALL of the user's tenants.
+// Filter by tenantId to show the active tenant.
+$invoices = $tablesDB->listRows(
+    databaseId: '[DATABASE_ID]',
+    tableId: 'invoices',
+    queries: [Query::equal('tenantId', ['[TENANT_ID]'])]
+);
+```
+
+> **A session or JWT client can only grant roles the user holds.** A user whose only role is `member` gets `401` when setting `Permission::update(Role::team('[TENANT_ID]', 'admin'))`. Grant roles the user has (such as `Role::team('[TENANT_ID]')`), or write the row with the admin client, which can grant any role.
+
+Files follow the same pattern: create the bucket with `fileSecurity: true` and give each file `Role::team()` permissions. Realtime needs no extra work: subscribers only receive events for rows and files they can read.
+
+### API Keys Ignore Tenant Boundaries
+
+An API key bypasses all permissions, so the admin client sees every tenant's data. For requests made on behalf of a user:
+
+1. **Act as the user** with the per-request session client from the SSR section, or with a JWT. Permissions then isolate tenants for you.
+2. **If you must use the API key**, confirm the caller's membership and roles first, then filter every query by `tenantId`. Take the user ID from the verified session or the `x-appwrite-user-id` function header, never from the request body.
+
+```php
+// Appwrite Function: act as the calling user
+return function ($context) {
+    $jwt = $context->req->headers['x-appwrite-user-jwt'] ?? null;   // present only when a signed-in user called the function
+    if (!$jwt) {
+        return $context->res->json(['error' => 'Unauthorized'], 401);
+    }
+
+    $userClient = (new Client())
+        ->setEndpoint(getenv('APPWRITE_FUNCTION_API_ENDPOINT'))
+        ->setProject(getenv('APPWRITE_FUNCTION_PROJECT_ID'))
+        ->setJWT($jwt);
+
+    $invoices = (new TablesDB($userClient))->listRows(
+        databaseId: '[DATABASE_ID]',
+        tableId: 'invoices',
+        queries: [Query::equal('tenantId', ['[TENANT_ID]'])]
+    );
+    return $context->res->json(['total' => $invoices->total]);
+};
+
+// API key path: verify membership before touching tenant data
+function requireTenantRole(Teams $adminTeams, string $tenantId, string $userId, ?string $role = null): void
+{
+    $list = $adminTeams->listMemberships(
+        teamId: $tenantId,
+        queries: [Query::equal('userId', [$userId])]
+    );
+    $confirmed = array_filter($list->memberships, fn ($m) => $m->confirm);
+    $membership = reset($confirmed);
+
+    if (!$membership || ($role !== null && !in_array($role, $membership->roles, true))) {
+        throw new RuntimeException('Forbidden');
+    }
+}
+```
+
+### Offboard a Tenant
+
+Deleting a team removes its memberships, not the rows and files that grant it access, and a team created later with the same ID would inherit them. Delete tenant data first, with the admin client, in every tenant table and bucket:
+
+```php
+$adminTablesDB = new TablesDB($adminClient);
+$adminTablesDB->deleteRows(
+    databaseId: '[DATABASE_ID]',
+    tableId: 'invoices',
+    queries: [Query::equal('tenantId', ['[TENANT_ID]'])]
+);
+
+$adminTeams->delete(teamId: '[TENANT_ID]');
+```
+
+### Choosing an Isolation Model
+
+| Model | Use when | Trade-off |
+|-------|----------|-----------|
+| Shared tables + team permissions (default) | Most SaaS apps | One schema for all tenants; isolation depends on correct permissions |
+| Table or database per tenant | Tenants need their own schema, or their data must be exported or dropped as a unit | Every schema change runs once per tenant. Put `Role::team($tenantId)` in the table-level permissions and leave row security off |
+| Project per tenant | Tenants need separate users, auth settings, or regions | Users and sessions cannot cross projects; far more to operate |
+
+> **Common mistakes:**
+> - **Table-level `read`/`update`/`delete` for `Role::users()` or `Role::any()` on a tenant table**: exposes every tenant's rows
+> - **Row security left off**: row permissions are ignored and only table-level permissions count
+> - **Treating `tenantId` as the security boundary**: it is a filter, and clients can write any value into it. Permissions are the boundary
+> - **Serving user requests with the API key and no membership check**: the key sees every tenant
+> - **Granting a role the user lacks through a session or JWT client**: fails with `401`; use the admin client instead
+> - **Expecting `owner` to imply `admin`**: roles are flat strings; give users every role your permissions check
+> - **Deleting a team but not its data**: orphaned rows remain, and a future team with the same ID inherits them
 

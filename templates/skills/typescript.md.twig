@@ -1,6 +1,6 @@
 {% set lang = 'typescript' %}
 {% set langName = 'TypeScript' %}
-{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building browser-based JavaScript/TypeScript apps, React Native mobile apps, or server-side Node.js/Deno backends with {{ spec.info.title }}. Covers client-side auth (email, OAuth, anonymous), database queries, file uploads, real-time subscriptions, and server-side admin via API keys for user management, database administration, storage, and functions.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building browser-based JavaScript/TypeScript apps, React Native mobile apps, or server-side Node.js/Deno backends with {{ spec.info.title }}. Covers client-side auth (email, OAuth, anonymous), database queries, file uploads, real-time subscriptions, and server-side admin via API keys for user management, database administration, storage, and functions. Also covers multi-tenant apps with Teams (tenant isolation, invites, memberships).{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
 # {{ spec.info.title }} {{ langName }} SDK
@@ -71,7 +71,7 @@ account.createOAuth2Session({
     provider: OAuthProvider.Github,
     success: 'https://example.com/success',
     failure: 'https://example.com/fail',
-    scopes: ['repo', 'user'] // optional — provider-specific scopes
+    scopes: ['repo', 'user'] // optional, provider-specific scopes
 });
 
 // Get current user
@@ -280,20 +280,20 @@ const results = await tablesDB.listRows({
 
 // Each document includes built-in fields alongside your data
 const doc = results.documents[0];
-doc.$id;            // string — unique row ID
-doc.$createdAt;     // string — ISO 8601 creation timestamp
-doc.$updatedAt;     // string — ISO 8601 update timestamp
-doc.$permissions;   // string[] — permission strings
+doc.$id;            // string: unique row ID
+doc.$createdAt;     // string: ISO 8601 creation timestamp
+doc.$updatedAt;     // string: ISO 8601 update timestamp
+doc.$permissions;   // string[]: permission strings
 doc.$databaseId;    // string
 doc.$collectionId;  // string
 
 // Common model types
-// Models.User<Preferences>  — user account
-// Models.Session             — auth session
-// Models.File                — storage file metadata
-// Models.Team                — team object
-// Models.Execution           — function execution result
-// Models.DocumentList<T>     — paginated list with total count
+// Models.User<Preferences>:  user account
+// Models.Session:             auth session
+// Models.File:                storage file metadata
+// Models.Team:                team object
+// Models.Execution:           function execution result
+// Models.DocumentList<T>:     paginated list with total count
 ```
 
 ### Query Methods
@@ -337,14 +337,14 @@ Query.and([Query.greaterThan('age', 18), Query.lessThan('age', 65)])  // explici
 ```typescript
 const storage = new Storage(client);
 
-// Upload file (client-side — from file input)
+// Upload file (client-side, from file input)
 const file = await storage.createFile({
     bucketId: '[BUCKET_ID]',
     fileId: ID.unique(),
     file: document.getElementById('file-input').files[0]
 });
 
-// Upload file (server-side — from path)
+// Upload file (server-side, from path)
 import { InputFile } from 'node-{{ spec.info.title | caseLower }}/file';
 
 const file2 = await storage.createFile({
@@ -419,6 +419,8 @@ await teams.delete({ teamId: '[TEAM_ID]' });
 
 > **Role-based access:** Use `Role.team('[TEAM_ID]')` for all team members or `Role.team('[TEAM_ID]', 'editor')` for a specific team role when setting permissions.
 
+> **Multi-tenant apps:** to give each organization or workspace its own isolated data, invites, and roles, see **Multi-tenancy with Teams** below.
+
 ### Real-time Subscriptions (client-side)
 
 ```typescript
@@ -491,13 +493,13 @@ When deploying your own Appwrite Function, the entry point file must export a de
 // src/main.js (or src/main.ts)
 export default async ({ req, res, log, error }) => {
     // Request properties
-    // req.body        — raw request body (string)
-    // req.bodyJson    — parsed JSON body (object, or undefined if not JSON)
-    // req.headers     — request headers (object)
-    // req.method      — HTTP method (GET, POST, PUT, DELETE, PATCH)
-    // req.path        — URL path (e.g. '/hello')
-    // req.query       — parsed query parameters (object)
-    // req.queryString — raw query string
+    // req.body:        raw request body (string)
+    // req.bodyJson:    parsed JSON body (object, or undefined if not JSON)
+    // req.headers:     request headers (object)
+    // req.method:      HTTP method (GET, POST, PUT, DELETE, PATCH)
+    // req.path:        URL path (e.g. '/hello')
+    // req.query:       parsed query parameters (object)
+    // req.queryString: raw query string
 
     log('Processing request: ' + req.method + ' ' + req.path);
 
@@ -524,8 +526,8 @@ export default async ({ req, res, log, error }) => {
 
 SSR apps (Next.js, SvelteKit, Nuxt, Remix, Astro) use the **server SDK** (`node-{{ spec.info.title | caseLower }}`) to handle auth. You need two clients:
 
-- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
-- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+- **Admin client**: uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client**: uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```typescript
 import { Client, Account, OAuthProvider } from 'node-{{ spec.info.title | caseLower }}';
@@ -603,7 +605,7 @@ app.get('/oauth', async (req, res) => {
     res.redirect(redirectUrl);
 });
 
-// Step 2: Handle callback — exchange token for session
+// Step 2: Handle the callback and exchange the token for a session
 app.get('/oauth/success', async (req, res) => {
     const account = new Account(adminClient);
     const session = await account.createSession({
@@ -649,11 +651,11 @@ try {
 
 | Code | Meaning |
 |------|---------|
-| `401` | Unauthorized — missing or invalid session/API key |
-| `403` | Forbidden — insufficient permissions for this action |
-| `404` | Not found — resource does not exist |
-| `409` | Conflict — duplicate ID or unique constraint violation |
-| `429` | Rate limited — too many requests, retry after backoff |
+| `401` | Unauthorized: missing or invalid session/API key |
+| `403` | Forbidden: insufficient permissions for this action |
+| `404` | Not found: resource does not exist |
+| `409` | Conflict: duplicate ID or unique constraint violation |
+| `429` | Rate limited: too many requests, retry after backoff |
 
 ## Permissions & Roles (Critical)
 
@@ -699,7 +701,242 @@ const file = await storage.createFile({
 > **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
-> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
-> - **`Role.any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
-> - **`Permission.read(Role.any())` on sensitive data** — makes the resource publicly readable
+> - **Forgetting permissions**: the resource becomes inaccessible to all users (including the creator)
+> - **`Role.any()` with `write`/`update`/`delete`**: allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.read(Role.any())` on sensitive data**: makes the resource publicly readable
+
+## Multi-tenancy with Teams
+
+Model each tenant (an organization, workspace, school, or customer account) as a **team**. Memberships carry the tenant roles, and `Role.team()` permissions keep one tenant's rows and files invisible to every other tenant. All tenants share one project and one set of tables.
+
+| Tenant concept | {{ spec.info.title }} primitive |
+|----------------|---------------------|
+| Tenant | Team (the team ID is the tenant ID) |
+| User belongs to a tenant | Membership (`confirm: true` once joined) |
+| Tenant roles (`owner`, `admin`, `member`) | Membership `roles` (free-form strings) |
+| Tenant-only data | Row/file permissions with `Role.team(tenantId)` or `Role.team(tenantId, 'admin')` |
+| Tenant settings (plan, branding) | Team prefs (`teams.getPrefs` / `teams.updatePrefs`). Every member can read them, so never store secrets there |
+| Platform staff across all tenants | A user label set server-side with `users.updateLabels`, granted through `Role.label('staff')` |
+
+### Configure Tenant Tables (server-side, once)
+
+Turn on row security and keep table-level permissions to `create`. Table-level permissions apply to **every row**, and a user needs access at the table level *or* the row level, so `Permission.read(Role.users())` on the table lets every signed-in user read every tenant's rows.
+
+```typescript
+import { Client, TablesDB, Teams, ID, Query, Permission, Role, TablesDBIndexType } from 'node-{{ spec.info.title | caseLower }}';
+
+const adminTablesDB = new TablesDB(adminClient); // API key client
+
+await adminTablesDB.createTable({
+    databaseId: '[DATABASE_ID]',
+    tableId: 'invoices',
+    name: 'Invoices',
+    rowSecurity: true,                               // row permissions decide who sees each row
+    permissions: [Permission.create(Role.users())],  // signed-in users may create rows; nothing else table-wide
+    columns: [
+        { key: 'tenantId', type: 'varchar', size: 36,  required: true },
+        { key: 'title',    type: 'varchar', size: 255, required: true },
+        { key: 'amount',   type: 'double',             required: true },
+    ]
+});
+
+// Index tenantId so per-tenant filters stay fast (the column must be available first)
+await adminTablesDB.createIndex({
+    databaseId: '[DATABASE_ID]',
+    tableId: 'invoices',
+    key: 'tenant_idx',
+    type: TablesDBIndexType.Key,
+    columns: ['tenantId']
+});
+```
+
+If only server code creates rows, leave the table-level `permissions` empty.
+
+### Create a Tenant
+
+Client-side, the signed-in user creates the team and becomes its owner:
+
+```typescript
+const teams = new Teams(client);
+
+const tenant = await teams.create({
+    teamId: ID.unique(),
+    name: 'Example Corp',
+    roles: ['owner', 'admin']   // the CREATOR's roles (default: ['owner'])
+});
+```
+
+> **`roles` on `teams.create()` sets the creator's roles.** It does not declare which roles the team supports. A role exists as soon as a membership carries it. Roles are flat strings: `owner` does not imply `admin`. Only `owner` is special: owners invite and remove members, change roles, update the team, and delete it.
+
+Server-side, `teams.create()` with an API key creates a team with **no members**. Add the owner yourself:
+
+```typescript
+const adminTeams = new Teams(adminClient);
+
+const tenant = await adminTeams.create({ teamId: ID.unique(), name: 'Example Corp' });
+await adminTeams.createMembership({
+    teamId: tenant.$id,
+    roles: ['owner', 'admin'],
+    userId: '[USER_ID]'          // with an API key the user joins at once; no invite email
+});
+```
+
+### Invite and Manage Members
+
+A client-side invite sends an email and creates a pending membership (`confirm: false`) until the user accepts. Only owners can invite.
+
+```typescript
+await teams.createMembership({
+    teamId: '[TENANT_ID]',
+    roles: ['member'],
+    email: 'user@example.com',
+    url: 'https://example.com/accept-invite'   // hostname must be registered as a platform
+});
+```
+
+{{ spec.info.title }} appends `teamId`, `membershipId`, `userId`, and `secret` to `url`. Accept on that page. A successful accept also creates a session for the invited user.
+
+```typescript
+const params = new URLSearchParams(window.location.search);
+
+await teams.updateMembershipStatus({
+    teamId: params.get('teamId')!,
+    membershipId: params.get('membershipId')!,
+    userId: params.get('userId')!,
+    secret: params.get('secret')!
+});
+```
+
+With an API key, `createMembership()` sends no email and adds the user immediately. Use it for SSO provisioning, bulk imports, or a custom invite flow.
+
+```typescript
+// Tenants the signed-in user belongs to (client-side), for a tenant switcher
+const { teams: myTenants } = await teams.list();
+
+// Members of a tenant (any member can list them)
+const { memberships } = await teams.listMemberships({ teamId: '[TENANT_ID]' });
+
+// The current user's roles in a tenant. Use them for UI decisions only; permissions do the enforcing
+const me = await account.get();
+const mine = await teams.listMemberships({
+    teamId: '[TENANT_ID]',
+    queries: [Query.equal('userId', me.$id)]
+});
+const isAdmin = mine.memberships[0]?.roles.includes('admin') ?? false;
+
+// Change a member's roles (owners only)
+await teams.updateMembership({
+    teamId: '[TENANT_ID]',
+    membershipId: '[MEMBERSHIP_ID]',
+    roles: ['admin']
+});
+
+// Remove a member, revoke a pending invite, or leave the tenant (users can delete their own membership)
+await teams.deleteMembership({ teamId: '[TENANT_ID]', membershipId: '[MEMBERSHIP_ID]' });
+```
+
+Deleting a membership revokes access at once: the user stops matching every `Role.team()` permission for that tenant. To hide member names, emails, and MFA status from other members, enable membership privacy in the Console under **Auth** > **Policies** > **Memberships**.
+
+### Write and Read Tenant Data
+
+```typescript
+// Web or React Native client, or a per-request session or JWT client on the server, so permissions apply
+const tablesDB = new TablesDB(client);
+
+// Tag every row with its tenant and grant access through the tenant's team
+await tablesDB.createRow({
+    databaseId: '[DATABASE_ID]',
+    tableId: 'invoices',
+    rowId: ID.unique(),
+    data: { tenantId: '[TENANT_ID]', title: 'Q2 Invoice', amount: 2500 },
+    permissions: [
+        Permission.read(Role.team('[TENANT_ID]')),             // every member of the tenant
+        Permission.update(Role.team('[TENANT_ID]', 'admin')),  // tenant admins only
+        Permission.delete(Role.team('[TENANT_ID]', 'admin')),
+    ]
+});
+
+// Returns only rows the user can read, from ALL of the user's tenants.
+// Filter by tenantId to show the active tenant.
+const invoices = await tablesDB.listRows({
+    databaseId: '[DATABASE_ID]',
+    tableId: 'invoices',
+    queries: [Query.equal('tenantId', '[TENANT_ID]')]
+});
+```
+
+> **Client SDKs can only grant roles the user holds.** A user whose only role is `member` gets `401` when setting `Permission.update(Role.team('[TENANT_ID]', 'admin'))`. From the client, grant roles the user has (such as `Role.team('[TENANT_ID]')`), or create the row in a server function, where the API key can grant any role.
+
+Files follow the same pattern: create the bucket with `fileSecurity: true` and give each file `Role.team()` permissions. Realtime needs no extra work: subscribers only receive events for rows and files they can read.
+
+### Server Code: API Keys Ignore Tenant Boundaries
+
+An API key bypasses all permissions, so an admin client sees every tenant's data. For requests made on behalf of a user:
+
+1. **Act as the user** with the per-request session client from the SSR section, or with a JWT. Permissions then isolate tenants for you.
+2. **If you must use the API key**, confirm the caller's membership and roles first, then filter every query by `tenantId`. Take the user ID from the verified session or the `x-appwrite-user-id` function header, never from the request body.
+
+```typescript
+// Appwrite Function: act as the calling user
+export default async ({ req, res }) => {
+    const jwt = req.headers['x-appwrite-user-jwt'];   // present only when a signed-in user called the function
+    if (!jwt) return res.json({ error: 'Unauthorized' }, 401);
+
+    const userClient = new Client()
+        .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
+        .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
+        .setJWT(jwt);
+
+    const invoices = await new TablesDB(userClient).listRows({
+        databaseId: '[DATABASE_ID]',
+        tableId: 'invoices',
+        queries: [Query.equal('tenantId', req.bodyJson.tenantId)]
+    });
+    return res.json(invoices);
+};
+
+// API key path: verify membership before touching tenant data
+async function requireTenantRole(tenantId: string, userId: string, role?: string) {
+    const { memberships } = await new Teams(adminClient).listMemberships({
+        teamId: tenantId,
+        queries: [Query.equal('userId', userId)]
+    });
+    const membership = memberships.find((m) => m.confirm);
+    if (!membership || (role && !membership.roles.includes(role))) {
+        throw new Error('Forbidden');
+    }
+    return membership;
+}
+```
+
+### Offboard a Tenant
+
+Deleting a team removes its memberships, not the rows and files that grant it access, and a team created later with the same ID would inherit them. Delete tenant data first, server-side, in every tenant table and bucket:
+
+```typescript
+await adminTablesDB.deleteRows({
+    databaseId: '[DATABASE_ID]',
+    tableId: 'invoices',
+    queries: [Query.equal('tenantId', '[TENANT_ID]')]
+});
+
+await adminTeams.delete({ teamId: '[TENANT_ID]' });
+```
+
+### Choosing an Isolation Model
+
+| Model | Use when | Trade-off |
+|-------|----------|-----------|
+| Shared tables + team permissions (default) | Most SaaS apps | One schema for all tenants; isolation depends on correct permissions |
+| Table or database per tenant | Tenants need their own schema, or their data must be exported or dropped as a unit | Every schema change runs once per tenant. Put `Role.team(tenantId)` in the table-level permissions and leave row security off |
+| Project per tenant | Tenants need separate users, auth settings, or regions | Users and sessions cannot cross projects; far more to operate |
+
+> **Common mistakes:**
+> - **Table-level `read`/`update`/`delete` for `Role.users()` or `Role.any()` on a tenant table**: exposes every tenant's rows
+> - **Row security left off**: row permissions are ignored and only table-level permissions count
+> - **Treating `tenantId` as the security boundary**: it is a filter, and clients can write any value into it. Permissions are the boundary
+> - **Serving user requests with the API key and no membership check**: the key sees every tenant
+> - **Granting a role the client user lacks**: fails with `401`; grant it from server code instead
+> - **Expecting `owner` to imply `admin`**: roles are flat strings; give users every role your permissions check
+> - **Deleting a team but not its data**: orphaned rows remain, and a future team with the same ID inherits them
 

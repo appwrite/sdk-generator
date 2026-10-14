@@ -1,6 +1,6 @@
 {% set lang = 'dotnet' %}
 {% set langName = '.NET' %}
-{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side C# or .NET applications with {{ spec.info.title }}, including ASP.NET and Blazor integrations. Covers user management, database/table CRUD, file storage, and functions via API keys.{% endset %}
+{% set langDescription %}{{ spec.info.title }} {{ langName }} SDK skill. Use when building server-side C# or .NET applications with {{ spec.info.title }}, including ASP.NET and Blazor integrations. Covers user management, database/table CRUD, file storage, and functions via API keys. Also covers multi-tenant apps with Teams (tenant isolation, invites, memberships).{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
 # {{ spec.info.title }} {{ langName }} SDK
@@ -189,6 +189,8 @@ await teams.Delete("[TEAM_ID]");
 
 > **Role-based access:** Use `Role.Team("[TEAM_ID]")` for all team members or `Role.Team("[TEAM_ID]", "editor")` for a specific team role when setting permissions.
 
+> **Multi-tenant apps:** to give each organization or workspace its own isolated data, invites, and roles, see **Multi-tenancy with Teams** below.
+
 ### Serverless Functions
 
 ```csharp
@@ -204,17 +206,17 @@ var executions = await functions.ListExecutions("[FUNCTION_ID]");
 #### Writing a Function Handler (.NET runtime)
 
 ```csharp
-// src/Main.cs — Appwrite Function entry point
+// src/Main.cs: Appwrite Function entry point
 using System.Text.Json;
 
 public async Task<RuntimeOutput> Main(RuntimeContext context)
 {
-    // context.Req.Body        — raw body (string)
-    // context.Req.BodyJson    — parsed JSON (JsonElement)
-    // context.Req.Headers     — headers (Dictionary)
-    // context.Req.Method      — HTTP method
-    // context.Req.Path        — URL path
-    // context.Req.Query       — query params (Dictionary)
+    // context.Req.Body:        raw body (string)
+    // context.Req.BodyJson:    parsed JSON (JsonElement)
+    // context.Req.Headers:     headers (Dictionary)
+    // context.Req.Method:      HTTP method
+    // context.Req.Path:        URL path
+    // context.Req.Query:       query params (Dictionary)
 
     context.Log($"Processing: {context.Req.Method} {context.Req.Path}");
 
@@ -232,8 +234,8 @@ public async Task<RuntimeOutput> Main(RuntimeContext context)
 
 SSR apps using .NET frameworks (ASP.NET, Blazor Server, etc.) use the **server SDK** to handle auth. You need two clients:
 
-- **Admin client** — uses an API key, creates sessions, bypasses rate limits (reusable singleton)
-- **Session client** — uses a session cookie, acts on behalf of a user (create per-request, never share)
+- **Admin client**: uses an API key, creates sessions, bypasses rate limits (reusable singleton)
+- **Session client**: uses a session cookie, acts on behalf of a user (create per-request, never share)
 
 ```csharp
 using {{ spec.info.title }};
@@ -312,7 +314,7 @@ app.MapGet("/oauth", async () =>
     return Results.Redirect(redirectUrl);
 });
 
-// Step 2: Handle callback — exchange token for session
+// Step 2: Handle the callback and exchange the token for a session
 app.MapGet("/oauth/success", async (HttpContext ctx, string userId, string secret) =>
 {
     var account = new Account(adminClient);
@@ -353,11 +355,11 @@ catch (AppwriteException e)
 
 | Code | Meaning |
 |------|---------|
-| `401` | Unauthorized — missing or invalid session/API key |
-| `403` | Forbidden — insufficient permissions |
-| `404` | Not found — resource does not exist |
-| `409` | Conflict — duplicate ID or unique constraint |
-| `429` | Rate limited — too many requests |
+| `401` | Unauthorized: missing or invalid session/API key |
+| `403` | Forbidden: insufficient permissions |
+| `404` | Not found: resource does not exist |
+| `409` | Conflict: duplicate ID or unique constraint |
+| `429` | Rate limited: too many requests |
 
 ## Permissions & Roles (Critical)
 
@@ -398,7 +400,225 @@ var file = await storage.CreateFile("[BUCKET_ID]", ID.Unique(),
 > **When to set permissions:** Set row/file-level permissions when you need per-resource access control. If all rows in a table share the same rules, configure permissions at the table/bucket level and leave row permissions empty.
 
 > **Common mistakes:**
-> - **Forgetting permissions** — the resource becomes inaccessible to all users (including the creator)
-> - **`Role.Any()` with `write`/`update`/`delete`** — allows any user, including unauthenticated guests, to modify or remove the resource
-> - **`Permission.Read(Role.Any())` on sensitive data** — makes the resource publicly readable
+> - **Forgetting permissions**: the resource becomes inaccessible to all users (including the creator)
+> - **`Role.Any()` with `write`/`update`/`delete`**: allows any user, including unauthenticated guests, to modify or remove the resource
+> - **`Permission.Read(Role.Any())` on sensitive data**: makes the resource publicly readable
+
+## Multi-tenancy with Teams
+
+Model each tenant (an organization, workspace, school, or customer account) as a **team**. Memberships carry the tenant roles, and `Role.Team()` permissions keep one tenant's rows and files invisible to every other tenant. All tenants share one project and one set of tables.
+
+| Tenant concept | {{ spec.info.title }} primitive |
+|----------------|---------------------|
+| Tenant | Team (the team ID is the tenant ID) |
+| User belongs to a tenant | Membership (`Confirm` is `true` once joined) |
+| Tenant roles (`owner`, `admin`, `member`) | Membership `Roles` (free-form strings) |
+| Tenant-only data | Row/file permissions with `Role.Team(tenantId)` or `Role.Team(tenantId, "admin")` |
+| Tenant settings (plan, branding) | Team prefs (`GetPrefs` / `UpdatePrefs`). Every member can read them, so never store secrets there |
+| Platform staff across all tenants | A user label set with `users.UpdateLabels`, granted through `Role.Label("staff")` |
+
+### Configure Tenant Tables (once)
+
+Turn on row security and keep table-level permissions to `create`. Table-level permissions apply to **every row**, and a user needs access at the table level *or* the row level, so `Permission.Read(Role.Users())` on the table lets every signed-in user read every tenant's rows.
+
+```csharp
+using {{ spec.info.title }};
+using {{ spec.info.title }}.Enums;
+using {{ spec.info.title }}.Models;
+using {{ spec.info.title }}.Services;
+
+var tablesDB = new TablesDB(adminClient); // API key client
+
+await tablesDB.CreateTable(
+    databaseId: "[DATABASE_ID]",
+    tableId: "invoices",
+    name: "Invoices",
+    permissions: new List<string> { Permission.Create(Role.Users()) }, // signed-in users may create rows; nothing else table-wide
+    rowSecurity: true,                                                 // row permissions decide who sees each row
+    columns: new List<object>
+    {
+        new { key = "tenantId", type = "varchar", size = 36,  required = true },
+        new { key = "title",    type = "varchar", size = 255, required = true },
+        new { key = "amount",   type = "double",              required = true },
+    });
+
+// Index tenantId so per-tenant filters stay fast (the column must be available first)
+await tablesDB.CreateIndex(
+    databaseId: "[DATABASE_ID]",
+    tableId: "invoices",
+    key: "tenant_idx",
+    type: TablesDBIndexType.Key,
+    columns: new List<string> { "tenantId" });
+```
+
+If only server code creates rows, leave the table-level `permissions` empty.
+
+### Create a Tenant
+
+With an API key, `Create` makes a team with **no members**. Add the owner yourself:
+
+```csharp
+var adminTeams = new Teams(adminClient);
+
+var tenant = await adminTeams.Create(teamId: ID.Unique(), name: "Example Corp");
+await adminTeams.CreateMembership(
+    teamId: tenant.Id,
+    roles: new List<string> { "owner", "admin" },
+    userId: "[USER_ID]");        // with an API key the user joins at once; no invite email
+```
+
+Calling `Create` through a user's session client instead makes that user the owner, and `roles` sets the **creator's** roles (default `owner`).
+
+> **Teams have no fixed role list.** A role exists as soon as a membership carries it. Roles are flat strings: `owner` does not imply `admin`. Only `owner` is special: owners invite and remove members, change roles, update the team, and delete it.
+
+### Invite and Manage Members
+
+Which client calls `CreateMembership` decides what happens:
+
+- **Session client** (acting as a tenant owner): sends an invite email and creates a pending membership (`Confirm` is `false`) until the user accepts.
+- **Admin client** (API key): sends no email and adds the user immediately. Use it for SSO provisioning, bulk imports, or a custom invite flow.
+
+```csharp
+// As the signed-in owner: send an invite email
+var teams = new Teams(sessionClient);
+await teams.CreateMembership(
+    teamId: "[TENANT_ID]",
+    roles: new List<string> { "member" },
+    email: "user@example.com",
+    url: "https://example.com/accept-invite"); // hostname must be registered as a platform
+
+// /accept-invite route: {{ spec.info.title }} appended teamId, membershipId, userId, and secret to the url.
+// No session is needed: the secret authorizes the accept.
+app.MapGet("/accept-invite", async (string teamId, string membershipId, string userId, string secret) =>
+{
+    var guestClient = new Client()
+        .SetEndpoint("https://<REGION>.cloud.appwrite.io/v1")
+        .SetProject("[PROJECT_ID]");
+
+    await new Teams(guestClient).UpdateMembershipStatus(teamId, membershipId, userId, secret);
+    return Results.Redirect("/login");
+});
+
+// Members of a tenant
+var members = await teams.ListMemberships(teamId: "[TENANT_ID]");
+
+// One user's membership and roles in a tenant
+var mine = await teams.ListMemberships(
+    teamId: "[TENANT_ID]",
+    queries: new List<string> { Query.Equal("userId", "[USER_ID]") });
+
+// Change a member's roles (owners only, or an API key)
+await teams.UpdateMembership("[TENANT_ID]", "[MEMBERSHIP_ID]", new List<string> { "admin" });
+
+// Remove a member, revoke a pending invite, or leave the tenant (users can delete their own membership)
+await teams.DeleteMembership("[TENANT_ID]", "[MEMBERSHIP_ID]");
+```
+
+Deleting a membership revokes access at once: the user stops matching every `Role.Team()` permission for that tenant. To hide member names, emails, and MFA status from other members, enable membership privacy in the Console under **Auth** > **Policies** > **Memberships**.
+
+### Write and Read Tenant Data
+
+Use the per-request session client so permissions apply:
+
+```csharp
+var userDB = new TablesDB(sessionClient);
+
+// Tag every row with its tenant and grant access through the tenant's team
+await userDB.CreateRow(
+    databaseId: "[DATABASE_ID]",
+    tableId: "invoices",
+    rowId: ID.Unique(),
+    data: new Dictionary<string, object>
+    {
+        { "tenantId", "[TENANT_ID]" }, { "title", "Q2 Invoice" }, { "amount", 2500 }
+    },
+    permissions: new List<string>
+    {
+        Permission.Read(Role.Team("[TENANT_ID]")),             // every member of the tenant
+        Permission.Update(Role.Team("[TENANT_ID]", "admin")),  // tenant admins only
+        Permission.Delete(Role.Team("[TENANT_ID]", "admin")),
+    });
+
+// Returns only rows the user can read, from ALL of the user's tenants.
+// Filter by tenantId to show the active tenant.
+var invoices = await userDB.ListRows(
+    databaseId: "[DATABASE_ID]",
+    tableId: "invoices",
+    queries: new List<string> { Query.Equal("tenantId", "[TENANT_ID]") });
+```
+
+> **A session or JWT client can only grant roles the user holds.** A user whose only role is `member` gets `401` when setting `Permission.Update(Role.Team("[TENANT_ID]", "admin"))`. Grant roles the user has (such as `Role.Team("[TENANT_ID]")`), or write the row with the admin client, which can grant any role.
+
+Files follow the same pattern: create the bucket with `fileSecurity: true` and give each file `Role.Team()` permissions. Realtime needs no extra work: subscribers only receive events for rows and files they can read.
+
+### API Keys Ignore Tenant Boundaries
+
+An API key bypasses all permissions, so the admin client sees every tenant's data. For requests made on behalf of a user:
+
+1. **Act as the user** with the per-request session client from the SSR section, or with a JWT. Permissions then isolate tenants for you.
+2. **If you must use the API key**, confirm the caller's membership and roles first, then filter every query by `tenantId`. Take the user ID from the verified session or the `x-appwrite-user-id` function header, never from the request body.
+
+```csharp
+// Appwrite Function: act as the calling user
+// x-appwrite-user-jwt is present only when a signed-in user called the function
+if (!context.Req.Headers.TryGetValue("x-appwrite-user-jwt", out var jwt))
+{
+    throw new UnauthorizedAccessException("Unauthorized"); // or return an error response
+}
+
+var userClient = new Client()
+    .SetEndpoint(Environment.GetEnvironmentVariable("APPWRITE_FUNCTION_API_ENDPOINT"))
+    .SetProject(Environment.GetEnvironmentVariable("APPWRITE_FUNCTION_PROJECT_ID"))
+    .SetJWT(jwt);
+
+var tenantInvoices = await new TablesDB(userClient).ListRows(
+    databaseId: "[DATABASE_ID]",
+    tableId: "invoices",
+    queries: new List<string> { Query.Equal("tenantId", "[TENANT_ID]") });
+
+// API key path: verify membership before touching tenant data
+async Task<Membership> RequireTenantRole(Teams adminTeams, string tenantId, string userId, string? role = null)
+{
+    var list = await adminTeams.ListMemberships(
+        teamId: tenantId,
+        queries: new List<string> { Query.Equal("userId", userId) });
+
+    var membership = list.Memberships.FirstOrDefault(m => m.Confirm);
+    if (membership == null || (role != null && !membership.Roles.Contains(role)))
+    {
+        throw new UnauthorizedAccessException("Forbidden");
+    }
+    return membership;
+}
+```
+
+### Offboard a Tenant
+
+Deleting a team removes its memberships, not the rows and files that grant it access, and a team created later with the same ID would inherit them. Delete tenant data first, with the admin client, in every tenant table and bucket:
+
+```csharp
+await tablesDB.DeleteRows(
+    databaseId: "[DATABASE_ID]",
+    tableId: "invoices",
+    queries: new List<string> { Query.Equal("tenantId", "[TENANT_ID]") });
+
+await adminTeams.Delete("[TENANT_ID]");
+```
+
+### Choosing an Isolation Model
+
+| Model | Use when | Trade-off |
+|-------|----------|-----------|
+| Shared tables + team permissions (default) | Most SaaS apps | One schema for all tenants; isolation depends on correct permissions |
+| Table or database per tenant | Tenants need their own schema, or their data must be exported or dropped as a unit | Every schema change runs once per tenant. Put `Role.Team(tenantId)` in the table-level permissions and leave row security off |
+| Project per tenant | Tenants need separate users, auth settings, or regions | Users and sessions cannot cross projects; far more to operate |
+
+> **Common mistakes:**
+> - **Table-level `read`/`update`/`delete` for `Role.Users()` or `Role.Any()` on a tenant table**: exposes every tenant's rows
+> - **Row security left off**: row permissions are ignored and only table-level permissions count
+> - **Treating `tenantId` as the security boundary**: it is a filter, and clients can write any value into it. Permissions are the boundary
+> - **Serving user requests with the API key and no membership check**: the key sees every tenant
+> - **Granting a role the user lacks through a session or JWT client**: fails with `401`; use the admin client instead
+> - **Expecting `owner` to imply `admin`**: roles are flat strings; give users every role your permissions check
+> - **Deleting a team but not its data**: orphaned rows remain, and a future team with the same ID inherits them
 
