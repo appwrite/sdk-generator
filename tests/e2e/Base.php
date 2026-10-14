@@ -753,8 +753,7 @@ abstract class Base extends TestCase
                     ['name' => 'createExcludedGeneralFixture'],
                 ],
             ])
-            ->setTest("true")
-            ->setPush(true);
+            ->setTest("true");
 
         if ($this->language === 'android' || $this->language === 'kotlin') {
             $sdk->setNamespace("io.appwrite");

@@ -157,7 +157,6 @@ class Node extends Web
                 'scope'         => 'default',
                 'destination'   => 'test/topic.test.js',
                 'template'      => 'node/test/topic.test.js.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
@@ -168,7 +167,6 @@ class Node extends Web
                 'scope'         => 'default',
                 'destination'   => 'src/topic.ts',
                 'template'      => 'web/src/topic.ts.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',

@@ -57,7 +57,6 @@ abstract class Client {
   /// Set the {{spec.info.title | caseUcfirst}} realtime endpoint.
   Client setEndPointRealtime(String endPoint);
 
-{% if sdk.push %}
   /// Set the {{spec.info.title | caseUcfirst}} push (MQTT broker) endpoint, e.g.
   /// `mqtt://host:1883` or `mqtts://host:8883`.
   Client setPushEndpoint(String endPoint);
@@ -66,7 +65,6 @@ abstract class Client {
   /// cursor across restarts. Defaults to a per-connection id when unset.
   Client setPushClientId(String pushClientId);
 
-{% endif %}
 {% for headerKey, header in globalHeaders %}
   /// Set {{headerKey | caseUcfirst}}.
 {% if header.description %}

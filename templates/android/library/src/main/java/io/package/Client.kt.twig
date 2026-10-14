@@ -50,15 +50,11 @@ class Client @JvmOverloads constructor(
     var endpoint: String = "{{(spec | endpoint)}}",
     @set:JvmSynthetic
     var endpointRealtime: String? = null,
-{% if sdk.push %}
     private var selfSigned: Boolean = false,
     @set:JvmSynthetic
     var endpointPush: String? = null,
     @set:JvmSynthetic
     var pushClientId: String? = null
-{% else %}
-    private var selfSigned: Boolean = false
-{% endif %}
 ) : CoroutineScope {
 
     companion object {
@@ -226,7 +222,6 @@ class Client @JvmOverloads constructor(
         return this
     }
 
-{% if sdk.push %}
     /**
      * Set push endpoint
      *
@@ -258,7 +253,6 @@ class Client @JvmOverloads constructor(
         return this
     }
 
-{% endif %}
     /**
      * Add Header
      *

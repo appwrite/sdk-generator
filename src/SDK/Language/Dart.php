@@ -335,7 +335,6 @@ class Dart extends Language
                 'scope'         => 'default',
                 'destination'   => '/lib/topic.dart',
                 'template'      => 'dart/lib/topic.dart.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
@@ -436,7 +435,6 @@ class Dart extends Language
                 'scope'         => 'default',
                 'destination'   => '/test/topic_test.dart',
                 'template'      => 'dart/test/topic_test.dart.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',

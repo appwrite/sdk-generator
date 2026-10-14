@@ -216,7 +216,6 @@ class Rust extends Language
                 "scope" => "default",
                 "destination" => "src/topic.rs",
                 "template" => "rust/src/topic.rs.twig",
-                "push" => true,
             ],
             [
                 "scope" => "default",

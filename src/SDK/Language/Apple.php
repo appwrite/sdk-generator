@@ -84,7 +84,6 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Topic.swift',
                 'template'      => 'swift/Sources/Topic.swift.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
@@ -256,7 +255,6 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Services/Push.swift',
                 'template'      => '/apple/Sources/Services/Push.swift.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',

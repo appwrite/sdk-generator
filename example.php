@@ -115,8 +115,6 @@ try {
             $sdk->setExclude($config['exclude']);
         }
         $sdk->setPlatform($config['platform'] ?? $GLOBALS['platform']);
-        // Push is off by default; SDK_GEN_PUSH=true generates it.
-        $sdk->setPush(getenv('SDK_GEN_PUSH') === 'true');
 
         return $sdk;
     }
