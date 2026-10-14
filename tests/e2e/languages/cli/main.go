@@ -312,7 +312,9 @@ func (h *harness) initApns() {
 			fail(err)
 		}
 	}
-	write("appwrite.config.json", `{"projectId":"apns-e2e","endpoint":"http://mockapi/v1"}`)
+	// A project of its own each run: the mock keeps providers and platforms across runs.
+	project := "apns-e2e-" + filepath.Base(dir)[len("appwrite-cli-apns-"):]
+	write("appwrite.config.json", `{"projectId":"`+project+`","endpoint":"http://mockapi/v1"}`)
 
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
