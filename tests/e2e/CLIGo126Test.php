@@ -49,6 +49,7 @@ final class CLIGo126Test extends Base
         ...Base::UPLOAD_RESPONSE,
         ...Base::CLI_HEADERS_RESPONSES,
         'CLI_TYPES_DEPENDENCIES:passed',
+        'CLI_INIT_APNS:passed',
         'CLI_CONFORMANCE:passed',
     ];
 

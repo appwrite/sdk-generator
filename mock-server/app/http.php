@@ -1052,6 +1052,126 @@ App::get('/v1/mock/tests/general/oauth2/failure')
             ]);
     });
 
+/**
+ * Messaging providers and project platforms, for `appwrite init apns`. Kept per project in a file,
+ * since the workers share no memory, so a second run sees what the first created.
+ */
+function apnsMockState(Request $request, callable $change): array
+{
+    $project = \preg_replace('/[^A-Za-z0-9_-]/', '', (string) $request->getHeader('x-appwrite-project', 'default'));
+    $handle = \fopen(APP_STORAGE_CACHE . '/apns-' . $project . '.json', 'c+');
+    if ($handle === false) {
+        throw new Exception(Exception::GENERAL_MOCK, 'Failed to open the APNs mock state', 500);
+    }
+    \flock($handle, LOCK_EX);
+    $state = \json_decode((string) \stream_get_contents($handle), true) ?: ['providers' => [], 'platforms' => []];
+    $result = $change($state);
+    \ftruncate($handle, 0);
+    \rewind($handle);
+    \fwrite($handle, \json_encode($state));
+    \flock($handle, LOCK_UN);
+    \fclose($handle);
+
+    return $result;
+}
+
+function apnsMockProvider(string $id, array $params): array
+{
+    return [
+        '$id' => $id,
+        'name' => $params['name'] ?? '',
+        'provider' => 'apns',
+        'type' => 'push',
+        'enabled' => (bool) ($params['enabled'] ?? true),
+        'credentials' => [
+            'authKeyId' => $params['authKeyId'] ?? '',
+            'teamId' => $params['teamId'] ?? '',
+            'bundleId' => $params['bundleId'] ?? '',
+        ],
+        'options' => ['sandbox' => (bool) ($params['sandbox'] ?? false)],
+    ];
+}
+
+App::get('/v1/messaging/providers')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $kind = '';
+        foreach ((array) $request->getParam('queries', []) as $query) {
+            $decoded = \json_decode((string) $query, true);
+            if (($decoded['attribute'] ?? '') === 'provider') {
+                $kind = (string) ($decoded['values'][0] ?? '');
+            }
+        }
+        $providers = apnsMockState($request, fn (array &$state) => \array_values(\array_filter(
+            $state['providers'],
+            fn (array $provider) => $kind === '' || $provider['provider'] === $kind
+        )));
+        $response->json(['total' => \count($providers), 'providers' => $providers]);
+    });
+
+App::post('/v1/messaging/providers/apns')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $params = $request->getParams();
+        $provider = apnsMockState($request, function (array &$state) use ($params) {
+            $provider = apnsMockProvider('provider' . \count($state['providers']), $params);
+            $state['providers'][] = $provider;
+            return $provider;
+        });
+        $response->setStatusCode(Response::STATUS_CODE_CREATED)->json($provider);
+    });
+
+App::patch('/v1/messaging/providers/apns/:providerId')
+    ->param('providerId', '', new Text(36), 'Provider ID.')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $providerId, Request $request, UtopiaSwooleResponse $response) {
+        $params = $request->getParams();
+        $provider = apnsMockState($request, function (array &$state) use ($providerId, $params) {
+            foreach ($state['providers'] as $index => $provider) {
+                if ($provider['$id'] === $providerId) {
+                    return $state['providers'][$index] = apnsMockProvider($providerId, $params);
+                }
+            }
+            return null;
+        });
+        if ($provider === null) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Provider not found', 404);
+        }
+        $response->json($provider);
+    });
+
+App::get('/v1/project/platforms')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $platforms = apnsMockState($request, fn (array &$state) => $state['platforms']);
+        $response->json(['total' => \count($platforms), 'platforms' => $platforms]);
+    });
+
+App::post('/v1/project/platforms/apple')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $params = $request->getParams();
+        if (($params['bundleIdentifier'] ?? '') === '') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Missing bundleIdentifier', 400);
+        }
+        $platform = apnsMockState($request, function (array &$state) use ($params) {
+            $platform = [
+                '$id' => 'platform' . \count($state['platforms']),
+                'type' => 'apple',
+                'name' => $params['name'] ?? '',
+                'bundleIdentifier' => $params['bundleIdentifier'],
+            ];
+            $state['platforms'][] = $platform;
+            return $platform;
+        });
+        $response->setStatusCode(Response::STATUS_CODE_CREATED)->json($platform);
+    });
+
 App::shutdown()
     ->groups(['mock'])
     ->inject('utopia')
