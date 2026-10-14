@@ -1462,6 +1462,9 @@ extension Push {
             return
         }
         let claimed = Set(pushes.flatMap { $0.backgroundTopics() })
+        #if canImport(UserNotifications)
+            await clearDroppedPlaceholders(claimed: claimed)
+        #endif
         for topic in LinkedTopics.stale(saved: apnsLinkedTopics.topics(targetId), claimed: claimed) {
             await unlink(push, targetId: targetId, topic: topic)
         }
@@ -1687,9 +1690,19 @@ extension Push {
         /// Remove the placeholders the extension couldn't fill once every topic it fetched for is
         /// subscribed here: the broker replays their messages to these callbacks.
         static func clearPlaceholders(subscribed: Set<String>) async {
+            await clearPlaceholders { $0.allSatisfy(subscribed.contains) }
+        }
+
+        /// Remove the placeholders for topics no background subscription claims any more: their messages
+        /// will not be delivered here.
+        static func clearDroppedPlaceholders(claimed: Set<String>) async {
+            await clearPlaceholders { !$0.allSatisfy(claimed.contains) }
+        }
+
+        private static func clearPlaceholders(where isStale: ([String]) -> Bool) async {
             let center = UNUserNotificationCenter.current()
             let stale = await center.deliveredNotifications()
-                .filter { ($0.request.content.userInfo[Shared.placeholderKey] as? [String])?.allSatisfy(subscribed.contains) == true }
+                .filter { ($0.request.content.userInfo[Shared.placeholderKey] as? [String]).map(isStale) == true }
                 .map(\.request.identifier)
             if !stale.isEmpty {
                 center.removeDeliveredNotifications(withIdentifiers: stale)
