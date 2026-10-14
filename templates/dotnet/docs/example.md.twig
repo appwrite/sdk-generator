@@ -12,7 +12,7 @@ using {{ spec.info.title | caseUcfirst }}.Services;
 
 Client client = new Client()
 {% if [(method | securitySchemes)]|length > 0 %}
-    .SetEndPoint("{{ endpointDocs | raw }}") // Your API Endpoint
+    .SetEndpoint("{{ endpointDocs | raw }}") // Your API Endpoint
 {% for node in [(method | securitySchemes)] %}
 {% for key,header in node|keys %}
     .Set{{header | caseUcfirst}}("{{node[header].extensions['x-appwrite']['demo'] | raw }}"){% if loop.last %};{% endif %} // {{node[header].description}}
