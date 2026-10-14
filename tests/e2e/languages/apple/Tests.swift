@@ -251,6 +251,7 @@ class Tests: XCTestCase {
         }
         print("empty presets: \(try await general.listEmptyPresets().presets.count)")
         print("preset verified: \(preset.verified.map { String($0) } ?? "null")")
+        print("preset scopes: \((preset.scopes ?? []).map { $0.rawValue }.joined(separator: ","))")
 
         do {
             try await general.error400()

@@ -284,6 +284,7 @@ class ServiceTest {
             }
             writeToFile("empty presets: ${general.listEmptyPresets().presets.size}")
             writeToFile("preset verified: ${preset.verified}")
+            writeToFile("preset scopes: ${preset.scopes?.joinToString(",") { it.value } ?: ""}")
 
             try {
                 general.error400()

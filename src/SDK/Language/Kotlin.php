@@ -646,10 +646,16 @@ class Kotlin extends Language
             return $class . '.from(map = ' . $mapKey . ' as Map<String, Any>' . $nestedType . ')';
         }
 
-        // Only a scalar enum property is decoded through its enum class; a
-        // list of enums is cast straight across, which is how the published
-        // SDKs read it.
-        if (!($property instanceof ArraySchema) && $this->usesEnumType($property)) {
+        // Responses carry enum values as strings, so each element of an enum
+        // list goes through the enum class too; values this SDK doesn't know
+        // yet are skipped rather than failing the whole model.
+        if ($property instanceof ArraySchema && $this->usesEnumType($property)) {
+            $enumClass = 'io.appwrite.enums.' . $this->toPascalCase($this->getSchemaEnumName($property, $spec));
+            return '(' . $mapKey . ' ' . ($required ? 'as' : 'as?') . ' List<*>)' . ($required ? '' : '?')
+                . '.mapNotNull { value -> ' . $enumClass . '.values().find { it.value == value } }';
+        }
+
+        if ($this->usesEnumType($property)) {
             $enumClass = $this->toPascalCase($this->getSchemaEnumName($property, $spec));
             return $enumClass . '.values().find { it.value == '
                 . ($required ? $mapKey . ' as String' : '(' . $mapKey . ' as? String)') . ' }'

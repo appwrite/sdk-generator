@@ -132,6 +132,7 @@ for item in general.list_presets().presets:
     print(f"preset: name={item.name}, count={item.count:g}, enabled={str(item.enabled).lower()}")
 print(f"empty presets: {len(general.list_empty_presets().presets)}")
 print(f"preset verified: {'null' if preset.verified is None else preset.verified}")
+print(f"preset scopes: {','.join(scope.value for scope in (preset.scopes or []))}")
 print(f"preset tier: {preset.tier}")
 
 try:
