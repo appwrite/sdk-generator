@@ -1,4 +1,3 @@
-{% if sdk.push %}
 declare module 'react-native' {
     export const AppState: {
         readonly currentState: string | null;
@@ -134,10 +133,3 @@ declare module 'expo-notifications' {
         trigger: null;
     }): Promise<string>;
 }
-{% else %}
-declare module 'react-native' {
-    export const Platform: {
-        readonly OS: string;
-    };
-}
-{% endif %}

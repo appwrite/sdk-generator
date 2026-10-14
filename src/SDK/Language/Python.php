@@ -204,13 +204,11 @@ class Python extends Language
                 'scope' => 'default',
                 'destination' => '{{ namespace | caseSnake}}/topic.py',
                 'template' => 'python/package/topic.py.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => 'test/test_topic.py',
                 'template'      => 'python/test/test_topic.py.twig',
-                'push'          => true,
             ],
             [
                 'scope' => 'default',

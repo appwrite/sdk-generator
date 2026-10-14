@@ -526,7 +526,6 @@ class Kotlin extends Language
                 'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Topic.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Topic.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
@@ -562,7 +561,6 @@ class Kotlin extends Language
                 'scope'         => 'default',
                 'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/TopicTest.kt',
                 'template'      => '/kotlin/src/test/kotlin/io/appwrite/TopicTest.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',

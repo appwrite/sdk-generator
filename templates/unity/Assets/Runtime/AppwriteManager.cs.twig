@@ -19,9 +19,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         
         private Client _client;
         private Realtime _realtime;
-{% if sdk.push %}
         private Push _push;
-{% endif %}
         private bool _isInitialized;
         
         private readonly Dictionary<Type, object> _services = new();
@@ -54,7 +52,6 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
         }
 
-{% if sdk.push %}
         /// <summary>
         /// Native push (MQTT) service. Created lazily on first access — set a
         /// credential and subscribe, e.g. <c>Push.SetJWT(jwt)</c>.
@@ -76,7 +73,6 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
         }
 
-{% endif %}
         public bool IsInitialized => _isInitialized;
         public {{ spec.info.title | caseUcfirst }}Config Config => config;
 

@@ -124,7 +124,6 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Topic.kt',
                 'template'      => '/android/library/src/main/java/io/package/Topic.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
@@ -155,7 +154,6 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/TopicTest.kt',
                 'template'      => '/android/library/src/test/java/io/package/TopicTest.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
@@ -216,43 +214,36 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/Push.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/Push.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushCore.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/PushCore.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushService.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/PushService.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushBackground.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/PushBackground.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushReceiver.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/PushReceiver.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushOpenActivity.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/PushOpenActivity.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushWakeups.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/PushWakeups.kt.twig',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',
@@ -293,7 +284,6 @@ class Android extends Kotlin
                 'scope'         => 'copy',
                 'destination'   => '/library/consumer-rules.pro',
                 'template'      => '/android/push/consumer-rules.pro',
-                'push'          => true,
             ],
             [
                 'scope'         => 'default',

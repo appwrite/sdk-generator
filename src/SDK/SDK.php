@@ -72,8 +72,7 @@ class SDK
         'readme' => '',
         'changelog' => '',
         'examples' => '',
-        'test' => 'false',
-        'push' => ''
+        'test' => 'false'
     ];
 
     protected array $excludeRules = [
@@ -430,17 +429,6 @@ class SDK
     public function setTest(string $test): SDK
     {
         $this->setParam('test', $test);
-
-        return $this;
-    }
-
-    /**
-     * Include the Push service, its MQTT transport and the Topic helpers.
-     * Off by default: Push is not released yet.
-     */
-    public function setPush(bool $push): SDK
-    {
-        $this->setParam('push', $push ? 'true' : '');
 
         return $this;
     }
@@ -1045,12 +1033,6 @@ class SDK
 
         foreach ($this->language->getFiles() as $file) {
             if (($file['test'] ?? false) && $this->getParam('test') !== 'true') {
-                continue;
-            }
-
-            // Files marked 'push' => true belong to Push and ship only with it;
-            // 'push' => false marks the variant used without it.
-            if (isset($file['push']) && $file['push'] !== ($this->getParam('push') === 'true')) {
                 continue;
             }
 

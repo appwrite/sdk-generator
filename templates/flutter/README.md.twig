@@ -36,7 +36,6 @@ You can install packages from the command line:
 flutter pub add {{ language.params.packageName }}
 ```
 
-{% if sdk.push %}
 ### Push on Android
 
 `Push` includes a native Android plugin, so the SDK needs Android 7.0 (API 24) or later: apps
@@ -151,7 +150,6 @@ final stop = push.onNotificationOpened((opened) => openSale(opened.data['saleId'
 On Android the SDK's native plugin reports the taps, on iOS `flutter_local_notifications`, and
 on the web the notification's click while the page is open.
 
-{% endif %}
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|raw }}

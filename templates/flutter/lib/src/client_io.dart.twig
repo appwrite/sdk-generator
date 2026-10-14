@@ -128,7 +128,6 @@ class ClientIO extends ClientBase with ClientMixin {
     return this;
   }
 
-{% if sdk.push %}
   @override
   ClientIO setPushEndpoint(String endPoint) {
     config['endpointPush'] = endPoint;
@@ -141,7 +140,6 @@ class ClientIO extends ClientBase with ClientMixin {
     return this;
   }
 
-{% endif %}
   @override
   ClientIO addHeader(String key, String value) {
     _headers![key] = value;
