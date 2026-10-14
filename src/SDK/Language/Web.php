@@ -493,6 +493,19 @@ class Web extends JS
 
     protected function getPropertyType(Schema|Parameter $value, Operation $method, Specification $spec): string
     {
+        $type = $this->getRequestType($value, $method, $spec);
+        $schema = $this->getSchema($value);
+        // A multipart part is either present or absent on the wire, never null
+        $parts = $method->requestBody?->content['multipart/form-data']->schema->properties ?? [];
+        if (!$schema->nullable || \in_array($schema, $parts, true)) {
+            return $type;
+        }
+
+        return (\str_contains($type, ' extends ') ? '(' . $type . ')' : $type) . ' | null';
+    }
+
+    protected function getRequestType(Schema|Parameter $value, Operation $method, Specification $spec): string
+    {
         if ($this->getSchemaType($value) === self::TYPE_OBJECT) {
             $responseModel = $this->getOperationResponseModels($method)[0] ?? '';
             if ($responseModel === 'user') {

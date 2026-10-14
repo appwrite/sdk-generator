@@ -288,6 +288,9 @@ async function start() {
     console.log(`preset verified: ${preset.verified}`);
     console.log(`preset toString: ${preset.toString()}`);
 
+    response = await general.nullable({ required: 'required', nullable: null, nullableInteger: null });
+    console.log(response.result);
+
     try {
         response = await general.error400();
     } catch(error) {

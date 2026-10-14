@@ -235,6 +235,9 @@ import {
     console.log(`preset verified: ${preset.verified}`);
     console.log(`preset toString: ${preset.toString()}`);
 
+    response = await general.nullable({ required: 'required', nullable: null, nullableInteger: null });
+    console.log(response.result);
+
     // Exception responses
     try {
         response = await general.error400();

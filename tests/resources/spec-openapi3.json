@@ -1862,6 +1862,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          },
           "500": {
             "description": "File"
           }
@@ -1897,6 +1907,14 @@
                     "description": "Sample string param",
                     "default": "",
                     "example": "[OPTIONAL]"
+                  },
+                  "nullableInteger": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Optional nullable integer param",
+                    "default": null,
+                    "example": 1,
+                    "nullable": true
                   }
                 },
                 "required": [
@@ -2756,6 +2774,43 @@
             "Project": []
           }
         },
+        "parameters": [
+            {
+                "name": "quality",
+                "description": "Preset quality. Its default is not the first value.",
+                "required": false,
+                "schema": {
+                    "type": "string",
+                    "title": "PresetQuality",
+                    "example": "medium",
+                    "oneOf": [
+                        {
+                            "type": "string",
+                            "enum": [
+                                "low"
+                            ],
+                            "title": "low"
+                        },
+                        {
+                            "type": "string",
+                            "enum": [
+                                "medium"
+                            ],
+                            "title": "medium"
+                        },
+                        {
+                            "type": "string",
+                            "enum": [
+                                "high"
+                            ],
+                            "title": "high"
+                        }
+                    ],
+                    "default": "medium"
+                },
+                "in": "query"
+            }
+        ],
         "security": [
           {
             "Project": [],

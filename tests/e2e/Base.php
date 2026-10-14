@@ -106,8 +106,16 @@ abstract class Base extends TestCase
         'preset toString: {"name":"guest","count":25,"enabled":false,"tier":"free","verified":null,"scopes":["read","write"]}',
     ];
 
+    protected const NULLABLE_PARAM_RESPONSES = [
+        'POST:/v1/mock/tests/general/nullable:passed',
+    ];
+
     protected const NULLABLE_MODEL_RESPONSES = [
         'preset verified: null',
+    ];
+
+    protected const ENUM_DEFAULT_RESPONSES = [
+        'preset quality default: medium',
     ];
 
     protected const ENUM_ARRAY_MODEL_RESPONSES = [
