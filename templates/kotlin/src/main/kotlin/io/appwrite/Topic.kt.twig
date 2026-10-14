@@ -16,7 +16,7 @@ private fun levelsOf(levels: List<String>): List<String> {
         require(!level.contains("+")) { "\"$level\" contains \"+\", use any() for wildcards" }
         require(level != "#") { "\"#\" is reserved, use all()" }
         require(!level.contains("#")) { "\"$level\" contains \"#\", use all() for wildcards" }
-        require(!level.contains('\u0000')) { "level at index $index contains a NUL character, which MQTT topics cannot hold" }
+        require(!level.contains('\u0000')) { "level at index $index contains a NUL character" }
     }
     return levels.toList()
 }

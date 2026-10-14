@@ -136,7 +136,7 @@ final readonly class Topic implements \Stringable
                 throw new \InvalidArgumentException(\sprintf('"%s" contains "#", use all() for wildcards', $level));
             }
             if (\str_contains($level, "\0")) {
-                throw new \InvalidArgumentException(\sprintf('level at index %d contains a NUL character, which MQTT topics cannot hold', $index));
+                throw new \InvalidArgumentException(\sprintf('level at index %d contains a NUL character', $index));
             }
 
             $result[] = $level;

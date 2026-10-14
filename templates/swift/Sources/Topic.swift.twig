@@ -49,7 +49,7 @@ private func levelsOf(_ levels: [String]) throws -> [String] {
             throw TopicError("\"\(level)\" contains \"#\", use all() for wildcards")
         }
         if level.contains("\0") {
-            throw TopicError("level at index \(index) contains a NUL character, which MQTT topics cannot hold")
+            throw TopicError("level at index \(index) contains a NUL character")
         }
     }
     return levels

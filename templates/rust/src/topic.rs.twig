@@ -156,7 +156,7 @@ fn levels_of<S: AsRef<str>>(levels: &[S]) -> Result<Vec<String>, TopicError> {
             }
             if level.contains('\0') {
                 return Err(TopicError::new(format!(
-                    "level at index {} contains a NUL character, which MQTT topics cannot hold",
+                    "level at index {} contains a NUL character",
                     index
                 )));
             }

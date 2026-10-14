@@ -98,7 +98,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 }
                 if (level.Contains('\0'))
                 {
-                    throw new ArgumentException($"level at index {index} contains a NUL character, which MQTT topics cannot hold");
+                    throw new ArgumentException($"level at index {index} contains a NUL character");
                 }
             }
 

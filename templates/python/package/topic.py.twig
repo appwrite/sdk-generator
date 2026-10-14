@@ -28,7 +28,7 @@ def _levels_of(levels):
         if "#" in level:
             raise ValueError(f'"{level}" contains "#", use all() for wildcards')
         if "\0" in level:
-            raise ValueError(f"level at index {index} contains a NUL character, which MQTT topics cannot hold")
+            raise ValueError(f"level at index {index} contains a NUL character")
     return tuple(levels)
 
 

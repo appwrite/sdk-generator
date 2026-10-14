@@ -41,7 +41,7 @@ function levelsOf(levels: unknown): string[] {
             throw new Error(`"${level}" contains "#", use all() for wildcards`);
         }
         if (level.includes('\0')) {
-            throw new Error(`level at index ${index} contains a NUL character, which MQTT topics cannot hold`);
+            throw new Error(`level at index ${index} contains a NUL character`);
         }
         return level;
     });
