@@ -195,13 +195,6 @@ class Web extends JS
                 'scope'         => 'default',
                 'destination'   => 'package-lock.json',
                 'template'      => 'web/package-lock.json.twig',
-                'push'          => true,
-            ],
-            [
-                'scope'         => 'default',
-                'destination'   => 'package-lock.json',
-                'template'      => 'web/package-lock-without-push.json.twig',
-                'push'          => false,
             ],
         ];
     }

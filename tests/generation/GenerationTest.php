@@ -378,7 +378,10 @@ final class GenerationTest extends TestCase
     public function testPushIsLeftOutUnlessEnabled(string $name): void
     {
         $with = $this->generate($name, 'client');
-        $without = $this->generate($name, 'client', push: false);
+        $generated = $this->generate($name, 'client', push: false);
+        $removed = \array_keys(\array_diff_key($with, $generated));
+        // The npm manifests keep Push's dependencies so they match the one lockfile.
+        $without = \array_filter($generated, fn (string $path): bool => !\in_array(\basename($path), ['package.json', 'package-lock.json'], true), ARRAY_FILTER_USE_KEY);
 
         foreach ($without as $path => $contents) {
             // The CLI's `push` command deploys resources; it is not the Push service.
@@ -390,7 +393,6 @@ final class GenerationTest extends TestCase
             }
         }
 
-        $removed = \array_keys(\array_diff_key($with, $without));
         foreach ($removed as $path) {
             $this->assertMatchesRegularExpression('/push|mqtt|topic|consumer-rules|\/android\/|^android\/|^ios\/|cookies|\.podspec$|react-native\.config\.js$|polyfills|tcp-stream|third_party_notices|dependencies\.lock/', \strtolower($path), "{$name} drops {$path}, which is not part of Push");
         }
@@ -398,7 +400,7 @@ final class GenerationTest extends TestCase
         // Nothing left behind names a file that was left out, by path, module or part.
         $stems = \array_map(fn (string $path): string => \explode('.', \basename($path))[0], $removed);
         foreach (\array_unique(\preg_grep('/push|mqtt|topic/', $stems)) as $stem) {
-            $reference = '/[\'"\/]' . \preg_quote($stem, '/') . '(\.[a-z]+)*[\'"]|mod ' . \preg_quote($stem, '/') . ';/';
+            $reference = '/[\'"\/]' . \preg_quote((string) $stem, '/') . '(\.[a-z]+)*[\'"]|mod ' . \preg_quote((string) $stem, '/') . ';/';
             foreach ($without as $path => $contents) {
                 $this->assertDoesNotMatchRegularExpression($reference, $contents, "{$name} {$path} references {$stem}, which is only generated with Push");
             }

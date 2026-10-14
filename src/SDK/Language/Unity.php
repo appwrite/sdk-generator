@@ -325,28 +325,14 @@ class Unity extends DotNet
                 'push'          => true,
             ],
             [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Plugins/THIRD_PARTY_NOTICES.md',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/THIRD_PARTY_NOTICES.md',
-                'push'          => true,
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => 'Assets/Runtime/Core/Plugins/THIRD_PARTY_NOTICES.md',
-                'template'      => 'unity/Assets/Runtime/Core/Plugins/THIRD_PARTY_NOTICES-without-push.md',
-                'push'          => false,
-            ],
-            [
-                'scope'         => 'copy',
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Plugins/dependencies.lock.json',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/dependencies.lock.json',
-                'push'          => true,
-            ],
-            [
-                'scope'         => 'copy',
-                'destination'   => 'Assets/Runtime/Core/Plugins/dependencies.lock.json',
-                'template'      => 'unity/Assets/Runtime/Core/Plugins/dependencies-without-push.lock.json',
-                'push'          => false,
             ],
             // Editor
             [

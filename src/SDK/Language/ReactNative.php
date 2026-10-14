@@ -313,14 +313,6 @@ class ReactNative extends Web
                 'scope'         => 'default',
                 'destination'   => 'package-lock.json',
                 'template'      => 'react-native/package-lock.json.twig',
-                'push'          => true,
-            ],
-
-            [
-                'scope'         => 'default',
-                'destination'   => 'package-lock.json',
-                'template'      => 'react-native/package-lock-without-push.json.twig',
-                'push'          => false,
             ],
         ];
     }
