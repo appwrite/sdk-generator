@@ -1480,7 +1480,7 @@ extension Push {
         guard changed else {
             return
         }
-        for push in pushes {
+        for push in pushes where !push.backgroundTopics().isEmpty {
             Task { await register(push, token: hex, topics: push.backgroundTopics()) }
         }
     }
