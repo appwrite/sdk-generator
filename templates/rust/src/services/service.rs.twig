@@ -80,7 +80,9 @@ impl {{ service.name | caseUcfirst }} {
         let {{ uploadIdParameter.name | caseSnake | overrideIdentifier }}_str = {{ uploadIdParameter.name | caseSnake | overrideIdentifier }}.map(|v| v.into());
 {% endif %}
 {% endif %}
-        let {% if (method | parameters('query')) is not empty or (method | parameters('body')) is not empty %}mut {% endif %}params = HashMap::new();
+{% set insertsParams = (method | parameters('query')) is not empty %}
+{% for parameter in (method | parameters('body')) %}{% if (parameter | schemaType) != 'file' %}{% set insertsParams = true %}{% endif %}{% endfor %}
+        let {% if insertsParams %}mut {% endif %}params = HashMap::new();
 {% for parameter in (method | parameters('query')) %}
 {% if parameter.required and not (parameter | schemaNullable) %}
 {% if uploadIdParameter and parameter.name == uploadIdParameter.name %}
@@ -181,10 +183,12 @@ impl {{ service.name | caseUcfirst }} {
 {% endif %}
 {% endfor %}
 {% if hasFileParam %}
-{% set uploadCall = (method | textResponse) ? 'upload_text' : 'upload' %}
+{# Chunked uploads resume through POST with Content-Range; an upload with any other method has no resumable form, so it goes in one request. #}
+{% set singleRequest = (method.method.value | upper) != 'POST' %}
+{% set uploadCall = (method | textResponse) ? 'upload_text' : (singleRequest ? 'single_upload' : 'upload') %}
 {% set requestCall = (method | textResponse) ? 'call_text' : 'call' %}
 {% set uploadArgs = [ 'Method::' ~ (method.method.value | upper), '&path', hasHeaders ? 'Some(api_headers)' : 'None', 'params', '"' ~ fileParamKey ~ '"', fileParamName ] %}
-{% if not (method | textResponse) %}
+{% if not (method | textResponse) and not singleRequest %}
 {% set uploadArgs = uploadArgs | merge([ uploadIdParam ? (uploadIDRequired ? 'Some(' ~ uploadIdParam ~ '_str)' : uploadIdParam ~ '_str') : 'None' ]) %}
 {% endif %}
 {% if not fileRequired %}
