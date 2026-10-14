@@ -126,6 +126,14 @@ abstract class Base extends TestCase
         'preset tier: PresetTier.FREE',
     ];
 
+    protected const MAP_MODEL_DEFAULT_RESPONSES = [
+        'preset settings: options=0',
+    ];
+
+    protected const NESTED_MODEL_DEFAULT_RESPONSES = [
+        'preset profile: prefs=0',
+    ];
+
     protected const OBJECT_ARRAY_RESPONSES = [
         'POST:/v1/mock/tests/general/documents:passed',
     ];
@@ -473,6 +481,7 @@ abstract class Base extends TestCase
         'Topic slash:passed',
         'Topic plus:passed',
         'Topic hash:passed',
+        'Topic nul:passed',
     ];
 
     protected const ADDITIONAL_PROPERTIES_RESPONSES = [

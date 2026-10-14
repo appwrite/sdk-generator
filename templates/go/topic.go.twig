@@ -105,6 +105,9 @@ func levelsOf(levels []string) []string {
 		if strings.Contains(level, "#") {
 			panic(fmt.Sprintf("\"%s\" contains \"#\", use all() for wildcards", level))
 		}
+		if strings.Contains(level, "\x00") {
+			panic(fmt.Sprintf("level at index %d contains a NUL character, which MQTT topics cannot hold", index))
+		}
 	}
 	return append([]string(nil), levels...)
 }

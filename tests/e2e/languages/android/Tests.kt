@@ -489,6 +489,7 @@ class ServiceTest {
                 "slash" to listOf("user/123"),
                 "plus" to listOf("user", "a+b"),
                 "hash" to listOf("user", "#"),
+                "nul" to listOf("user", "a\u0000b"),
             )
             for ((name, levels) in topicErrorCases) {
                 try {

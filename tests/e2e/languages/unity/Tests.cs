@@ -452,6 +452,7 @@ namespace AppwriteTests
                 ("slash", new[] { "user/123" }),
                 ("plus", new[] { "user", "a+b" }),
                 ("hash", new[] { "user", "#" }),
+                ("nul", new[] { "user", "a\0b" }),
             };
             foreach (var (name, levels) in topicCases)
             {

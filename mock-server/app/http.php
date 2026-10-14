@@ -878,6 +878,24 @@ App::get('/v1/mock/tests/general/preset')
         $response->json(['enabled' => false, 'verified' => null, 'scopes' => ['read', 'write']]);
     });
 
+App::get('/v1/mock/tests/general/preset/settings')
+    ->desc('Get Preset Settings')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->setContentType('application/json')->send('{}');
+    });
+
+App::get('/v1/mock/tests/general/preset/profile')
+    ->desc('Get Preset Profile')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->setContentType('application/json')->send('{}');
+    });
+
 App::get('/v1/mock/tests/general/presets')
     ->desc('List Presets')
     ->groups(['mock'])

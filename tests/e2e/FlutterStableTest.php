@@ -72,6 +72,8 @@ final class FlutterStableTest extends Base
         ...Base::MODEL_DEFAULT_RESPONSES,
         ...Base::NULLABLE_MODEL_RESPONSES,
         ...Base::ENUM_ARRAY_MODEL_RESPONSES,
+        ...Base::MAP_MODEL_DEFAULT_RESPONSES,
+        ...Base::NESTED_MODEL_DEFAULT_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,

@@ -424,6 +424,7 @@ foreach ([
     ['slash', ['user/123']],
     ['plus', ['user', 'a+b']],
     ['hash', ['user', '#']],
+    ['nul', ['user', "a\0b"]],
 ] as [$name, $levels]) {
     try {
         Topic::path($levels);

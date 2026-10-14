@@ -2830,6 +2830,92 @@
         }
       }
     },
+    "\/mock\/tests\/general\/preset\/settings": {
+      "get": {
+        "summary": "Get Preset Settings",
+        "operationId": "generalGetPresetSettings",
+        "tags": [
+          "general"
+        ],
+        "description": "Return preset settings that omit a required map field.",
+        "x-appwrite": {
+          "demo": "general\/get-preset-settings.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/presetSettings"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/preset\/profile": {
+      "get": {
+        "summary": "Get Preset Profile",
+        "operationId": "generalGetPresetProfile",
+        "tags": [
+          "general"
+        ],
+        "description": "Return a preset profile that omits its required preferences model.",
+        "x-appwrite": {
+          "demo": "general\/get-preset-profile.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/presetProfile"}
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/presets": {
       "get": {
         "summary": "List Presets",
@@ -3580,6 +3666,22 @@
           "scopes": {"type": "array", "description": "Preset scopes.", "items": {"type": "string", "oneOf": [{"type": "string", "enum": ["read"], "title": "read"}, {"type": "string", "enum": ["write"], "title": "write"}]}, "example": ["read"]}
         },
         "required": ["name", "count", "enabled", "tier"]
+      },
+      "presetSettings": {
+        "description": "Preset Settings",
+        "type": "object",
+        "properties": {
+          "options": {"type": "object", "additionalProperties": true, "description": "Preset options as a key-value object.", "example": {"mode": "fast"}, "default": {}}
+        },
+        "required": ["options"]
+      },
+      "presetProfile": {
+        "description": "Preset Profile",
+        "type": "object",
+        "properties": {
+          "prefs": {"$ref": "#/components/schemas/preferences", "description": "Preset preferences."}
+        },
+        "required": ["prefs"]
       },
       "presetList": {
         "description": "Preset list",

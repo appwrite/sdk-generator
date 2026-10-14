@@ -368,6 +368,7 @@ fn test_topic_helpers() {
         ("slash", vec!["user/123"]),
         ("plus", vec!["user", "a+b"]),
         ("hash", vec!["user", "#"]),
+        ("nul", vec!["user", "a\0b"]),
     ];
     for (name, levels) in cases {
         match topic::path(&levels) {
