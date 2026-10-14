@@ -515,7 +515,6 @@ open class Push: Service {
             Push.apnsPrepare(self)
         }
 
-        Push.scheduleReconcile(self)
         let generation = sync.sync { closeGeneration }
         let mqtt: MQTTClient
         do {
@@ -585,6 +584,9 @@ open class Push: Service {
             throw described
         }
 
+        // Only now that the broker has the subscription, so the reconcile never runs on topics a slow
+        // connection has not claimed yet.
+        Push.scheduleReconcile(self)
         if background {
             Push.apnsEnable(self, topics: topics)
         }
