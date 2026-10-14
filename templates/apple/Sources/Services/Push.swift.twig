@@ -1389,7 +1389,7 @@ extension Push {
             return
         }
         Shared.share(backgroundPush(userId: userId) ?? push)
-        let targetId = Ids.target(installation: Installation.id, userId: userId)
+        let targetId = Push.targetId(for: userId)
         let linked = apnsLocked { apnsLinked[targetId] ?? [] }
         Task {
             for topic in topics where linked.contains(topic) {
@@ -1425,6 +1425,9 @@ extension Push {
             return
         }
         apnsLinkedTopics.removeTarget(targetId)
+        if let userId = push.remoteUserId(), Push.targetId(for: userId) == targetId {
+            saveTargetId(nil, for: userId)
+        }
         // A background subscription that registered while the DELETE was in flight lost its target:
         // register the device again for it.
         if !Shared.inServiceExtension, let userId = push.remoteUserId(), let claimer = backgroundPush(userId: userId),
@@ -1441,7 +1444,7 @@ extension Push {
         guard !Shared.inServiceExtension, let userId = push.remoteUserId() else {
             return
         }
-        let targetId = Ids.target(installation: Installation.id, userId: userId)
+        let targetId = Push.targetId(for: userId)
         guard apnsLocked({ apnsReconciled.insert(targetId).inserted }) else {
             return
         }
@@ -1507,15 +1510,12 @@ extension Push {
         guard let userId = push.remoteUserId() else {
             return
         }
-        let targetId = Ids.target(installation: Installation.id, userId: userId)
+        let targetId: String
         do {
-            try await upsertTarget(push, targetId: targetId, token: token)
+            targetId = try await upsertTarget(push, targetId: Push.targetId(for: userId), token: token)
+            saveTargetId(targetId, for: userId)
         } catch {
-            push.surface(
-                {{ spec.info.title | caseUcfirst }}Error(
-                    message:
-                        "Could not register this device for APNs: \(error.localizedDescription). Run `appwrite init apns` so the project has an APNs provider for \(Bundle.main.bundleIdentifier ?? "this app") (\(Environment.current.rawValue))."
-                ))
+            push.surface(registrationFailed(error))
             return
         }
         apnsLocked { apnsLinked[targetId] = apnsLinked[targetId] ?? [] }
@@ -1528,7 +1528,38 @@ extension Push {
         }
     }
 
-    private static func upsertTarget(_ push: Push, targetId: String, token: String) async throws {
+    /// The id of the target holding this device's token for `userId`: the one the server last used for
+    /// it, else this install's own.
+    static func targetId(for userId: String) -> String {
+        Shared.defaults.string(forKey: "\(targetKey).\(userId)") ?? Ids.target(installation: Installation.id, userId: userId)
+    }
+
+    private static let targetKey = "{{ spec.info.title | caseLower }}.push.target"
+
+    private static func saveTargetId(_ targetId: String?, for userId: String) {
+        if let targetId {
+            Shared.defaults.set(targetId, forKey: "\(targetKey).\(userId)")
+        } else {
+            Shared.defaults.removeObject(forKey: "\(targetKey).\(userId)")
+        }
+    }
+
+    /// What went wrong registering the device, with a fix only for the failures that have a known one.
+    private static func registrationFailed(_ error: Swift.Error) -> {{ spec.info.title | caseUcfirst }}Error {
+        var message = "Could not register this device for APNs: \(error.localizedDescription)"
+        if let error = error as? {{ spec.info.title | caseUcfirst }}Error {
+            message += " (\(error.code.map(String.init) ?? "no status")\(error.type.map { ", \($0)" } ?? ""))"
+            if error.type == "general_unknown_origin" {
+                message += ". Add an Apple platform with the bundle ID \(Bundle.main.bundleIdentifier ?? "of this app") to the Appwrite project."
+            }
+        }
+        return {{ spec.info.title | caseUcfirst }}Error(message: message)
+    }
+
+    /// Create or update the target for this device's token and return its id. The server may answer with
+    /// another of the user's targets: the session's existing push target, or the one already holding the
+    /// token.
+    private static func upsertTarget(_ push: Push, targetId: String, token: String) async throws -> String {
         // `environment` and `bundleId` let the server pick the APNs provider for this app and build.
         // A server without that support ignores them.
         let params: [String: Any?] = [
@@ -1538,26 +1569,41 @@ extension Push {
             "bundleId": Bundle.main.bundleIdentifier,
         ]
         let headers = projectHeaders(push)
+        let update = params.filter { $0.key != "targetId" }
         do {
-            let _: Any = try await push.client.call(
+            let created: Any = try await push.client.call(
                 method: "POST",
                 path: "/account/targets/push",
                 headers: headers,
                 params: params,
                 converter: { $0 }
             )
-        } catch let error as {{ spec.info.title | caseUcfirst }}Error where error.code == 409 {
-            // This install already has a target for the user: point it at the current token, and
-            // the build's environment, which changes when the same install moves from a debug to
-            // a TestFlight build.
-            let _: Any = try await push.client.call(
-                method: "PUT",
-                path: "/account/targets/\(targetId)/push",
-                headers: headers,
-                params: params.filter { $0.key != "targetId" },
-                converter: { $0 }
-            )
+            return (created as? [String: Any])?["$id"] as? String ?? targetId
+        } catch let conflict as {{ spec.info.title | caseUcfirst }}Error where conflict.code == 409 {
+            // The target exists: point it at the current token, and the build's environment, which
+            // changes when the same install moves from a debug to a TestFlight build.
+            do {
+                let _: Any = try await push.client.call(
+                    method: "PUT", path: "/account/targets/\(targetId)/push", headers: headers, params: update, converter: { $0 })
+                return targetId
+            } catch let error as {{ spec.info.title | caseUcfirst }}Error where error.code == 404 {
+                // Another of the user's targets holds the token: update that one.
+                guard let held = try await heldTarget(push, token: token) else {
+                    throw conflict
+                }
+                let _: Any = try await push.client.call(
+                    method: "PUT", path: "/account/targets/\(held)/push", headers: headers, params: update, converter: { $0 })
+                return held
+            }
         }
+    }
+
+    /// The user's push target holding `token`, from the account's targets.
+    private static func heldTarget(_ push: Push, token: String) async throws -> String? {
+        let account: Any = try await push.client.call(
+            method: "GET", path: "/account", headers: projectHeaders(push), converter: { $0 })
+        let targets = (account as? [String: Any])?["targets"] as? [[String: Any]] ?? []
+        return targets.first { $0["providerType"] as? String == "push" && $0["identifier"] as? String == token }?["$id"] as? String
     }
 
     // Push calls the API directly, so it doesn't depend on a Messaging service being generated.
