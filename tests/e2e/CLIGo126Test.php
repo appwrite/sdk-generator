@@ -27,6 +27,8 @@ final class CLIGo126Test extends Base
     #[Override]
     protected array $build = [
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli golang:1.26 go mod tidy',
+        // Only this build gets applehosts.go, which points the Apple sign-in at the mock API.
+        'cp tests/e2e/languages/cli/applehosts.go tests/e2e/sdks/cli/internal/cmd/applehosts.go',
         // -buildvcs=false: the tree is generated inside this repository, and in
         // CI the checkout and the container disagree on ownership, so the git
         // stamp fails with "dubious ownership". Linux only.
@@ -49,6 +51,8 @@ final class CLIGo126Test extends Base
         ...Base::UPLOAD_RESPONSE,
         ...Base::CLI_HEADERS_RESPONSES,
         'CLI_TYPES_DEPENDENCIES:passed',
+        'CLI_INIT_APNS:passed',
+        'CLI_INIT_APNS_APPLE:passed',
         'CLI_CONFORMANCE:passed',
     ];
 

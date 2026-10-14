@@ -457,10 +457,19 @@ const (
 	applePasswordVariable = "APPWRITE_APPLE_PASSWORD"
 )
 
+// e2eAppleHosts is set only in the CLI e2e build, which points Apple's sign-in
+// and Developer portal at the mock API.
+var e2eAppleHosts func() appwrite.Hosts
+
 // apnsAdapters lists the APNs key setups this build offers. Each lives in its
 // own package under internal/apns and is added here.
 func apnsAdapters() *apns.Registry {
-	return apns.NewRegistry(appwrite.New(), expo.New(), fastlane.New())
+	adapter := appwrite.New()
+	if e2eAppleHosts != nil {
+		adapter.Hosts = e2eAppleHosts()
+	}
+
+	return apns.NewRegistry(adapter, expo.New(), fastlane.New())
 }
 
 // apnsAdapter picks the setup: --provider, then APPWRITE_APNS_SETUP, then
