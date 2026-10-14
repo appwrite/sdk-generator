@@ -2756,6 +2756,43 @@
             "Project": []
           }
         },
+        "parameters": [
+            {
+                "name": "quality",
+                "description": "Preset quality. Its default is not the first value.",
+                "required": false,
+                "schema": {
+                    "type": "string",
+                    "title": "PresetQuality",
+                    "example": "medium",
+                    "oneOf": [
+                        {
+                            "type": "string",
+                            "enum": [
+                                "low"
+                            ],
+                            "title": "low"
+                        },
+                        {
+                            "type": "string",
+                            "enum": [
+                                "medium"
+                            ],
+                            "title": "medium"
+                        },
+                        {
+                            "type": "string",
+                            "enum": [
+                                "high"
+                            ],
+                            "title": "high"
+                        }
+                    ],
+                    "default": "medium"
+                },
+                "in": "query"
+            }
+        ],
         "security": [
           {
             "Project": [],

@@ -110,6 +110,10 @@ abstract class Base extends TestCase
         'preset verified: null',
     ];
 
+    protected const ENUM_DEFAULT_RESPONSES = [
+        'preset quality default: medium',
+    ];
+
     protected const ENUM_ARRAY_MODEL_RESPONSES = [
         'preset scopes: read,write',
     ];
