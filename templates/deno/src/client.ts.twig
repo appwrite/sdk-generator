@@ -20,6 +20,20 @@ export function applyDefaults<T>(value: T, tree: Defaults): T {
     return fillDefaults(value, tree.root, tree.models) as T;
 }
 
+function cloneDefault(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map(cloneDefault);
+    }
+    if (typeof value === 'object' && value !== null) {
+        const copy: Record<string, unknown> = {};
+        for (const [key, member] of Object.entries(value)) {
+            copy[key] = cloneDefault(member);
+        }
+        return copy;
+    }
+    return value;
+}
+
 function fillDefaults(
     value: unknown,
     shape: DefaultsShape,
@@ -40,6 +54,12 @@ function fillDefaults(
         return value;
     }
     const result: Record<string, unknown> = { ...model.defaults, ...value };
+    // Each item gets its own copy of a filled-in list or object, so mutating one doesn't change the rest
+    for (const key of Object.keys(model.defaults ?? {})) {
+        if (!Object.prototype.hasOwnProperty.call(value, key)) {
+            result[key] = cloneDefault(result[key]);
+        }
+    }
     for (const [key, child] of Object.entries(model.properties ?? {})) {
         if (key in result) {
             result[key] = fillDefaults(result[key], child, models);

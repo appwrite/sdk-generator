@@ -3577,9 +3577,11 @@
           "enabled": {"type": "boolean", "description": "Whether the preset is enabled.", "example": true, "default": true},
           "tier": {"title": "PresetTier", "type": "string", "description": "Preset tier.", "example": "free", "enum": ["free", "pro"], "default": "free"},
           "verified": {"type": "boolean", "description": "Whether the preset is verified. Null when it has never been checked.", "example": true, "nullable": true},
-          "scopes": {"type": "array", "description": "Preset scopes.", "items": {"type": "string", "oneOf": [{"type": "string", "enum": ["read"], "title": "read"}, {"type": "string", "enum": ["write"], "title": "write"}]}, "example": ["read"]}
+          "scopes": {"type": "array", "description": "Preset scopes.", "items": {"type": "string", "oneOf": [{"type": "string", "enum": ["read"], "title": "read"}, {"type": "string", "enum": ["write"], "title": "write"}]}, "example": ["read"]},
+          "tags": {"type": "array", "description": "Preset tags.", "items": {"type": "string"}, "example": ["vip"], "default": []},
+          "settings": {"type": "object", "additionalProperties": true, "description": "Preset settings.", "example": {"theme": "dark"}, "default": {}}
         },
-        "required": ["name", "count", "enabled", "tier"]
+        "required": ["name", "count", "enabled", "tier", "tags", "settings"]
       },
       "presetList": {
         "description": "Preset list",

@@ -176,6 +176,8 @@ async function start() {
       console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
   }
   console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
+  presets.presets[0].tags.push('mutated');
+  console.log(`preset tags shared: ${presets.presets[1].tags.length}`);
   const verified: appwrite.Models.Preset["verified"] = preset.verified ?? null;
   console.log(`preset verified: ${verified}`);
   console.log(`preset scopes: ${(preset.scopes ?? []).join(',')}`);

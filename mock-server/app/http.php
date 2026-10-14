@@ -875,7 +875,7 @@ App::get('/v1/mock/tests/general/preset')
     ->label('scope', 'public')
     ->inject('response')
     ->action(function (UtopiaSwooleResponse $response) {
-        $response->json(['enabled' => false, 'verified' => null, 'scopes' => ['read', 'write']]);
+        $response->json(['enabled' => false, 'verified' => null, 'scopes' => ['read', 'write'], 'settings' => new \stdClass()]);
     });
 
 App::get('/v1/mock/tests/general/presets')
@@ -887,8 +887,8 @@ App::get('/v1/mock/tests/general/presets')
         $response->json([
             'total' => 2,
             'presets' => [
-                ['enabled' => false],
-                ['name' => 'server', 'enabled' => true],
+                ['enabled' => false, 'settings' => new \stdClass()],
+                ['name' => 'server', 'enabled' => true, 'settings' => new \stdClass()],
             ],
         ]);
     });
