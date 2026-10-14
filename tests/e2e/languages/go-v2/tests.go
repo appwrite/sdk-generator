@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/repoowner/reponame/v2/appwrite"
@@ -220,6 +221,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		} else {
 			fmt.Printf("preset verified: %t\n", *preset.Verified)
 		}
+		fmt.Printf("preset scopes: %s\n", strings.Join(preset.Scopes, ","))
 	}
 
 	// Exception Responses

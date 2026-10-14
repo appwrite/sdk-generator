@@ -178,6 +178,7 @@ async function start() {
   console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
   const verified: appwrite.Models.Preset["verified"] = preset.verified ?? null;
   console.log(`preset verified: ${verified}`);
+  console.log(`preset scopes: ${(preset.scopes ?? []).join(',')}`);
 
   try {
     response = await general.error400();

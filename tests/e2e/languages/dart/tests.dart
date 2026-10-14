@@ -155,6 +155,7 @@ void main() async {
   }
   print('empty presets: ${(await general.listEmptyPresets()).presets.length}');
   print('preset verified: ${preset.verified}');
+  print('preset scopes: ${(preset.scopes ?? []).map((scope) => scope.value).join(',')}');
 
   try {
     await general.error400();
