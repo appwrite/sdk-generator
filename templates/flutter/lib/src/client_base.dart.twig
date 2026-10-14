@@ -20,12 +20,14 @@ abstract class ClientBase implements Client {
   @override
   Client setEndPointRealtime(String endPoint);
 
+{% if sdk.push %}
   @override
   Client setPushEndpoint(String endPoint);
 
   @override
   Client setPushClientId(String pushClientId);
 
+{% endif %}
   @override
   ClientBase addHeader(String key, String value);
 

@@ -3,6 +3,7 @@ export { Client, {{spec.info.title | caseUcfirst}}Exception } from './client';
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
 export { Realtime } from './services/realtime';
+{% if sdk.push %}
 export { Push } from './services/push';
 export type {
     PushBackgroundStatus,
@@ -12,6 +13,7 @@ export type {
     SubscribeOptions,
     MessageCallback,
 } from './services/push';
+{% endif %}
 export type {
     Models,
     Payload,
@@ -24,7 +26,9 @@ export { Query } from './query';
 export { Permission } from './permission';
 export { Role } from './role';
 export { ID } from './id';
+{% if sdk.push %}
 export { Topic, ResolvedTopic } from './topic';
+{% endif %}
 export { Channel } from './channel';
 export { Operator, Condition } from './operator';
 {% for enum in allEnums %}

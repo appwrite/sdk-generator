@@ -365,6 +365,7 @@ class DotNet extends Language
                 'scope'         => 'default',
                 'destination'   => '{{ spec.info.title | caseUcfirst }}/Topic.cs',
                 'template'      => 'dotnet/Package/Topic.cs.twig',
+                'push'          => true,
             ],
             [
                 'scope'         => 'default',

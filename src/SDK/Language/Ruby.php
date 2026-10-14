@@ -161,6 +161,7 @@ class Ruby extends Language
                 'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.info.title | caseDash }}/topic.rb',
                 'template'      => 'ruby/lib/container/topic.rb.twig',
+                'push'          => true,
             ],
             [
                 'scope'         => 'default',

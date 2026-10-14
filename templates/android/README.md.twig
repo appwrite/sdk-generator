@@ -74,6 +74,7 @@ with `@Keep` so R8 keeps their fields:
 data class Note(val title: String, val body: String)
 ```
 
+{% if sdk.push %}
 ### Push notifications
 
 #### Background delivery
@@ -165,6 +166,7 @@ val stop = push.onNotificationOpened { opened -> openSale(opened.data["saleId"])
 A tap made while nothing listens is kept for `getInitialNotification()`. The tap intent still
 carries `Push.EXTRA_TOPIC` and `Push.EXTRA_PAYLOAD` for apps that read their activity's intent.
 
+{% endif %}
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|raw }}

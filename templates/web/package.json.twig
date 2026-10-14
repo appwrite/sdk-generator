@@ -37,9 +37,13 @@
         "node": ">=18.0.0"
     },
     "dependencies": {
+{% if sdk.push %}
         "buffer": "6.0.3",
         "json-bigint": "1.0.0",
         "mqtt": "5.15.2"
+{% else %}
+        "json-bigint": "1.0.0"
+{% endif %}
     },
     "devDependencies": {
         "@eslint/js": "10.0.1",
@@ -51,7 +55,9 @@
         "playwright": "1.56.1",
         "prettier": "3.9.6",
         "rollup": "4.63.2",
+{% if sdk.push %}
         "rollup-plugin-polyfill-node": "0.13.0",
+{% endif %}
         "serve-handler": "6.1.7",
         "tslib": "2.8.1",
         "typescript": "5.9.3",

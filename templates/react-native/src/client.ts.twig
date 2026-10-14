@@ -254,8 +254,10 @@ class Client {
     config: { [key: string]: string } = {
         endpoint: '{{ (spec | endpoint) }}',
         endpointRealtime: '',
+{% if sdk.push %}
         endpointPush: '',
         pushClientId: '',
+{% endif %}
         platform: '',
 {% for headerKey, header in globalHeaders %}
 {% if headerKey | caseLower != 'platform' %}
@@ -339,6 +341,7 @@ class Client {
         return this;
     }
 
+{% if sdk.push %}
     /**
      * Set Push Endpoint
      *
@@ -378,6 +381,7 @@ class Client {
         return this;
     }
 
+{% endif %}
     /**
      * Set platform
      *

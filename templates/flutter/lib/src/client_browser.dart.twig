@@ -98,6 +98,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
     return this;
   }
 
+{% if sdk.push %}
   @override
   ClientBrowser setPushEndpoint(String endPoint) {
     config['endpointPush'] = endPoint;
@@ -110,6 +111,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
     return this;
   }
 
+{% endif %}
   @override
   ClientBrowser addHeader(String key, String value) {
     _headers![key] = value;

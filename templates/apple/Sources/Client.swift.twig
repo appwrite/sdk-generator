@@ -23,10 +23,12 @@ open class Client {
 
     open var endPointRealtime: String? = nil
 
+{% if sdk.push %}
     open var endPointPush: String? = nil
 
     open var pushClientId: String? = nil
 
+{% endif %}
     open var headers: [String: String] = [
         "content-type": "application/json",
         "x-sdk-name": "{{ sdk.name }}",
@@ -207,6 +209,7 @@ open class Client {
         return self
     }
 
+{% if sdk.push %}
     ///
     /// Set push endpoint.
     ///
@@ -238,6 +241,7 @@ open class Client {
         return self
     }
 
+{% endif %}
     ///
     /// Add header
     ///
