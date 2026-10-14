@@ -1850,8 +1850,6 @@ extension Push {
         }
     }
 
-    /// Message ids already delivered, by MQTT or APNs, so each message reaches the app once.
-    /// Bounded, and kept across launches.
     /// The targets this install registered and the topics linked to each, kept across launches and
     /// shared with the extension.
     final class LinkedTopics {
@@ -1910,6 +1908,8 @@ extension Push {
         }
     }
 
+    /// Message ids already delivered, by MQTT or APNs, so each message reaches the app once.
+    /// Bounded, and kept across launches.
     final class Deliveries {
         static let capacity = 500
         static let key = "{{ spec.info.title | caseLower }}.push.delivered"
