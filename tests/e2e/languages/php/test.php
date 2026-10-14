@@ -269,7 +269,7 @@ foreach ($general->listPresets()->presets as $item) {
 }
 echo 'empty presets: ' . count($general->listEmptyPresets()->presets) . "\n";
 echo 'preset verified: ' . ($preset->verified === null ? 'null' : var_export($preset->verified, true)) . "\n";
-echo 'preset scopes: ' . implode(',', array_map('strval', $preset->scopes ?? [])) . "\n";
+echo 'preset scopes: ' . implode(',', array_map(strval(...), $preset->scopes ?? [])) . "\n";
 
 try {
     $response = $general->error400();
