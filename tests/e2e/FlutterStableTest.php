@@ -34,7 +34,7 @@ final class FlutterStableTest extends Base
         'mkdir -p tests/e2e/sdks/flutter/android-test/src/main/java/io/appwrite tests/e2e/sdks/flutter/android-test/src/test/java tests/e2e/sdks/flutter/android-test/gradle/wrapper',
         'cp tests/e2e/languages/flutter/android-test/settings.gradle.kts tests/e2e/languages/flutter/android-test/build.gradle.kts tests/e2e/languages/flutter/android-test/gradle.properties tests/e2e/sdks/flutter/android-test/',
         'cp tests/e2e/languages/flutter/android-test/Tests.kt tests/e2e/sdks/flutter/android-test/src/test/java/Tests.kt',
-        'cp -R tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/services tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/exceptions tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/flutter tests/e2e/sdks/flutter/android-test/src/main/java/io/appwrite/',
+        'cp -R tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/flutter tests/e2e/sdks/flutter/android-test/src/main/java/io/appwrite/',
         'cp tests/e2e/sdks/flutter/android/src/main/AndroidManifest.xml tests/e2e/sdks/flutter/android-test/src/main/AndroidManifest.xml',
         'cp tests/e2e/sdks/flutter/android/build.gradle tests/e2e/sdks/flutter/android-test/plugin.gradle',
         'cp templates/android/gradlew tests/e2e/sdks/flutter/android-test/gradlew',
