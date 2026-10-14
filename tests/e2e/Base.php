@@ -110,6 +110,10 @@ abstract class Base extends TestCase
         'preset verified: null',
     ];
 
+    protected const ENUM_ARRAY_MODEL_RESPONSES = [
+        'preset scopes: read,write',
+    ];
+
     protected const PYTHON_MODEL_DEFAULT_RESPONSES = [
         'preset tier: PresetTier.FREE',
     ];

@@ -3521,7 +3521,8 @@
           "count": {"type": "integer", "description": "Preset count.", "example": 25, "default": 25},
           "enabled": {"type": "boolean", "description": "Whether the preset is enabled.", "example": true, "default": true},
           "tier": {"title": "PresetTier", "type": "string", "description": "Preset tier.", "example": "free", "enum": ["free", "pro"], "default": "free"},
-          "verified": {"type": "boolean", "description": "Whether the preset is verified. Null when it has never been checked.", "example": true, "nullable": true}
+          "verified": {"type": "boolean", "description": "Whether the preset is verified. Null when it has never been checked.", "example": true, "nullable": true},
+          "scopes": {"type": "array", "description": "Preset scopes.", "items": {"type": "string", "oneOf": [{"type": "string", "enum": ["read"], "title": "read"}, {"type": "string", "enum": ["write"], "title": "write"}]}, "example": ["read"]}
         },
         "required": ["name", "count", "enabled", "tier"]
       },

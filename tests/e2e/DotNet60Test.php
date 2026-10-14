@@ -51,6 +51,7 @@ final class DotNet60Test extends Base
         ...Base::MODEL_RESPONSES,
         ...Base::MODEL_DEFAULT_RESPONSES,
         ...Base::NULLABLE_MODEL_RESPONSES,
+        ...Base::ENUM_ARRAY_MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,

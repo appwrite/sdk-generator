@@ -239,6 +239,7 @@ namespace AppwriteTests
             }
             LogResult($"empty presets: {(await general.ListEmptyPresets()).Presets.Count}");
             LogResult($"preset verified: {preset.Verified?.ToString() ?? "null"}");
+            LogResult($"preset scopes: {string.Join(",", (preset.Scopes ?? new List<PresetScopes>()).ConvertAll(scope => scope.Value))}");
 
             try
             {

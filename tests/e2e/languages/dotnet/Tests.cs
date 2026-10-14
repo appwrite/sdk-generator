@@ -147,6 +147,7 @@ namespace AppwriteTests
             }
             TestContext.WriteLine($"empty presets: {(await general.ListEmptyPresets()).Presets.Count}");
             TestContext.WriteLine($"preset verified: {preset.Verified?.ToString() ?? "null"}");
+            TestContext.WriteLine($"preset scopes: {string.Join(",", (preset.Scopes ?? new List<PresetScopes>()).ConvertAll(scope => scope.Value))}");
 
             try
             {
