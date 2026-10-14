@@ -94,9 +94,17 @@ module {{ spec.info.title | caseUcfirst }}
 {% endfor %}
                 ]
 
+{% if (property | schemaType) == 'array' %}
+                ({{ (property | schemaName) | caseSnake | escapeKeyword }} || []).each do |value|
+                    unless valid_{{ (property | schemaName) | caseSnake }}.include?(value)
+                        raise ArgumentError, "Invalid " + value.to_s + ". Must be one of: " + valid_{{ (property | schemaName) | caseSnake }}.join(', ')
+                    end
+                end
+{% else %}
                 unless valid_{{ (property | schemaName) | caseSnake }}.include?({{ (property | schemaName) | caseSnake | escapeKeyword }})
                     raise ArgumentError, "Invalid " + {{ (property | schemaName) | caseSnake | escapeKeyword }} + ". Must be one of: " + valid_{{ (property | schemaName) | caseSnake }}.join(', ')
                 end
+{% endif %}
 
                 {{ (property | schemaName) | caseSnake | escapeKeyword }}
             end
