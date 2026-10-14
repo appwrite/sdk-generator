@@ -245,8 +245,11 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 		output.Success(s.out, "APNs%s is already set up for %s.", environmentLabel(environment), bundleID)
 		output.Hint(s.out, "Pass --force or --key-path to replace the key.")
 		s.configureXcode(detected, bundleID)
+		s.ensureApplePlatform(bundleID)
+		err := s.prepareAppID(provisionedTeam(production, sandbox, detected.teams(bundleID)), bundleID, options, false)
+		s.apnsNextSteps()
 
-		return s.prepareAppID(provisionedTeam(production, sandbox, detected.teams(bundleID)), bundleID, options, false)
+		return err
 	}
 
 	teams := detected.teams(bundleID)
@@ -343,8 +346,54 @@ func (s *pushSetup) apns(options apnsOptions, detected appleApp) error {
 	s.configureXcode(detected, bundleID)
 	output.Success(s.out, "APNs%s is set up for %s.", environmentLabel(environment), bundleID)
 
+	s.ensureApplePlatform(bundleID)
 	// A key created a moment ago left a fresh sign-in to check the App ID with.
-	return s.prepareAppID(teamID, bundleID, options, createdKeyID != "")
+	err = s.prepareAppID(teamID, bundleID, options, createdKeyID != "")
+	s.apnsNextSteps()
+
+	return err
+}
+
+// ensureApplePlatform adds the bundle ID as an Apple platform of the project: without one, the
+// API refuses the app's requests as an unknown origin, device registration included.
+func (s *pushSetup) ensureApplePlatform(bundleID string) {
+	manual := func() {
+		output.Hint(s.out, "Add an Apple platform with the bundle ID %s to the project in the Appwrite console, or the app's requests are refused as an unknown origin.", bundleID)
+	}
+	var list struct {
+		Platforms []struct {
+			Type             string `json:"type"`
+			Key              string `json:"key"`
+			BundleIdentifier string `json:"bundleIdentifier"`
+		} `json:"platforms"`
+	}
+	if err := s.api.Call("GET", "/project/platforms", nil, &list); err != nil {
+		output.Warn(s.out, "Could not check the project's platforms: %s.", err)
+		manual()
+
+		return
+	}
+	for _, platform := range list.Platforms {
+		if strings.HasPrefix(platform.Type, "apple") && (platform.BundleIdentifier == bundleID || platform.Key == bundleID) {
+			return
+		}
+	}
+	body := map[string]any{"platformId": "unique()", "name": "iOS (" + bundleID + ")", "bundleIdentifier": bundleID}
+	if err := s.api.Call("POST", "/project/platforms/apple", body, nil); err != nil {
+		output.Warn(s.out, "Could not add the Apple platform %s: %s.", bundleID, err)
+		manual()
+
+		return
+	}
+	output.Success(s.out, "Added the Apple platform %s to the project.", bundleID)
+}
+
+// apnsNextSteps says what else push on iOS needs beyond what init apns sets up.
+func (s *pushSetup) apnsNextSteps() {
+	if appwrite, err := s.providers("appwrite"); err == nil && findProvider(appwrite, func(provider messagingProvider) bool { return provider.Enabled }) == nil {
+		output.Hint(s.out, "Enable the Appwrite push provider in the project: messages reach the app over it, and APNs only wakes the app.")
+	}
+	output.Hint(s.out, "For messages while the app is in the background or swiped away, add a Notification Service Extension whose class extends AppwriteNotificationService, and put the app and the extension in one App Group, named by AppwritePushAppGroup in both Info.plists.")
 }
 
 // apnsKey finds or creates the APNs key and returns its path. With

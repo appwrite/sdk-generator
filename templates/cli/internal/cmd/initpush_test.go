@@ -291,6 +291,7 @@ func TestWaitForKeyFileIgnoresEarlierFiles(t *testing.T) {
 }
 
 type fakeMessaging struct {
+	platforms  []map[string]any
 	providers  []map[string]any
 	requests   []string
 	identities []map[string]any
@@ -305,6 +306,13 @@ func (f *fakeMessaging) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_ = json.Unmarshal(body, &params)
 
 	switch {
+	case r.Method == "GET" && r.URL.Path == "/project/platforms":
+		_ = json.NewEncoder(w).Encode(map[string]any{"total": len(f.platforms), "platforms": f.platforms})
+	case r.Method == "POST" && r.URL.Path == "/project/platforms/apple":
+		platform := map[string]any{"$id": "platform" + string(rune('0'+len(f.platforms))), "type": "apple", "name": params["name"], "bundleIdentifier": params["bundleIdentifier"]}
+		f.platforms = append(f.platforms, platform)
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(platform)
 	case r.Method == "GET" && r.URL.Path == "/account/identities":
 		_ = json.NewEncoder(w).Encode(map[string]any{"total": len(f.identities), "identities": f.identities})
 	case r.Method == "GET" && r.URL.Path == "/account":
@@ -468,8 +476,35 @@ func TestInitApnsCreatesBothEnvironmentsAndEditsXcode(t *testing.T) {
 	if err := setup.apns(apnsOptions{bundleID: myAppBundle}, detected); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Join(messaging.requests, ",") != "GET /messaging/providers" {
+	// A rerun only reads: the providers, the platform the first run added, and the Appwrite push provider.
+	if strings.Join(messaging.requests, ",") != "GET /messaging/providers,GET /project/platforms,GET /messaging/providers" {
 		t.Errorf("already set up requests = %v", messaging.requests)
+	}
+	if len(messaging.platforms) != 1 || messaging.platforms[0]["bundleIdentifier"] != myAppBundle {
+		t.Errorf("platforms = %v", messaging.platforms)
+	}
+}
+
+func TestInitApnsAddsTheApplePlatformAndSaysWhatElseIsNeeded(t *testing.T) {
+	web := map[string]any{"$id": "web", "type": "web", "hostname": "example.com"}
+	messaging := &fakeMessaging{platforms: []map[string]any{web}}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, root)
+	err := setup.apns(apnsOptions{keyPath: testApnsKey(t, root), keyID: "ABCDE12345", teamID: "ABCDE12345", bundleID: "com.example.app", environment: "sandbox"}, appleApp{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messaging.platforms) != 2 || messaging.platforms[1]["bundleIdentifier"] != "com.example.app" {
+		t.Fatalf("platforms = %v", messaging.platforms)
+	}
+	text := out.String()
+	for _, part := range []string{"Added the Apple platform com.example.app", "Enable the Appwrite push provider", "AppwriteNotificationService"} {
+		if !strings.Contains(text, part) {
+			t.Errorf("output is missing %q:\n%s", part, text)
+		}
 	}
 }
 
