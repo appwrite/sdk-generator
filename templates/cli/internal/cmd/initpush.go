@@ -455,12 +455,20 @@ const (
 	// The Apple ID and password, when set, answer the sign-in questions.
 	appleIDVariable       = "APPWRITE_APPLE_ID"
 	applePasswordVariable = "APPWRITE_APPLE_PASSWORD"
+	// appleHostVariable points Apple's sign-in and Developer portal at one
+	// other server, a mock of Apple in the e2e tests.
+	appleHostVariable = "APPWRITE_APPLE_HOST"
 )
 
 // apnsAdapters lists the APNs key setups this build offers. Each lives in its
 // own package under internal/apns and is added here.
 func apnsAdapters() *apns.Registry {
-	return apns.NewRegistry(appwrite.New(), expo.New(), fastlane.New())
+	adapter := appwrite.New()
+	if host := os.Getenv(appleHostVariable); host != "" {
+		adapter.Hosts = appwrite.Hosts{Idmsa: host, AppStoreConnect: host, Portal: host}
+	}
+
+	return apns.NewRegistry(adapter, expo.New(), fastlane.New())
 }
 
 // apnsAdapter picks the setup: --provider, then APPWRITE_APNS_SETUP, then
