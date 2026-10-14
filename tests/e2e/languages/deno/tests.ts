@@ -179,6 +179,9 @@ async function start() {
   const verified: appwrite.Models.Preset["verified"] = preset.verified ?? null;
   console.log(`preset verified: ${verified}`);
 
+  response = await general.nullable("required", null, undefined, undefined, null);
+  console.log(response.result);
+
   try {
     response = await general.error400();
   } catch (error) {
