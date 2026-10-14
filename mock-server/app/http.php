@@ -1056,15 +1056,21 @@ App::get('/v1/mock/tests/general/oauth2/failure')
  * Messaging providers and project platforms, for `appwrite init apns`. Kept per project in a file,
  * since the workers share no memory, so a second run sees what the first created.
  */
-function apnsMockState(Request $request, callable $change): array
+function apnsMockState(Request $request, callable $change): mixed
 {
-    $project = \preg_replace('/[^A-Za-z0-9_-]/', '', (string) $request->getHeader('x-appwrite-project', 'default'));
-    $handle = \fopen(APP_STORAGE_CACHE . '/apns-' . $project . '.json', 'c+');
+    $project = (string) $request->getHeader('x-appwrite-project', 'default');
+
+    return mockState('apns-' . $project, ['providers' => [], 'platforms' => []], $change);
+}
+
+function mockState(string $name, array $initial, callable $change): mixed
+{
+    $handle = \fopen(APP_STORAGE_CACHE . '/' . \preg_replace('/[^A-Za-z0-9_-]/', '', $name) . '.json', 'c+');
     if ($handle === false) {
-        throw new Exception(Exception::GENERAL_MOCK, 'Failed to open the APNs mock state', 500);
+        throw new Exception(Exception::GENERAL_MOCK, 'Failed to open the mock state', 500);
     }
     \flock($handle, LOCK_EX);
-    $state = \json_decode((string) \stream_get_contents($handle), true) ?: ['providers' => [], 'platforms' => []];
+    $state = \json_decode((string) \stream_get_contents($handle), true) ?: $initial;
     $result = $change($state);
     \ftruncate($handle, 0);
     \rewind($handle);
@@ -1170,6 +1176,220 @@ App::post('/v1/project/platforms/apple')
             return $platform;
         });
         $response->setStatusCode(Response::STATUS_CODE_CREATED)->json($platform);
+    });
+
+/**
+ * Apple's sign-in, App Store Connect and Developer portal, for `appwrite init apns` with
+ * APPWRITE_APPLE_HOST set to /apple. Any password signs in, without two-factor, and the session
+ * cookie carries the Apple ID. Each Apple ID has one team with room for two keys, and its own App
+ * IDs; an App ID ending in .nopush already exists with Push Notifications off.
+ */
+const APPLE_MOCK_TEAM = 'E2ETEAM123';
+
+function appleMockAccount(Request $request): string
+{
+    return \rawurldecode((string) $request->getCookie('myacinfo', ''));
+}
+
+function appleMockState(string $account, callable $change): mixed
+{
+    return mockState('apple-' . \md5($account), ['keys' => [], 'appIds' => []], $change);
+}
+
+function appleMockAppId(array $appId): array
+{
+    return [
+        'type' => 'bundleIds',
+        'id' => $appId['id'],
+        'attributes' => ['identifier' => $appId['identifier'], 'seedId' => APPLE_MOCK_TEAM],
+        'relationships' => ['bundleIdCapabilities' => ['data' => $appId['push'] ? [['type' => 'bundleIdCapabilities', 'id' => $appId['id'] . '_PUSH']] : []]],
+    ];
+}
+
+function appleMockPortal(Request $request, UtopiaSwooleResponse $response, callable $handle): void
+{
+    $account = appleMockAccount($request);
+    if ($account === '') {
+        $response->setStatusCode(401)->json(['resultCode' => 1100, 'resultString' => 'Your session has expired']);
+        return;
+    }
+    $response->json(appleMockState($account, $handle) + ['resultCode' => 0]);
+}
+
+App::get('/apple/olympus/v1/app/config')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json(['authServiceKey' => 'e2e-widget-key']);
+    });
+
+App::get('/apple/olympus/v1/session')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $account = appleMockAccount($request);
+        if ($account === '') {
+            $response->setStatusCode(401)->json([]);
+            return;
+        }
+        $response->json(['user' => ['emailAddress' => $account], 'provider' => ['providerId' => 1, 'name' => 'E2E Team']]);
+    });
+
+App::post('/apple/appleauth/auth/signin/init')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json([
+            'iteration' => 1000,
+            'salt' => \base64_encode(\random_bytes(16)),
+            'protocol' => 's2k',
+            'b' => \base64_encode(\random_bytes(256)),
+            'c' => 'e2e',
+        ]);
+    });
+
+App::get('/apple/appleauth/auth/signin')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->noContent();
+    });
+
+App::post('/apple/appleauth/auth/signin/complete')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $account = (string) (\json_decode($request->getRawPayload(), true)['accountName'] ?? '');
+        if ($account === '') {
+            $response->setStatusCode(401)->json([]);
+            return;
+        }
+        $response
+            ->addCookie('myacinfo', \rawurlencode($account), \time() + 3600, '/')
+            ->json([]);
+    });
+
+App::post('/apple/services-account/QH65B2/account/listTeams.action')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        appleMockPortal($request, $response, fn () => [
+            'teams' => [['teamId' => APPLE_MOCK_TEAM, 'name' => 'E2E Team', 'type' => 'Company/Organization']],
+        ]);
+    });
+
+App::post('/apple/services-account/QH65B2/account/auth/key/list')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $response->addHeader('csrf', 'e2e-csrf')->addHeader('csrf_ts', (string) \time());
+        appleMockPortal($request, $response, fn (array &$state) => [
+            'keys' => \array_map(fn (array $key) => ['keyId' => $key['id'], 'keyName' => $key['name'], 'canRevoke' => true], $state['keys']),
+        ]);
+    });
+
+App::post('/apple/services-account/QH65B2/account/auth/key/v2/create')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        if ($request->getHeader('csrf', '') === '') {
+            $response->setStatusCode(403)->json([]);
+            return;
+        }
+        $name = (string) (\json_decode($request->getRawPayload(), true)['name'] ?? '');
+        appleMockPortal($request, $response, function (array &$state) use ($name) {
+            if (\count($state['keys']) >= 2) {
+                return ['resultCode' => 1, 'resultString' => 'There is a problem with the request entity', 'userString' => 'You have already reached the maximum allowed number of Keys for this service.'];
+            }
+            $key = \openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]);
+            \openssl_pkey_export($key, $pem);
+            $id = \strtoupper(\substr(\bin2hex(\random_bytes(5)), 0, 10));
+            $state['keys'][] = ['id' => $id, 'name' => $name, 'p8' => $pem, 'downloaded' => false];
+            return ['keys' => [['keyId' => $id, 'keyName' => $name, 'canRevoke' => true]]];
+        });
+    });
+
+App::get('/apple/services-account/QH65B2/account/auth/key/download')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $account = appleMockAccount($request);
+        $keyId = (string) $request->getParam('keyId', '');
+        $p8 = $account === '' ? null : appleMockState($account, function (array &$state) use ($keyId) {
+            foreach ($state['keys'] as $index => $key) {
+                if ($key['id'] === $keyId && !$key['downloaded']) {
+                    $state['keys'][$index]['downloaded'] = true;
+                    return $key['p8'];
+                }
+            }
+            return null;
+        });
+        if ($p8 === null) {
+            $response->json(['resultCode' => 1, 'resultString' => 'The key cannot be downloaded']);
+            return;
+        }
+        $response->setContentType('application/octet-stream')->send($p8);
+    });
+
+App::post('/apple/services-account/v1/bundleIds')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $account = appleMockAccount($request);
+        if ($account === '') {
+            $response->setStatusCode(401)->json([]);
+            return;
+        }
+        $body = \json_decode($request->getRawPayload(), true) ?: [];
+        if ($request->getHeader('x-http-method-override', '') === 'GET') {
+            \parse_str((string) ($body['urlEncodedQueryParams'] ?? ''), $query);
+            $identifier = (string) ($query['filter']['identifier'] ?? '');
+            $appIds = appleMockState($account, function (array &$state) use ($identifier) {
+                if (\str_ends_with($identifier, '.nopush') && !isset($state['appIds'][$identifier])) {
+                    $state['appIds'][$identifier] = ['id' => 'APPID' . \count($state['appIds']), 'identifier' => $identifier, 'push' => false];
+                }
+                return \array_values(\array_filter($state['appIds'], fn (array $appId) => \str_starts_with($appId['identifier'], $identifier)));
+            });
+            $response->json([
+                'data' => \array_map(appleMockAppId(...), $appIds),
+                'included' => \array_values(\array_map(fn (array $appId) => [
+                    'type' => 'bundleIdCapabilities',
+                    'id' => $appId['id'] . '_PUSH',
+                    'attributes' => ['capabilityType' => 'PUSH_NOTIFICATIONS', 'enabled' => true],
+                ], \array_filter($appIds, fn (array $appId) => $appId['push']))),
+            ]);
+            return;
+        }
+        $identifier = (string) ($body['data']['attributes']['identifier'] ?? '');
+        $appId = appleMockState($account, function (array &$state) use ($identifier) {
+            return $state['appIds'][$identifier] = ['id' => 'APPID' . \count($state['appIds']), 'identifier' => $identifier, 'push' => false];
+        });
+        $response->setStatusCode(Response::STATUS_CODE_CREATED)->json(['data' => appleMockAppId($appId)]);
+    });
+
+App::patch('/apple/services-account/v1/bundleIds/:id')
+    ->param('id', '', new Text(36), 'App ID.')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $id, Request $request, UtopiaSwooleResponse $response) {
+        $account = appleMockAccount($request);
+        if ($account === '') {
+            $response->setStatusCode(401)->json([]);
+            return;
+        }
+        $body = \json_decode($request->getRawPayload(), true) ?: [];
+        $push = ($body['data']['relationships']['bundleIdCapabilities']['data'][0]['relationships']['capability']['data']['id'] ?? '') === 'PUSH_NOTIFICATIONS';
+        $appId = appleMockState($account, function (array &$state) use ($id, $push) {
+            foreach ($state['appIds'] as $identifier => $appId) {
+                if ($appId['id'] === $id) {
+                    $state['appIds'][$identifier]['push'] = $appId['push'] || $push;
+                    return $state['appIds'][$identifier];
+                }
+            }
+            return null;
+        });
+        if ($appId === null) {
+            $response->setStatusCode(404)->json(['errors' => [['status' => '404', 'detail' => 'No App ID ' . $id]]]);
+            return;
+        }
+        $response->json(['data' => appleMockAppId($appId)]);
     });
 
 App::shutdown()
