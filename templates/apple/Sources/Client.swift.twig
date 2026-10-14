@@ -367,6 +367,11 @@ open class Client {
         for (key, value) in self.headers.merging(headers, uniquingKeysWith: { $1 }) {
             request.headers.add(name: key, value: value)
         }
+        // NIO asks for "deflate, gzip" unless told otherwise, and some servers answer deflate with a raw
+        // stream it can't inflate. gzip is decoded the same everywhere.
+        if compression, !request.headers.contains(name: "accept-encoding") {
+            request.headers.add(name: "accept-encoding", value: "gzip")
+        }
 
         request.addDomainCookies()
 
