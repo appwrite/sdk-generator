@@ -242,6 +242,15 @@ final class PushTests {
         }
     }
 
+    @Test func theLastHeartbeatIsKept() {
+        withSharedDefaults {
+            #expect(Push.Shared.lastLive() == nil)
+            let now = Date(timeIntervalSince1970: 1_800_000_000)
+            Push.Shared.markLive(at: now)
+            #expect(Push.Shared.lastLive() == now)
+        }
+    }
+
     @Test func handedOffMessagesGoToTheMatchingTopicsOnce() {
         withSharedDefaults {
             Push.Shared.handOff([message("news", "a"), message("sales", "b"), message("news", "c")])

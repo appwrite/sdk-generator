@@ -1703,7 +1703,15 @@ extension Push {
         }
         let timer = DispatchSource.makeTimerSource(queue: .global())
         timer.schedule(deadline: .now(), repeating: Shared.heartbeatInterval)
-        timer.setEventHandler { Shared.markLive() }
+        timer.setEventHandler { [weak self] in
+            Shared.markLive()
+            #if canImport(UserNotifications)
+                if let self {
+                    let filters = Set(self.sync.sync { self.subscriptions.values.map { $0.filter } })
+                    Task { await Push.clearPlaceholders(subscribed: filters) }
+                }
+            #endif
+        }
         let previous = sync.sync { () -> DispatchSourceTimer? in
             let previous = heartbeat
             heartbeat = timer

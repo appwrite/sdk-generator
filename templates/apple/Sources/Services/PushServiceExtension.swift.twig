@@ -13,7 +13,8 @@ extension Push {
         static let appGroupKey = "AppwritePushAppGroup"
         static let bannerKey = "{{ spec.info.title | caseLower }}.push.banner"
         static let placeholderKey = "{{ spec.info.title | caseLower }}.push.placeholder"
-        static let heartbeatInterval = DispatchTimeInterval.seconds(3)
+        static let heartbeatSeconds: TimeInterval = 3
+        static let heartbeatInterval = DispatchTimeInterval.milliseconds(Int(heartbeatSeconds * 1000))
         static let liveWindow: TimeInterval = 10
         static let pendingLifetime: TimeInterval = 30
         static var inServiceExtension = false
@@ -113,6 +114,12 @@ extension Push {
         static func isAppLive(at date: Date = Date()) -> Bool {
             let live = defaults.double(forKey: "\(prefix).live")
             return live > 0 && date.timeIntervalSince1970 - live < liveWindow
+        }
+
+        /// When the app last marked itself live, or nil when it never did.
+        static func lastLive() -> Date? {
+            let live = defaults.double(forKey: "\(prefix).live")
+            return live > 0 ? Date(timeIntervalSince1970: live) : nil
         }
 
         // MARK: Messages
@@ -296,7 +303,7 @@ extension Push {
             var message = Push.Shared.dequeue()
             // The session allows one connection, and the live app already has the message. An app killed
             // moments ago still looks live but posted no banner, so fetch then.
-            if message == nil, Push.Shared.isAppLive(), await replaceAppBanner(in: content) {
+            if message == nil, Push.Shared.isAppLive(), await appHasIt(content) {
                 return
             }
             if message == nil {
@@ -365,6 +372,23 @@ extension Push {
                     content.attachments = [attachment]
                 }
             }
+        }
+
+        /// Whether the live app has the message, so connecting would only take its session over. Its banner
+        /// can trail the push, and an app that marks itself live after the push arrived is running and
+        /// clears the placeholder itself. An app killed moments ago does neither, and the extension fetches.
+        private func appHasIt(_ content: UNMutableNotificationContent) async -> Bool {
+            let arrived = Date()
+            repeat {
+                if await replaceAppBanner(in: content) {
+                    return true
+                }
+                if let live = Push.Shared.lastLive(), live > arrived {
+                    return true
+                }
+                try? await Task.sleep(nanoseconds: 300_000_000)
+            } while Date().timeIntervalSince(arrived) < Push.Shared.heartbeatSeconds + 1
+            return false
         }
 
         private func replaceAppBanner(in content: UNMutableNotificationContent) async -> Bool {
