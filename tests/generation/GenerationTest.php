@@ -294,6 +294,38 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * Unity projects save the selected services as the flags' integer value, so
+     * each released service must keep its bit when a service is added.
+     */
+    public function testUnityServiceFlagsKeepTheirReleasedBits(): void
+    {
+        $files = $this->generate('unity', 'client');
+        $paths = \array_values(\array_filter(\array_keys($files), fn(string $path): bool => \str_ends_with($path, 'AppwriteConfig.cs')));
+        $this->assertCount(1, $paths);
+        $config = $files[$paths[0]];
+
+        // Bits as released in sdk-for-unity 0.9.0, plus the services 0.10.0 adds.
+        $released = [
+            'account' => 0, 'avatars' => 1, 'databases' => 2, 'documentsdb' => 3, 'functions' => 4,
+            'graphql' => 5, 'locale' => 6, 'messaging' => 7, 'organization' => 8, 'presences' => 9,
+            'storage' => 10, 'tablesdb' => 11, 'teams' => 12, 'vectorsdb' => 13, 'analytics' => 14,
+            'apps' => 15, 'oauth2' => 16,
+        ];
+        \preg_match_all('/(\\w+) = 1 << (\\d+),/', $config, $flags, PREG_SET_ORDER);
+        $this->assertNotEmpty($flags);
+        foreach ($flags as [, $service, $bit]) {
+            if (isset($released[$service])) {
+                $this->assertSame($released[$service], (int) $bit, "unity moved the {$service} flag off its released bit");
+            } else {
+                $this->assertGreaterThanOrEqual(\count($released), (int) $bit, "unity gave the new {$service} flag a released bit");
+            }
+        }
+
+        \preg_match_all('/ = 1 << (\\d+),/', $config, $bits);
+        $this->assertSame(\array_unique($bits[1]), $bits[1], 'unity gave two services the same flag bit');
+    }
+
+    /**
      * The analytics tracking helpers are hand-written companions to a generated
      * service. Shipping them into an SDK whose spec has no analytics service
      * leaves files, and entry-point exports, naming a class that is never
