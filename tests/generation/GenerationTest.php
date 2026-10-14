@@ -371,6 +371,21 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * Without setPush(), an SDK generates Push only if a released version already ships
+     * it, so a release never removes a released API; an explicit setPush() still wins.
+     */
+    #[DataProvider('languages')]
+    public function testPushDefaultsToWhetherTheSdkReleasedIt(string $name): void
+    {
+        $released = \in_array($name, ['android', 'go'], true);
+        $spec = Parser::parse((string) \file_get_contents(self::FIXTURE));
+
+        $this->assertSame($released ? 'true' : '', new SDK($this->language($name), $spec)->getParam('push'), "{$name} default");
+        $this->assertSame('', new SDK($this->language($name), $spec)->setPush(false)->getParam('push'), "{$name} explicit off");
+        $this->assertSame('true', new SDK($this->language($name), $spec)->setPush(true)->getParam('push'), "{$name} explicit on");
+    }
+
+    /**
      * Push is off unless an SDK asks for it, so a release cannot ship it by accident:
      * no Push, MQTT or Topic file is emitted, and no other file mentions them.
      */

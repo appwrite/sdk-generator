@@ -14,6 +14,15 @@ class Android extends Kotlin
         return 'Android';
     }
 
+    /**
+     * Push shipped in sdk-for-android 29.0.0.
+     */
+    #[Override]
+    public function hasReleasedPush(): bool
+    {
+        return true;
+    }
+
     #[Override]
     public function getFiles(): array
     {

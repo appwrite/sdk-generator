@@ -104,6 +104,7 @@ class SDK
      */
     public function __construct(protected Language $language, protected Specification $spec)
     {
+        $this->setPush($language->hasReleasedPush());
         $this->indexSchemas();
         $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'), [
             'debug' => true
@@ -436,7 +437,7 @@ class SDK
 
     /**
      * Include the Push service, its MQTT transport and the Topic helpers.
-     * Off by default: Push is not released yet.
+     * Defaults to Language::hasReleasedPush(): off unless that SDK already released Push.
      */
     public function setPush(bool $push): SDK
     {

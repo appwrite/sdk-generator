@@ -217,6 +217,15 @@ abstract class Language
     }
 
     /**
+     * Whether a released version of this SDK already ships Push. The SDK generates Push by
+     * default for these, so a release never removes it; SDK::setPush() still decides.
+     */
+    public function hasReleasedPush(): bool
+    {
+        return false;
+    }
+
+    /**
      * Whether method signatures keep the documented enum as a type for open string enums.
      */
     public function keepsOpenEnumType(): bool

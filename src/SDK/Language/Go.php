@@ -19,6 +19,15 @@ class Go extends Language
     }
 
     /**
+     * The topic package shipped in sdk-for-go v7.10.0.
+     */
+    #[Override]
+    public function hasReleasedPush(): bool
+    {
+        return true;
+    }
+
+    /**
      * Get Language Keywords List
      */
     public function getKeywords(): array

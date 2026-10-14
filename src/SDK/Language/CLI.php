@@ -58,6 +58,12 @@ class CLI extends Go
         return 'cli';
     }
 
+    #[Override]
+    public function hasReleasedPush(): bool
+    {
+        return false;
+    }
+
     /**
      * Name of the binary the user invokes.
      */
