@@ -1484,9 +1484,14 @@ extension Push {
 
     static func apnsRegistrationFailed(_ error: Swift.Error) {
         let pushes = apnsLocked { apnsPushes.values.compactMap { $0.push } }
+        let nsError = error as NSError
+        // iOS reports a missing aps-environment entitlement as Cocoa error 3000.
+        let entitlement = nsError.domain == NSCocoaErrorDomain && nsError.code == 3000
         let described = {{ spec.info.title | caseUcfirst }}Error(
-            message:
-                "APNs registration failed: \(error.localizedDescription). Run `appwrite init apns` to add the Push Notifications capability (aps-environment entitlement)."
+            message: "APNs registration failed: \(error.localizedDescription)"
+                + (entitlement
+                    ? ". Add the Push Notifications capability so the app has an aps-environment entitlement; `appwrite init apns` sets it in the Xcode project."
+                    : "")
         )
         for push in pushes {
             push.surface(described)
