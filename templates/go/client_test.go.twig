@@ -4,7 +4,7 @@ package client
 import (
 	"crypto/tls"
 	"encoding/json"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -339,7 +339,7 @@ func TestCallSendsFlattenedParams(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rawQuery = r.URL.Query()
 		if r.Method != http.MethodGet {
-			data, _ := io.ReadAll(r.Body)
+			data, _ := ioutil.ReadAll(r.Body)
 			json.Unmarshal(data, &body)
 		}
 		w.Header().Set("content-type", "application/json")
