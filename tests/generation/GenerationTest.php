@@ -541,6 +541,34 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A released CLI has to build from its own module, so only a CLI pinned
+     * to a local Go SDK may replace the published one.
+     */
+    public function testCliReplacesGoSdkOnlyWhenPinned(): void
+    {
+        $this->assertStringNotContainsString('replace ', $this->generateCliModule(new CLI(), 'release'));
+        $this->assertStringContainsString(
+            'replace ' . CLI::SDK_MODULE . ' => ../go',
+            $this->generateCliModule(new CLI()->setSdkPath('../go'), 'pinned'),
+        );
+    }
+
+    private function generateCliModule(CLI $language, string $key): string
+    {
+        $dir = self::OUTPUT . '/cli-module/' . $key;
+        $this->removeDirectory($dir);
+
+        new SDK($language, Parser::parse((string) \file_get_contents(self::FIXTURE)))
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->generate($dir);
+
+        return (string) \file_get_contents($dir . '/go.mod');
+    }
+
+    /**
      * The generated tree for an inline document, for a shape the shared
      * fixture does not carry.
      *

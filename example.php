@@ -277,6 +277,7 @@ try {
         $language->setLogo($cliLogo);
         $language->setLogoUnescaped($cliLogoUnescaped);
         $language->setNPMPackage('appwrite-cli');
+        $language->setSdkPath('../go');
 
         $sdk = new SDK($language, buildSpecification($spec));
         $sdk->setTest(false);
