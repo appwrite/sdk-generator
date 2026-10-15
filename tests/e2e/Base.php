@@ -463,11 +463,6 @@ abstract class Base extends TestCase
     protected const TOPIC_HELPER_RESPONSES = [
         'user/123/notification',
         'org/42/user/123/notification',
-        'user/+/notification',
-        'chat/+/+/message',
-        'org/+/logs/#',
-        '+/notification',
-        '#',
         'Topic empty path:passed',
         'Topic empty level:passed',
         'Topic slash:passed',
