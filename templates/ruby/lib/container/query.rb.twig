@@ -424,24 +424,11 @@ module {{spec.info.title | caseUcfirst}}
                         changed = true
                         next
                     end
-                    if item.is_a?(Array) && flat.is_a?(Array) && flat.all? { |entry| entry.is_a?(String) }
-                        out.concat(flat)
-                        changed = true
-                        next
-                    end
                     changed = true if flat != item
                     out << flat
                 end
 
                 changed ? out : value
-            end
-
-            def _normalize(queries)
-                flat = _flatten(queries)
-                return flat.map(&:to_s) if flat.is_a?(Array)
-                return [flat] if flat.is_a?(String)
-
-                []
             end
 
             private

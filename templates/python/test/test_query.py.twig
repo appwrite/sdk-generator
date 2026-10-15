@@ -1,6 +1,11 @@
 import json
 import unittest
+from urllib.parse import parse_qsl
+from urllib.parse import urlsplit
 
+import requests_mock
+
+from {{ namespace | caseSnake }}.client import Client
 from {{ namespace | caseSnake }}.query import Query
 
 
@@ -309,12 +314,6 @@ class TestQueryMethods(unittest.TestCase):
         )
         self.assertEqual(expected, built)
 
-    def test_normalize_builder(self):
-        builder = Query.builder().equal('status', 'active').limit(10)
-        self.assertEqual(builder.build(), Query._normalize(builder))
-        self.assertEqual(builder.build(), Query._normalize([builder]))
-        self.assertEqual(builder.build(), Query._normalize([builder.build()]))
-
     def test_flatten_spreads_wrapped_builder(self):
         self.assertEqual([Query.limit(1)], Query._flatten([Query.builder().limit(1)]))
 
@@ -324,3 +323,55 @@ class TestQueryMethods(unittest.TestCase):
 
     def test_flatten_keeps_query_string_list(self):
         self.assertEqual([Query.limit(1)], Query._flatten([Query.limit(1)]))
+
+    def test_flatten_keeps_nested_string_arrays(self):
+        nested = [['a', 'b']]
+        self.assertEqual([['a', 'b']], Query._flatten(nested))
+
+    def test_flatten_builder_param_becomes_query_strings(self):
+        builder = Query.builder().equal('status', 'active').limit(1)
+        self.assertEqual([Query.equal('status', 'active'), Query.limit(1)], Query._flatten(builder))
+
+    def test_flatten_splices_builders_beside_nested_string_arrays(self):
+        builder = Query.builder().limit(1).offset(2)
+        self.assertEqual(
+            [Query.limit(1), Query.offset(2), ['a', 'b']],
+            Query._flatten([builder, ['a', 'b']]),
+        )
+
+    @requests_mock.Mocker()
+    def test_client_sends_flattened_params(self, m):
+        m.register_uri(
+            requests_mock.ANY,
+            requests_mock.ANY,
+            json={},
+            headers={'Content-Type': 'application/json'},
+        )
+        client = Client().set_endpoint('https://example.com/v1')
+        queries = [Query.limit(1), Query.offset(2)]
+
+        def params():
+            return {'queries': Query.builder().limit(1).offset(2), 'tags': [['a', 'b']]}
+
+        client.call('post', '/items', {'content-type': 'application/json'}, params())
+        client.call('get', '/items', {'content-type': 'application/json'}, params())
+        client.call('post', '/items', {'content-type': 'multipart/form-data'}, params())
+
+        json_request, get_request, multipart_request = m.request_history
+        self.assertEqual(
+            {'queries': queries, 'tags': [['a', 'b']]},
+            json.loads(json_request.body),
+        )
+        self.assertEqual(
+            [
+                ('queries[0]', queries[0]),
+                ('queries[1]', queries[1]),
+                ('tags[0][0]', 'a'),
+                ('tags[0][1]', 'b'),
+            ],
+            parse_qsl(urlsplit(get_request.url).query),
+        )
+        multipart_body = multipart_request.body.decode()
+        self.assertIn('name="tags[0][0]"\r\n\r\na\r\n', multipart_body)
+        self.assertIn('name="tags[0][1]"\r\n\r\nb\r\n', multipart_body)
+        self.assertIn(f'name="queries[1]"\r\n\r\n{queries[1]}\r\n', multipart_body)

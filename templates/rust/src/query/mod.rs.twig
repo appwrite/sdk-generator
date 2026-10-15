@@ -691,23 +691,6 @@ impl Query {
         Builder::new()
     }
 
-    pub(crate) fn normalize(value: impl Serialize) -> Vec<String> {
-        match serde_json::to_value(value) {
-            Ok(v) => Self::normalize_value(&v),
-            Err(_) => vec![],
-        }
-    }
-
-    pub(crate) fn normalize_value(value: &Value) -> Vec<String> {
-        match value {
-            Value::Null => vec![],
-            Value::String(s) => vec![s.clone()],
-            Value::Array(items) => items.iter().flat_map(Self::normalize_value).collect(),
-            Value::Object(_) => vec![value.to_string()],
-            _ => vec![],
-        }
-    }
-
     fn aliased(method: &str, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
         let alias = alias.into();
         let values = if alias.is_empty() {
@@ -1667,36 +1650,6 @@ mod tests {
                 Query::count("*", "total").to_string(),
                 Query::group_by(vec!["status"]).to_string(),
                 Query::limit(25).to_string(),
-            ]
-        );
-    }
-
-    #[test]
-    fn test_normalize_builder() {
-        let builder = Query::builder().equal("status", "active").limit(10);
-        let expected = builder.build();
-        assert_eq!(Query::normalize(builder.clone()), expected);
-        assert_eq!(Query::normalize(vec![builder.clone()]), expected);
-        assert_eq!(Query::normalize(vec![builder.build()]), expected);
-    }
-
-    #[test]
-    fn test_normalize_page_wrapped_in_array() {
-        let normalized = Query::normalize(vec![
-            Value::String(Query::equal("status", "active").to_string()),
-            Value::Array(
-                Query::page(2, 10)
-                    .into_iter()
-                    .map(|query| Value::String(query.to_string()))
-                    .collect(),
-            ),
-        ]);
-        assert_eq!(
-            normalized,
-            vec![
-                Query::equal("status", "active").to_string(),
-                Query::limit(10).to_string(),
-                Query::offset(10).to_string(),
             ]
         );
     }

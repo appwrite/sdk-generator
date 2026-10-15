@@ -437,24 +437,11 @@ class Query:
                     out.append(flat)
                 changed = True
                 continue
-            if isinstance(item, list) and isinstance(flat, list) and all(isinstance(entry, str) for entry in flat):
-                out.extend(flat)
-                changed = True
-                continue
             if flat is not item:
                 changed = True
             out.append(flat)
 
         return out if changed else value
-
-    @staticmethod
-    def _normalize(queries):
-        flat = Query._flatten(queries)
-        if isinstance(flat, list):
-            return [str(item) for item in flat]
-        if isinstance(flat, str):
-            return [flat]
-        return []
 
     @staticmethod
     def _create_join(method, table, left, right, operator, alias):

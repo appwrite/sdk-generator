@@ -758,53 +758,35 @@ open class Client {
     }
 
     public func flatten(_ value: Any?) -> Any? {
+        return flattened(value).value
+    }
+
+    private func flattened(_ value: Any?) -> (value: Any?, changed: Bool) {
         if let builder = value as? Query.Builder {
-            return builder.build()
+            return (builder.build(), true)
         }
         if let query = value as? Query {
-            return query.description
+            return (query.description, true)
         }
-        if let builders = value as? [Query.Builder] {
-            return builders.flatMap { $0.build() }
-        }
-        if let queries = value as? [Query] {
-            return queries.map { $0.description }
-        }
-        if let strings = value as? [String] {
-            return strings
+        if value is [String] {
+            return (value, false)
         }
         guard let items = arrayElements(value) else {
-            return value
+            return (value, false)
         }
 
         var out: [Any] = []
         var changed = false
         for item in items {
-            let flat = flatten(item)
-            if let strings = flat as? [String], !(item is any StringProtocol) {
-                out.append(contentsOf: strings)
-                changed = true
-                continue
-            }
-            if item is Query.Builder || item is Query {
-                if let list = arrayElements(flat) {
-                    out.append(contentsOf: list)
-                } else if let flat {
-                    out.append(flat)
-                }
-                changed = true
-                continue
-            }
-            if arrayElements(item) != nil, let list = arrayElements(flat), list.allSatisfy({ $0 is String }) {
-                out.append(contentsOf: list)
-                changed = true
-                continue
-            }
-            if let flat {
-                out.append(flat)
+            let flat = flattened(item)
+            changed = changed || flat.changed
+            if item is Query.Builder, let queries = flat.value as? [String] {
+                out.append(contentsOf: queries)
+            } else if let entry = flat.value {
+                out.append(entry)
             }
         }
-        return changed ? out : value
+        return changed ? (out, true) : (value, false)
     }
 
     private func arrayElements(_ value: Any?) -> [Any]? {

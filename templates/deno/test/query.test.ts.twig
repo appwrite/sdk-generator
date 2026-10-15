@@ -728,4 +728,23 @@ describe('Query', () => {
     test('flattenParam keeps query string list', () => {
         assertEquals(flattenParam([Query.limit(1)]), [Query.limit(1)]);
     });
+
+    test('flattenParam keeps nested string arrays', () => {
+        assertEquals(flattenParam([['a', 'b']]), [['a', 'b']]);
+    });
+
+    test('flattenParam builds a builder value', () => {
+        assertEquals(flattenParam(Query.builder().equal('status', 'active').limit(1)), [
+            Query.equal('status', 'active'),
+            Query.limit(1),
+        ]);
+    });
+
+    test('flattenParam splices builders among query strings', () => {
+        assertEquals(flattenParam([Query.equal('status', 'active'), Query.builder().limit(1).offset(2)]), [
+            Query.equal('status', 'active'),
+            Query.limit(1),
+            Query.offset(2),
+        ]);
+    });
 })

@@ -467,4 +467,28 @@ describe('Query', () => {
     test('flattenParam keeps query string list', () => {
         expect(flattenParam([Query.limit(1)])).toEqual([Query.limit(1)]);
     });
+
+    test('flattenParam keeps nested string arrays', () => {
+        const value = [['a', 'b']];
+        expect(flattenParam(value)).toEqual([['a', 'b']]);
+    });
+
+    test('flattenParam builds a builder value', () => {
+        expect(
+            flattenParam(Query.builder().equal('status', 'active').limit(1)),
+        ).toEqual([Query.equal('status', 'active'), Query.limit(1)]);
+    });
+
+    test('flattenParam splices builders among query strings', () => {
+        expect(
+            flattenParam([
+                Query.equal('status', 'active'),
+                Query.builder().limit(1).offset(2),
+            ]),
+        ).toEqual([
+            Query.equal('status', 'active'),
+            Query.limit(1),
+            Query.offset(2),
+        ]);
+    });
 });

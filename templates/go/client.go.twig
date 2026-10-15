@@ -833,27 +833,8 @@ func flattenValue(value interface{}) interface{} {
 	for i := 0; i < reflected.Len(); i++ {
 		item := reflected.Index(i).Interface()
 		flat := flattenValue(item)
-		switch item.(type) {
-		case *query.Builder, query.Builder:
-			if list, ok := flat.([]string); ok {
-				for _, entry := range list {
-					out = append(out, entry)
-				}
-				changed = true
-				continue
-			}
-		}
-		if nested, ok := item.([]string); ok {
-			for _, entry := range nested {
-				out = append(out, entry)
-			}
-			if len(nested) > 0 {
-				changed = true
-			}
-			continue
-		}
-		if nested, ok := item.([]interface{}); ok && isStringSlice(flattenValue(nested)) {
-			for _, entry := range flattenValue(nested).([]interface{}) {
+		if isBuilder(item) {
+			for _, entry := range flat.([]string) {
 				out = append(out, entry)
 			}
 			changed = true
@@ -870,16 +851,12 @@ func flattenValue(value interface{}) interface{} {
 	return out
 }
 
-func isStringSlice(value interface{}) bool {
-	items, ok := value.([]interface{})
-	if !ok {
-		_, ok := value.([]string)
-		return ok
+func isBuilder(value interface{}) bool {
+	switch v := value.(type) {
+	case *query.Builder:
+		return v != nil
+	case query.Builder:
+		return true
 	}
-	for _, item := range items {
-		if _, ok := item.(string); !ok {
-			return false
-		}
-	}
-	return true
+	return false
 }

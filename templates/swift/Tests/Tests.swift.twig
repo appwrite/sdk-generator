@@ -122,19 +122,21 @@ class Tests: XCTestCase {
         XCTAssertEqual(method(queries[1]), "offset")
     }
 
-    func queryStrings(_ value: Any?) -> [String]? {
-        if let list = value as? [String] {
-            return list
+    func queries(_ value: Any?) -> [NSDictionary]? {
+        guard let list = value as? [Any] else {
+            return nil
         }
-        if let list = value as? [Any] {
-            return list.map { String(describing: $0) }
+        return list.compactMap { item in
+            guard let raw = item as? String else {
+                return nil
+            }
+            return try? JSONSerialization.jsonObject(with: Data(raw.utf8)) as? NSDictionary
         }
-        return nil
     }
 
     func testFlattenSpreadsWrappedBuilder() {
         let client = Client()
-        XCTAssertEqual(queryStrings(client.flatten([Query.builder().limit(1)] as [Any])), [Query.limit(1)])
+        XCTAssertEqual(queries(client.flatten([Query.builder().limit(1)] as [Any])), queries([Query.limit(1)]))
     }
 
     func testFlattenKeepsNestedNumericArrays() {
@@ -145,6 +147,37 @@ class Tests: XCTestCase {
 
     func testFlattenKeepsQueryStringList() {
         let client = Client()
-        XCTAssertEqual(queryStrings(client.flatten([Query.limit(1)] as [Any])), [Query.limit(1)])
+        XCTAssertEqual(queries(client.flatten([Query.limit(1)] as [Any])), queries([Query.limit(1)]))
+    }
+
+    func testFlattenKeepsNestedStringArrays() {
+        let client = Client()
+        let nested = [["a", "b"]]
+        XCTAssertEqual(client.flatten(nested) as? [[String]], nested)
+        let untyped: [Any] = [["a", "b"]]
+        XCTAssertEqual((client.flatten(untyped) as? [Any])?.first as? [String], ["a", "b"])
+        XCTAssertEqual((client.flatten(["x", ["a", "b"]] as [Any]) as? [Any])?.count, 2)
+    }
+
+    func testFlattenBuildsBuilder() {
+        let client = Client()
+        let builder = Query.builder().equal("status", value: "active").limit(1)
+        XCTAssertEqual(queries(client.flatten(builder)), queries(builder.build()))
+    }
+
+    func testFlattenSpreadsBuildersBesideStrings() {
+        let client = Client()
+        let builder = Query.builder().limit(1)
+        XCTAssertEqual(
+            queries(client.flatten([Query.offset(2), builder] as [Any])),
+            queries([Query.offset(2), Query.limit(1)])
+        )
+    }
+
+    func testFlattenSpreadsBuildersInsideNestedList() {
+        let client = Client()
+        let builder = Query.builder().limit(1)
+        let flat = client.flatten([[builder]] as [Any]) as? [Any]
+        XCTAssertEqual(queries(flat?.first), queries([Query.limit(1)]))
     }
 }

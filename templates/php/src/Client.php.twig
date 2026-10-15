@@ -417,11 +417,6 @@ class Client
                 $changed = true;
                 continue;
             }
-            if (\is_array($item) && \array_is_list($item) && self::isStringList($flat)) {
-                array_push($out, ...$flat);
-                $changed = true;
-                continue;
-            }
             if ($flat !== $item) {
                 $changed = true;
             }
@@ -429,15 +424,6 @@ class Client
         }
 
         return $changed ? $out : $value;
-    }
-
-    private static function isStringList(mixed $value): bool
-    {
-        if (!\is_array($value) || !\array_is_list($value)) {
-            return false;
-        }
-
-        return array_all($value, fn ($item): bool => \is_string($item));
     }
 
     /**

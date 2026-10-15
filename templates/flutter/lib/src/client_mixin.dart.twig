@@ -1,4 +1,5 @@
 import 'package:http/http.dart' as http;
+import '../{{ language.params.packageName }}.dart' show QueryBuilder;
 import 'exception.dart';
 import 'response.dart';
 import 'dart:convert';
@@ -165,31 +166,14 @@ mixin ClientMixin {
 }
 
 dynamic _flattenValue(dynamic value) {
-  if (value == null) {
-    return null;
+  if (value is QueryBuilder) {
+    return value.build();
   }
-  try {
-    return _flattenValue(value.build());
-  } catch (_) {}
-  if (value is! List) {
+  if (value is! List || !value.any((item) => item is QueryBuilder)) {
     return value;
   }
-
-  final out = [];
-  var changed = false;
-  for (final item in value) {
-    final flat = _flattenValue(item);
-    if (item is! String &&
-        flat is List &&
-        flat.every((entry) => entry is String)) {
-      out.addAll(flat);
-      changed = true;
-      continue;
-    }
-    if (flat != item) {
-      changed = true;
-    }
-    out.add(flat);
-  }
-  return changed ? out : value;
+  return [
+    for (final item in value)
+      if (item is QueryBuilder) ...item.build() else item,
+  ];
 }

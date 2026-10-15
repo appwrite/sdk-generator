@@ -573,7 +573,7 @@ void main() {
 
     expect(built, expected);
   });
-{% if 'dart' in language.params.packageName %}
+{% if language.name == 'Dart' %}
 
   test('flatten spreads wrapped builder', () {
     final client = Client();
@@ -593,5 +593,52 @@ void main() {
     final client = Client();
     expect(client.flatten([Query.limit(1)]), [Query.limit(1)]);
   });
+
+  test('flatten keeps nested string lists', () {
+    final client = Client();
+    final value = [
+      ['a', 'b'],
+    ];
+    expect(client.flatten(value), [
+      ['a', 'b'],
+    ]);
+  });
+
+  test('flatten expands builder value', () {
+    final client = Client();
+    expect(client.flatten(Query.builder().limit(1).offset(2)), [
+      Query.limit(1),
+      Query.offset(2),
+    ]);
+  });
+
+  test('flatten splices builders into query list', () {
+    final client = Client();
+    expect(
+      client.flatten([
+        Query.limit(1),
+        Query.builder().offset(2).orderAsc('name'),
+      ]),
+      [Query.limit(1), Query.offset(2), Query.orderAsc('name')],
+    );
+  });
+
+  test('flatten does not call build on other objects', () {
+    final client = Client();
+    final value = _Buildable();
+    expect(client.flatten(value), same(value));
+    expect(value.calls, 0);
+  });
 {% endif %}
 }
+{% if language.name == 'Dart' %}
+
+class _Buildable {
+  int calls = 0;
+
+  List<String> build() {
+    calls++;
+    return ['built'];
+  }
+}
+{% endif %}

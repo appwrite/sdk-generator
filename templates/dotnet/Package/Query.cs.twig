@@ -609,12 +609,6 @@ namespace {{ spec.info.title | caseUcfirst }}
                     changed = true;
                     continue;
                 }
-                if (item is IEnumerable nestedItems && item is not string && IsStringList(flat))
-                {
-                    output.AddRange(((IEnumerable)flat!).Cast<object?>());
-                    changed = true;
-                    continue;
-                }
                 if (!Equals(flat, item))
                 {
                     changed = true;
@@ -623,36 +617,6 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
 
             return changed ? output : value;
-        }
-
-        private static bool IsStringList(object? value)
-        {
-            if (value is not IEnumerable enumerable || value is string)
-            {
-                return false;
-            }
-            foreach (var item in enumerable)
-            {
-                if (item is not string)
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        internal static List<string> Normalize(object? queries)
-        {
-            var flat = Flatten(queries);
-            if (flat is string s)
-            {
-                return new List<string> { s };
-            }
-            if (flat is IEnumerable enumerable && flat is not string)
-            {
-                return enumerable.Cast<object?>().Select(item => item?.ToString() ?? string.Empty).ToList();
-            }
-            return new List<string>();
         }
 
         private static string JoinQuery(string method, string table, string left, string right, string @operator, string alias)

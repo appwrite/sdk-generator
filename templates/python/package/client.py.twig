@@ -300,13 +300,10 @@ class Client:
 
     def flatten(self, data, prefix='', stringify=False):
         output = {}
-        i = 0
+        entries = data.items() if isinstance(data, dict) else enumerate(data)
 
-        for key in data:
-            value = data[key] if isinstance(data, dict) else key
-            finalKey = prefix + '[' + key + ']' if prefix else key
-            finalKey = prefix + '[' + str(i) + ']' if isinstance(data, list) else finalKey
-            i += 1
+        for key, value in entries:
+            finalKey = f'{prefix}[{key}]' if prefix or isinstance(data, list) else key
 
             if isinstance(value, list) or isinstance(value, dict):
                 output = {**output, **self.flatten(value, finalKey, stringify)}
