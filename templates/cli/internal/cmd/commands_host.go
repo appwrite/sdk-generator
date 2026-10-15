@@ -14,4 +14,5 @@ func registerHostCommands(root *cobra.Command) {
 	root.AddCommand(newInitCommand())
 	root.AddCommand(newPullCommand())
 	root.AddCommand(newPushCommand())
+	root.AddCommand(newZeroCommand())
 }

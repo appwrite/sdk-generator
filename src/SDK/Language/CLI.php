@@ -1103,6 +1103,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/zero.go',
+                'template'      => 'cli/internal/cmd/zero.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '.goreleaser.yaml',
                 'template'      => 'cli/.goreleaser.yaml.twig',
             ],
