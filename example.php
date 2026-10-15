@@ -82,13 +82,11 @@ try {
             ],
         ];
 
-        // Deep-merge exclude services so overrides add to defaults rather than replacing
-        if (isset($overrides['exclude']['services']) && isset($defaults['exclude']['services'])) {
-            $overrides['exclude']['services'] = [
-                ...$defaults['exclude']['services'],
-                ...$overrides['exclude']['services'],
-            ];
+        $exclude = $defaults['exclude'];
+        foreach ($overrides['exclude'] ?? [] as $kind => $rules) {
+            $exclude[$kind] = [...($exclude[$kind] ?? []), ...$rules];
         }
+        $overrides['exclude'] = $exclude;
 
         $config = [...$defaults, ...$overrides];
 
@@ -267,6 +265,7 @@ try {
         // CLI go.mod replace-pins github.com/appwrite/sdk-for-go/v7 to ../go.
         $go = new SDK(new Go(), buildSpecification($spec));
         configureSDK($go, [
+            'platform' => 'server',
             'gitUserName' => 'appwrite',
             'gitRepoName' => 'sdk-for-go',
             'version' => '7.2.0-rc.3',
