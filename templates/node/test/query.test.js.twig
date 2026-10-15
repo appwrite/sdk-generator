@@ -474,7 +474,9 @@ describe('Query', () => {
     });
 
     test('flattenParam builds builders nested in arrays', () => {
-        expect(flattenParam([[Query.builder().limit(1)]])).toEqual([[Query.limit(1)]]);
+        expect(flattenParam([[Query.builder().limit(1)]])).toEqual([
+            [Query.limit(1)],
+        ]);
     });
 
     test('flattenParam builds a builder value', () => {
