@@ -275,6 +275,11 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query/Builder.php',
+                'template'      => 'php/src/Query/Builder.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'tests/{{ namespace | caseNamespacePath }}/QueryTest.php',
                 'template'      => 'php/tests/QueryTest.php.twig',
             ],
@@ -424,7 +429,8 @@ class PHP extends Language
                     if ($this->isPermissionString($example)) {
                         $output .= $this->getPermissionExample($example);
                     } else {
-                        $output .= \is_array($example) ? $this->jsonToAssoc($example) : (string) $example;
+                        $decoded = \is_array($example) ? $example : json_decode((string) $example, true);
+                        $output .= \is_array($decoded) ? $this->jsonToAssoc($decoded) : (string) $example;
                     }
                     break;
                 case self::TYPE_OBJECT:
@@ -468,7 +474,7 @@ class PHP extends Language
             if (is_array($node)) {
                 $value = $this->jsonToAssoc($node, $indent + 1);
             } elseif (is_string($node)) {
-                $value = '\'' . $node . '\'';
+                $value = '\'' . \addcslashes($node, '\'\\') . '\'';
             } elseif (is_bool($node)) {
                 $value = $node ? 'true' : 'false';
             } elseif (is_null($node)) {
@@ -478,7 +484,8 @@ class PHP extends Language
             }
 
             $comma = ($index < count($keys) - 1) ? ',' : '';
-            $output .= '    ' . $itemIndent . '\'' . $key . '\' => ' . $value . $comma . "\n";
+            $prefix = \array_is_list($data) ? '' : '\'' . \addcslashes((string) $key, '\'\\') . '\' => ';
+            $output .= '    ' . $itemIndent . $prefix . $value . $comma . "\n";
         }
 
         return $output . ($baseIndent . '    ]');

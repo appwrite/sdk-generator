@@ -56,6 +56,25 @@ class JsonRequestBodyTest {
     }
 
     @Test
+    fun jsonBodySendsBuiltQueries() = runBlocking {
+        val request = Client().prepareRequest(
+            method = "POST",
+            path = "/v1/tablesdb/db/tables/tbl/rows",
+            headers = mapOf("content-type" to "application/json"),
+            params = mapOf(
+                "queries" to Query.builder().equal("title", "Spiderman").limit(1),
+                "permissions" to null,
+            ),
+        )
+
+        val body = requestBodyUtf8(request.body!!)
+        assertFalse(body.contains("\"queries\":{"))
+        assertTrue(body.contains("\"queries\":[\"{\\\"method\\\":\\\"equal\\\""))
+        assertTrue(body.contains("\\\"method\\\":\\\"limit\\\""))
+        assertFalse(body.contains("permissions"))
+    }
+
+    @Test
     fun getOmitsNullQueryParams() = runBlocking {
         val request = Client().prepareRequest(
             method = "GET",

@@ -60,6 +60,7 @@ final class Android16Java17Test extends Base
         ...Base::REALTIME_RESPONSES,
         // ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
+        Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::TOPIC_HELPER_RESPONSES,

@@ -42,6 +42,7 @@ class CLI extends Go
         // silently break every installer if they did not.
         'npmPackage' => 'appwrite-cli',
         'sdkImportPath' => self::SDK_MODULE,
+        'sdkPath' => '',
         // ASCII art above the main help screen. Templates escape it for their
         // target syntax rather than sharing one encoded representation.
         'logo' => '',
@@ -94,6 +95,16 @@ class CLI extends Go
     public function setNPMPackage(string $name): self
     {
         $this->setParam('npmPackage', $name);
+
+        return $this;
+    }
+
+    /**
+     * Local directory go.mod replaces the published Go SDK with. Empty keeps the published module.
+     */
+    public function setSdkPath(string $path): self
+    {
+        $this->setParam('sdkPath', $path);
 
         return $this;
     }

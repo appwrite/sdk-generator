@@ -414,6 +414,28 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testPhpExamplesParse(): void
+    {
+        $failures = [];
+        $script = \tempnam(\sys_get_temp_dir(), 'example');
+        foreach (self::PLATFORMS as $platform) {
+            foreach ($this->generate('php', $platform) as $path => $contents) {
+                if (!\str_starts_with($path, 'docs/examples/') || !\preg_match('/```php\n(.*?)```/s', $contents, $match)) {
+                    continue;
+                }
+                \file_put_contents($script, $match[1]);
+                \exec('php -n -l ' . \escapeshellarg($script) . ' 2>&1', $output, $code);
+                if ($code !== 0) {
+                    $failures[] = "php/{$platform} {$path}";
+                }
+                $output = [];
+            }
+        }
+        \unlink($script);
+
+        $this->assertSame([], $failures, 'Generated PHP examples must parse');
+    }
+
     /**
      * A JSON example for an untyped object array must render as Swift
      * dictionary literals, not as the JavaScript-style `{ ... }` the spec
@@ -538,6 +560,34 @@ final class GenerationTest extends TestCase
         $this->assertArrayHasKey('models/player.go', $go, 'go no longer generates the body-only fixture schema as a model');
         $this->assertStringContainsString('request model', $go['models/player.go']);
         $this->assertStringNotContainsString('request model', $go['models/mock.go']);
+    }
+
+    /**
+     * A released CLI has to build from its own module, so only a CLI pinned
+     * to a local Go SDK may replace the published one.
+     */
+    public function testCliReplacesGoSdkOnlyWhenPinned(): void
+    {
+        $this->assertStringNotContainsString('replace ', $this->generateCliModule(new CLI(), 'release'));
+        $this->assertStringContainsString(
+            'replace ' . CLI::SDK_MODULE . ' => ../go',
+            $this->generateCliModule(new CLI()->setSdkPath('../go'), 'pinned'),
+        );
+    }
+
+    private function generateCliModule(CLI $language, string $key): string
+    {
+        $dir = self::OUTPUT . '/cli-module/' . $key;
+        $this->removeDirectory($dir);
+
+        new SDK($language, Parser::parse((string) \file_get_contents(self::FIXTURE)))
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->generate($dir);
+
+        return (string) \file_get_contents($dir . '/go.mod');
     }
 
     /**
