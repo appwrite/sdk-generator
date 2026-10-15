@@ -80,7 +80,9 @@ class QueryTest {
 
     @Test
     fun having() {
-        assertEquals("having", method(Query.having(listOf(Query.greaterThan("total", 1)))))
+        val json = JsonParser.parseString(Query.having(listOf(Query.greaterThan("total", 1)))).asJsonObject
+        assertEquals("having", json.get("method").asString)
+        assertEquals("greaterThan", json.get("values").asJsonArray[0].asJsonObject.get("method").asString)
     }
 
     @Test

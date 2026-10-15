@@ -669,7 +669,7 @@ class Query(
          * @param queries Nested query strings.
          * @returns The query string.
          */
-        fun having(queries: List<String>) = Query("having", null, queries.map { it.fromJson<Query>() }).toJson()
+        fun having(queries: List<String>) = Query("having", null, queries.map { it.fromJson<Map<String, Any>>() }).toJson()
 
         /**
          * Select distinct rows.
@@ -887,7 +887,7 @@ class Query(
             if (alias.isNotEmpty()) {
                 values.add(alias)
             }
-            on.forEach { values.add(it.fromJson<Query>()) }
+            on.forEach { values.add(it.fromJson<Map<String, Any>>()) }
             return Query(method, table, values).toJson()
         }
 
