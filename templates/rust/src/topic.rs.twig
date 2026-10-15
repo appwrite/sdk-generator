@@ -5,15 +5,10 @@
 //!
 //! # fn main() -> Result<(), topic::TopicError> {
 //! assert_eq!(topic::path(&["user", "123", "notification"])?.to_string(), "user/123/notification");
-//! assert_eq!(topic::path(&["user"])?.any().path(&["notification"])?.to_string(), "user/+/notification");
-//! assert_eq!(topic::path(&["org"])?.any().path(&["logs"])?.all().to_string(), "org/+/logs/#");
+//! assert_eq!(topic::path(&["org", "42"])?.path(&["logs"])?.to_string(), "org/42/logs");
 //! # Ok(())
 //! # }
 //! ```
-//!
-//! `any()` matches exactly one level and `all()` everything below, at any depth (including the
-//! parent itself). `all()` ends the topic, so it returns a [`ResolvedTopic`], which has no methods
-//! to append further levels.
 
 use std::fmt;
 
@@ -44,15 +39,9 @@ impl fmt::Display for TopicError {
 
 impl std::error::Error for TopicError {}
 
-/// A topic being built. Start one with [`path`] or [`any`].
+/// A topic being built. Start one with [`path`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Topic {
-    levels: Vec<String>,
-}
-
-/// A topic ended by `all()`: nothing can be appended after the `#` wildcard.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ResolvedTopic {
     levels: Vec<String>,
 }
 
@@ -63,39 +52,11 @@ pub fn path<S: AsRef<str>>(levels: &[S]) -> Result<Topic, TopicError> {
     })
 }
 
-/// Start a topic with a single-level wildcard (`+`).
-pub fn any() -> Topic {
-    Topic {
-        levels: vec!["+".to_string()],
-    }
-}
-
-/// The multi-level wildcard alone (`#`): matches every topic.
-pub fn all() -> ResolvedTopic {
-    ResolvedTopic {
-        levels: vec!["#".to_string()],
-    }
-}
-
 impl Topic {
     /// Append the given levels.
     pub fn path<S: AsRef<str>>(mut self, levels: &[S]) -> Result<Topic, TopicError> {
         self.levels.extend(levels_of(levels)?);
         Ok(self)
-    }
-
-    /// Append a single-level wildcard (`+`): matches exactly one level.
-    pub fn any(mut self) -> Topic {
-        self.levels.push("+".to_string());
-        self
-    }
-
-    /// Append the multi-level wildcard (`#`) and end the topic.
-    pub fn all(mut self) -> ResolvedTopic {
-        self.levels.push("#".to_string());
-        ResolvedTopic {
-            levels: self.levels,
-        }
     }
 }
 
@@ -105,14 +66,8 @@ impl fmt::Display for Topic {
     }
 }
 
-impl fmt::Display for ResolvedTopic {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.levels.join("/"))
-    }
-}
-
 /// Validate the levels passed to `path()`: a non-empty list of non-empty strings, none holding
-/// the level separator `/` or the wildcards `+` and `#` (use `any()` and `all()` for those).
+/// the level separator `/` or the MQTT wildcards `+` and `#`.
 fn levels_of<S: AsRef<str>>(levels: &[S]) -> Result<Vec<String>, TopicError> {
     if levels.is_empty() {
         return Err(TopicError::new("path() needs at least one level"));
@@ -136,21 +91,15 @@ fn levels_of<S: AsRef<str>>(levels: &[S]) -> Result<Vec<String>, TopicError> {
                     level, parts
                 )));
             }
-            if level == "+" {
-                return Err(TopicError::new("\"+\" is reserved, use any()"));
-            }
             if level.contains('+') {
                 return Err(TopicError::new(format!(
-                    "\"{}\" contains \"+\", use any() for wildcards",
+                    "\"{}\" contains \"+\", not allowed in a topic",
                     level
                 )));
             }
-            if level == "#" {
-                return Err(TopicError::new("\"#\" is reserved, use all()"));
-            }
             if level.contains('#') {
                 return Err(TopicError::new(format!(
-                    "\"{}\" contains \"#\", use all() for wildcards",
+                    "\"{}\" contains \"#\", not allowed in a topic",
                     level
                 )));
             }
@@ -186,53 +135,6 @@ mod tests {
     }
 
     #[test]
-    fn test_any() {
-        assert_eq!(
-            path(&["user"])
-                .unwrap()
-                .any()
-                .path(&["notification"])
-                .unwrap()
-                .to_string(),
-            "user/+/notification"
-        );
-        assert_eq!(
-            path(&["chat"])
-                .unwrap()
-                .any()
-                .any()
-                .path(&["message"])
-                .unwrap()
-                .to_string(),
-            "chat/+/+/message"
-        );
-    }
-
-    #[test]
-    fn test_all() {
-        assert_eq!(
-            path(&["org"])
-                .unwrap()
-                .any()
-                .path(&["logs"])
-                .unwrap()
-                .all()
-                .to_string(),
-            "org/+/logs/#"
-        );
-    }
-
-    #[test]
-    fn test_static_any_and_all() {
-        assert_eq!(
-            any().path(&["notification"]).unwrap().to_string(),
-            "+/notification"
-        );
-        assert_eq!(any().to_string(), "+");
-        assert_eq!(all().to_string(), "#");
-    }
-
-    #[test]
     fn test_errors() {
         let invalid: [&[&str]; 7] = [
             &[],
@@ -245,7 +147,6 @@ mod tests {
         ];
         for levels in invalid {
             assert!(path(levels).is_err(), "{:?}", levels);
-            assert!(any().path(levels).is_err(), "{:?}", levels);
         }
     }
 }
