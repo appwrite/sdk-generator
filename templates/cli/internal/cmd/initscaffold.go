@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
@@ -18,25 +17,6 @@ import (
 //
 // All three fetch starter code with git and copy a subtree into the project,
 // so the clone, the error translation and the recursive copy live here once.
-
-// runGit runs a git invocation with its output captured.
-//
-// Output is captured rather than streamed: a sparse checkout prints progress
-// that means nothing to someone running `init function`, and the text is only
-// wanted when it fails.
-func runGit(directory string, script string) error {
-	var command *exec.Cmd
-
-	switch {
-	case runtime.GOOS == "windows":
-		// cmd rather than PowerShell, which has no `&&`.
-		command = exec.Command("cmd", "/c", script)
-	default:
-		command = exec.Command("sh", "-c", script)
-	}
-
-	return executeGit(command, directory)
-}
 
 // runGitCommand invokes Git without a shell. Use it when arguments contain
 // values received from an API or remote repository, so ref names and paths are
