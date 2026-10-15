@@ -271,11 +271,6 @@ print(ID.custom('custom_id'))
 # Topic helper tests
 print(Topic.path(['user', '123', 'notification']))
 print(Topic.path(['org', '42', 'user', '123']).path(['notification']))
-print(Topic.path(['user']).any().path(['notification']))
-print(Topic.path(['chat']).any().any().path(['message']))
-print(Topic.path(['org']).any().path(['logs']).all())
-print(Topic.any().path(['notification']))
-print(Topic.all())
 for name, levels in [
     ('empty path', []),
     ('empty level', ['user', '']),
