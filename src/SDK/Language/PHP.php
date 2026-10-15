@@ -260,11 +260,6 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ namespace | caseNamespacePath }}/ResolvedTopic.php',
-                'template'      => 'php/src/ResolvedTopic.php.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'tests/{{ namespace | caseNamespacePath }}/TopicTest.php',
                 'template'      => 'php/tests/TopicTest.php.twig',
             ],
