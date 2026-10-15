@@ -951,13 +951,15 @@ open class Push: Service {
     }
 
     // Run a fire-and-forget broker call (an unsubscribe or re-SUBSCRIBE nobody awaits) and
-    // report its failure. Failures after a deliberate close() are its own teardown, not errors.
+    // report its failure. Failures after a deliberate close() are its own teardown, not errors,
+    // even once a later subscribe() has reopened the connection and cleared `closing`.
     private func inBackground(_ operation: @escaping () async throws -> Void) {
+        let generation = sync.sync { closeGeneration }
         Task { [weak self] in
             do {
                 try await operation()
             } catch {
-                guard let self, !self.sync.sync(execute: { self.closing }) else { return }
+                guard let self, !self.sync.sync(execute: { self.closing || self.closeGeneration != generation }) else { return }
                 self.surface(Push.describe(error))
             }
         }
