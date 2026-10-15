@@ -19,7 +19,7 @@ public struct TopicError: Swift.Error, LocalizedError, CustomStringConvertible {
 }
 
 /// Validate the levels passed to `path(_:)`: a non-empty list of non-empty strings, none holding
-/// the level separator `/` or the wildcards `+` and `#` (use `any()` and `all()` for those).
+/// the level separator `/` or the MQTT wildcards `+` and `#`.
 private func levelsOf(_ levels: [String]) throws -> [String] {
     if levels.isEmpty {
         throw TopicError("path() needs at least one level")
@@ -36,17 +36,11 @@ private func levelsOf(_ levels: [String]) throws -> [String] {
                 .joined(separator: ", ")
             throw TopicError("\"\(level)\" contains \"/\", split it: path([\(parts)])")
         }
-        if level == "+" {
-            throw TopicError("\"+\" is reserved, use any()")
-        }
         if level.contains("+") {
-            throw TopicError("\"\(level)\" contains \"+\", use any() for wildcards")
-        }
-        if level == "#" {
-            throw TopicError("\"#\" is reserved, use all()")
+            throw TopicError("\"\(level)\" contains \"+\", not allowed in a topic")
         }
         if level.contains("#") {
-            throw TopicError("\"\(level)\" contains \"#\", use all() for wildcards")
+            throw TopicError("\"\(level)\" contains \"#\", not allowed in a topic")
         }
     }
     return levels
@@ -55,11 +49,7 @@ private func levelsOf(_ levels: [String]) throws -> [String] {
 /// Helper to build MQTT topics for `Push`, level by level.
 ///
 ///     try Topic.path(["user", userId, "notification"])  // "user/123/notification"
-///     try Topic.path(["user"]).any().path(["notification"])  // "user/+/notification"
-///     try Topic.path(["org"]).any().path(["logs"]).all()  // "org/+/logs/#"
-///
-/// `any()` matches exactly one level and `all()` everything below, at any depth (including the
-/// parent itself). `all()` ends the topic, so it returns a `ResolvedTopic`.
+///     try Topic.path(["org", orgId]).path(["logs"])  // "org/42/logs"
 public final class Topic: CustomStringConvertible, Sendable {
     private let levels: [String]
 
@@ -72,47 +62,9 @@ public final class Topic: CustomStringConvertible, Sendable {
         return Topic(try levelsOf(levels))
     }
 
-    /// Start a topic with a single-level wildcard (`+`).
-    public static func any() -> Topic {
-        return Topic(["+"])
-    }
-
-    /// The multi-level wildcard alone (`#`): matches every topic.
-    public static func all() -> ResolvedTopic {
-        return ResolvedTopic(["#"])
-    }
-
     /// Append the given levels.
     public func path(_ levels: [String]) throws -> Topic {
         return Topic(self.levels + (try levelsOf(levels)))
-    }
-
-    /// Append a single-level wildcard (`+`): matches exactly one level.
-    public func any() -> Topic {
-        return Topic(levels + ["+"])
-    }
-
-    /// Append the multi-level wildcard (`#`) and end the topic.
-    public func all() -> ResolvedTopic {
-        return ResolvedTopic(levels + ["#"])
-    }
-
-    /// The topic string, levels joined with `/`.
-    public func toString() -> String {
-        return levels.joined(separator: "/")
-    }
-
-    public var description: String {
-        return toString()
-    }
-}
-
-/// A topic ended by `all()`: nothing can be appended after the `#` wildcard.
-public final class ResolvedTopic: CustomStringConvertible, Sendable {
-    private let levels: [String]
-
-    fileprivate init(_ levels: [String]) {
-        self.levels = levels
     }
 
     /// The topic string, levels joined with `/`.

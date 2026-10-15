@@ -1454,13 +1454,13 @@ bool _matches(String filter, String topic) {
   return filterParts.length == topicParts.length;
 }
 
-/// Resolve [Push.subscribe]'s `topics`: a String, Topic or ResolvedTopic, or a List of
+/// Resolve [Push.subscribe]'s `topics`: a String or Topic, or a List of
 /// them, or null for the signed-in user's own `users/<userId>` topic.
 List<String> _topicList(Client client, Object? topics, String? cookieSession) {
   if (topics == null) {
     return <String>[_userTopic(client, cookieSession)];
   }
-  // A topic is a String or a Topic / ResolvedTopic builder (via toString()).
+  // A topic is a String or a Topic builder (via toString()).
   return topics is List
       ? topics.map((topic) => topic.toString()).toList()
       : <String>[topics.toString()];

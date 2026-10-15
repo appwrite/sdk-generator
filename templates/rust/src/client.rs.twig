@@ -1272,6 +1272,7 @@ impl Client {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::query::Query;
 
     #[test]
     fn test_client_creation() {
@@ -1287,5 +1288,61 @@ mod tests {
             .set_key("test-key");
 
         assert_eq!(client.endpoint(), "https://custom.example.com/v1");
+    }
+
+    async fn mock_server() -> wiremock::MockServer {
+        let server = wiremock::MockServer::start().await;
+        wiremock::Mock::given(wiremock::matchers::any())
+            .respond_with(wiremock::ResponseTemplate::new(200).set_body_json(serde_json::json!({})))
+            .mount(&server)
+            .await;
+        server
+    }
+
+    fn params() -> HashMap<String, Value> {
+        HashMap::from([
+            ("values".to_string(), serde_json::json!([["a", "b"]])),
+            (
+                "queries".to_string(),
+                serde_json::json!(Query::builder().limit(1)),
+            ),
+        ])
+    }
+
+    #[tokio::test]
+    async fn json_body_keeps_nested_string_arrays() {
+        let server = mock_server().await;
+        let client = Client::new().set_endpoint(server.uri());
+        let headers = HashMap::from([("content-type".to_string(), "application/json".to_string())]);
+
+        let _: Value = client
+            .call(Method::POST, "/", Some(headers), Some(params()))
+            .await
+            .unwrap();
+
+        let requests = server.received_requests().await.unwrap();
+        let body: Value = serde_json::from_slice(&requests[0].body).unwrap();
+        assert_eq!(body["values"], serde_json::json!([["a", "b"]]));
+        assert_eq!(
+            body["queries"],
+            serde_json::json!([Query::limit(1).to_string()])
+        );
+    }
+
+    #[tokio::test]
+    async fn query_string_keeps_nested_string_arrays() {
+        let server = mock_server().await;
+        let client = Client::new().set_endpoint(server.uri());
+
+        let _: Value = client
+            .call(Method::GET, "/", None, Some(params()))
+            .await
+            .unwrap();
+
+        let requests = server.received_requests().await.unwrap();
+        let pairs: Vec<(String, String)> = requests[0].url.query_pairs().into_owned().collect();
+        assert!(pairs.contains(&("values[]".to_string(), "[\"a\",\"b\"]".to_string())));
+        assert!(pairs.contains(&("queries[]".to_string(), Query::limit(1).to_string())));
+        assert_eq!(pairs.len(), 2);
     }
 }

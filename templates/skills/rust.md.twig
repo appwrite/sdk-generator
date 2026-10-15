@@ -273,6 +273,15 @@ let multi_value = Query::equal(
     ]),
 )
 .to_string();
+
+let related = Query::relationship(
+    "comments",
+    vec![
+        Query::equal("approved", true).to_string(),
+        Query::limit(25).to_string(),
+    ],
+)
+.to_string();
 ```
 
 ### File Storage

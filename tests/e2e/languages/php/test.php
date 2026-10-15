@@ -393,6 +393,47 @@ echo Query::elemMatch('friends', [
     Query::equal('name', ['Alice']),
     Query::greaterThan('age', 18)
 ]) . "\n";
+echo Query::relationship('comments', [
+    Query::equal('approved', [true]),
+    Query::limit(2)
+]) . "\n";
+$queryTransport = $general->listRows([
+    Query::count('*', 'total'),
+    Query::join('orders', '$id', 'customerId'),
+    Query::groupBy(['status']),
+    Query::distinct(),
+    Query::covers('location', [1, 2]),
+    Query::countDistinct('year', 'uniqueYears'),
+    Query::sum('price', 'total'),
+    Query::avg('price', 'avgPrice'),
+    Query::min('price', 'lowest'),
+    Query::max('price', 'highest'),
+    Query::stddev('price', 'sd'),
+    Query::stddevPop('price', 'sdp'),
+    Query::stddevSamp('price', 'sds'),
+    Query::variance('price', 'var'),
+    Query::varPop('price', 'vp'),
+    Query::varSamp('price', 'vs'),
+    Query::bitAnd('flags', 'band'),
+    Query::bitOr('flags', 'bor'),
+    Query::bitXor('flags', 'bxor'),
+    Query::having([Query::greaterThan('total', 1)]),
+    Query::leftJoin('orders', '$id', 'customerId', '=', 'ord'),
+    Query::rightJoin('orders', '$id', 'customerId'),
+    Query::fullOuterJoin('orders', '$id', 'customerId'),
+    Query::crossJoin('orders', 'ord'),
+    Query::on('$id', 'customerId'),
+    Query::leftJoin('orders', 'ord', [
+        Query::on('$id', 'customerId'),
+        Query::equal('ord.status', 'paid'),
+    ]),
+    Query::notCovers('location', [1, 2]),
+    Query::spatialEquals('location', [1, 2]),
+    Query::notSpatialEquals('location', [1, 2]),
+    ...Query::page(2, 10),
+    Query::builder()->limit(1),
+]);
+echo $queryTransport->result . "\n";
 
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";
@@ -413,11 +454,6 @@ echo ID::custom('custom_id') . "\n";
 // Topic helper tests
 echo Topic::path(['user', '123', 'notification']) . "\n";
 echo Topic::path(['org', '42', 'user', '123'])->path(['notification']) . "\n";
-echo Topic::path(['user'])->any()->path(['notification']) . "\n";
-echo Topic::path(['chat'])->any()->any()->path(['message']) . "\n";
-echo Topic::path(['org'])->any()->path(['logs'])->all() . "\n";
-echo Topic::any()->path(['notification']) . "\n";
-echo Topic::all() . "\n";
 foreach ([
     ['empty path', []],
     ['empty level', ['user', '']],

@@ -496,6 +496,23 @@ abstract class JS extends Language
         return $quote . $escaped . $quote;
     }
 
+    /**
+     * The example for a number or boolean param the spec gives no example: `null` only where the
+     * param accepts it, otherwise its spec default, so the snippet compiles under strict types.
+     */
+    protected function getScalarExampleFallback(Schema|Parameter $param): string
+    {
+        $schema = $this->getSchema($param);
+        if ($schema->nullable) {
+            return 'null';
+        }
+        if (\is_scalar($schema->default)) {
+            return (string) \json_encode($schema->default);
+        }
+
+        return $this->getSchemaType($param) === self::TYPE_BOOLEAN ? 'false' : '0';
+    }
+
     protected function getResponseDefaults(Operation $method, Specification $spec, int $indent): string
     {
         $type = $this->getMethodType($method, $spec);
@@ -531,6 +548,10 @@ abstract class JS extends Language
             foreach ($model->properties as $key => $property) {
                 $default = $this->getModelDefault($property, \in_array($key, $model->required, true));
                 if ($default !== null) {
+                    // An empty `{}` default decodes to `[]`; keep it an object unless the field is a list
+                    if ($default === [] && !$property instanceof ArraySchema) {
+                        $default = new stdClass();
+                    }
                     $models[$name]['defaults'][$key] = $this->getLiteral($default);
                 }
                 $shape = $this->getDefaultsShape($property, $spec);

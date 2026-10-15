@@ -421,6 +421,49 @@ namespace AppwriteTests
                 Query.Equal("name", "Alice"),
                 Query.GreaterThan("age", 18)
             }));
+            LogResult(Query.Relationship("comments", new List<string> {
+                Query.Equal("approved", true),
+                Query.Limit(2)
+            }));
+            var transportQueries = new List<string>
+            {
+                Query.Count("*", "total"),
+                Query.Join("orders", "$id", "customerId"),
+                Query.GroupBy(new List<string> { "status" }),
+                Query.Distinct(),
+                Query.Covers("location", new List<object> { 1, 2 }),
+                Query.CountDistinct("year", "uniqueYears"),
+                Query.Sum("price", "total"),
+                Query.Avg("price", "avgPrice"),
+                Query.Min("price", "lowest"),
+                Query.Max("price", "highest"),
+                Query.Stddev("price", "sd"),
+                Query.StddevPop("price", "sdp"),
+                Query.StddevSamp("price", "sds"),
+                Query.Variance("price", "var"),
+                Query.VarPop("price", "vp"),
+                Query.VarSamp("price", "vs"),
+                Query.BitAnd("flags", "band"),
+                Query.BitOr("flags", "bor"),
+                Query.BitXor("flags", "bxor"),
+                Query.Having(new List<string> { Query.GreaterThan("total", 1) }),
+                Query.LeftJoin("orders", "$id", "customerId", "=", "ord"),
+                Query.RightJoin("orders", "$id", "customerId"),
+                Query.FullOuterJoin("orders", "$id", "customerId"),
+                Query.CrossJoin("orders", "ord"),
+                Query.On("$id", "customerId"),
+                Query.LeftJoin("orders", "ord", new List<string> {
+                    Query.On("$id", "customerId"),
+                    Query.Equal("ord.status", "paid"),
+                }),
+                Query.NotCovers("location", new List<object> { 1, 2 }),
+                Query.SpatialEquals("location", new List<object> { 1, 2 }),
+                Query.NotSpatialEquals("location", new List<object> { 1, 2 }),
+            };
+            transportQueries.AddRange(Query.Page(2, 10));
+            transportQueries.AddRange(new Query.Builder().Limit(1).Build());
+            var queryTransport = await general.ListRows(transportQueries);
+            LogResult(queryTransport.Result);
             // Permission & Roles helper tests
             LogResult(Permission.Read(Role.Any()));
             LogResult(Permission.Write(Role.User(ID.Custom("userid"))));
@@ -440,11 +483,6 @@ namespace AppwriteTests
             // Topic helper tests
             LogResult(Topic.Path(new[] { "user", "123", "notification" }).ToString());
             LogResult(Topic.Path(new[] { "org", "42", "user", "123" }).Path(new[] { "notification" }).ToString());
-            LogResult(Topic.Path(new[] { "user" }).Any().Path(new[] { "notification" }).ToString());
-            LogResult(Topic.Path(new[] { "chat" }).Any().Any().Path(new[] { "message" }).ToString());
-            LogResult(Topic.Path(new[] { "org" }).Any().Path(new[] { "logs" }).All().ToString());
-            LogResult(Topic.Any().Path(new[] { "notification" }).ToString());
-            LogResult(Topic.All().ToString());
             var topicCases = new (string Name, string[] Levels)[]
             {
                 ("empty path", new string[0]),

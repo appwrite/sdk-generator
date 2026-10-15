@@ -186,7 +186,7 @@ class Deno extends JS
             return match ($type) {
                 self::TYPE_ARRAY => '[]',
                 self::TYPE_FILE => 'InputFile.fromPath(\'/path/to/file.png\', \'file.png\')',
-                self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => 'null',
+                self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => $this->getScalarExampleFallback($param),
                 self::TYPE_OBJECT => '{}',
                 self::TYPE_STRING => "''",
             };

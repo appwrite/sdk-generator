@@ -4,7 +4,7 @@ from types import MethodType
 def _levels_of(levels):
     """
     Validate the levels passed to `path()`: a non-empty list of non-empty strings, none holding
-    the level separator `/` or the wildcards `+` and `#` (use `any()` and `all()` for those).
+    the level separator `/` or the MQTT wildcards `+` and `#`.
     """
     if not isinstance(levels, (list, tuple)):
         raise TypeError("path() expects an array, e.g. path(['user'])")
@@ -19,14 +19,10 @@ def _levels_of(levels):
         if "/" in level:
             parts = ", ".join(f"'{part}'" for part in level.split("/"))
             raise ValueError(f'"{level}" contains "/", split it: path([{parts}])')
-        if level == "+":
-            raise ValueError('"+" is reserved, use any()')
         if "+" in level:
-            raise ValueError(f'"{level}" contains "+", use any() for wildcards')
-        if level == "#":
-            raise ValueError('"#" is reserved, use all()')
+            raise ValueError(f'"{level}" contains "+", not allowed in a topic')
         if "#" in level:
-            raise ValueError(f'"{level}" contains "#", use all() for wildcards')
+            raise ValueError(f'"{level}" contains "#", not allowed in a topic')
     return tuple(levels)
 
 
@@ -50,15 +46,11 @@ class Topic:
     Helper to build MQTT topics for `Push`, level by level.
 
         Topic.path(['user', user_id, 'notification'])  # "user/123/notification"
-        Topic.path(['user']).any().path(['notification'])  # "user/+/notification"
-        Topic.path(['org']).any().path(['logs']).all()  # "org/+/logs/#"
-
-    `any()` matches exactly one level and `all()` everything below, at any depth (including the
-    parent itself). `all()` ends the topic, so it returns a `ResolvedTopic`.
+        Topic.path(['org', org_id]).path(['logs'])  # "org/42/logs"
     """
 
     def __init__(self, levels):
-        # Internal: build topics with `Topic.path()`, `Topic.any()` and `Topic.all()`.
+        # Internal: build topics with `Topic.path()`.
         self._levels = tuple(levels)
 
     @_builder
@@ -66,41 +58,8 @@ class Topic:
         """Start a topic with the given levels, or append them, e.g. `Topic.path(['user', user_id])`."""
         return Topic(self._levels + _levels_of(levels))
 
-    @_builder
-    def any(self):
-        """Start a topic with, or append, a single-level wildcard (`+`): matches exactly one level."""
-        return Topic(self._levels + ("+",))
-
-    @_builder
-    def all(self):
-        """The multi-level wildcard (`#`) alone, or appended to end the topic."""
-        return ResolvedTopic(self._levels + ("#",))
-
     def __str__(self):
         return "/".join(self._levels)
 
     def __repr__(self):
         return f"Topic({str(self)!r})"
-
-
-class ResolvedTopic:
-    """A topic ended by `all()`: nothing can be appended after the `#` wildcard."""
-
-    def __init__(self, levels):
-        # Internal: created by `Topic.all()`.
-        self._levels = tuple(levels)
-
-    def path(self, levels):
-        raise TypeError("nothing can come after all()")
-
-    def any(self):
-        raise TypeError("nothing can come after all()")
-
-    def all(self):
-        raise TypeError("nothing can come after all()")
-
-    def __str__(self):
-        return "/".join(self._levels)
-
-    def __repr__(self):
-        return f"ResolvedTopic({str(self)!r})"

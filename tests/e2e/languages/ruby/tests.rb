@@ -264,6 +264,47 @@ puts Query.elem_match("friends", [
   Query.equal("name", "Alice"),
   Query.greater_than("age", 18)
 ])
+puts Query.relationship("comments", [
+  Query.equal("approved", true),
+  Query.limit(2)
+])
+query_transport = general.list_rows(queries: [
+  Query.count('*', 'total'),
+  Query.join('orders', '$id', 'customerId'),
+  Query.group_by(['status']),
+  Query.distinct(),
+  Query.covers('location', [1, 2]),
+  Query.count_distinct('year', 'uniqueYears'),
+  Query.sum('price', 'total'),
+  Query.avg('price', 'avgPrice'),
+  Query.min('price', 'lowest'),
+  Query.max('price', 'highest'),
+  Query.stddev('price', 'sd'),
+  Query.stddev_pop('price', 'sdp'),
+  Query.stddev_samp('price', 'sds'),
+  Query.variance('price', 'var'),
+  Query.var_pop('price', 'vp'),
+  Query.var_samp('price', 'vs'),
+  Query.bit_and('flags', 'band'),
+  Query.bit_or('flags', 'bor'),
+  Query.bit_xor('flags', 'bxor'),
+  Query.having([Query.greater_than('total', 1)]),
+  Query.left_join('orders', '$id', 'customerId', '=', 'ord'),
+  Query.right_join('orders', '$id', 'customerId'),
+  Query.full_outer_join('orders', '$id', 'customerId'),
+  Query.cross_join('orders', 'ord'),
+  Query.on('$id', 'customerId'),
+  Query.left_join('orders', 'ord', [
+    Query.on('$id', 'customerId'),
+    Query.equal('ord.status', 'paid'),
+  ]),
+  Query.not_covers('location', [1, 2]),
+  Query.spatial_equals('location', [1, 2]),
+  Query.not_spatial_equals('location', [1, 2]),
+  *Query.page(2, 10),
+  Query.builder.limit(1),
+])
+puts query_transport.result
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())
@@ -284,11 +325,6 @@ puts ID.custom('custom_id')
 # Topic helper tests
 puts Topic.path(['user', '123', 'notification'])
 puts Topic.path(['org', '42', 'user', '123']).path(['notification'])
-puts Topic.path(['user']).any.path(['notification'])
-puts Topic.path(['chat']).any.any.path(['message'])
-puts Topic.path(['org']).any.path(['logs']).all
-puts Topic.any.path(['notification'])
-puts Topic.all
 [
     ['empty path', []],
     ['empty level', ['user', '']],
