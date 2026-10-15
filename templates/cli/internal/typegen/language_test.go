@@ -107,6 +107,22 @@ func TestTypeScriptMatchesBaseline(t *testing.T) {
 	})
 }
 
+func TestTypeScriptConstEnumStyleMatchesBaseline(t *testing.T) {
+	t.Run("declaration", func(t *testing.T) {
+		language := TypeScript{Dependency: "@appwrite.io/console", EnumStyle: EnumStyleConst, Declaration: true}
+		assertRendersBaseline(t, language, nil, false, "ts.const.appwrite.d.ts")
+	})
+	t.Run("source", func(t *testing.T) {
+		language := TypeScript{Dependency: "@appwrite.io/console", EnumStyle: EnumStyleConst}
+		assertRendersBaseline(t, language, nil, false, "ts.const.appwrite.ts")
+	})
+}
+
+func TestTypeScriptDeclarationKeepsEnumStyle(t *testing.T) {
+	language := TypeScript{Dependency: "@appwrite.io/console", Declaration: true}
+	assertRendersBaseline(t, language, nil, false, "ts.loose.appwrite.d.ts")
+}
+
 func TestJavaScriptMatchesBaseline(t *testing.T) {
 	language := JavaScript{Dependency: "appwrite"}
 

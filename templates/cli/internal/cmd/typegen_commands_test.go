@@ -58,6 +58,7 @@ func assertFlags(t *testing.T, got, want []string) {
 
 func TestTypesCommandFlagSurface(t *testing.T) {
 	assertFlags(t, flagSurface(t, "types"), []string{
+		"--enum-style",
 		"--language/-l",
 		"--strict/-s",
 	})
@@ -66,6 +67,7 @@ func TestTypesCommandFlagSurface(t *testing.T) {
 func TestGenerateCommandFlagSurface(t *testing.T) {
 	assertFlags(t, flagSurface(t, "generate"), []string{
 		"--appwrite-import-source",
+		"--enum-style",
 		"--import-extension",
 		"--language/-l",
 		"--output/-o",
@@ -148,7 +150,7 @@ func TestGenerateDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for name, want := range map[string]string{"output": "generated", "server": "auto"} {
+	for name, want := range map[string]string{"output": "generated", "server": "auto", "enum-style": "enum"} {
 		flag := command.Flags().Lookup(name)
 		if flag == nil {
 			t.Fatalf("--%s is missing", name)
@@ -156,5 +158,35 @@ func TestGenerateDefaults(t *testing.T) {
 		if flag.DefValue != want {
 			t.Errorf("--%s default = %q, want %q", name, flag.DefValue, want)
 		}
+	}
+}
+
+func TestTypesEnumStyleDefaultsToEnum(t *testing.T) {
+	root := NewRootCommand()
+	command, _, err := root.Find([]string{"types"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	flag := command.Flags().Lookup("enum-style")
+	if flag == nil {
+		t.Fatal("--enum-style is missing")
+	}
+	if flag.DefValue != "enum" {
+		t.Errorf("--enum-style default = %q, want enum", flag.DefValue)
+	}
+}
+
+func TestTypesRejectsUnknownEnumStyle(t *testing.T) {
+	err := runTypes(NewRootCommand(), t.TempDir(), "ts", false, "union")
+	if err == nil || !strings.Contains(err.Error(), "enum|const") {
+		t.Errorf("err = %v, want the supported styles listed", err)
+	}
+}
+
+func TestTypesRejectsConstEnumStyleOutsideTypeScript(t *testing.T) {
+	err := runTypes(NewRootCommand(), t.TempDir(), "php", false, "const")
+	if err == nil || !strings.Contains(err.Error(), "only supported for ts") {
+		t.Errorf("err = %v, want a ts-only rejection", err)
 	}
 }
