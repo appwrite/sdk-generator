@@ -1,7 +1,7 @@
 ```javascript
 const sdk = require('node-{{ spec.info.title | caseDash }}');
 {% if (method | consumes)[0] == 'multipart/form-data' %}
-const fs = require('fs');
+const { InputFile } = require('node-{{ spec.info.title | caseDash }}/file');
 {% endif %}
 
 {% set clientCalls = [] %}{% if [(method | securitySchemes)]|length > 0 %}{% set clientCalls = clientCalls|merge([{'call': 'setEndpoint', 'argument': endpointDocs, 'comment': 'Your API Endpoint'}]) %}{% for node in [(method | securitySchemes)] %}{% for key,header in node|keys %}{% set clientCalls = clientCalls|merge([{'call': ('set' ~ header), 'argument': node[header].extensions['x-appwrite']['demo'], 'comment': node[header].description}]) %}{% endfor %}{% endfor %}{% endif %}

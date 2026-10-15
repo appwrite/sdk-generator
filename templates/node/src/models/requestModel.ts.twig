@@ -24,7 +24,7 @@ export interface {{ requestModelName | caseUcfirst }} {
     /**
      * {{ property.description }}
      */
-    {{ (((property | schemaName) | escapeKeyword) ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty(((property | getPropertyType(spec)) | replace({'Models.': ''})), 4) | raw }}
+    {{ (((property | schemaName) | escapeKeyword) ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty(((property | getPropertyType(spec)) | replace({'Models.': ''})), 4, (property | schemaNullable)) | raw }}
     {%~ endfor %}
 }
 

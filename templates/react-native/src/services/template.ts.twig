@@ -2,7 +2,9 @@
 {% set usesChunkedUpload = false %}
 {% set usesModels = false %}
 {% set usesException = false %}
+{% set usesDefaults = false %}
 {% for method in (service | operations) %}
+{% if 'multipart/form-data' not in (method | consumes) and (method | responseDefaults(spec, 8)) is not empty %}{% set usesDefaults = true %}{% endif %}
 {% if 'multipart/form-data' in (method | consumes) %}{% set usesUpload = true %}{% endif %}
 {% if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}{% set usesChunkedUpload = true %}{% endif %}
 {% if 'Models.' in (method | getReturn(spec)) or 'Models.' in ((method | responseModel) | getGenerics(spec)) %}{% set usesModels = true %}{% endif %}
@@ -14,6 +16,7 @@
 {% set clientImports = [] %}
 {% if usesException %}{% set clientImports = clientImports | merge([(spec.info.title | caseUcfirst) ~ 'Exception']) %}{% endif %}
 {% set clientImports = clientImports | merge(['Client']) %}
+{% if usesDefaults %}{% set clientImports = clientImports | merge(['applyDefaults']) %}{% endif %}
 import { Service } from '../service';
 {{ clientImports | jsImport('../client') | raw }}
 {% if usesModels %}
@@ -462,7 +465,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
 {% endif %}
 {% endfor %}
 {% else %}
-        return this.client.call(
+{% set defaults = method | responseDefaults(spec, 8) %}
+        {{ defaults is empty ? 'return' : 'const request =' }} this.client.call(
             '{{ method.method.value | caseLower }}',
             uri,
             {
@@ -480,6 +484,11 @@ export class {{ service.name | caseUcfirst }} extends Service {
             'arrayBuffer'{% elseif (method | textResponse) %},
             'text'{% endif %},
         );
+{% if defaults is not empty %}
+        const defaults = {{ defaults | raw }};
+
+        return request.then((response) => applyDefaults(response, defaults));
+{% endif %}
 {% endif %}
 {% endif %}
     }

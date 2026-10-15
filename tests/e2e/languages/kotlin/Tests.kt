@@ -153,6 +153,16 @@ class ServiceTest {
                 writeToFile(ex.toString())
             }
 
+            try {
+                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(ByteArray(5 * 1024 * 1024), "boundary.bin", "application/octet-stream"))
+                writeToFile(mock.result)
+            } catch (ex: Exception) {
+                writeToFile(ex.toString())
+            }
+
+            val profile = general.uploadGeneric(InputFile.fromPath("../../../resources/file.png"))
+            writeToFile(profile.prefs.data["result"] as String)
+
             writeToFile(String(general.download()))
 
             mock = general.enum(MockType.FIRST)
@@ -167,6 +177,15 @@ class ServiceTest {
                 Player(id = "player2", name = "Jane Doe", score = 200)
             ))
             writeToFile(mock.result)
+
+            val preset = general.getPreset()
+            writeToFile("preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}")
+            general.listPresets().presets.forEach {
+                writeToFile("preset: name=${it.name}, count=${it.count}, enabled=${it.enabled}")
+            }
+            writeToFile("empty presets: ${general.listEmptyPresets().presets.size}")
+            writeToFile("preset verified: ${preset.verified}")
+            writeToFile("preset scopes: ${preset.scopes?.joinToString(",") { it.value } ?: ""}")
 
             try {
                 general.error400()

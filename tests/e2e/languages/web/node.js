@@ -194,6 +194,19 @@ async function start() {
     } catch (error) {
         console.log(error);
     }
+    const preset = await general.getPreset();
+    console.log(`preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}`);
+    const presets = await general.listPresets();
+    for (const item of presets.presets) {
+        console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
+    }
+    console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
+    console.log(`preset verified: ${preset.verified}`);
+    console.log(`preset toString: ${preset.toString()}`);
+
+    response = await general.nullable({ required: 'required', nullable: null, nullableInteger: null });
+    console.log(response.result);
+
     try {
         response = await general.error400();
     } catch(error) {

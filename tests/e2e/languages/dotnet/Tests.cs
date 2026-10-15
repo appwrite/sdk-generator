@@ -85,6 +85,7 @@ namespace AppwriteTests
                 }
             }
             TestContext.WriteLine((await general.ValidatePath("0", "0")).Result);
+            TestContext.WriteLine((await general.GetQuery("a&b+c#d=e%f", new List<string>() { "a&b", "c+d#e" })).Result);
 
             string zone = await new Plaintext(client).GetZone();
             TestContext.WriteLine(zone);
@@ -117,6 +118,12 @@ namespace AppwriteTests
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             TestContext.WriteLine(mock.Result);
 
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromBytes(new byte[5 * 1024 * 1024], "boundary.bin", "application/octet-stream"));
+            TestContext.WriteLine(mock.Result);
+
+            var profile = await general.UploadGeneric(InputFile.FromPath("../../../../../../../resources/file.png"));
+            TestContext.WriteLine(profile.Prefs.Data["result"]);
+
             TestContext.WriteLine(System.Text.Encoding.UTF8.GetString(await general.Download()));
 
             mock = await general.Enum(MockType.First);
@@ -131,6 +138,16 @@ namespace AppwriteTests
                 new Player("player2", "Jane Doe", 200)
             });
             TestContext.WriteLine(mock.Result);
+
+            var preset = await general.GetPreset();
+            TestContext.WriteLine($"preset: name={preset.Name}, count={preset.Count}, enabled={preset.Enabled.ToString().ToLowerInvariant()}");
+            foreach (var item in (await general.ListPresets()).Presets)
+            {
+                TestContext.WriteLine($"preset: name={item.Name}, count={item.Count}, enabled={item.Enabled.ToString().ToLowerInvariant()}");
+            }
+            TestContext.WriteLine($"empty presets: {(await general.ListEmptyPresets()).Presets.Count}");
+            TestContext.WriteLine($"preset verified: {preset.Verified?.ToString() ?? "null"}");
+            TestContext.WriteLine($"preset scopes: {string.Join(",", (preset.Scopes ?? new List<PresetScopes>()).ConvertAll(scope => scope.Value))}");
 
             try
             {

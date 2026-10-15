@@ -110,6 +110,20 @@ rescue => e
     puts e
 end
 
+begin
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_string("\0" * (5 * 1024 * 1024), filename: 'boundary.bin', mime_type: 'application/octet-stream'))
+    puts response.result
+rescue => e
+    puts e
+end
+
+begin
+    response = general.upload_generic(file: InputFile.from_path('./tests/resources/file.png'))
+    puts response.prefs.data['result']
+rescue => e
+    puts e
+end
+
 puts general.download.body
 
 response = general.enum(mock_type: MockType::FIRST)
@@ -124,6 +138,15 @@ response = general.create_players(players: [
     {id: 'player2', name: 'Jane Doe', score: 200}
 ])
 puts response.result
+
+preset = general.get_preset()
+puts "preset: name=#{preset.name}, count=#{preset.count}, enabled=#{preset.enabled}"
+general.list_presets().presets.each do |item|
+    puts "preset: name=#{item.name}, count=#{item.count}, enabled=#{item.enabled}"
+end
+puts "empty presets: #{general.list_empty_presets().presets.length}"
+puts "preset verified: #{preset.verified.nil? ? 'null' : preset.verified}"
+puts "preset scopes: #{(preset.scopes || []).join(',')}"
 
 begin
     general.error400()

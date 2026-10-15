@@ -30,6 +30,7 @@
       idParamName: idParamName,
       headers: apiHeaders,
       onProgress: onProgress,
+      method: HttpMethod.{{ method.method.value | caseLower }},
 {% if (method | textResponse) %}
       responseType: ResponseType.plain,
 {% endif %}

@@ -128,6 +128,9 @@ void main() async {
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
+  final profile = await general.uploadGeneric(file: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'));
+  print(profile.prefs.data['result']);
+
   final download = await general.download();
   print(utf8.decode(download));
 
@@ -143,6 +146,16 @@ void main() async {
     Player(id: 'player2', name: 'Jane Doe', score: 200)
   ]);
   print(response.result);
+
+  final preset = await general.getPreset();
+  print('preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}');
+  final presets = await general.listPresets();
+  for (final item in presets.presets) {
+    print('preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}');
+  }
+  print('empty presets: ${(await general.listEmptyPresets()).presets.length}');
+  print('preset verified: ${preset.verified}');
+  print('preset scopes: ${(preset.scopes ?? []).map((scope) => scope.value).join(',')}');
 
   try {
     await general.error400();

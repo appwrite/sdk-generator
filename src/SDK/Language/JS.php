@@ -3,13 +3,17 @@
 namespace Appwrite\SDK\Language;
 
 use Utopia\OpenAPI\Model\ArraySchema;
+use Utopia\OpenAPI\Model\ObjectSchema;
+use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\ParameterLocation;
+use Utopia\OpenAPI\Model\ReferenceSchema;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
+use stdClass;
 use Twig\TwigFilter;
 
 abstract class JS extends Language
@@ -31,7 +35,6 @@ abstract class JS extends Language
 
     protected $params = [
         'npmPackage' => 'packageName',
-        'bowerPackage' => 'packageName',
     ];
 
     /**
@@ -40,16 +43,6 @@ abstract class JS extends Language
     public function setNPMPackage(string $name): self
     {
         $this->setParam('npmPackage', $name);
-
-        return $this;
-    }
-
-    /**
-     * @return $this
-     */
-    public function setBowerPackage(string $name): self
-    {
-        $this->setParam('bowerPackage', $name);
 
         return $this;
     }
@@ -153,55 +146,6 @@ abstract class JS extends Language
             self::TYPE_OBJECT => 'object',
             default => 'any',
         };
-    }
-
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type       = $this->getSchemaType($param);
-        $default    = $this->getSchemaDefault($param);
-        $required   = ($param instanceof Parameter && $param->required);
-
-        if ($required) {
-            return '';
-        }
-
-        $output = ' = ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= $default;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$default}'";
-                    break;
-            }
-        }
-
-        return $output;
     }
 
     #[Override]
@@ -552,6 +496,140 @@ abstract class JS extends Language
         return $quote . $escaped . $quote;
     }
 
+    protected function getResponseDefaults(Operation $method, Specification $spec, int $indent): string
+    {
+        $type = $this->getMethodType($method, $spec);
+        if ($type === self::METHOD_TYPE_LOCATION || $type === self::METHOD_TYPE_WEB_AUTH || $this->isTextResponse($method, $spec)) {
+            return '';
+        }
+
+        $shapes = [];
+        foreach ($method->responses as $code => $response) {
+            if (!\str_starts_with((string) $code, '2')) {
+                continue;
+            }
+            foreach ($response->content as $mediaType) {
+                if ($mediaType->schema !== null) {
+                    $shapes[] = $this->getDefaultsShape($mediaType->schema, $spec);
+                }
+            }
+        }
+        $shapes = \array_values(\array_unique($shapes, SORT_REGULAR));
+        if (\count($shapes) !== 1 || $shapes[0] === null) {
+            return '';
+        }
+        $root = $shapes[0];
+
+        $models = [];
+        $pending = [$this->getShapeModel($root)];
+        while (($name = \array_shift($pending)) !== null) {
+            $model = $spec->schemas[$name] ?? null;
+            if (isset($models[$name]) || !$model instanceof ObjectSchema) {
+                continue;
+            }
+            $models[$name] = ['defaults' => [], 'properties' => []];
+            foreach ($model->properties as $key => $property) {
+                $default = $this->getModelDefault($property, \in_array($key, $model->required, true));
+                if ($default !== null) {
+                    $models[$name]['defaults'][$key] = $this->getLiteral($default);
+                }
+                $shape = $this->getDefaultsShape($property, $spec);
+                if ($shape !== null) {
+                    $models[$name]['properties'][$key] = $shape;
+                    $pending[] = $this->getShapeModel($shape);
+                }
+            }
+        }
+
+        $filled = \array_keys(\array_filter($models, static fn(array $model): bool => $model['defaults'] !== []));
+        do {
+            $count = \count($filled);
+            foreach ($models as $name => $model) {
+                if (!\in_array($name, $filled, true) && \array_any($model['properties'], fn(string|array $shape): bool => \in_array($this->getShapeModel($shape), $filled, true))) {
+                    $filled[] = $name;
+                }
+            }
+        } while (\count($filled) !== $count);
+
+        if (!\in_array($this->getShapeModel($root), $filled, true)) {
+            return '';
+        }
+
+        $entries = [];
+        foreach ($models as $name => $model) {
+            if (!\in_array($name, $filled, true)) {
+                continue;
+            }
+            $properties = \array_filter($model['properties'], fn(string|array $shape): bool => \in_array($this->getShapeModel($shape), $filled, true));
+            $entries[$name] = \array_filter([
+                'defaults' => $model['defaults'],
+                'properties' => \array_map($this->renderShape(...), $properties),
+            ], static fn(array $branch): bool => $branch !== []);
+        }
+
+        return $this->renderObject(['root' => $this->renderShape($root), 'models' => $entries], $indent);
+    }
+
+    /** @return string|array{items: string|array<string, mixed>}|null */
+    private function getDefaultsShape(Schema $schema, Specification $spec): string|array|null
+    {
+        if ($schema instanceof ArraySchema) {
+            $items = $this->getDefaultsShape($schema->items, $spec);
+            return $items === null ? null : ['items' => $items];
+        }
+        if (!$schema instanceof ReferenceSchema) {
+            return null;
+        }
+
+        $name = $this->normalizeSchemaReference($schema->reference);
+        return ($spec->schemas[$name] ?? null) instanceof ObjectSchema ? $name : null;
+    }
+
+    /** @param string|array{items: string|array<string, mixed>} $shape */
+    private function getShapeModel(string|array $shape): string
+    {
+        return \is_string($shape) ? $shape : $this->getShapeModel($shape['items']);
+    }
+
+    /**
+     * @param string|array{items: string|array<string, mixed>} $shape
+     * @return string|array{items: string|array<string, mixed>}
+     */
+    private function renderShape(string|array $shape): string|array
+    {
+        return \is_string($shape) ? $this->getStringLiteral($shape) : ['items' => $this->renderShape($shape['items'])];
+    }
+
+    /** @param array<string, mixed> $object */
+    private function renderObject(array $object, int $indent): string
+    {
+        $padding = \str_repeat(' ', $indent + 4);
+        $lines = [];
+        foreach ($object as $key => $value) {
+            $value = \is_array($value) ? $this->renderObject($value, $indent + 4) : $value;
+            $lines[] = $padding . $this->getObjectKeyLiteral((string) $key) . ': ' . $value . ',';
+        }
+
+        return "{\n" . \implode("\n", $lines) . "\n" . \str_repeat(' ', $indent) . '}';
+    }
+
+    protected function getLiteral(mixed $value): string
+    {
+        if ($value instanceof stdClass || (\is_array($value) && !\array_is_list($value))) {
+            $members = [];
+            foreach ((array) $value as $key => $member) {
+                $members[] = $this->getObjectKeyLiteral((string) $key) . ': ' . $this->getLiteral($member);
+            }
+            return $members === [] ? '{}' : '{ ' . \implode(', ', $members) . ' }';
+        }
+
+        return match (true) {
+            \is_array($value) => '[' . \implode(', ', \array_map($this->getLiteral(...), $value)) . ']',
+            \is_string($value) => $this->getStringLiteral($value),
+            default => (string) \json_encode($value),
+        };
+    }
+
     /**
      * Render an object literal key, quoting it only when it is not a valid
      * ECMAScript identifier. Prettier removes redundant quotes, so emitting
@@ -581,6 +659,7 @@ abstract class JS extends Language
             new TwigFilter('trimLines', fn(string $value): string => preg_replace('/[ \t]+$/m', '', $value) ?? $value),
             new TwigFilter('jsString', fn(?string $value): string => $this->getStringLiteral($value ?? ''), ['is_safe' => ['html']]),
             new TwigFilter('jsKey', fn(string $value): string => $this->getObjectKeyLiteral($value), ['is_safe' => ['html']]),
+            new TwigFilter('responseDefaults', fn(Operation $method, Specification $spec, int $indent): string => $this->getResponseDefaults($method, $spec, $indent), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
                 $enumSchema = $this->getEnumSchema($param);

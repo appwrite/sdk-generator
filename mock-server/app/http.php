@@ -419,6 +419,10 @@ App::post('/v1/mock/tests/general/upload')
                 throw new Exception(Exception::GENERAL_MOCK, 'Invalid content-range header');
             }
 
+            if ($start === 0 && $end === $size - 1 && $size === $chunkSize) {
+                throw new Exception(Exception::GENERAL_MOCK, 'A file of exactly the chunk size must be sent in one request');
+            }
+
             if ($start === 0 && !empty($id)) {
                 throw new Exception(Exception::GENERAL_MOCK, 'First chunked request cannot have id header');
             }
@@ -459,6 +463,14 @@ App::post('/v1/mock/tests/general/upload')
             $file['tmp_name'] = (\is_array($file['tmp_name'])) ? $file['tmp_name'][0] : $file['tmp_name'];
             $file['name'] = (\is_array($file['name'])) ? $file['name'][0] : $file['name'];
             $file['size'] = (\is_array($file['size'])) ? $file['size'][0] : $file['size'];
+
+            if ($file['name'] === 'boundary.bin') {
+                if ($file['size'] !== $chunkSize) {
+                    throw new Exception(Exception::GENERAL_MOCK, 'Wrong boundary file size');
+                }
+
+                return;
+            }
 
             if ($file['name'] !== 'file.png') {
                 throw new Exception(Exception::GENERAL_MOCK, 'Wrong file name');
@@ -528,6 +540,34 @@ App::post('/v1/mock/tests/general/optional-upload')
         ]);
     });
 
+App::put('/v1/mock/tests/general/upload-generic')
+    ->desc('Upload Generic')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'uploadGeneric')
+    ->label('sdk.request.type', 'multipart/form-data')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.mock', true)
+    ->param('file', [], new File(), 'Sample file param', skipValidation: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (mixed $file, Request $request, UtopiaSwooleResponse $response) {
+        $file = $request->getFiles('file');
+        $tmpName = is_array($file['tmp_name'] ?? null) ? $file['tmp_name'][0] : ($file['tmp_name'] ?? '');
+        if ($tmpName === '' || md5(file_get_contents($tmpName)) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong file');
+        }
+
+        // The SDK must hydrate the free-form preferences, not drop them.
+        $response->json([
+            'name' => 'John Doe',
+            'prefs' => ['result' => 'PUT:/v1/mock/tests/general/upload-generic:passed'],
+        ]);
+    });
+
 App::get('/v1/mock/tests/general/redirect')
     ->desc('Redirect')
     ->groups(['mock'])
@@ -573,6 +613,31 @@ App::get('/v1/mock/tests/general/path/grant%2Fspecial%26id')
     ->label('sdk.response.model', Response::MODEL_MOCK)
     ->label('sdk.mock', true)
     ->action(function () {
+    });
+
+// Query values must arrive intact: a raw `&`, `+` or `#` splits, decodes to a space or truncates them.
+App::get('/v1/mock/tests/general/query')
+    ->desc('Query Param')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'getQuery')
+    ->label('sdk.description', 'Mock a request with query values that need encoding.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('value', '', new Text(100), 'Query value.')
+    ->param('values', [], new ArrayList(new Text(100), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Query values.')
+    ->action(function (string $value, array $values) {
+        if ($value !== 'a&b+c#d=e%f') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Query value was not encoded: ' . $value);
+        }
+
+        if ($values !== ['a&b', 'c+d#e']) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Query values were not encoded: ' . \implode(',', $values));
+        }
     });
 
 // Shared nullable-path e2e contract. Null is serialized literally by targets
@@ -690,10 +755,19 @@ App::post('/v1/mock/tests/general/nullable')
     ->label('sdk.method', 'nullable')
     ->label('sdk.description', 'Mock a nullable parameter.')
     ->label('sdk.mock', true)
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
     ->param('required', '', new Text(100), 'Sample string param')
     ->param('nullable', '', new Nullable(new Text(100)), 'Sample string param')
     ->param('optional', '', new Text(100), 'Sample string param', true)
-    ->action(function (string $required, string $nullable, ?string $optional) {
+    ->param('nullableInteger', null, new Nullable(new Integer()), 'Optional nullable integer param', true)
+    ->inject('request')
+    ->action(function (string $required, ?string $nullable, ?string $optional, ?int $nullableInteger, Request $request) {
+        $params = $request->getParams();
+        if (!\array_key_exists('nullable', $params) || $nullable !== null || !\array_key_exists('nullableInteger', $params) || $nullableInteger !== null) {
+            throw new Exception(Exception::GENERAL_MOCK, 'nullable and nullableInteger must be sent as null', 400);
+        }
     });
 
 App::post('/v1/mock/tests/general/enum')
@@ -793,6 +867,39 @@ App::get('/v1/mock/tests/union')
                 'result' => 'GET:/v1/mock/tests/union:passed',
             ]);
         }
+    });
+
+App::get('/v1/mock/tests/general/preset')
+    ->desc('Get Preset')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json(['enabled' => false, 'verified' => null, 'scopes' => ['read', 'write']]);
+    });
+
+App::get('/v1/mock/tests/general/presets')
+    ->desc('List Presets')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json([
+            'total' => 2,
+            'presets' => [
+                ['enabled' => false],
+                ['name' => 'server', 'enabled' => true],
+            ],
+        ]);
+    });
+
+App::get('/v1/mock/tests/general/presets/empty')
+    ->desc('List Empty Presets')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json(['total' => 0]);
     });
 
 App::get('/v1/mock/tests/compound')

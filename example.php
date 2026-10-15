@@ -32,7 +32,7 @@ use Appwrite\SDK\Language\ZedExtension;
 
 final class Config
 {
-    public const string VERSION = '2.3.x';
+    public const string VERSION = '2.4.x';
     public const string SWAGGER2_VERSION = '1.8.x';
     public const string SPECS_URL = 'https://raw.githubusercontent.com/appwrite/specs/main/specs';
     public const string TITLE = 'Appwrite';
@@ -262,48 +262,6 @@ try {
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
         |_|   |_|                                                ";
 
-    $cliExcludes = [
-        'services' => [
-            ['name' => 'assistant'],
-            ['name' => 'avatars'],
-            ['name' => 'advisor'],
-            ['name' => 'compute'],
-            ['name' => 'apps'],
-            ['name' => 'oauth'],
-            ['name' => 'organizations'],
-            ['name' => 'console'],
-            ['name' => 'projects'],
-            ['name' => 'waf'],
-            ['name' => 'manager'],
-            ['name' => 'mysql'],
-            ['name' => 'postgresql'],
-            ['name' => 'mongo'],
-            ['name' => 'usage'],
-        ],
-        'methods' => [
-            ['name' => 'createBillingAddress'],
-            ['name' => 'createPaymentMethod'],
-            ['name' => 'deleteBillingAddress'],
-            ['name' => 'deletePaymentMethod'],
-            ['name' => 'getBillingAddress'],
-            ['name' => 'getCoupon'],
-            ['name' => 'getPaymentMethod'],
-            ['name' => 'listBillingAddresses'],
-            ['name' => 'listInvoices'],
-            ['name' => 'listPaymentMethods'],
-            ['name' => 'updateBillingAddress'],
-            ['name' => 'updateConsoleAccess'],
-            ['name' => 'updatePaymentMethod'],
-            ['name' => 'updatePaymentMethodMandateOptions'],
-            ['name' => 'updatePaymentMethodProvider'],
-            ['name' => 'createPlanEstimation'],
-            // Not yet available in the released @appwrite.io/console package
-            ['name' => 'listStages'],
-            ['name' => 'updateStage'],
-            ['name' => 'approve'],
-        ],
-    ];
-
     // CLI
     if (!$requestedSdk || $requestedSdk === 'cli') {
         $language = new CLI();
@@ -316,7 +274,12 @@ try {
         $sdk->setTest(false);
         configureSDK($sdk, [
             'platform' => 'server',
-            'exclude' => $cliExcludes,
+            'exclude' => [
+                'methods' => [
+                    // sdk-for-go v7.10.0 takes a required rpId; this spec's optional rpId and origins are newer.
+                    ['service' => 'project', 'name' => 'updatePasskeyPolicy'],
+                ],
+            ],
         ]);
 
         $sdk->generate(__DIR__ . '/examples/cli');

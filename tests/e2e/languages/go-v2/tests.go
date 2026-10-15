@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/repoowner/reponame/v2/appwrite"
@@ -188,9 +189,40 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	testGeneralUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)
+	testGenericUpload(client)
 
 	// Extended General Responses
 	testGeneralDownload(client)
+
+	preset, err := general.GetPreset()
+	if err != nil {
+		fmt.Printf("general.GetPreset => error %v\n", err)
+	} else {
+		fmt.Printf("preset: name=%s, count=%d, enabled=%t\n", preset.Name, preset.Count, preset.Enabled)
+	}
+
+	presets, err := general.ListPresets()
+	if err != nil {
+		fmt.Printf("general.ListPresets => error %v\n", err)
+	} else {
+		for _, item := range presets.Presets {
+			fmt.Printf("preset: name=%s, count=%d, enabled=%t\n", item.Name, item.Count, item.Enabled)
+		}
+	}
+	emptyPresets, err := general.ListEmptyPresets()
+	if err != nil {
+		fmt.Printf("general.ListEmptyPresets => error %v\n", err)
+	} else {
+		fmt.Printf("empty presets: %d\n", len(emptyPresets.Presets))
+	}
+	if preset != nil {
+		if preset.Verified == nil {
+			fmt.Println("preset verified: null")
+		} else {
+			fmt.Printf("preset verified: %t\n", *preset.Verified)
+		}
+		fmt.Printf("preset scopes: %s\n", strings.Join(preset.Scopes, ","))
+	}
 
 	// Exception Responses
 	_, err = general.Error400()
@@ -267,6 +299,25 @@ func testLargeUpload(client client.Client, stringInArray []string) {
 		fmt.Printf("general.Upload => error %v\n", err)
 	}
 	fmt.Printf("%s\n", response.Result)
+}
+
+func testGenericUpload(client client.Client) {
+	general := appwrite.NewGeneral(client)
+	inputFile := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+
+	response, err := general.UploadGeneric(inputFile)
+	if err != nil {
+		fmt.Printf("general.UploadGeneric => error %v\n", err)
+		return
+	}
+	var profile struct {
+		Prefs map[string]interface{} `json:"prefs"`
+	}
+	if err := response.Decode(&profile); err != nil {
+		fmt.Printf("general.UploadGeneric => decode error %v\n", err)
+		return
+	}
+	fmt.Printf("%s\n", profile.Prefs["result"])
 }
 
 func testQueries() {

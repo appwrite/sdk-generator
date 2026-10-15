@@ -246,55 +246,6 @@ class Ruby extends Language
         };
     }
 
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type       = $this->getSchemaType($param);
-        $default    = $this->getSchemaDefault($param);
-        $required   = ($param instanceof Parameter && $param->required);
-
-        if ($required) {
-            return ':';
-        }
-
-        $output = ': ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'nill';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= '{}';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= $default;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$default}'";
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
         $type       = $this->getSchemaType($param);
@@ -388,11 +339,69 @@ class Ruby extends Language
         return $output . (str_repeat('  ', $indent + 2) . '}');
     }
 
+    protected function formatRubyDefault(Schema|Parameter $property): string
+    {
+        $default = $this->getModelDefault($this->getSchema($property), true);
+
+        if (is_array($default) && $this->getSchemaType($property) === self::TYPE_OBJECT) {
+            return $this->formatRubyHash($default);
+        }
+
+        return $this->formatRubyLiteral($default);
+    }
+
+    protected function formatRubyLiteral(mixed $value): string
+    {
+        if ($value === null) {
+            return 'nil';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_string($value)) {
+            return str_replace('#', '\\#', json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        }
+
+        if (is_object($value)) {
+            return $this->formatRubyHash(get_object_vars($value));
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            return '[' . implode(', ', array_map($this->formatRubyLiteral(...), $value)) . ']';
+        }
+
+        if (is_array($value)) {
+            return $this->formatRubyHash($value);
+        }
+
+        return json_encode($value, JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    protected function formatRubyHash(array $value): string
+    {
+        if ($value === []) {
+            return '{}';
+        }
+
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $pairs[] = $this->formatRubyLiteral((string) $key) . ' => ' . $this->formatRubyLiteral($item);
+        }
+
+        return '{ ' . implode(', ', $pairs) . ' }';
+    }
+
     #[Override]
     public function getFilters(): array
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
+            new TwigFilter('rubyDefault', fn(Schema|Parameter $property): string => $this->formatRubyDefault($property), ['is_safe' => ['html']]),
             new TwigFilter('rtrimLines', function (mixed $value): string {
                 $lines = explode("\n", str_replace("\r\n", "\n", (string) $value));
                 foreach ($lines as $index => $line) {

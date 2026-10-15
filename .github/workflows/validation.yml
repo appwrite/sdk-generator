@@ -11,7 +11,7 @@ jobs:
     name: ${{ matrix.sdk }} (${{ matrix.platform }})
     runs-on: ubuntu-latest
     env:
-      FLUTTER_VERSION: '3.35.7'
+      FLUTTER_VERSION: '3.38.10'
       KTLINT_VERSION: '1.8.0'
       KTLINT_SHA256: 'a3fd620207d5c40da6ca789b95e7f823c54e854b7fade7f613e91096a3706d75'
       RUBOCOP_VERSION: '1.90.0'
@@ -183,14 +183,22 @@ jobs:
           sdk: 'stable'
 
       - name: Setup Go
-        if: matrix.sdk == 'go' || matrix.sdk == 'cli' || matrix.sdk == 'dart' || matrix.sdk == 'flutter'
+        if: matrix.sdk == 'go' || matrix.sdk == 'cli'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.6'
+          go-version: '1.26.9'
 
       - name: Install OSV Scanner
         if: matrix.sdk == 'dart' || matrix.sdk == 'flutter'
-        run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@${{ env.OSV_SCANNER_VERSION }}
+        # The release binary, checked against its published SHA-256: building from source
+        # verifies every module against sum.golang.org, which keeps failing mid-download.
+        run: |
+          base="https://github.com/google/osv-scanner/releases/download/${OSV_SCANNER_VERSION}"
+          cd "$RUNNER_TEMP"
+          curl -fsSL --retry 5 --retry-all-errors -O "$base/osv-scanner_linux_amd64" -O "$base/osv-scanner_SHA256SUMS"
+          grep ' osv-scanner_linux_amd64$' osv-scanner_SHA256SUMS | sha256sum -c -
+          sudo install -m 0755 osv-scanner_linux_amd64 /usr/local/bin/osv-scanner
+          osv-scanner --version
 
       - name: Setup .NET
         if: matrix.sdk == 'dotnet' || matrix.sdk == 'unity'

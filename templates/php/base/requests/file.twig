@@ -52,16 +52,13 @@
 
         return $response;
 {% else %}
-        $size = 0;
-        $mimeType = null;
-        $postedName = null;
         if (empty(${{ parameter.name | caseCamel }}->getPath() ?? null)) {
             $size = strlen(${{ parameter.name | caseCamel }}->getData());
             $mimeType = ${{ parameter.name | caseCamel }}->getMimeType();
             $postedName = ${{ parameter.name | caseCamel }}->getFilename();
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name | caseCamel }}'] = Part::body('{{ parameter.name | caseCamel }}', ${{ parameter.name | caseCamel }}->getData(), $postedName, $mimeType);
-                $response = $this->client->call(Client::METHOD_POST, $apiPath, [
+                $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, [
     {% for param in (method | parameters('header')) %}
                     '{{ param.name }}' => ${{ param.name | caseCamel }},
     {% endfor %}
@@ -237,7 +234,7 @@
                 $chunkHeaders['x-{{spec.info.title | caseLower }}-id'] = $currentUploadId;
             }
 
-            return $this->client->call(Client::METHOD_POST, $apiPath, $chunkHeaders, $chunkParams);
+            return $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, $chunkHeaders, $chunkParams);
         };
 
         $isUploadComplete = function ($chunkResponse) use ($totalChunks): bool {

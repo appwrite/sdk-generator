@@ -237,6 +237,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushOpenActivity.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushOpenActivity.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushWakeups.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/PushWakeups.kt.twig',
             ],

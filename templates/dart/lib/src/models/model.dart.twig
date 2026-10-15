@@ -30,6 +30,16 @@ class {{ definitionName | caseUcfirst | overrideIdentifier }} implements Model {
   factory {{ definitionName | caseUcfirst | overrideIdentifier }}.fromMap(
     Map<String, dynamic> map,
   ) {
+{% set defaultedProperties = definition.properties | filter((property) => (property | modelDefault) is not null) %}
+{% if defaultedProperties is not empty %}
+    map = {
+{% for property in defaultedProperties %}
+      '{{ (property | schemaName) | escapeDollarSign }}': {{ property | dartDefault }},
+{% endfor %}
+      ...map,
+    };
+
+{% endif %}
     return {{ definitionName | caseUcfirst | overrideIdentifier }}(
 {% for property in definition.properties %}
 {% set propertyName = property | schemaName %}

@@ -171,6 +171,7 @@ namespace AppwriteTests
                 }
             }
             LogResult((await general.ValidatePath("0", "0")).Result);
+            LogResult((await general.GetQuery("a&b+c#d=e%f", new List<string>() { "a&b", "c+d#e" })).Result);
 
             string zone = await new Plaintext(client).GetZone();
             LogResult(zone);
@@ -203,6 +204,12 @@ namespace AppwriteTests
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             LogResult(mock.Result);
 
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromBytes(new byte[5 * 1024 * 1024], "boundary.bin", "application/octet-stream"));
+            LogResult(mock.Result);
+
+            var profile = await general.UploadGeneric(InputFile.FromPath("../../../resources/file.png"));
+            LogResult(profile.Prefs.Data["result"]);
+
             // Download test
             var downloadResult = await general.Download();
             if (downloadResult != null)
@@ -223,6 +230,16 @@ namespace AppwriteTests
                 new Player("player2", "Jane Doe", 200)
             });
             LogResult(mock.Result);
+
+            var preset = await general.GetPreset();
+            LogResult($"preset: name={preset.Name}, count={preset.Count}, enabled={preset.Enabled.ToString().ToLowerInvariant()}");
+            foreach (var item in (await general.ListPresets()).Presets)
+            {
+                LogResult($"preset: name={item.Name}, count={item.Count}, enabled={item.Enabled.ToString().ToLowerInvariant()}");
+            }
+            LogResult($"empty presets: {(await general.ListEmptyPresets()).Presets.Count}");
+            LogResult($"preset verified: {preset.Verified?.ToString() ?? "null"}");
+            LogResult($"preset scopes: {string.Join(",", (preset.Scopes ?? new List<PresetScopes>()).ConvertAll(scope => scope.Value))}");
 
             try
             {

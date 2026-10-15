@@ -4,7 +4,6 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.util.Log
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import {{ sdk.namespace | caseDot }}.cookies.InternalCookie
 import java.net.HttpCookie
 import java.net.URI
@@ -20,9 +19,8 @@ open class SharedPreferencesCookieStore(
             preferences.all.forEach { (key, value) ->
                 try {
                     val index = URI.create(key)
-                    val listType = object : TypeToken<MutableList<InternalCookie>>() {}.type
-                    val internalCookies =
-                        gson.fromJson<MutableList<InternalCookie>>(value.toString(), listType)
+                    val internalCookies = gson.fromJson(value.toString(), List::class.java)
+                        .map { InternalCookie.from(it as Map<*, *>) }
                     val cookies = internalCookies.map { it.toHttpCookie() }.toMutableList()
                     uriIndex[index] = cookies
                 } catch (exception: Throwable) {
@@ -59,8 +57,7 @@ open class SharedPreferencesCookieStore(
                 }
             }
 
-            val listType = object : TypeToken<MutableList<InternalCookie>>() {}.type
-            val json = gson.toJson(internalCookies, listType)
+            val json = gson.toJson(internalCookies.map { it.toMap() })
 
             preferences
                 .edit()
@@ -82,8 +79,7 @@ open class SharedPreferencesCookieStore(
                     }
                 }
             }
-            val listType = object : TypeToken<MutableList<InternalCookie>>() {}.type
-            val json = gson.toJson(internalCookies, listType)
+            val json = gson.toJson(internalCookies?.map { it.toMap() })
 
             preferences.edit().apply {
                 when (cookies) {

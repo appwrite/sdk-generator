@@ -1,6 +1,5 @@
 package {{ sdk.namespace | caseDot }}
 
-import java.time.Instant
 import kotlin.math.floor
 import kotlin.random.Random
 
@@ -12,8 +11,7 @@ class ID {
         // Generate an hex ID based on timestamp
         // Recreated from https://www.php.net/manual/en/function.uniqid.php
         private fun hexTimestamp(): String {
-            val now = Instant.now()
-            val sec = now.epochSecond
+            val sec = System.currentTimeMillis() / 1000
             val usec = (System.nanoTime() / 1000) % 1000
 
             val hexTimestamp = "%08x%05x".format(sec, usec)

@@ -116,11 +116,11 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
                 }
                 is List<*> -> {
                     (it.value as List<*>).forEach { v ->
-                        apiQuery.add("${it.key}[]=${v.toString()}")
+                        apiQuery.add("${Uri.encode(it.key)}[]=${Uri.encode(v.toString())}")
                     }
                 }
                 else -> {
-                    apiQuery.add("${it.key}=${it.value.toString()}")
+                    apiQuery.add("${Uri.encode(it.key)}=${Uri.encode(it.value.toString())}")
                 }
             }
         }
@@ -224,13 +224,18 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             apiPath,
             apiHeaders,
             apiParams,
+            {%~ if (method | responseModel) | hasGenericType(spec) %}
+            responseType = classOf(),
+            {%~ else %}
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java,
+            {%~ endif %}
             {%~ if (method | responseModel) %}
             converter,
             {%~ endif %}
             paramName = paramName,
             idParamName = idParamName,
             onProgress = onProgress,
+            method = "{{ method.method.value | caseUpper }}",
         )
         {%~ else %}
         return client.call(

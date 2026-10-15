@@ -105,6 +105,12 @@ data = open('./tests/resources/large_file.mp4', 'rb').read()
 response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4','video/mp4'))
 print(response.result)
 
+response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(bytes(5 * 1024 * 1024), 'boundary.bin', 'application/octet-stream'))
+print(response.result)
+
+response = general.upload_generic(InputFile.from_path('./tests/resources/file.png'))
+print(response.prefs.data['result'])
+
 print(general.download().decode())
 
 response = general.enum(MockType.FIRST)
@@ -119,6 +125,15 @@ response = general.create_players([
     {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
 ])
 print(response.result)
+
+preset = general.get_preset()
+print(f"preset: name={preset.name}, count={preset.count:g}, enabled={str(preset.enabled).lower()}")
+for item in general.list_presets().presets:
+    print(f"preset: name={item.name}, count={item.count:g}, enabled={str(item.enabled).lower()}")
+print(f"empty presets: {len(general.list_empty_presets().presets)}")
+print(f"preset verified: {'null' if preset.verified is None else preset.verified}")
+print(f"preset scopes: {','.join(scope.value for scope in (preset.scopes or []))}")
+print(f"preset tier: {preset.tier}")
 
 try:
     response = general.error400()

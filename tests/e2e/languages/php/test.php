@@ -242,6 +242,9 @@ echo $response->result . "\n";
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../../resources/large_file.mp4'));
 echo $response->result . "\n";
 
+$response = $general->uploadGeneric(InputFile::withPath(__DIR__ . '/../../../resources/file.png'));
+echo $response->prefs->data['result'] . "\n";
+
 echo $general->download() . "\n";
 
 $response = $general->enum(MockType::FIRST());
@@ -258,6 +261,15 @@ $players = [
 ];
 $response = $general->createPlayers($players);
 echo $response->result . "\n";
+
+$preset = $general->getPreset();
+echo 'preset: name=' . $preset->name . ', count=' . $preset->count . ', enabled=' . ($preset->enabled ? 'true' : 'false') . "\n";
+foreach ($general->listPresets()->presets as $item) {
+    echo 'preset: name=' . $item->name . ', count=' . $item->count . ', enabled=' . ($item->enabled ? 'true' : 'false') . "\n";
+}
+echo 'empty presets: ' . count($general->listEmptyPresets()->presets) . "\n";
+echo 'preset verified: ' . ($preset->verified === null ? 'null' : var_export($preset->verified, true)) . "\n";
+echo 'preset scopes: ' . implode(',', array_map(strval(...), $preset->scopes ?? [])) . "\n";
 
 try {
     $response = $general->error400();

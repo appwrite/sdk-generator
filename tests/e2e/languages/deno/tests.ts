@@ -146,6 +146,11 @@ async function start() {
   // @ts-ignore
   console.log(response.result);
 
+  const profile = await general.uploadGeneric<{ result: string }>(
+    appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png")
+  );
+  console.log(profile.prefs.result);
+
   console.log(new TextDecoder().decode(await general.download()));
 
   response = await general.enum(appwrite.MockType.First);
@@ -162,6 +167,20 @@ async function start() {
     { id: 'player2', name: 'Jane Doe', score: 200 }
   ]);
   // @ts-ignore
+  console.log(response.result);
+
+  const preset = await general.getPreset();
+  console.log(`preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}`);
+  const presets = await general.listPresets();
+  for (const item of presets.presets) {
+      console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
+  }
+  console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
+  const verified: appwrite.Models.Preset["verified"] = preset.verified ?? null;
+  console.log(`preset verified: ${verified}`);
+  console.log(`preset scopes: ${(preset.scopes ?? []).join(',')}`);
+
+  response = await general.nullable("required", null, undefined, undefined, null);
   console.log(response.result);
 
   try {

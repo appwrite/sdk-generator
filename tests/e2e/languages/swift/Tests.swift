@@ -90,6 +90,7 @@ class Tests: XCTestCase {
         }
         print(try await general.validatePath(plain: "0", id: "0").result)
         print(try await general.validatePath(plain: "0", id: nil).result)
+        print(try await general.getQuery(value: "a&b+c#d=e%f", values: ["a&b", "c+d#e"]).result)
 
         let zone: String = try await Plaintext(client).getZone()
         print(zone)
@@ -151,6 +152,17 @@ class Tests: XCTestCase {
             print(error.localizedDescription)
         }
 
+        do {
+            let file = InputFile.fromData(Data(count: 5 * 1024 * 1024), filename: "boundary.bin", mimeType: "application/octet-stream")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch {
+            print(error.localizedDescription)
+        }
+
+        let profile = try await general.uploadGeneric(file: InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png"))
+        print(profile.prefs.data["result"]?.value as? String ?? "")
+
         var downloaded = try await general.download()
         print(downloaded.readString(length: downloaded.readableBytes) ?? "")
 
@@ -172,6 +184,15 @@ class Tests: XCTestCase {
             AnyCodable(["$id": "two", "title": "world"])
         ])
         print(mock.result)
+
+        let preset = try await general.getPreset()
+        print("preset: name=\(preset.name), count=\(preset.count), enabled=\(preset.enabled)")
+        for item in try await general.listPresets().presets {
+            print("preset: name=\(item.name), count=\(item.count), enabled=\(item.enabled)")
+        }
+        print("empty presets: \(try await general.listEmptyPresets().presets.count)")
+        print("preset verified: \(preset.verified.map { String($0) } ?? "null")")
+        print("preset scopes: \((preset.scopes ?? []).map { $0.rawValue }.joined(separator: ","))")
 
         do {
             try await general.error400()

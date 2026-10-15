@@ -93,8 +93,6 @@ abstract class Language
 
     abstract public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string;
 
-    abstract public function getParamDefault(Schema|Parameter $param): string;
-
     /**
      * @param string $lang Optional language variant (for multi-language SDKs)
      */
@@ -411,6 +409,20 @@ abstract class Language
         return $value instanceof Parameter ? ($value->schema ?? new AnySchema()) : $value;
     }
 
+    /**
+     * The value a model fills a required field with when a response omits it. A collection the
+     * spec gives no default is filled empty, the only value its type always admits; a nested model
+     * stays absent, since an empty object may not satisfy the fields it requires.
+     */
+    public function getModelDefault(Schema $property, bool $required): mixed
+    {
+        if (!$required) {
+            return null;
+        }
+
+        return $property->default ?? ($property instanceof ArraySchema ? [] : null);
+    }
+
     protected function getSchemaType(Schema|Parameter $value): string
     {
         $schema = $this->getSchema($value);
@@ -480,11 +492,6 @@ abstract class Language
             $value,
             fn(mixed $item): bool => \is_array($item) && $this->containsAssociativeArray($item),
         );
-    }
-
-    protected function getSchemaDefault(Schema|Parameter $value): mixed
-    {
-        return $this->getSchema($value)->default;
     }
 
     /**

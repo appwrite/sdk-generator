@@ -149,6 +149,7 @@ class Tests: XCTestCase {
         }
         print(try await general.validatePath(plain: "0", id: "0").result)
         print(try await general.validatePath(plain: "0", id: nil).result)
+        print(try await general.getQuery(value: "a&b+c#d=e%f", values: ["a&b", "c+d#e"]).result)
 
         let zone: String = try await Plaintext(client).getZone()
         print(zone)
@@ -210,6 +211,17 @@ class Tests: XCTestCase {
             print(error.localizedDescription)
         }
 
+        do {
+            let file = InputFile.fromData(Data(count: 5 * 1024 * 1024), filename: "boundary.bin", mimeType: "application/octet-stream")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch {
+            print(error.localizedDescription)
+        }
+
+        let profile = try await general.uploadGeneric(file: InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png"))
+        print(profile.prefs.data["result"]?.value as? String ?? "")
+
         var downloaded = try await general.download()
         print(downloaded.readString(length: downloaded.readableBytes) ?? "")
 
@@ -231,6 +243,15 @@ class Tests: XCTestCase {
             AnyCodable(["$id": "two", "title": "world"])
         ])
         print(mock.result)
+
+        let preset = try await general.getPreset()
+        print("preset: name=\(preset.name), count=\(preset.count), enabled=\(preset.enabled)")
+        for item in try await general.listPresets().presets {
+            print("preset: name=\(item.name), count=\(item.count), enabled=\(item.enabled)")
+        }
+        print("empty presets: \(try await general.listEmptyPresets().presets.count)")
+        print("preset verified: \(preset.verified.map { String($0) } ?? "null")")
+        print("preset scopes: \((preset.scopes ?? []).map { $0.rawValue }.joined(separator: ","))")
 
         do {
             try await general.error400()
@@ -600,6 +621,19 @@ class Tests: XCTestCase {
         anonymousPush.close()
         print(noCredentialRejected ? "Push user no credential:passed" : "Push user no credential:failed")
 
+        // Signed in through the client: with no JWT or session set on it, the user comes from the
+        // session its sign-in saved with the client's cookies.
+        let signInClient = Client()
+            .setProject("console")
+            .setSelfSigned()
+            .setPushEndpoint("mqtt://mqtt:1883")
+        let signInHost = URL(string: signInClient.endPoint)!.host!
+        let encodedSession = e2eSession.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? e2eSession
+        UserDefaults.standard.set(["a_session_console=\(encodedSession); Path=/; HttpOnly"], forKey: signInHost)
+        let signInTopics = (try? await userTopicsOf(signInClient)) ?? []
+        UserDefaults.standard.removeObject(forKey: signInHost)
+        print(onlyTopic(signInTopics, "users/e2e-session-user") ? "Push user sign-in session topic:passed" : "Push user sign-in session topic:failed")
+
         // Broker errors reach onError: a refused CONNECT (the mock refuses a "deny:<reason>" credential with <reason>)
         // and a server-initiated DISCONNECT (the mock disconnects clients that subscribe to
         // "e2e-disconnect/<reason>" with <reason>). MQTTNIO does not expose the broker's reason string, so Apple checks
@@ -689,6 +723,53 @@ class Tests: XCTestCase {
                 ? "Push credential pending switch:passed"
                 : "Push credential pending switch:failed (first: \(firstPendingOutcome), second: \(secondPending))"
         )
+
+        let closingPush = Push(
+            Client()
+                .setProject("console")
+                .setSelfSigned()
+                .setPushEndpoint("mqtt://mqtt:1883")
+                .setJWT("slow:closing")
+        )
+        let closedWhileConnecting = ErrorCollector()
+        Task {
+            closedWhileConnecting.record(await outcome { _ = try await closingPush.subscribe("e2e-switch") { _ in } })
+        }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        closingPush.close()
+        for _ in 0..<100 where closedWhileConnecting.message == nil {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let closedOutcome = closedWhileConnecting.message ?? "timeout"
+        print(
+            closedOutcome == "Push was closed before the subscription was established"
+                ? "Push close while connecting:passed"
+                : "Push close while connecting:failed (\(closedOutcome))"
+        )
+
+        let callbackPush = Push(
+            Client()
+                .setProject("console")
+                .setSelfSigned()
+                .setPushEndpoint("mqtt://mqtt:1883")
+                .setSession(e2eSession)
+        )
+        let handle = SubscriptionBox()
+        let closedFromCallback = ErrorCollector()
+        handle.subscription = try? await callbackPush.subscribe("e2e-push") { _ in
+            handle.subscription?.unsubscribe()
+            closedFromCallback.record("closed")
+        }
+        for _ in 0..<50 where closedFromCallback.message == nil {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let reopened = await outcome { _ = try await callbackPush.subscribe("e2e-switch") { _ in } }
+        callbackPush.close()
+        print(
+            closedFromCallback.message == "closed" && reopened.isEmpty
+                ? "Push close from callback:passed"
+                : "Push close from callback:failed (callback: \(closedFromCallback.message ?? "none"), reopened: \(reopened))"
+        )
     }
 
     func parse(from json: String) -> String? {
@@ -717,6 +798,10 @@ final class TopicCollector: @unchecked Sendable {
         defer { lock.unlock() }
         return received
     }
+}
+
+final class SubscriptionBox: @unchecked Sendable {
+    var subscription: PushSubscription?
 }
 
 final class ErrorCollector: @unchecked Sendable {

@@ -490,7 +490,7 @@ var deployables = []deployable{
 		IDFlag:           "function-id", IDField: "functionId",
 		RuleResourceType: "function", MismatchKey: "runtime",
 		WriteKeys: []string{
-			"name", "runtime", "execute", "events", "schedule", "timeout",
+			"name", "runtime", "execute", "events", "schedule", "interval", "timeout",
 			"enabled", "logging", "entrypoint", "commands", "scopes",
 			"installationId", "providerRepositoryId", "providerBranch",
 			"providerSilentMode", "providerRootDirectory", "providerBranches",
@@ -500,7 +500,7 @@ var deployables = []deployable{
 		ApproveKeys: []string{
 			"path", "$id", "execute", "name", "enabled", "logging", "runtime",
 			"buildSpecification", "runtimeSpecification", "deploymentRetention",
-			"scopes", "events", "schedule", "timeout", "entrypoint", "commands",
+			"scopes", "events", "schedule", "interval", "timeout", "entrypoint", "commands",
 			"installationId", "providerRepositoryId", "providerBranch",
 			"providerSilentMode", "providerRootDirectory", "providerBranches",
 			"providerPaths", "previewDomainTarget", "previewDomainLabel",

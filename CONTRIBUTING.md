@@ -64,9 +64,6 @@ Each file scope determines what template parameters will be available.
 **getTypeName**
 This method receives the API param type and should return the equivalent param in the implemented language.
 
-**getParamDefault**
-This method receives the API param and should return the equivalent default value of param in the implemented language, for example, a default array param in PHP is represented as [].
-
 **getParamExample**
 This method receives the API param and should return the equivalent example value of param in the implemented language. For example, if an example value is **some text** in PHP, the return value should be **'some text'** (with quotes).
 
@@ -340,10 +337,6 @@ docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/d
   * **gitUserName** -> Git username of creator
   * **logo** -> SDK Logo
   * **url** -> SDK URL
-  * **shareText** -> Social Media Metadata
-  * **shareURL** -> Social Media Metadata
-  * **shareVia** -> Social Media Metadata
-  * **shareTags** -> Social Media Metadata
   * **warning** -> Used for warnings usually communicated within the `README.md`
   * **gettingStarted** -> Raw markdown for getting started
   * **readme** -> Stores the raw markdown used to generate the `README.md` file. [here](https://github.com/appwrite/sdk-for-flutter/blob/master/README.md)

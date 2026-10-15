@@ -248,6 +248,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushOpenActivity.kt',
+                'template'      => 'android/library/src/main/java/io/package/services/PushOpenActivity.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/android/src/main/kotlin/io/{{ spec.info.title | caseLower }}/services/PushBridge.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushBridge.kt.twig',
             ],
@@ -265,6 +270,11 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '/lib/src/mqtt_message.dart',
                 'template'      => 'flutter/lib/src/mqtt_message.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/mqtt_notification.dart',
+                'template'      => 'flutter/lib/src/mqtt_notification.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -315,6 +325,18 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '/lib/src/realtime_response_connected.dart',
                 'template'      => 'flutter/lib/src/realtime_response_connected.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/tracking.dart',
+                'requires'      => 'analytics',
+                'template'      => 'flutter/lib/src/tracking.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/tracking_observer.dart',
+                'requires'      => 'analytics',
+                'template'      => 'flutter/lib/src/tracking_observer.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -423,6 +445,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/src/push_background_status_test.dart',
+                'template'      => 'flutter/test/src/push_background_status_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/realtime_response_test.dart',
                 'template'      => 'flutter/test/src/realtime_response_test.dart.twig',
             ],
@@ -435,6 +462,11 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '/test/src/realtime_subscription_test.dart',
                 'template'      => 'flutter/test/src/realtime_subscription_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/mqtt_notification_test.dart',
+                'template'      => 'flutter/test/src/mqtt_notification_test.dart.twig',
             ],
             [
                 'scope'         => 'default',

@@ -22,4 +22,13 @@ public final class ClientJavaInteropTest {
         assertEquals("https://cloud.appwrite.io/v1", client.getEndpoint());
         assertEquals("wss://cloud.appwrite.io/v1", client.getEndpointRealtime());
     }
+
+    @Test
+    public void positionalSelfSignedFollowsTheRealtimeEndpoint() {
+        Context context = ApplicationProvider.getApplicationContext();
+        Client client = new Client(context, "https://cloud.appwrite.io/v1", "wss://cloud.appwrite.io/v1", true);
+
+        assertEquals("https://cloud.appwrite.io/v1", client.getEndpoint());
+        assertEquals("wss://cloud.appwrite.io/v1", client.getEndpointRealtime());
+    }
 }
