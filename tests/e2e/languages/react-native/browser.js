@@ -411,11 +411,6 @@ import {
     // Topic helper tests
     console.log(Topic.path(['user', '123', 'notification']).toString());
     console.log(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
-    console.log(Topic.path(['user']).any().path(['notification']).toString());
-    console.log(Topic.path(['chat']).any().any().path(['message']).toString());
-    console.log(Topic.path(['org']).any().path(['logs']).all().toString());
-    console.log(Topic.any().path(['notification']).toString());
-    console.log(Topic.all().toString());
     for (const [name, levels] of [
         ['empty path', []],
         ['empty level', ['user', '']],
