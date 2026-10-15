@@ -337,9 +337,8 @@ class Client @JvmOverloads constructor(
     ): Request {
         // flatten() resolves Query/Query.Builder values before the null filter,
         // so a builder that renders to null is dropped like any other null.
-        val filteredParams = params
-            .mapValues { flatten(it.value) }
-            .filterValues { it != null }
+        val flattenedParams = params.mapValues { flatten(it.value) }
+        val filteredParams = flattenedParams.filterValues { it != null }
 
         val requestHeaders = this.headers.toHeaders().newBuilder()
             .addAll(headers.toHeaders())
@@ -402,7 +401,7 @@ class Client @JvmOverloads constructor(
             }
             builder.build()
         } else {
-            params
+            flattenedParams
                 .toJsonRequestBody()
                 .toRequestBody("application/json".toMediaType())
         }

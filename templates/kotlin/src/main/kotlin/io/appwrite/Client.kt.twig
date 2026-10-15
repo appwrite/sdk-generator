@@ -239,9 +239,8 @@ class Client @JvmOverloads constructor(
         headers: Map<String, String> = mapOf(),
         params: Map<String, Any?> = mapOf(),
     ): Request {
-        val filteredParams = params
-            .mapValues { flatten(it.value) }
-            .filterValues { it != null }
+        val flattenedParams = params.mapValues { flatten(it.value) }
+        val filteredParams = flattenedParams.filterValues { it != null }
 
         val requestHeaders = this.headers.toHeaders().newBuilder()
             .addAll(headers.toHeaders())
@@ -304,7 +303,7 @@ class Client @JvmOverloads constructor(
             }
             builder.build()
         } else {
-            params
+            flattenedParams
                 .toJsonRequestBody()
                 .toRequestBody("application/json".toMediaType())
         }
