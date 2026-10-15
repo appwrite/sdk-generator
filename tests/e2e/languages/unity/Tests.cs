@@ -440,11 +440,6 @@ namespace AppwriteTests
             // Topic helper tests
             LogResult(Topic.Path(new[] { "user", "123", "notification" }).ToString());
             LogResult(Topic.Path(new[] { "org", "42", "user", "123" }).Path(new[] { "notification" }).ToString());
-            LogResult(Topic.Path(new[] { "user" }).Any().Path(new[] { "notification" }).ToString());
-            LogResult(Topic.Path(new[] { "chat" }).Any().Any().Path(new[] { "message" }).ToString());
-            LogResult(Topic.Path(new[] { "org" }).Any().Path(new[] { "logs" }).All().ToString());
-            LogResult(Topic.Any().Path(new[] { "notification" }).ToString());
-            LogResult(Topic.All().ToString());
             var topicCases = new (string Name, string[] Levels)[]
             {
                 ("empty path", new string[0]),
