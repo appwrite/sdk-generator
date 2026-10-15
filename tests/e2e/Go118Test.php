@@ -49,6 +49,7 @@ final class Go118Test extends Base
         ...Base::ENUM_ARRAY_MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
+        Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::TOPIC_HELPER_RESPONSES,

@@ -386,6 +386,35 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A `{}` spec default decodes to an empty PHP array, and a number param
+     * without an example used to print `null`; both must keep their declared
+     * type in the generated TypeScript.
+     */
+    #[RunInSeparateProcess]
+    public function testJavascriptDefaultsAndExamplesKeepTheirTypes(): void
+    {
+        $defaults = [];
+        $examples = [];
+        foreach (['web', 'node', 'react-native', 'deno'] as $name) {
+            foreach (self::PLATFORMS as $platform) {
+                $files = $this->generate($name, $platform);
+                $general = $files['src/services/general.ts'] ?? '';
+                if (\str_contains($general, 'getpreset(')) {
+                    $this->assertStringContainsString('settings: {}', $general, "{$name}/{$platform} object default");
+                    $this->assertStringNotContainsString('settings: []', $general, "{$name}/{$platform} object default");
+                    $defaults[] = "{$name}/{$platform}";
+                }
+                if (isset($files['docs/examples/foo/get.md'])) {
+                    $this->assertMatchesRegularExpression('/\\by: 0\\b/', $files['docs/examples/foo/get.md'], "{$name}/{$platform} number example");
+                    $examples[] = "{$name}/{$platform}";
+                }
+            }
+        }
+        $this->assertNotEmpty($defaults);
+        $this->assertNotEmpty($examples);
+    }
+
+    /**
      * A canonical document keys `x-appwrite.auth` by platform. The fixture's
      * platform-auth operation lists `Project` for client and `Project, Key` for
      * server plus an optional Session, and the server alias variant lists
@@ -412,6 +441,28 @@ final class GenerationTest extends TestCase
                 $this->assertStringNotContainsString($call, $files[$path], "php/{$platform} {$path} configures {$call}");
             }
         }
+    }
+
+    public function testPhpExamplesParse(): void
+    {
+        $failures = [];
+        $script = \tempnam(\sys_get_temp_dir(), 'example');
+        foreach (self::PLATFORMS as $platform) {
+            foreach ($this->generate('php', $platform) as $path => $contents) {
+                if (!\str_starts_with($path, 'docs/examples/') || !\preg_match('/```php\n(.*?)```/s', $contents, $match)) {
+                    continue;
+                }
+                \file_put_contents($script, $match[1]);
+                \exec('php -n -l ' . \escapeshellarg($script) . ' 2>&1', $output, $code);
+                if ($code !== 0) {
+                    $failures[] = "php/{$platform} {$path}";
+                }
+                $output = [];
+            }
+        }
+        \unlink($script);
+
+        $this->assertSame([], $failures, 'Generated PHP examples must parse');
     }
 
     /**
@@ -538,6 +589,34 @@ final class GenerationTest extends TestCase
         $this->assertArrayHasKey('models/player.go', $go, 'go no longer generates the body-only fixture schema as a model');
         $this->assertStringContainsString('request model', $go['models/player.go']);
         $this->assertStringNotContainsString('request model', $go['models/mock.go']);
+    }
+
+    /**
+     * A released CLI has to build from its own module, so only a CLI pinned
+     * to a local Go SDK may replace the published one.
+     */
+    public function testCliReplacesGoSdkOnlyWhenPinned(): void
+    {
+        $this->assertStringNotContainsString('replace ', $this->generateCliModule(new CLI(), 'release'));
+        $this->assertStringContainsString(
+            'replace ' . CLI::SDK_MODULE . ' => ../go',
+            $this->generateCliModule(new CLI()->setSdkPath('../go'), 'pinned'),
+        );
+    }
+
+    private function generateCliModule(CLI $language, string $key): string
+    {
+        $dir = self::OUTPUT . '/cli-module/' . $key;
+        $this->removeDirectory($dir);
+
+        new SDK($language, Parser::parse((string) \file_get_contents(self::FIXTURE)))
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->generate($dir);
+
+        return (string) \file_get_contents($dir . '/go.mod');
     }
 
     /**
@@ -716,6 +795,8 @@ final class GenerationTest extends TestCase
                                     count: 25,
                                     enabled: true,
                                     tier: 'free',
+                                    tags: [],
+                                    settings: {},
                                 },
                                 properties: {
                                     parent: 'preset',
@@ -744,6 +825,8 @@ final class GenerationTest extends TestCase
                                     count: 25,
                                     enabled: true,
                                     tier: 'free',
+                                    tags: [],
+                                    settings: {},
                                 },
                                 properties: {
                                     parent: 'preset',
@@ -764,6 +847,8 @@ final class GenerationTest extends TestCase
                                     count: 25,
                                     enabled: true,
                                     tier: 'free',
+                                    tags: [],
+                                    settings: {},
                                 },
                                 properties: {
                                     parent: 'preset',

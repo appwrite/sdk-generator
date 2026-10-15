@@ -303,6 +303,47 @@ class ServiceTest {
                 Query.equal("name", "Alice"),
                 Query.greaterThan("age", 18)
             )))
+            writeToFile(Query.relationship("comments", listOf(
+                Query.equal("approved", true),
+                Query.limit(2)
+            )))
+            val queryTransport = general.listRows(
+                listOf(
+                    Query.count("*", "total"),
+                    Query.join("orders", "\$id", "customerId"),
+                    Query.groupBy(listOf("status")),
+                    Query.distinct(),
+                    Query.covers("location", listOf(1, 2)),
+                    Query.countDistinct("year", "uniqueYears"),
+                    Query.sum("price", "total"),
+                    Query.avg("price", "avgPrice"),
+                    Query.min("price", "lowest"),
+                    Query.max("price", "highest"),
+                    Query.stddev("price", "sd"),
+                    Query.stddevPop("price", "sdp"),
+                    Query.stddevSamp("price", "sds"),
+                    Query.variance("price", "var"),
+                    Query.varPop("price", "vp"),
+                    Query.varSamp("price", "vs"),
+                    Query.bitAnd("flags", "band"),
+                    Query.bitOr("flags", "bor"),
+                    Query.bitXor("flags", "bxor"),
+                    Query.having(listOf(Query.greaterThan("total", 1))),
+                    Query.leftJoin("orders", "\$id", "customerId", "=", "ord"),
+                    Query.rightJoin("orders", "\$id", "customerId"),
+                    Query.fullOuterJoin("orders", "\$id", "customerId"),
+                    Query.crossJoin("orders", "ord"),
+                    Query.on("\$id", "customerId"),
+                    Query.leftJoin("orders", "ord", listOf(
+                        Query.on("\$id", "customerId"),
+                        Query.equal("ord.status", "paid"),
+                    )),
+                    Query.notCovers("location", listOf(1, 2)),
+                    Query.spatialEquals("location", listOf(1, 2)),
+                    Query.notSpatialEquals("location", listOf(1, 2)),
+                ) + Query.page(2, 10) + Query.builder().limit(1).build()
+            )
+            writeToFile(queryTransport.result)
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
@@ -323,11 +364,6 @@ class ServiceTest {
             // Topic helper tests
             writeToFile(Topic.path(listOf("user", "123", "notification")).toString())
             writeToFile(Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString())
-            writeToFile(Topic.path(listOf("user")).any().path(listOf("notification")).toString())
-            writeToFile(Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
-            writeToFile(Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
-            writeToFile(Topic.any().path(listOf("notification")).toString())
-            writeToFile(Topic.all().toString())
             val topicErrorCases = listOf(
                 "empty path" to emptyList<String>(),
                 "empty level" to listOf("user", ""),

@@ -299,7 +299,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         ///
         /// Topics can be raw strings or built with <see cref="Topic"/>:
         /// <code>
-        /// await push.Subscribe(Topic.Path(new[] { "user", userId }).Any(), message => Debug.Log(message.Data));
+        /// await push.Subscribe(Topic.Path(new[] { "user", userId }), message => Debug.Log(message.Data));
         /// </code>
         ///
         /// Leave the topic out to subscribe to the signed-in user's own topic
@@ -336,27 +336,15 @@ namespace {{ spec.info.title | caseUcfirst }}
             return Subscribe(new[] { topic.ToString() }, callback, retry);
         }
 
-        /// <summary>Subscribe to a topic ended with <c>All()</c>.</summary>
-        public Task<PushSubscription> Subscribe(ResolvedTopic topic, Action<PushMessage> callback, bool retry = true)
-        {
-            return Subscribe(new[] { topic.ToString() }, callback, retry);
-        }
-
         /// <summary>Subscribe to several topics built with <see cref="Topic"/>.</summary>
         public Task<PushSubscription> Subscribe(IEnumerable<Topic> topics, Action<PushMessage> callback, bool retry = true)
         {
             return Subscribe(topics.Select(topic => topic.ToString()), callback, retry);
         }
 
-        /// <summary>Subscribe to several topics ended with <c>All()</c>.</summary>
-        public Task<PushSubscription> Subscribe(IEnumerable<ResolvedTopic> topics, Action<PushMessage> callback, bool retry = true)
-        {
-            return Subscribe(topics.Select(topic => topic.ToString()), callback, retry);
-        }
-
         /// <summary>
         /// Subscribe to a list mixing raw strings and built topics, e.g.
-        /// <c>new TopicValue[] { "news", Topic.Path(new[] { "chat" }).Any() }</c>.
+        /// <c>new TopicValue[] { "news", Topic.Path(new[] { "chat", chatId }) }</c>.
         /// </summary>
         public Task<PushSubscription> Subscribe(IEnumerable<TopicValue> topics, Action<PushMessage> callback, bool retry = true)
         {
@@ -1065,8 +1053,8 @@ namespace {{ spec.info.title | caseUcfirst }}
     }
 
     /// <summary>
-    /// A topic accepted by <see cref="Push"/>: a raw string, a <see cref="Topic"/> or a
-    /// <see cref="ResolvedTopic"/>. It converts implicitly from each, so a list can mix them.
+    /// A topic accepted by <see cref="Push"/>: a raw string or a <see cref="Topic"/>. It converts
+    /// implicitly from each, so a list can mix them.
     /// </summary>
     public readonly struct TopicValue
     {
@@ -1080,8 +1068,6 @@ namespace {{ spec.info.title | caseUcfirst }}
         public static implicit operator TopicValue(string topic) => new TopicValue(topic);
 
         public static implicit operator TopicValue(Topic topic) => new TopicValue(topic.ToString());
-
-        public static implicit operator TopicValue(ResolvedTopic topic) => new TopicValue(topic.ToString());
 
         public override string ToString() => _value;
     }

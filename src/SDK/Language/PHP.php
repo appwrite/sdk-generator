@@ -260,11 +260,6 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ namespace | caseNamespacePath }}/ResolvedTopic.php',
-                'template'      => 'php/src/ResolvedTopic.php.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'tests/{{ namespace | caseNamespacePath }}/TopicTest.php',
                 'template'      => 'php/tests/TopicTest.php.twig',
             ],
@@ -272,6 +267,11 @@ class PHP extends Language
                 'scope'         => 'default',
                 'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query/Builder.php',
+                'template'      => 'php/src/Query/Builder.php.twig',
             ],
             [
                 'scope'         => 'default',
@@ -424,11 +424,8 @@ class PHP extends Language
                     if ($this->isPermissionString($example)) {
                         $output .= $this->getPermissionExample($example);
                     } else {
-                        $decoded = \is_string($example) ? \json_decode($example, true) : $example;
-                        // A list of scalars is already valid PHP as JSON; anything holding objects needs PHP arrays
-                        $output .= \is_array($decoded) && \array_filter($decoded, \is_array(...)) !== []
-                            ? $this->jsonToAssoc($decoded)
-                            : (string) $example;
+                        $decoded = \is_array($example) ? $example : json_decode((string) $example, true);
+                        $output .= \is_array($decoded) ? $this->jsonToAssoc($decoded) : (string) $example;
                     }
                     break;
                 case self::TYPE_OBJECT:

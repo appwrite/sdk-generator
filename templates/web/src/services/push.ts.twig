@@ -6,7 +6,7 @@ import type {
 } from 'mqtt';
 
 import { Client } from '../client';
-import type { ResolvedTopic, Topic } from '../topic';
+import type { Topic } from '../topic';
 
 /** A message delivered on a subscribed topic (the MQTT analog of a Realtime event). */
 export interface PushMessage {
@@ -253,7 +253,7 @@ export class Push {
      * Subscribe to one or more topics. Resolves to a {@link PushSubscription} handle.
      *
      * Each topic is a string or a `Topic` builder, e.g.
-     * `Topic.path(['user', userId]).all()`.
+     * `Topic.path(['user', userId])`.
      *
      * Called with only a callback, `subscribe((message) => {...}, options)` subscribes to the
      * signed-in user's own topic, `users/<userId>`, like FCM/APNs delivery to a device. The
@@ -275,18 +275,12 @@ export class Push {
         options?: SubscribeOptions,
     ): Promise<PushSubscription>;
     subscribe(
-        topics:
-            string | Topic | ResolvedTopic | (string | Topic | ResolvedTopic)[],
+        topics: string | Topic | (string | Topic)[],
         callback: MessageCallback,
         options?: SubscribeOptions,
     ): Promise<PushSubscription>;
     async subscribe(
-        topicsOrCallback:
-            | string
-            | Topic
-            | ResolvedTopic
-            | (string | Topic | ResolvedTopic)[]
-            | MessageCallback,
+        topicsOrCallback: string | Topic | (string | Topic)[] | MessageCallback,
         callbackOrOptions?: MessageCallback | SubscribeOptions,
         topicOptions: SubscribeOptions = {},
     ): Promise<PushSubscription> {
@@ -303,12 +297,7 @@ export class Push {
     }
 
     private async subscribeWith(
-        topicsOrCallback:
-            | string
-            | Topic
-            | ResolvedTopic
-            | (string | Topic | ResolvedTopic)[]
-            | MessageCallback,
+        topicsOrCallback: string | Topic | (string | Topic)[] | MessageCallback,
         callbackOrOptions: MessageCallback | SubscribeOptions | undefined,
         topicOptions: SubscribeOptions,
     ): Promise<PushSubscription> {
