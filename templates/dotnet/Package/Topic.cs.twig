@@ -8,13 +8,9 @@ namespace {{ spec.info.title | caseUcfirst }}
     /// Helper to build MQTT topics for <c>Push</c>, level by level.
     /// <code>
     /// Topic.Path(new[] { "user", userId, "notification" }); // "user/123/notification"
-    /// Topic.Path(new[] { "user" }).Any().Path(new[] { "notification" }); // "user/+/notification"
-    /// Topic.Path(new[] { "org" }).Any().Path(new[] { "logs" }).All(); // "org/+/logs/#"
+    /// Topic.Path(new[] { "org", orgId }).Path(new[] { "logs" }); // "org/42/logs"
     /// </code>
-    /// <c>Any()</c> matches exactly one level and <c>All()</c> everything below, at any depth
-    /// (including the parent itself). <c>All()</c> ends the topic, so it returns a
-    /// <see cref="ResolvedTopic"/>. The instance <c>Path</c>, <c>Any</c> and <c>All</c> that
-    /// append to a topic live in <see cref="TopicExtensions"/>.
+    /// The instance <c>Path</c> that appends to a topic lives in <see cref="TopicExtensions"/>.
     /// </summary>
     public sealed class Topic
     {
@@ -32,24 +28,11 @@ namespace {{ spec.info.title | caseUcfirst }}
             return new Topic(LevelsOf(levels));
         }
 
-        /// <summary>Start a topic with a single-level wildcard (<c>+</c>).</summary>
-        public static Topic Any()
-        {
-            return new Topic(new[] { "+" });
-        }
-
-        /// <summary>The multi-level wildcard alone (<c>#</c>): matches every topic.</summary>
-        public static ResolvedTopic All()
-        {
-            return new ResolvedTopic(new[] { "#" });
-        }
-
         public override string ToString() => string.Join("/", Levels);
 
         /// <summary>
         /// Validate the levels passed to <c>Path</c>: a non-empty list of non-empty strings, none
-        /// holding the level separator <c>/</c> or the wildcards <c>+</c> and <c>#</c> (use
-        /// <c>Any()</c> and <c>All()</c> for those).
+        /// holding the level separator <c>/</c> or the MQTT wildcards <c>+</c> and <c>#</c>.
         /// </summary>
         internal static List<string> LevelsOf(IEnumerable<string> levels)
         {
@@ -80,21 +63,13 @@ namespace {{ spec.info.title | caseUcfirst }}
                     var parts = string.Join(", ", level.Split('/').Select(part => $"'{part}'"));
                     throw new ArgumentException($"\"{level}\" contains \"/\", split it: path([{parts}])");
                 }
-                if (level == "+")
-                {
-                    throw new ArgumentException("\"+\" is reserved, use any()");
-                }
                 if (level.Contains("+"))
                 {
-                    throw new ArgumentException($"\"{level}\" contains \"+\", use any() for wildcards");
-                }
-                if (level == "#")
-                {
-                    throw new ArgumentException("\"#\" is reserved, use all()");
+                    throw new ArgumentException($"\"{level}\" contains \"+\", not allowed in a topic");
                 }
                 if (level.Contains("#"))
                 {
-                    throw new ArgumentException($"\"{level}\" contains \"#\", use all() for wildcards");
+                    throw new ArgumentException($"\"{level}\" contains \"#\", not allowed in a topic");
                 }
             }
 
@@ -103,9 +78,9 @@ namespace {{ spec.info.title | caseUcfirst }}
     }
 
     /// <summary>
-    /// Appends levels to a <see cref="Topic"/>. These are extension methods because C# does not
-    /// allow a static and an instance method with the same signature on one class, and they
-    /// keep chains reading <c>Topic.Path(...).Any().Path(...)</c>.
+    /// Appends levels to a <see cref="Topic"/>. This is an extension method because C# does not
+    /// allow a static and an instance method with the same signature on one class, and it keeps
+    /// chains reading <c>Topic.Path(...).Path(...)</c>.
     /// </summary>
     public static class TopicExtensions
     {
@@ -115,30 +90,5 @@ namespace {{ spec.info.title | caseUcfirst }}
         {
             return new Topic(topic.Levels.Concat(Topic.LevelsOf(levels)).ToList());
         }
-
-        /// <summary>Append a single-level wildcard (<c>+</c>): matches exactly one level.</summary>
-        public static Topic Any(this Topic topic)
-        {
-            return new Topic(topic.Levels.Concat(new[] { "+" }).ToList());
-        }
-
-        /// <summary>Append the multi-level wildcard (<c>#</c>) and end the topic.</summary>
-        public static ResolvedTopic All(this Topic topic)
-        {
-            return new ResolvedTopic(topic.Levels.Concat(new[] { "#" }).ToList());
-        }
-    }
-
-    /// <summary>A topic ended by <c>All()</c>: nothing can be appended after the <c>#</c> wildcard.</summary>
-    public sealed class ResolvedTopic
-    {
-        private readonly IReadOnlyList<string> _levels;
-
-        internal ResolvedTopic(IReadOnlyList<string> levels)
-        {
-            _levels = levels;
-        }
-
-        public override string ToString() => string.Join("/", _levels);
     }
 }
