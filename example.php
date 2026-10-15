@@ -285,7 +285,7 @@ try {
             'platform' => 'server',
             'exclude' => [
                 'methods' => [
-                    // sdk-for-go v7.10.0 takes a required rpId; this spec's optional rpId and origins are newer.
+                    // sdk-for-go v7.12.0 takes a required rpId; this spec's optional rpId and origins are newer.
                     ['service' => 'project', 'name' => 'updatePasskeyPolicy'],
                 ],
             ],
