@@ -792,21 +792,33 @@ class Tests: XCTestCase {
                 .setPushEndpoint("mqtt://mqtt:1883")
                 .setSession(e2eSession)
         )
+        // Dropping the last subscription closes the connection while its UNSUBSCRIBE is in flight,
+        // and reopening at once clears `closing` before that UNSUBSCRIBE fails. The failure is the
+        // closed connection's teardown, so it must not reach onError (or stderr without one).
+        let callbackErrors = ErrorCollector()
+        _ = callbackPush.onError { error in
+            callbackErrors.record((error as? AppwriteError)?.message ?? "\(error)")
+        }
         let handle = SubscriptionBox()
         let closedFromCallback = ErrorCollector()
+        let reopenedFromCallback = ErrorCollector()
         handle.subscription = try? await callbackPush.subscribe("e2e-push") { _ in
             handle.subscription?.unsubscribe()
             closedFromCallback.record("closed")
+            Task {
+                reopenedFromCallback.record(await outcome { _ = try await callbackPush.subscribe("e2e-switch") { _ in } })
+            }
         }
-        for _ in 0..<50 where closedFromCallback.message == nil {
+        for _ in 0..<50 where reopenedFromCallback.message == nil {
             try? await Task.sleep(nanoseconds: 100_000_000)
         }
-        let reopened = await outcome { _ = try await callbackPush.subscribe("e2e-switch") { _ in } }
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        let reopened = reopenedFromCallback.message ?? "timeout"
         callbackPush.close()
         print(
-            closedFromCallback.message == "closed" && reopened.isEmpty
+            closedFromCallback.message == "closed" && reopened.isEmpty && callbackErrors.message == nil
                 ? "Push close from callback:passed"
-                : "Push close from callback:failed (callback: \(closedFromCallback.message ?? "none"), reopened: \(reopened))"
+                : "Push close from callback:failed (callback: \(closedFromCallback.message ?? "none"), reopened: \(reopened), error: \(callbackErrors.message ?? "none"))"
         )
     }
 
