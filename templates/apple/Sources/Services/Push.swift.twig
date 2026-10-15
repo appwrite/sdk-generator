@@ -151,7 +151,7 @@ public struct PushNotificationOpened {
     }
 #endif
 
-/// A topic as accepted by `Push.subscribe`: a raw `String`, a `Topic` or a `ResolvedTopic`.
+/// A topic as accepted by `Push.subscribe`: a raw `String` or a `Topic`.
 public protocol TopicValue {
     func toString() -> String
 }
@@ -160,8 +160,6 @@ public protocol TopicValue {
 extension String: TopicValue {}
 
 extension Topic: TopicValue {}
-
-extension ResolvedTopic: TopicValue {}
 
 /// Handle for a live subscription created with `Push.subscribe`.
 ///
@@ -402,7 +400,7 @@ open class Push: Service {
     /// Subscribe to one or more topics. Returns a `PushSubscription` handle.
     ///
     /// Topics are raw strings or built with `Topic`, e.g.
-    /// `try await push.subscribe(try Topic.path(["user", userId]).all()) { message in ... }`.
+    /// `try await push.subscribe(try Topic.path(["user", userId])) { message in ... }`.
     /// Omit the topic (`try await push.subscribe { message in ... }`) to subscribe to the
     /// signed-in user's own topic, `users/<userId>`.
     ///
