@@ -52,7 +52,7 @@ var ignoredAttributes = map[string]bool{
 	PreferenceClientID:     true,
 }
 
-// Global is the user-level preferences file, `~/.appwrite/prefs.json`.
+// Global is the user-level preferences file, `prefs.json` in GlobalDirectory.
 type Global struct {
 	path string
 	data *Object
@@ -67,12 +67,30 @@ type Session struct {
 
 // GlobalPath returns the default preferences path for the current user.
 func GlobalPath(executableName string) (string, error) {
+	directory, err := GlobalDirectory(executableName)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(directory, "prefs.json"), nil
+}
+
+func GlobalDirectory(executableName string) (string, error) {
 	home, err := homeDir()
 	if err != nil {
 		return "", err
 	}
 
-	return filepath.Join(home, "."+executableName, "prefs.json"), nil
+	legacy := filepath.Join(home, "."+executableName)
+	if info, err := os.Stat(legacy); err == nil && info.IsDir() {
+		return legacy, nil
+	}
+
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); filepath.IsAbs(xdg) {
+		return filepath.Join(xdg, executableName), nil
+	}
+
+	return legacy, nil
 }
 
 // LoadGlobal reads the preferences file. A missing or unparseable file yields

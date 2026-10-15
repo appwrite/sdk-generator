@@ -394,3 +394,81 @@ func TestMigrateLegacySessionIgnoresAPartialOrModernFile(t *testing.T) {
 		})
 	}
 }
+
+func TestGlobalPathFollowsXDGConfigHome(t *testing.T) {
+	cases := []struct {
+		name   string
+		legacy bool
+		xdg    func(home string) string
+		want   func(home, xdg string) string
+	}{
+		{
+			name:   "existing home directory wins over XDG",
+			legacy: true,
+			xdg:    func(home string) string { return filepath.Join(home, "xdg") },
+			want:   func(home, _ string) string { return filepath.Join(home, ".appwrite", "prefs.json") },
+		},
+		{
+			name: "absolute XDG_CONFIG_HOME",
+			xdg:  func(home string) string { return filepath.Join(home, "xdg") },
+			want: func(_, xdg string) string { return filepath.Join(xdg, "appwrite", "prefs.json") },
+		},
+		{
+			name: "unset XDG_CONFIG_HOME",
+			xdg:  func(string) string { return "" },
+			want: func(home, _ string) string { return filepath.Join(home, ".appwrite", "prefs.json") },
+		},
+		{
+			name: "relative XDG_CONFIG_HOME",
+			xdg:  func(string) string { return filepath.Join("relative", "config") },
+			want: func(home, _ string) string { return filepath.Join(home, ".appwrite", "prefs.json") },
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("USERPROFILE", home)
+			xdg := test.xdg(home)
+			t.Setenv("XDG_CONFIG_HOME", xdg)
+
+			if test.legacy {
+				if err := os.MkdirAll(filepath.Join(home, ".appwrite"), 0o700); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			got, err := GlobalPath("appwrite")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if want := test.want(home, xdg); got != want {
+				t.Errorf("GlobalPath = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestGlobalWriteCreatesTheXDGDirectory(t *testing.T) {
+	home := t.TempDir()
+	xdg := filepath.Join(t.TempDir(), "config")
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_CONFIG_HOME", xdg)
+
+	path, err := GlobalPath("appwrite")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := LoadGlobal(path).Write(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(filepath.Join(xdg, "appwrite", "prefs.json")); err != nil {
+		t.Errorf("prefs.json was not written under XDG_CONFIG_HOME: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(home, ".appwrite")); !os.IsNotExist(err) {
+		t.Errorf("the home directory was created alongside XDG_CONFIG_HOME: %v", err)
+	}
+}
