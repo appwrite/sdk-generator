@@ -81,7 +81,8 @@ func gitError(message string) error {
 		return fmt.Errorf("%s \n\nSuggestion: Try updating your git to the "+
 			"latest version, then trying to run this command again", message)
 	case strings.Contains(message, "is not recognized as an internal or external command,"),
-		strings.Contains(message, "command not found"):
+		strings.Contains(message, "command not found"),
+		strings.Contains(message, "executable file not found"):
 		return fmt.Errorf("%s \n\nSuggestion: It appears that git is not "+
 			"installed, try installing git then trying to run this command again", message)
 	}
