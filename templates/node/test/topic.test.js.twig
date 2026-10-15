@@ -9,23 +9,9 @@ describe('Topic', () => {
         expect(Topic.path(['user']).path(['notification']).toString()).toEqual(
             'user/notification',
         );
-    });
-    test('any', () => {
-        expect(
-            Topic.path(['user']).any().path(['notification']).toString(),
-        ).toEqual('user/+/notification');
-        expect(
-            Topic.path(['chat']).any().any().path(['message']).toString(),
-        ).toEqual('chat/+/+/message');
-        expect(Topic.any().path(['notification']).toString()).toEqual(
-            '+/notification',
+        expect(Topic.path(['org', '42']).path(['logs']).toString()).toEqual(
+            'org/42/logs',
         );
-    });
-    test('all', () => {
-        expect(
-            Topic.path(['org']).any().path(['logs']).all().toString(),
-        ).toEqual('org/+/logs/#');
-        expect(Topic.all().toString()).toEqual('#');
     });
     test.each([
         ['an empty path', []],
@@ -39,6 +25,6 @@ describe('Topic', () => {
         ['a non-array', 'user'],
     ])('rejects %s', (_, levels) => {
         expect(() => Topic.path(levels)).toThrow(Error);
-        expect(() => Topic.any().path(levels)).toThrow(Error);
+        expect(() => Topic.path(['user']).path(levels)).toThrow(Error);
     });
 });
