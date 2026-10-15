@@ -63,11 +63,6 @@ class Skills extends Language
         return $this->getSchemaType($parameter);
     }
 
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        return $this->getSchemaDefault($param);
-    }
-
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
         return $this->getSchemaExample($param);

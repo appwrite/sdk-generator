@@ -7,6 +7,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 {% endif %}
 import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
+{% if method.method.value != 'delete' and (method | methodType) not in ['webAuth', 'location'] and (method | getValidResponseModels)|length <= 1 and (method | responseModel) %}
+import 'package:{{ language.params.packageName }}/models.dart' as models;
+{% endif %}
 {% set hasEnumParam = false %}
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | enumValues) | length > 0 %}
@@ -59,7 +62,7 @@ FutureBuilder<Uint8List>(
     },
 );
 {% else %}
-{% if method.method.value != 'delete' and (method | methodType) != 'webAuth' %}{% if (method | methodType) == 'location' %}Uint8List{% elseif (method | getValidResponseModels)|length > 1 %}dynamic{% else %}{{ (method | responseModel) | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %});{% endif %}
+{% if method.method.value != 'delete' and (method | methodType) != 'webAuth' %}{% if (method | methodType) == 'location' %}Uint8List{% elseif (method | getValidResponseModels)|length > 1 %}dynamic{% else %}models.{{ (method | responseModel) | caseUcfirst | overrideIdentifier }}{% endif %} result = {% endif %}await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %});{% endif %}
 
     {%~ for parameter in (method | parameters('all')) %}
     {{ parameter.name | caseCamel | overrideIdentifier}}: {% if (parameter | enumValues) | length > 0%}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample | replace({'<field-name>': (parameter.name | caseCamel) }) | raw }}{% endif %},{% if not parameter.required %} // optional{% endif %}

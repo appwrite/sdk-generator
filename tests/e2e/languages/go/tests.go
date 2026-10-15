@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/repoowner/reponame/appwrite"
@@ -13,6 +14,7 @@ import (
 	"github.com/repoowner/reponame/permission"
 	"github.com/repoowner/reponame/query"
 	"github.com/repoowner/reponame/role"
+	"github.com/repoowner/reponame/topic"
 )
 
 func main() {
@@ -135,13 +137,92 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	}
 	fmt.Printf("%s\n", pathResponse.Result)
 
+	zone, err := appwrite.NewPlaintext(client).GetZone()
+	if err != nil {
+		panic(err)
+	}
+	var text string = *zone
+	fmt.Println(text)
+	mixed, err := general.GetMixed()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(mixed.Result)
+	plaintext := appwrite.NewPlaintext(client)
+	imported, err := plaintext.ImportZone("www 3600 IN A 192.0.2.1")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(*imported)
+	zoneFile := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+	imported, err = plaintext.ImportZone("www 3600 IN A 192.0.2.1", plaintext.WithImportZoneZone(zoneFile))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(*imported)
+
+	message := "conversation without a required file"
+	optional, err := general.OptionalUpload(message)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+	attachment := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+	optional, err = general.OptionalUpload(message, general.WithOptionalUploadAttachment(attachment))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+	metadata := map[string]interface{}{"source": "sdk", "uri": "café"}
+	optional, err = general.OptionalUpload(message, general.WithOptionalUploadMetadata(metadata))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+	optional, err = general.OptionalUpload(message, general.WithOptionalUploadAttachment(attachment), general.WithOptionalUploadMetadata(metadata))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+
 	testGeneralUpload(client, stringInArray)
 	testGeneralUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)
+	testGenericUpload(client)
 
 	// Extended General Responses
 	testGeneralDownload(client)
+
+	preset, err := general.GetPreset()
+	if err != nil {
+		fmt.Printf("general.GetPreset => error %v\n", err)
+	} else {
+		fmt.Printf("preset: name=%s, count=%d, enabled=%t\n", preset.Name, preset.Count, preset.Enabled)
+	}
+
+	presets, err := general.ListPresets()
+	if err != nil {
+		fmt.Printf("general.ListPresets => error %v\n", err)
+	} else {
+		for _, item := range presets.Presets {
+			fmt.Printf("preset: name=%s, count=%d, enabled=%t\n", item.Name, item.Count, item.Enabled)
+		}
+	}
+	emptyPresets, err := general.ListEmptyPresets()
+	if err != nil {
+		fmt.Printf("general.ListEmptyPresets => error %v\n", err)
+	} else {
+		fmt.Printf("empty presets: %d\n", len(emptyPresets.Presets))
+	}
+	if preset != nil {
+		if preset.Verified == nil {
+			fmt.Println("preset verified: null")
+		} else {
+			fmt.Printf("preset verified: %t\n", *preset.Verified)
+		}
+		fmt.Printf("preset scopes: %s\n", strings.Join(preset.Scopes, ","))
+	}
 
 	// Exception Responses
 	_, err = general.Error400()
@@ -174,6 +255,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 
 	// Test Id Helpers
 	testIdHelpers()
+	testTopicHelpers()
 
 	// Test Operator Helpers
 	testOperatorHelpers()
@@ -217,6 +299,25 @@ func testLargeUpload(client client.Client, stringInArray []string) {
 		fmt.Printf("general.Upload => error %v\n", err)
 	}
 	fmt.Printf("%s\n", response.Result)
+}
+
+func testGenericUpload(client client.Client) {
+	general := appwrite.NewGeneral(client)
+	inputFile := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+
+	response, err := general.UploadGeneric(inputFile)
+	if err != nil {
+		fmt.Printf("general.UploadGeneric => error %v\n", err)
+		return
+	}
+	var profile struct {
+		Prefs map[string]interface{} `json:"prefs"`
+	}
+	if err := response.Decode(&profile); err != nil {
+		fmt.Printf("general.UploadGeneric => decode error %v\n", err)
+		return
+	}
+	fmt.Printf("%s\n", profile.Prefs["result"])
 }
 
 func testQueries() {
@@ -325,6 +426,43 @@ func testPermissionHelpers() {
 func testIdHelpers() {
 	fmt.Println(id.Unique())
 	fmt.Println(id.Custom("custom_id"))
+}
+
+func testTopicHelpers() {
+	fmt.Println(topic.Path([]string{"user", "123", "notification"}))
+	fmt.Println(topic.Path([]string{"org", "42", "user", "123"}).Path([]string{"notification"}))
+	fmt.Println(topic.Path([]string{"user"}).Any().Path([]string{"notification"}))
+	fmt.Println(topic.Path([]string{"chat"}).Any().Any().Path([]string{"message"}))
+	fmt.Println(topic.Path([]string{"org"}).Any().Path([]string{"logs"}).All())
+	fmt.Println(topic.Any().Path([]string{"notification"}))
+	fmt.Println(topic.All())
+	cases := []struct {
+		name   string
+		levels []string
+	}{
+		{"empty path", []string{}},
+		{"empty level", []string{"user", ""}},
+		{"slash", []string{"user/123"}},
+		{"plus", []string{"user", "a+b"}},
+		{"hash", []string{"user", "#"}},
+	}
+	for _, c := range cases {
+		if topicPanics(c.levels) {
+			fmt.Printf("Topic %s:passed\n", c.name)
+		} else {
+			fmt.Printf("Topic %s:failed\n", c.name)
+		}
+	}
+}
+
+func topicPanics(levels []string) (panicked bool) {
+	defer func() {
+		if recover() != nil {
+			panicked = true
+		}
+	}()
+	topic.Path(levels)
+	return false
 }
 
 func testOperatorHelpers() {

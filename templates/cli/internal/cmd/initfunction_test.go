@@ -524,6 +524,25 @@ func TestFunctionWriteBodyIncludesVCSButNotDomainIntent(t *testing.T) {
 	}
 }
 
+// A config written before intervals has no `interval`, so it must not be sent:
+// the server keeps the interval set elsewhere only when the field is absent.
+func TestFunctionWriteBodySendsIntervalOnlyWhenConfigured(t *testing.T) {
+	entry := jsonx.NewObject()
+	entry.Set("name", "Sync")
+	entry.Set("schedule", "")
+
+	body := writeBody(entry, deployables[0].WriteKeys, nil, "", "")
+	if _, exists := body.Get("interval"); exists {
+		t.Fatalf("interval sent for a config without one: %#v", body)
+	}
+
+	entry.Set("interval", 60)
+	body = writeBody(entry, deployables[0].WriteKeys, nil, "", "")
+	if value, _ := body.Get("interval"); value != 60 {
+		t.Fatalf("interval = %#v, want 60", value)
+	}
+}
+
 func TestPullInfersEdgePreviewDomainAndIgnoresCustomDomain(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		response.Header().Set("content-type", "application/json")

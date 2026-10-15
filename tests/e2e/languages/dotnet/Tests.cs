@@ -8,6 +8,8 @@ using Appwrite.Models;
 using Appwrite.Enums;
 using Appwrite.Services;
 using NUnit.Framework;
+// Appwrite.Models also has a Topic (the messaging model); the push topic builder is meant here.
+using Topic = Appwrite.Topic;
 
 namespace AppwriteTests
 {
@@ -83,6 +85,24 @@ namespace AppwriteTests
                 }
             }
             TestContext.WriteLine((await general.ValidatePath("0", "0")).Result);
+            TestContext.WriteLine((await general.GetQuery("a&b+c#d=e%f", new List<string>() { "a&b", "c+d#e" })).Result);
+
+            string zone = await new Plaintext(client).GetZone();
+            TestContext.WriteLine(zone);
+            TestContext.WriteLine((await general.GetMixed()).Result);
+            var imported = await new Plaintext(client).ImportZone("www 3600 IN A 192.0.2.1");
+            TestContext.WriteLine(imported);
+            imported = await new Plaintext(client).ImportZone("www 3600 IN A 192.0.2.1", InputFile.FromPath("../../../../../../../resources/file.png"));
+            TestContext.WriteLine(imported);
+
+            mock = await general.OptionalUpload("conversation without a required file");
+            TestContext.WriteLine(mock.Result);
+            mock = await general.OptionalUpload("conversation without a required file", InputFile.FromPath("../../../../../../../resources/file.png"));
+            TestContext.WriteLine(mock.Result);
+            mock = await general.OptionalUpload("conversation without a required file", metadata: new Dictionary<string, object> { { "source", "sdk" }, { "uri", "café" } });
+            TestContext.WriteLine(mock.Result);
+            mock = await general.OptionalUpload("conversation without a required file", InputFile.FromPath("../../../../../../../resources/file.png"), new Dictionary<string, object> { { "source", "sdk" }, { "uri", "café" } });
+            TestContext.WriteLine(mock.Result);
 
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../../../../../resources/file.png"));
             TestContext.WriteLine(mock.Result);
@@ -98,6 +118,12 @@ namespace AppwriteTests
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             TestContext.WriteLine(mock.Result);
 
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromBytes(new byte[5 * 1024 * 1024], "boundary.bin", "application/octet-stream"));
+            TestContext.WriteLine(mock.Result);
+
+            var profile = await general.UploadGeneric(InputFile.FromPath("../../../../../../../resources/file.png"));
+            TestContext.WriteLine(profile.Prefs.Data["result"]);
+
             TestContext.WriteLine(System.Text.Encoding.UTF8.GetString(await general.Download()));
 
             mock = await general.Enum(MockType.First);
@@ -112,6 +138,16 @@ namespace AppwriteTests
                 new Player("player2", "Jane Doe", 200)
             });
             TestContext.WriteLine(mock.Result);
+
+            var preset = await general.GetPreset();
+            TestContext.WriteLine($"preset: name={preset.Name}, count={preset.Count}, enabled={preset.Enabled.ToString().ToLowerInvariant()}");
+            foreach (var item in (await general.ListPresets()).Presets)
+            {
+                TestContext.WriteLine($"preset: name={item.Name}, count={item.Count}, enabled={item.Enabled.ToString().ToLowerInvariant()}");
+            }
+            TestContext.WriteLine($"empty presets: {(await general.ListEmptyPresets()).Presets.Count}");
+            TestContext.WriteLine($"preset verified: {preset.Verified?.ToString() ?? "null"}");
+            TestContext.WriteLine($"preset scopes: {string.Join(",", (preset.Scopes ?? new List<PresetScopes>()).ConvertAll(scope => scope.Value))}");
 
             try
             {
@@ -271,6 +307,35 @@ namespace AppwriteTests
             // ID helper tests
             TestContext.WriteLine(ID.Unique());
             TestContext.WriteLine(ID.Custom("custom_id"));
+
+            // Topic helper tests
+            TestContext.WriteLine(Topic.Path(new[] { "user", "123", "notification" }).ToString());
+            TestContext.WriteLine(Topic.Path(new[] { "org", "42", "user", "123" }).Path(new[] { "notification" }).ToString());
+            TestContext.WriteLine(Topic.Path(new[] { "user" }).Any().Path(new[] { "notification" }).ToString());
+            TestContext.WriteLine(Topic.Path(new[] { "chat" }).Any().Any().Path(new[] { "message" }).ToString());
+            TestContext.WriteLine(Topic.Path(new[] { "org" }).Any().Path(new[] { "logs" }).All().ToString());
+            TestContext.WriteLine(Topic.Any().Path(new[] { "notification" }).ToString());
+            TestContext.WriteLine(Topic.All().ToString());
+            var topicCases = new (string Name, string[] Levels)[]
+            {
+                ("empty path", new string[0]),
+                ("empty level", new[] { "user", "" }),
+                ("slash", new[] { "user/123" }),
+                ("plus", new[] { "user", "a+b" }),
+                ("hash", new[] { "user", "#" }),
+            };
+            foreach (var (name, levels) in topicCases)
+            {
+                try
+                {
+                    Topic.Path(levels);
+                    TestContext.WriteLine($"Topic {name}:failed");
+                }
+                catch (System.ArgumentException)
+                {
+                    TestContext.WriteLine($"Topic {name}:passed");
+                }
+            }
 
             // Operator helper tests
             TestContext.WriteLine(Operator.Increment(1));

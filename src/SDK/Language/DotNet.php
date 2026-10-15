@@ -218,51 +218,6 @@ class DotNet extends Language
         };
     }
 
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type       = $this->getSchemaType($param);
-        $default    = $this->getSchemaDefault($param);
-        $required   = ($param instanceof Parameter && $param->required);
-
-        if ($required) {
-            return '';
-        }
-
-        $output = ' = ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= '""';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "\"{$default}\"";
-                    break;
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= 'null';
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
         $type       = $this->getSchemaType($param);
@@ -408,6 +363,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.info.title | caseUcfirst }}/Topic.cs',
+                'template'      => 'dotnet/Package/Topic.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.info.title | caseUcfirst }}/Permission.cs',
                 'template'      => 'dotnet/Package/Permission.cs.twig',
             ],
@@ -496,6 +456,7 @@ class DotNet extends Language
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter('overrideProperty', fn(string $property, string $class) => $this->getPropertyOverrides()[$class][$property] ?? $property),
             new TwigFilter('propertyType', fn(Schema $property, ?Specification $spec = null): string => $this->getPropertyType($property, $spec)),
+            new TwigFilter('csharpDefault', fn(Schema $property): string => $this->formatCSharpDefault($property), ['is_safe' => ['html']]),
             new TwigFilter('toMapValue', fn(Schema $property, string $resolvedName, Specification $spec): string => $this->getToMapExpression($property, $resolvedName, $spec), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
@@ -635,6 +596,56 @@ class DotNet extends Language
         }
 
         return $resolvedName;
+    }
+
+    protected function formatCSharpDefault(Schema $property): string
+    {
+        $value = $this->getModelDefault($this->getSchema($property), true);
+
+        if (is_array($value) && $this->getSchemaType($property) === self::TYPE_OBJECT) {
+            return $this->formatCSharpDictionary($value);
+        }
+
+        return $this->formatCSharpLiteral($value);
+    }
+
+    protected function formatCSharpLiteral(mixed $value): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if ($value === []) {
+            return 'new List<object>()';
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            return 'new List<object> { ' . implode(', ', array_map($this->formatCSharpLiteral(...), $value)) . ' }';
+        }
+
+        if (is_array($value)) {
+            return $this->formatCSharpDictionary($value);
+        }
+
+        return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+    }
+
+    protected function formatCSharpDictionary(array $value): string
+    {
+        if ($value === []) {
+            return 'new Dictionary<string, object>()';
+        }
+
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $pairs[] = '{ ' . $this->formatCSharpLiteral((string) $key) . ', ' . $this->formatCSharpLiteral($item) . ' }';
+        }
+
+        return 'new Dictionary<string, object> { ' . implode(', ', $pairs) . ' }';
     }
 
     /**

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <script src="./dist/iife/sdk.js"></script>
+    <title>Appwrite tab</title>
+</head>
+
+<body>
+    <script type="module">
+        const { Client, Push } = Appwrite;
+        const session = 'eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0=';
+        const push = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(session));
+        push.subscribe(['e2e-whoami'], (message) => {
+            window.opener.postMessage({ whoami: message.data }, '*');
+            push.close();
+        });
+    </script>
+</body>
+
+</html>

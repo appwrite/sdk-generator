@@ -32,7 +32,7 @@ use Appwrite\SDK\Language\ZedExtension;
 
 final class Config
 {
-    public const string VERSION = '2.0.x';
+    public const string VERSION = '2.4.x';
     public const string SWAGGER2_VERSION = '1.8.x';
     public const string SPECS_URL = 'https://raw.githubusercontent.com/appwrite/specs/main/specs';
     public const string TITLE = 'Appwrite';
@@ -262,100 +262,6 @@ try {
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
         |_|   |_|                                                ";
 
-    $cliExcludes = [
-        'services' => [
-            ['name' => 'assistant'],
-            ['name' => 'avatars'],
-            ['name' => 'advisor'],
-            ['name' => 'compute'],
-            ['name' => 'apps'],
-            ['name' => 'oauth'],
-            ['name' => 'organizations'],
-            ['name' => 'console'],
-            ['name' => 'projects'],
-            ['name' => 'waf'],
-            ['name' => 'domains'],
-            ['name' => 'manager'],
-            ['name' => 'mysql'],
-            ['name' => 'postgresql'],
-            ['name' => 'mongo'],
-            ['name' => 'usage'],
-        ],
-        'methods' => [
-            ['name' => 'createBillingAddress'],
-            ['name' => 'createPaymentMethod'],
-            ['name' => 'deleteBillingAddress'],
-            ['name' => 'deletePaymentMethod'],
-            ['name' => 'getBillingAddress'],
-            ['name' => 'getCoupon'],
-            ['name' => 'getPaymentMethod'],
-            ['name' => 'listBillingAddresses'],
-            ['name' => 'listInvoices'],
-            ['name' => 'listPaymentMethods'],
-            ['name' => 'updateBillingAddress'],
-            ['name' => 'updateConsoleAccess'],
-            ['name' => 'updatePaymentMethod'],
-            ['name' => 'updatePaymentMethodMandateOptions'],
-            ['name' => 'updatePaymentMethodProvider'],
-            ['name' => 'createPlanEstimation'],
-            // Not yet available in the released @appwrite.io/console package
-            ['name' => 'listStages'],
-            ['name' => 'updateStage'],
-            ['name' => 'approve'],
-        ],
-    ];
-
-    // Absent from the published Go SDK, which is generated from the server spec:
-    // three console-only services, plus `migrations`, which has never shipped.
-    // Generating their commands would import packages that do not exist.
-    $cliExcludes['services'] = [
-        ...$cliExcludes['services'],
-        ['name' => 'affiliates'],
-        ['name' => 'migrations'],
-        ['name' => 'notifications'],
-        ['name' => 'vcs'],
-    ];
-    // Individual endpoints the same SDK has no function for. Read off the
-    // compiler, not guessed -- an invented name silently matches nothing.
-    $cliExcludes['methods'] = [
-        ...$cliExcludes['methods'],
-        // Account API keys and push targets, and account deletion.
-        ['service' => 'account', 'name' => 'createKey'],
-        ['service' => 'account', 'name' => 'listKeys'],
-        ['service' => 'account', 'name' => 'getKey'],
-        ['service' => 'account', 'name' => 'updateKey'],
-        ['service' => 'account', 'name' => 'deleteKey'],
-        ['service' => 'account', 'name' => 'createPushTarget'],
-        ['service' => 'account', 'name' => 'updatePushTarget'],
-        ['service' => 'account', 'name' => 'deletePushTarget'],
-        ['service' => 'account', 'name' => 'createOAuth2Session'],
-        ['service' => 'account', 'name' => 'createJWT'],
-        ['service' => 'account', 'name' => 'delete'],
-        // OIDC logout.
-        ['service' => 'oauth2', 'name' => 'logout'],
-        ['service' => 'oauth2', 'name' => 'logoutPost'],
-        // Function and site templates.
-        ['service' => 'functions', 'name' => 'listTemplates'],
-        ['service' => 'functions', 'name' => 'getTemplate'],
-        ['service' => 'sites', 'name' => 'listTemplates'],
-        ['service' => 'sites', 'name' => 'getTemplate'],
-        // Table migrations -- tablesDB carries four of its own.
-        ['service' => 'tablesDB', 'name' => 'createMigration'],
-        ['service' => 'tablesDB', 'name' => 'listMigrations'],
-        ['service' => 'tablesDB', 'name' => 'getMigration'],
-        ['service' => 'tablesDB', 'name' => 'deleteMigration'],
-        // A signature mismatch rather than a missing function: the released SDK
-        // takes a further path parameter.
-        ['service' => 'presences', 'name' => 'upsert'],
-        ['service' => 'presences', 'name' => 'update'],
-        // Usage and log reporting.
-        ['service' => 'presences', 'name' => 'getUsage'],
-        ['service' => 'project', 'name' => 'createKey'],
-        ['service' => 'project', 'name' => 'getUsage'],
-        ['service' => 'users', 'name' => 'getUsage'],
-        ['service' => 'teams', 'name' => 'listLogs'],
-    ];
-
     // CLI
     if (!$requestedSdk || $requestedSdk === 'cli') {
         $language = new CLI();
@@ -367,7 +273,13 @@ try {
         $sdk = new SDK($language, buildSpecification($spec));
         $sdk->setTest(false);
         configureSDK($sdk, [
-            'exclude' => $cliExcludes,
+            'platform' => 'server',
+            'exclude' => [
+                'methods' => [
+                    // sdk-for-go v7.10.0 takes a required rpId; this spec's optional rpId and origins are newer.
+                    ['service' => 'project', 'name' => 'updatePasskeyPolicy'],
+                ],
+            ],
         ]);
 
         $sdk->generate(__DIR__ . '/examples/cli');

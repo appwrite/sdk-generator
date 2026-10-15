@@ -214,6 +214,11 @@ class Rust extends Language
             ],
             [
                 "scope" => "default",
+                "destination" => "src/topic.rs",
+                "template" => "rust/src/topic.rs.twig",
+            ],
+            [
+                "scope" => "default",
                 "destination" => "src/operator.rs",
                 "template" => "rust/src/operator.rs.twig",
             ],
@@ -318,67 +323,6 @@ class Rust extends Language
     public function getArrayOf(string $elements): string
     {
         return 'vec![' . $elements . ']';
-    }
-
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type = $this->getSchemaType($param);
-        $default = $this->getSchemaDefault($param);
-        $required = $param instanceof Parameter && $param->required;
-
-        if ($required) {
-            return "";
-        }
-
-        $output = " = ";
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= "0";
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= "false";
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "String::new()";
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= "serde_json::Value::Null";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= "Vec::new()";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "InputFile::default()";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= $default ? "true" : "false";
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "String::from(\"" . addslashes((string) $default) . "\")";
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= "serde_json::Value::Null";
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= "Vec::new()";
-                    break;
-                case self::TYPE_FILE:
-                    $output .= "InputFile::default()";
-                    break;
-            }
-        }
-
-        return $output;
     }
 
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
@@ -518,9 +462,13 @@ class Rust extends Language
 
     protected function getReturnType(Operation $method, Specification $spec): string
     {
+        if ($this->isTextResponse($method, $spec)) {
+            return 'crate::error::Result<String>';
+        }
+
         return match ($this->getMethodType($method, $spec)) {
-            'webAuth' => 'crate::error::Result<String>',
-            'location' => 'crate::error::Result<Vec<u8>>',
+            Language::METHOD_TYPE_WEB_AUTH => 'crate::error::Result<String>',
+            Language::METHOD_TYPE_LOCATION => 'crate::error::Result<Vec<u8>>',
             default => $this->getResponseReturnType($method),
         };
     }
@@ -642,6 +590,7 @@ class Rust extends Language
             }, ["is_safe" => ["html"]]),
             new TwigFilter("inputType", fn(Schema|Parameter $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getInputType($property, $spec)),
             new TwigFilter("paramValue", fn(Schema|Parameter $property, string $paramName, ?Specification $spec = null): string => $this->getParamValue($property, $paramName, $spec), ["is_safe" => ["html"]]),
+            new TwigFilter("rustDefault", fn(Schema $property, ?Specification $spec = null): string => $this->getRustDefault($property, $spec), ["is_safe" => ["html"]]),
             new TwigFilter("rustType", fn($value): string|array => str_replace(['&lt;', '&gt;'], ['<', '>'], $value), ["is_safe" => ["html"]]),
             new TwigFilter("rustCrateName", fn($value): string|array => str_replace('-', '_', $value)),
             new TwigFilter("stripProtocol", fn($value): string|array => str_replace(['https://', 'http://'], '', $value)),
@@ -913,6 +862,61 @@ class Rust extends Language
         }
 
         return $this->rustfmtCall($indent, 'next.config.headers.insert', $args);
+    }
+
+    protected function getRustDefault(Schema $property, ?Specification $spec = null): string
+    {
+        $value = $this->getModelDefault($this->getSchema($property), true);
+        $json = is_array($value) && $this->getSchemaType($property) === self::TYPE_OBJECT
+            ? $this->getRustJsonMap($value)
+            : $this->getRustJson($value);
+
+        return match ($this->getTypeName($property, $spec)) {
+            'String' => $json . '.to_string()',
+            'i64', 'bool' => $json,
+            'f64' => is_float($value) ? $json : $json . '.0',
+            'serde_json::Value' => 'serde_json::json!(' . $json . ')',
+            default => 'serde_json::from_value(serde_json::json!(' . $json . ')).unwrap()',
+        };
+    }
+
+    protected function getRustJson(mixed $value): string
+    {
+        return match (true) {
+            is_string($value) => $this->getRustString($value),
+            is_array($value) && array_is_list($value) => '[' . implode(', ', array_map($this->getRustJson(...), $value)) . ']',
+            is_array($value) => $this->getRustJsonMap($value),
+            default => json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+        };
+    }
+
+    protected function getRustJsonMap(array $value): string
+    {
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $pairs[] = $this->getRustString((string) $key) . ': ' . $this->getRustJson($item);
+        }
+
+        return '{' . implode(', ', $pairs) . '}';
+    }
+
+    protected function getRustString(string $value): string
+    {
+        $escaped = preg_replace_callback(
+            '/[\\\\"\x00-\x1f\x7f]/',
+            static fn(array $match): string => match ($match[0]) {
+                '\\' => '\\\\',
+                '"' => '\\"',
+                "\n" => '\\n',
+                "\r" => '\\r',
+                "\t" => '\\t',
+                "\0" => '\\0',
+                default => sprintf('\\u{%02x}', ord($match[0])),
+            },
+            $value,
+        );
+
+        return '"' . $escaped . '"';
     }
 
     /**

@@ -68,6 +68,11 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/path-validation/null/0:passed',
     ];
 
+    // Query values containing `&`, `+` and `#` reach the server unchanged.
+    protected const QUERY_ENCODING_RESPONSES = [
+        'GET:/v1/mock/tests/general/query:passed',
+    ];
+
     protected const OAUTH_RESPONSES = [
         'https://localhost?code=abcdef&state=123456',
     ];
@@ -90,6 +95,37 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/models/array:passed',
     ];
 
+    protected const MODEL_DEFAULT_RESPONSES = [
+        'preset: name=guest, count=25, enabled=false',
+        'preset: name=guest, count=25, enabled=false',
+        'preset: name=server, count=25, enabled=true',
+        'empty presets: 0',
+    ];
+
+    protected const JS_MODEL_TO_STRING_RESPONSES = [
+        'preset toString: {"name":"guest","count":25,"enabled":false,"tier":"free","verified":null,"scopes":["read","write"]}',
+    ];
+
+    protected const NULLABLE_PARAM_RESPONSES = [
+        'POST:/v1/mock/tests/general/nullable:passed',
+    ];
+
+    protected const NULLABLE_MODEL_RESPONSES = [
+        'preset verified: null',
+    ];
+
+    protected const ENUM_DEFAULT_RESPONSES = [
+        'preset quality default: medium',
+    ];
+
+    protected const ENUM_ARRAY_MODEL_RESPONSES = [
+        'preset scopes: read,write',
+    ];
+
+    protected const PYTHON_MODEL_DEFAULT_RESPONSES = [
+        'preset tier: PresetTier.FREE',
+    ];
+
     protected const OBJECT_ARRAY_RESPONSES = [
         'POST:/v1/mock/tests/general/documents:passed',
     ];
@@ -105,6 +141,40 @@ abstract class Base extends TestCase
         'stub',
     ];
 
+    protected const OPTIONAL_UPLOAD_RESPONSES = [
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:with-file',
+        'optional-upload:with-file',
+        'required-file:rejected',
+    ];
+
+    protected const MULTIPART_OBJECT_RESPONSES = [
+        'optional-upload:without-file:with-metadata',
+        'optional-upload:with-file:with-metadata',
+    ];
+
+    protected const OPTIONAL_ATTACHMENT_RESPONSES = [
+        'optional-upload:without-file',
+        'optional-upload:with-file',
+    ];
+
+    protected const TEXT_RESPONSES = [
+        '; café zone',
+        'www 3600 IN A 192.0.2.1',
+        '',
+        'mixed-model',
+    ];
+
+    protected const TEXT_UPLOAD_RESPONSES = [
+        'zone-import:without-file',
+        '',
+        'zone-import:with-file',
+        '',
+    ];
+
     protected const UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
@@ -113,6 +183,14 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
+        'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
+    protected const GENERIC_UPLOAD_RESPONSES = [
+        'PUT:/v1/mock/tests/general/upload-generic:passed',
+    ];
+
+    protected const BOUNDARY_UPLOAD_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
@@ -143,6 +221,157 @@ abstract class Base extends TestCase
         'Realtime update:passed',
         'Realtime presence:passed',
         'Realtime disconnect:passed',
+    ];
+
+    // Native push (MQTT) round-trip against the mock broker: subscribe, receive, and the
+    // connection lifecycle hook (onOpen) firing.
+    protected const PUSH_RESPONSES = [
+        'Push subscribe:passed',
+        'Push open:passed',
+        'Push message:passed',
+        'Push qos:passed',
+        'Push user topic:passed',
+        'Push user session topic:passed',
+        'Push user no credential:passed',
+    ];
+
+    // Web and React Native derive their client id themselves (mqtt.js needs one): a user signing
+    // in again with a new session still gets what was missed in between replayed.
+    protected const PUSH_SESSION_REPLAY_RESPONSES = [
+        'Push session replay:passed',
+    ];
+
+    protected const PUSH_CREDENTIAL_SWITCH_RESPONSES = [
+        'Push credential switch:passed',
+        'Push credential pending switch:passed',
+    ];
+
+    protected const PUSH_CLOSE_WHILE_CONNECTING_RESPONSES = [
+        'Push close while connecting:passed',
+    ];
+
+    protected const PUSH_CLOSE_RIGHT_AFTER_SUBSCRIBE_RESPONSES = [
+        'Push close right after subscribe:passed',
+    ];
+
+    protected const PUSH_CLOSE_FROM_CALLBACK_RESPONSES = [
+        'Push close from callback:passed',
+    ];
+
+    protected const WEB_PUSH_CONNECTION_RESPONSES = [
+        'Push concurrent refused:passed',
+        'Push tab client id:passed',
+        'Push notification opened web:passed',
+    ];
+
+    // Android, Apple, Flutter and Web: a topic-less subscribe uses the session the client signed
+    // in with when no JWT or session is set on it.
+    protected const PUSH_SIGN_IN_SESSION_RESPONSES = [
+        'Push user sign-in session topic:passed',
+    ];
+
+    protected const PUSH_SESSION_COOKIE_RESPONSES = [
+        'Push user cookie topic:passed',
+        'Push user cookie switch:passed',
+        'Push user cookie pending switch:passed',
+    ];
+
+    protected const PUSH_NATIVE_SESSION_COOKIE_RESPONSES = [
+        'Push session cookie:passed',
+    ];
+
+    // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
+    // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
+    // expose the reason string).
+    protected const PUSH_ERROR_RESPONSES = [
+        'Push connect error:passed',
+        'Push disconnect error:passed',
+    ];
+
+    // Android background delivery used the way an app does: a background subscription's
+    // message, the scheduled wake-up after the process died bringing the next message to the
+    // app's PushReceiver and a notification, sign-out stopping it, and a refused credential
+    // stopping it with onError.
+    // Flutter's public Push API on the Android path, with a stand-in for the native plugin on its
+    // channels: background subscribe completes once the plugin reports it subscribed, a message
+    // reaches the callback, and after sign-out it no longer reaches the app.
+    protected const FLUTTER_PUSH_NATIVE_RESPONSES = [
+        'Push native subscribe:passed',
+        'Push native message:passed',
+        'Push native close:passed',
+    ];
+
+    // Android: a saved background subscription the app later subscribes to with background off,
+    // then unsubscribes, delivers nothing after a restart.
+    protected const ANDROID_PUSH_OPT_OUT_RESPONSES = [
+        'Push background opt-out:passed',
+    ];
+
+    // Android: unsubscribing one of two in-process subscriptions on the same topic stops its
+    // callback, though the other subscription keeps the broker filter.
+    protected const ANDROID_PUSH_SHARED_TOPIC_RESPONSES = [
+        'Push shared topic unsubscribe:passed',
+    ];
+
+    protected const ANDROID_COOKIE_STORE_RESPONSES = [
+        'Cookie store reload:passed',
+        'Cookie store saved format:passed',
+    ];
+
+    // React Native and Flutter on Android: when a Push with another credential starts background
+    // delivery, the Push that had it hears on onError that its background delivery stopped.
+    protected const PUSH_NATIVE_DISPLACED_RESPONSES = [
+        'Push native displaced:passed',
+    ];
+
+    // React Native and Flutter on Android ask for POST_NOTIFICATIONS once background delivery starts.
+    protected const PUSH_NOTIFICATION_PERMISSION_RESPONSES = [
+        'Push notification permission:passed',
+    ];
+
+    protected const REACT_NATIVE_PUSH_JS_RESPONSES = [
+        'Push native connection JS:passed',
+        'Push background status JS:passed',
+        'Push notification opened JS:passed',
+        'Push notification opened expo:passed',
+        'Push notification content JS:passed',
+    ];
+
+    // React Native on Android: the tap that launched the app is reported once, later taps as events.
+    protected const PUSH_NOTIFICATION_OPENED_RESPONSES = [
+        'Push notification opened:passed',
+    ];
+
+    // React Native on Android: background runs follow the session in the WebView cookie store.
+    protected const REACT_NATIVE_PUSH_COOKIE_REFRESH_RESPONSES = [
+        'Push background cookie refresh:passed',
+        'Push background reconnect credential:passed',
+        'Push background drain:passed',
+    ];
+
+    // Android only: no notification while the app is on screen, the watchdog job, resume with the
+    // current credential, and restricted background usage.
+    protected const ANDROID_PUSH_BACKGROUND_RESPONSES = [
+        'Push background message:passed',
+        'Push foreground no notification:passed',
+        'Push background watchdog:passed',
+        'Push background restore:passed',
+        'Push background resume credential:passed',
+        'Push background close:passed',
+        'Push background refused:passed',
+        'Push background restricted:passed',
+    ];
+
+    protected const PUSH_BACKGROUND_RESPONSES = [
+        'Push background message:passed',
+        'Push background restore:passed',
+        'Push background close:passed',
+        'Push background refused:passed',
+    ];
+
+    protected const ANDROID_PUSH_NOTIFICATION_RESPONSES = [
+        'Push notification content:passed',
+        'Push notification opened:passed',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
@@ -230,6 +459,21 @@ abstract class Base extends TestCase
     protected const ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'
+    ];
+
+    protected const TOPIC_HELPER_RESPONSES = [
+        'user/123/notification',
+        'org/42/user/123/notification',
+        'user/+/notification',
+        'chat/+/+/message',
+        'org/+/logs/#',
+        '+/notification',
+        '#',
+        'Topic empty path:passed',
+        'Topic empty level:passed',
+        'Topic slash:passed',
+        'Topic plus:passed',
+        'Topic hash:passed',
     ];
 
     protected const ADDITIONAL_PROPERTIES_RESPONSES = [

@@ -42,7 +42,7 @@ from typing import Union
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | enumSuggestions) is not empty %}
 {% if (parameter | enumName) not in added %}
-from {{ namespace | caseSnake }}.enums import {{(parameter | enumName) | caseUcfirst}}
+from {{ namespace | caseSnake }}.enums.{{ (parameter | enumName) | caseSnake }} import {{ (parameter | enumName) | caseUcfirst }}
 {% set added = added|merge([(parameter | enumName)]) %}
 {% endif %}
 {% endif %}

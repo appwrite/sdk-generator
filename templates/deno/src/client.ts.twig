@@ -4,6 +4,50 @@ export interface Payload {
     [key: string]: any;
 }
 
+type DefaultsShape = string | { items: DefaultsShape };
+
+type DefaultsModel = {
+    defaults?: Record<string, unknown>;
+    properties?: Record<string, DefaultsShape>;
+};
+
+type Defaults = {
+    root: DefaultsShape;
+    models: Record<string, DefaultsModel>;
+};
+
+export function applyDefaults<T>(value: T, tree: Defaults): T {
+    return fillDefaults(value, tree.root, tree.models) as T;
+}
+
+function fillDefaults(
+    value: unknown,
+    shape: DefaultsShape,
+    models: Record<string, DefaultsModel>,
+): unknown {
+    if (typeof shape !== 'string') {
+        if (!Array.isArray(value)) {
+            return value;
+        }
+        const items = shape.items;
+        return value.map((item) => fillDefaults(item, items, models));
+    }
+    const model = models[shape];
+    if (!model || typeof value !== 'object' || value === null) {
+        return value;
+    }
+    if (Array.isArray(value)) {
+        return value;
+    }
+    const result: Record<string, unknown> = { ...model.defaults, ...value };
+    for (const [key, child] of Object.entries(model.properties ?? {})) {
+        if (key in result) {
+            result[key] = fillDefaults(result[key], child, models);
+        }
+    }
+    return result;
+}
+
 export class Client {
     static CHUNK_SIZE = 5*1024*1024; // 5MB
     static DENO_READ_CHUNK_SIZE = 16384; // 16kb; refference: https://github.com/denoland/deno/discussions/9906
@@ -123,7 +167,7 @@ export class Client {
                 warnings.split(';').forEach((warning: string) => console.warn('Warning: ' + warning));
             }
         } catch (error) {
-            throw new {{spec.info.title | caseUcfirst}}Exception(error.message);
+            throw new {{spec.info.title | caseUcfirst}}Exception(error instanceof Error ? error.message : String(error));
         }
 
         if (response.status >= 400) {
@@ -144,6 +188,10 @@ export class Client {
 
         if (responseType === "location") {
             return response.headers.get("location");
+        }
+
+        if (responseType === "text") {
+            return await response.text();
         }
 
         const text = await response.text();

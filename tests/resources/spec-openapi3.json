@@ -1259,6 +1259,115 @@
         }
       }
     },
+    "/mock/tests/general/mixed": {
+      "get": {
+        "summary": "Mixed text and JSON response",
+        "operationId": "generalGetMixed",
+        "tags": ["general"],
+        "x-appwrite": {"platforms": ["client", "server"], "scope": "public"},
+        "responses": {
+          "200": {
+            "description": "Text alternative",
+            "content": {"text/plain": {"schema": {"type": "string"}}}
+          },
+          "206": {
+            "description": "JSON alternative",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/mock"}}}
+          }
+        }
+      }
+    },
+    "/mock/tests/plaintext/union": {
+      "get": {
+        "summary": "Union preceding a text method",
+        "operationId": "textafterunionGetUnion",
+        "tags": ["textafterunion"],
+        "x-appwrite": {"platforms": ["client", "server"], "scope": "public"},
+        "responses": {
+          "200": {
+            "description": "Model union",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {"$ref": "#/components/schemas/unionMock"},
+                    {"$ref": "#/components/schemas/unionStub"}
+                  ],
+                  "discriminator": {
+                    "propertyName": "type",
+                    "mapping": {
+                      "mock": "#/components/schemas/unionMock",
+                      "stub": "#/components/schemas/unionStub"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mock/tests/plaintext/after-union": {
+      "get": {
+        "summary": "Text following a union method",
+        "operationId": "textafterunionGetText",
+        "tags": ["textafterunion"],
+        "x-appwrite": {"platforms": ["client", "server"], "scope": "public"},
+        "responses": {
+          "200": {
+            "description": "Text",
+            "content": {"text/plain": {"schema": {"type": "string"}}}
+          }
+        }
+      }
+    },
+    "/mock/tests/general/zone-import": {
+      "post": {
+        "summary": "Import zone text",
+        "operationId": "plaintextImportZone",
+        "tags": ["plaintext"],
+        "x-appwrite": {"platforms": ["client", "server"], "scope": "public"},
+        "responses": {
+          "2XX": {
+            "description": "Import report",
+            "content": {"text/plain": {"schema": {"type": "string"}}}
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "records": {"description": "Zone records", "type": "string"},
+                  "zone": {"description": "Optional zone file", "type": "string", "format": "binary"}
+                },
+                "required": ["records"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mock/tests/general/zone": {
+      "get": {
+        "summary": "Get zone text",
+        "operationId": "plaintextGetZone",
+        "tags": ["plaintext"],
+        "x-appwrite": {
+          "platforms": ["client", "server"],
+          "scope": "public"
+        },
+        "responses": {
+          "203": {
+            "description": "DNS zone file",
+            "content": {
+              "text/plain": {"schema": {"type": "string"}}
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/download": {
       "get": {
         "summary": "Download File",
@@ -1753,6 +1862,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          },
           "500": {
             "description": "File"
           }
@@ -1788,6 +1907,14 @@
                     "description": "Sample string param",
                     "default": "",
                     "example": "[OPTIONAL]"
+                  },
+                  "nullableInteger": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Optional nullable integer param",
+                    "default": null,
+                    "example": 1,
+                    "nullable": true
                   }
                 },
                 "required": [
@@ -2043,6 +2170,74 @@
         ]
       }
     },
+    "\/mock\/tests\/general\/query": {
+      "get": {
+        "summary": "Query Param",
+        "operationId": "generalGetQuery",
+        "tags": [
+          "general"
+        ],
+        "description": "",
+        "x-appwrite": {
+          "demo": "general\/get-query.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "value",
+            "description": "Query value.",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "a&b"
+            }
+          },
+          {
+            "name": "values",
+            "description": "Query values.",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      }
+    },
     "\/mock\/tests\/general\/path\/{pathId}": {
       "get": {
         "summary": "Path Param",
@@ -2226,6 +2421,74 @@
         }
       }
     },
+    "\/mock\/tests\/general\/optional-upload": {
+      "post": {
+        "summary": "Send an optional attachment",
+        "operationId": "generalOptionalUpload",
+        "tags": [
+          "general"
+        ],
+        "description": "Multipart request with an optional attachment, not a chunked upload endpoint.",
+        "x-appwrite": {
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "description": "Conversation message",
+                    "type": "string"
+                  },
+                  "attachment": {
+                    "description": "Optional attachment",
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "metadata": {
+                    "description": "Optional metadata object",
+                    "type": "object",
+                    "x-example": "{}"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "\/mock\/tests\/general\/upload-with-id": {
       "post": {
         "summary": "Upload File With ID",
@@ -2270,6 +2533,122 @@
             }
           }
         }
+      }
+    },
+    "\/mock\/tests\/general\/upload-file-only": {
+      "post": {
+        "summary": "Upload File Only",
+        "operationId": "generalUploadFileOnly",
+        "tags": [
+          "general"
+        ],
+        "description": "Upload fixture whose only parameter is the file.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "Sample file param",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/upload-generic": {
+      "put": {
+        "summary": "Upload Generic",
+        "operationId": "generalUploadGeneric",
+        "tags": [
+          "general"
+        ],
+        "description": "Upload fixture whose response model carries a generic, user-defined payload.",
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/profile"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart\/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "description": "Sample file param",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/snake-case-params": {
+      "get": {
+        "summary": "Snake Case Params",
+        "operationId": "generalSnakeCaseParams",
+        "tags": [
+          "general"
+        ],
+        "description": "Fixture whose parameter names are snake_case in the spec.",
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "grant_id",
+            "description": "Grant ID.",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "<GRANT_ID>"
+            }
+          }
+        ]
       }
     },
     "\/mock\/tests\/general\/oauth2": {
@@ -2370,6 +2749,169 @@
             }
           }
         ]
+      }
+    },
+    "\/mock\/tests\/general\/preset": {
+      "get": {
+        "summary": "Get Preset",
+        "operationId": "generalGetPreset",
+        "tags": [
+          "general"
+        ],
+        "description": "Return a preset that omits the fields its spec defaults cover.",
+        "x-appwrite": {
+          "demo": "general\/get-preset.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "parameters": [
+            {
+                "name": "quality",
+                "description": "Preset quality. Its default is not the first value.",
+                "required": false,
+                "schema": {
+                    "type": "string",
+                    "title": "PresetQuality",
+                    "example": "medium",
+                    "oneOf": [
+                        {
+                            "type": "string",
+                            "enum": [
+                                "low"
+                            ],
+                            "title": "low"
+                        },
+                        {
+                            "type": "string",
+                            "enum": [
+                                "medium"
+                            ],
+                            "title": "medium"
+                        },
+                        {
+                            "type": "string",
+                            "enum": [
+                                "high"
+                            ],
+                            "title": "high"
+                        }
+                    ],
+                    "default": "medium"
+                },
+                "in": "query"
+            }
+        ],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/preset"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/presets": {
+      "get": {
+        "summary": "List Presets",
+        "operationId": "generalListPresets",
+        "tags": [
+          "general"
+        ],
+        "description": "Return presets whose items omit the fields their spec defaults cover.",
+        "x-appwrite": {
+          "demo": "general\/list-presets.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset list",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/presetList"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/presets\/empty": {
+      "get": {
+        "summary": "List Empty Presets",
+        "operationId": "generalListEmptyPresets",
+        "tags": [
+          "general"
+        ],
+        "description": "Return a preset list that omits its required presets collection.",
+        "x-appwrite": {
+          "demo": "general\/list-empty-presets.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset list",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/presetList"}
+              }
+            }
+          }
+        }
       }
     },
     "\/mock\/tests\/union": {
@@ -2933,6 +3475,29 @@
           "version"
         ]
       },
+      "preferences": {
+        "description": "Preferences",
+        "type": "object",
+        "additionalProperties": true
+      },
+      "profile": {
+        "description": "Profile",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Profile name.",
+            "example": "John Doe"
+          },
+          "prefs": {
+            "$ref": "#\/components\/schemas\/preferences"
+          }
+        },
+        "required": [
+          "name",
+          "prefs"
+        ]
+      },
       "mock": {
         "description": "Mock",
         "type": "object",
@@ -2977,6 +3542,9 @@
               {"type": "string", "enum": ["ខេត្ត"], "title": "Province"}
             ]
           },
+          "nullableScalars": {
+            "$ref": "#/components/schemas/zznullablescalars"
+          },
           "relatedMock": {
             "type": "object",
             "description": "Optional nested mock.",
@@ -2999,6 +3567,39 @@
         "required": [
           "result"
         ]
+      },
+      "preset": {
+        "description": "Preset",
+        "type": "object",
+        "properties": {
+          "name": {"type": "string", "description": "Preset name.", "example": "guest", "default": "guest"},
+          "count": {"type": "integer", "description": "Preset count.", "example": 25, "default": 25},
+          "enabled": {"type": "boolean", "description": "Whether the preset is enabled.", "example": true, "default": true},
+          "tier": {"title": "PresetTier", "type": "string", "description": "Preset tier.", "example": "free", "enum": ["free", "pro"], "default": "free"},
+          "verified": {"type": "boolean", "description": "Whether the preset is verified. Null when it has never been checked.", "example": true, "nullable": true},
+          "scopes": {"type": "array", "description": "Preset scopes.", "items": {"type": "string", "oneOf": [{"type": "string", "enum": ["read"], "title": "read"}, {"type": "string", "enum": ["write"], "title": "write"}]}, "example": ["read"]}
+        },
+        "required": ["name", "count", "enabled", "tier"]
+      },
+      "presetList": {
+        "description": "Preset list",
+        "type": "object",
+        "properties": {
+          "total": {"type": "integer", "description": "Total number of presets.", "example": 2},
+          "presets": {"type": "array", "description": "List of presets.", "items": {"$ref": "#\/components\/schemas\/preset"}}
+        },
+        "required": ["total", "presets"]
+      },
+      "zznullablescalars": {
+        "description": "Nullable scalar response fields",
+        "type": "object",
+        "properties": {
+          "text": {"type": "string", "nullable": true},
+          "enabled": {"type": "boolean", "nullable": true},
+          "count": {"type": "integer", "nullable": true},
+          "price": {"type": "number", "nullable": true}
+        },
+        "required": ["text", "enabled", "count", "price"]
       },
       "unionMock": {
         "description": "Mock",

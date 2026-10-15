@@ -1,11 +1,13 @@
 use appwrite::{
     Client,
+    enums::PresetQuality,
     id::ID,
     input_file::InputFile,
     operator::{self, Condition},
     permission::Permission,
     query::Query,
     role::Role,
+    topic,
     services::*,
 };
 use serde_json::json;
@@ -120,11 +122,41 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     println!("{}", general.validate_path("0", Some("0")).await?.result);
     println!("{}", general.validate_path("0", None).await?.result);
 
+    let zone: String = Plaintext::new(&client).get_zone().await?;
+    println!("{}", zone);
+    println!("{}", general.get_mixed().await?.result);
+    let plaintext = Plaintext::new(&client);
+    let records = "www 3600 IN A 192.0.2.1";
+    println!("{}", plaintext.import_zone(records, None).await?);
+    let zone_file = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;
+    println!("{}", plaintext.import_zone(records, Some(zone_file)).await?);
+
+    let message = "conversation without a required file";
+    println!("{}", general.optional_upload(message, None, None).await?.result);
+    let attachment = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;
+    println!("{}", general.optional_upload(message, Some(attachment), None).await?.result);
+    println!("{}", general.optional_upload(message, None, Some(json!({ "source": "sdk", "uri": "café" }))).await?.result);
+    let attachment = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;
+    println!("{}", general.optional_upload(message, Some(attachment), Some(json!({ "source": "sdk", "uri": "café" }))).await?.result);
+
     test_general_upload(client, string_in_array).await?;
     test_large_upload(client, string_in_array).await?;
+    // A PUT upload has no chunked form, so it must go in one request even with tiny chunks.
+    let small_chunks = client.set_chunk_size(1024);
+    let profile = General::new(&small_chunks).upload_generic(InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?).await?;
+    println!("{}", profile.prefs().get::<String>("result").unwrap_or_default());
 
     // Extended General Responses
     test_general_download(client).await?;
+
+    let preset = general.get_preset(None).await?;
+    println!("preset: name={}, count={}, enabled={}", preset.name, preset.count, preset.enabled);
+    for item in general.list_presets().await?.presets {
+        println!("preset: name={}, count={}, enabled={}", item.name, item.count, item.enabled);
+    }
+    println!("empty presets: {}", general.list_empty_presets().await?.presets.len());
+    println!("preset verified: {}", preset.verified.map_or("null".to_string(), |verified| verified.to_string()));
+    println!("preset quality default: {}", PresetQuality::default());
 
     // Exception Responses
     match general.error400().await {
@@ -163,6 +195,7 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
 
     // Test Id Helpers
     test_id_helpers();
+    test_topic_helpers();
 
     // Test Operator Helpers
     test_operator_helpers();
@@ -323,6 +356,29 @@ fn test_permission_helpers() {
 fn test_id_helpers() {
     println!("{}", ID::unique());
     println!("{}", ID::custom("custom_id"));
+}
+
+fn test_topic_helpers() {
+    println!("{}", topic::path(&["user", "123", "notification"]).unwrap());
+    println!("{}", topic::path(&["org", "42", "user", "123"]).unwrap().path(&["notification"]).unwrap());
+    println!("{}", topic::path(&["user"]).unwrap().any().path(&["notification"]).unwrap());
+    println!("{}", topic::path(&["chat"]).unwrap().any().any().path(&["message"]).unwrap());
+    println!("{}", topic::path(&["org"]).unwrap().any().path(&["logs"]).unwrap().all());
+    println!("{}", topic::any().path(&["notification"]).unwrap());
+    println!("{}", topic::all());
+    let cases: Vec<(&str, Vec<&str>)> = vec![
+        ("empty path", vec![]),
+        ("empty level", vec!["user", ""]),
+        ("slash", vec!["user/123"]),
+        ("plus", vec!["user", "a+b"]),
+        ("hash", vec!["user", "#"]),
+    ];
+    for (name, levels) in cases {
+        match topic::path(&levels) {
+            Ok(_) => println!("Topic {}:failed", name),
+            Err(_) => println!("Topic {}:passed", name),
+        }
+    }
 }
 
 fn test_operator_helpers() {

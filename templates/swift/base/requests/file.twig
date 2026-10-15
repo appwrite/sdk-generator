@@ -15,5 +15,6 @@
 {% if (method | responseModel) %}
             converter: converter,
 {% endif %}
-            onProgress: onProgress
+            onProgress: onProgress,
+            method: "{{ method.method.value | caseUpper }}"
         )

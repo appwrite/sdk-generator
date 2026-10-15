@@ -191,6 +191,51 @@ func (h *harness) typesDependencies() {
 			fail(fmt.Errorf("types %s: expected %s and collection fields, got:\n%s", test.name, want, generated))
 		}
 	}
+
+	// --config-file picks a config other than the nearest one, with its
+	// includes resolved next to it.
+	directory := filepath.Join(h.home, "types", "no-package")
+	files := map[string]string{
+		"envs/appwrite.config.prod.json": `{"projectId":"offline","includes":{"collections":"collections.json"}}`,
+		"envs/collections.json":          `[{"$id":"wells","databaseId":"main","name":"Prod Wells","attributes":[{"key":"depth","type":"integer","required":true}]}]`,
+	}
+	if err := os.MkdirAll(filepath.Join(directory, "envs"), 0o700); err != nil {
+		fail(err)
+	}
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(directory, name), []byte(content), 0o600); err != nil {
+			fail(err)
+		}
+	}
+	command := h.command("types", "prod-types", "--language=ts", "--config-file", "envs/appwrite.config.prod.json")
+	command.Path = cli
+	command.Dir = directory
+	if output, err := command.CombinedOutput(); err != nil {
+		fail(fmt.Errorf("types --config-file: %w\n%s", err, output))
+	}
+	generated, err := os.ReadFile(filepath.Join(directory, "prod-types", "appwrite.d.ts"))
+	if err != nil {
+		fail(err)
+	}
+	if !strings.Contains(string(generated), "export type ProdWells = Models.Row & {") ||
+		strings.Contains(string(generated), "FixedWaterSources") {
+		fail(fmt.Errorf("types --config-file: expected only the chosen config's collections, got:\n%s", generated))
+	}
+
+	// A missing --config-file points back at itself, or at a placeholder when
+	// the path would need shell quoting.
+	for path, want := range map[string]string{
+		"envs/missing.json":      "init project --config-file envs/missing.json",
+		"envs/missing prod.json": "init project --config-file <path>",
+	} {
+		command = h.command("types", "prod-types", "--language=ts", "--config-file", path)
+		command.Path = cli
+		command.Dir = directory
+		output, err := command.CombinedOutput()
+		if err == nil || !strings.Contains(string(output), want) {
+			fail(fmt.Errorf("types with a missing --config-file %q: expected %q, got:\n%s", path, want, output))
+		}
+	}
 }
 
 // run executes the CLI and returns its stdout, requiring a zero exit.

@@ -1,4 +1,4 @@
-const { AppwriteException, Client, Foo, Bar, General, Query, Permission, Role, ID, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
+const { AppwriteException, Client, Foo, Bar, General, Plaintext, Query, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -147,6 +147,13 @@ async function start() {
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
 
+    const zone = await new Plaintext(client).getZone();
+    if (typeof zone !== 'string') {
+        throw new Error(`Unexpected zone type: ${typeof zone}`);
+    }
+    console.log(zone);
+    console.log((await general.getMixed()).result);
+
     response = await general.enum(MockType.First);
     console.log(response.result);
 
@@ -187,6 +194,19 @@ async function start() {
     } catch (error) {
         console.log(error);
     }
+    const preset = await general.getPreset();
+    console.log(`preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}`);
+    const presets = await general.listPresets();
+    for (const item of presets.presets) {
+        console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
+    }
+    console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
+    console.log(`preset verified: ${preset.verified}`);
+    console.log(`preset toString: ${preset.toString()}`);
+
+    response = await general.nullable({ required: 'required', nullable: null, nullableInteger: null });
+    console.log(response.result);
+
     try {
         response = await general.error400();
     } catch(error) {
@@ -317,6 +337,29 @@ async function start() {
     // ID helper tests
     console.log(ID.unique());
     console.log(ID.custom('custom_id'));
+
+    // Topic helper tests
+    console.log(Topic.path(['user', '123', 'notification']).toString());
+    console.log(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
+    console.log(Topic.path(['user']).any().path(['notification']).toString());
+    console.log(Topic.path(['chat']).any().any().path(['message']).toString());
+    console.log(Topic.path(['org']).any().path(['logs']).all().toString());
+    console.log(Topic.any().path(['notification']).toString());
+    console.log(Topic.all().toString());
+    for (const [name, levels] of [
+        ['empty path', []],
+        ['empty level', ['user', '']],
+        ['slash', ['user/123']],
+        ['plus', ['user', 'a+b']],
+        ['hash', ['user', '#']],
+    ]) {
+        try {
+            Topic.path(levels);
+            console.log(`Topic ${name}:failed`);
+        } catch (e) {
+            console.log(`Topic ${name}:passed`);
+        }
+    }
 
     // Channel helper tests
     console.log(Channel.database('db1').collection('col1').document().toString());

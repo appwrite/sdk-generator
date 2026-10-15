@@ -66,6 +66,20 @@ puts response["result"]
 end
 puts general.validate_path(id: '0', plain: '0').result
 
+zone = Plaintext.new(client).get_zone
+raise "Expected zone text as String, got #{zone.class}" unless zone.is_a?(String)
+print zone, "\n"
+puts general.get_mixed.result
+plaintext = Plaintext.new(client)
+print plaintext.import_zone(records: 'www 3600 IN A 192.0.2.1'), "\n"
+print plaintext.import_zone(records: 'www 3600 IN A 192.0.2.1', zone: InputFile.from_path('./tests/resources/file.png')), "\n"
+
+message = 'conversation without a required file'
+puts general.optional_upload(message: message).result
+puts general.optional_upload(message: message, attachment: InputFile.from_path('./tests/resources/file.png')).result
+puts general.optional_upload(message: message, metadata: { 'source' => 'sdk', 'uri' => 'café' }).result
+puts general.optional_upload(message: message, attachment: InputFile.from_path('./tests/resources/file.png'), metadata: { 'source' => 'sdk', 'uri' => 'café' }).result
+
 begin
     response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_path('./tests/resources/file.png'))
     puts response.result
@@ -96,6 +110,20 @@ rescue => e
     puts e
 end
 
+begin
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_string("\0" * (5 * 1024 * 1024), filename: 'boundary.bin', mime_type: 'application/octet-stream'))
+    puts response.result
+rescue => e
+    puts e
+end
+
+begin
+    response = general.upload_generic(file: InputFile.from_path('./tests/resources/file.png'))
+    puts response.prefs.data['result']
+rescue => e
+    puts e
+end
+
 puts general.download.body
 
 response = general.enum(mock_type: MockType::FIRST)
@@ -110,6 +138,15 @@ response = general.create_players(players: [
     {id: 'player2', name: 'Jane Doe', score: 200}
 ])
 puts response.result
+
+preset = general.get_preset()
+puts "preset: name=#{preset.name}, count=#{preset.count}, enabled=#{preset.enabled}"
+general.list_presets().presets.each do |item|
+    puts "preset: name=#{item.name}, count=#{item.count}, enabled=#{item.enabled}"
+end
+puts "empty presets: #{general.list_empty_presets().presets.length}"
+puts "preset verified: #{preset.verified.nil? ? 'null' : preset.verified}"
+puts "preset scopes: #{(preset.scopes || []).join(',')}"
 
 begin
     general.error400()
@@ -247,6 +284,29 @@ puts Permission.create(Role.label('admin'))
 # ID helper tests
 puts ID.unique()
 puts ID.custom('custom_id')
+
+# Topic helper tests
+puts Topic.path(['user', '123', 'notification'])
+puts Topic.path(['org', '42', 'user', '123']).path(['notification'])
+puts Topic.path(['user']).any.path(['notification'])
+puts Topic.path(['chat']).any.any.path(['message'])
+puts Topic.path(['org']).any.path(['logs']).all
+puts Topic.any.path(['notification'])
+puts Topic.all
+[
+    ['empty path', []],
+    ['empty level', ['user', '']],
+    ['slash', ['user/123']],
+    ['plus', ['user', 'a+b']],
+    ['hash', ['user', '#']]
+].each do |name, levels|
+    begin
+        Topic.path(levels)
+        puts "Topic #{name}:failed"
+    rescue ArgumentError
+        puts "Topic #{name}:passed"
+    end
+end
 
 # Operator helper tests
 puts Operator.increment(1)

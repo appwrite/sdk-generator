@@ -1,6 +1,7 @@
 .idea/
 .dart_tool
 /vendor/
+/vendor-mqtt/
 /tests/sdks
 /.vscode
 .vs

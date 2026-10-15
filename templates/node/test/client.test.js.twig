@@ -1,4 +1,5 @@
 const { Client } = require('../dist/client');
+const { InputFile } = require('../dist/inputFile');
 const { fetch: mockedFetch, Response, Dispatcher } = require('undici');
 
 jest.mock('undici', () => ({
@@ -41,5 +42,114 @@ describe('Client', () => {
         } finally {
             client.setSelfSigned(false);
         }
+    });
+});
+
+describe('Client.chunkedUpload', () => {
+    const url = new URL(
+        'https://cloud.appwrite.io/v1/storage/buckets/bucket/files',
+    );
+    const headers = { 'content-type': 'multipart/form-data' };
+    const sentHeaders = (index) => mockedFetch.mock.calls[index][1].headers;
+    const file = (size) =>
+        InputFile.fromBuffer(Buffer.alloc(size), 'upload.bin');
+
+    beforeEach(() => {
+        mockedFetch.mockReset();
+    });
+
+    test('sends a file of exactly the chunk size in one request', async () => {
+        mockedFetch.mockImplementation(() => Response.json({ $id: 'file' }));
+        const client = new Client();
+
+        await client.chunkedUpload(
+            'POST',
+            url,
+            { ...headers },
+            { file: file(Client.CHUNK_SIZE) },
+            () => {},
+        );
+
+        expect(mockedFetch).toHaveBeenCalledTimes(1);
+        expect(sentHeaders(0)).not.toHaveProperty('content-range');
+    });
+
+    test('splits a larger file into chunks that share the upload id', async () => {
+        mockedFetch.mockImplementation(() =>
+            Response.json({
+                $id: 'file',
+                chunksUploaded: mockedFetch.mock.calls.length,
+                chunksTotal: 2,
+            }),
+        );
+        const client = new Client();
+        const size = Client.CHUNK_SIZE + 1;
+
+        const result = await client.chunkedUpload(
+            'POST',
+            url,
+            { ...headers },
+            { file: file(size) },
+            () => {},
+        );
+
+        expect(mockedFetch).toHaveBeenCalledTimes(2);
+        expect(sentHeaders(0)['content-range']).toBe(
+            `bytes 0-${Client.CHUNK_SIZE - 1}/${size}`,
+        );
+        expect(sentHeaders(1)['content-range']).toBe(
+            `bytes ${Client.CHUNK_SIZE}-${Client.CHUNK_SIZE}/${size}`,
+        );
+        expect(sentHeaders(1)['x-{{ spec.info.title | caseLower }}-id']).toBe('file');
+        expect(result).toEqual({
+            $id: 'file',
+            chunksUploaded: 2,
+            chunksTotal: 2,
+        });
+    });
+
+    test('sends a text upload in one request whatever its size', async () => {
+        mockedFetch.mockImplementation(
+            () =>
+                new Response('zone file', {
+                    headers: { 'content-type': 'text/plain' },
+                }),
+        );
+        const client = new Client();
+
+        const result = await client.chunkedUpload(
+            'POST',
+            url,
+            { ...headers },
+            { file: file(Client.CHUNK_SIZE * 2 + 1) },
+            () => {},
+            'text',
+        );
+
+        expect(mockedFetch).toHaveBeenCalledTimes(1);
+        expect(sentHeaders(0)).not.toHaveProperty('content-range');
+        expect(result).toBe('zone file');
+    });
+
+    test('makes a plain call with the requested response type when no file is sent', async () => {
+        mockedFetch.mockImplementation(
+            () =>
+                new Response('plain text', {
+                    headers: { 'content-type': 'text/plain' },
+                }),
+        );
+        const client = new Client();
+
+        const result = await client.chunkedUpload(
+            'POST',
+            url,
+            { ...headers },
+            { name: 'zone' },
+            () => {},
+            'text',
+        );
+
+        expect(mockedFetch).toHaveBeenCalledTimes(1);
+        expect(result).toBe('plain text');
     });
 });
