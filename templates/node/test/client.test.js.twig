@@ -1,5 +1,6 @@
 const { Client } = require('../dist/client');
 const { InputFile } = require('../dist/inputFile');
+const { Query } = require('../dist/query');
 const { fetch: mockedFetch, Response, Dispatcher } = require('undici');
 
 jest.mock('undici', () => ({
@@ -42,6 +43,58 @@ describe('Client', () => {
         } finally {
             client.setSelfSigned(false);
         }
+    });
+});
+
+describe('Client.prepareRequest', () => {
+    const url = () => new URL('https://cloud.appwrite.io/v1/rows');
+    const params = () => ({
+        data: [['a', 'b']],
+        queries: Query.builder().equal('status', 'active').limit(1),
+        filters: [Query.equal('status', 'active'), Query.builder().limit(1)],
+    });
+    const queries = [Query.equal('status', 'active'), Query.limit(1)];
+
+    test('sends nested string arrays and flattened builders as JSON', () => {
+        const { options } = new Client().prepareRequest(
+            'POST',
+            url(),
+            { 'content-type': 'application/json' },
+            params(),
+        );
+
+        expect(JSON.parse(options.body)).toEqual({
+            data: [['a', 'b']],
+            queries,
+            filters: queries,
+        });
+    });
+
+    test('sends nested string arrays and flattened builders as query string', () => {
+        const { uri } = new Client().prepareRequest('GET', url(), {}, params());
+        const search = new URL(uri).searchParams;
+
+        expect(search.get('data[0][0]')).toBe('a');
+        expect(search.get('data[0][1]')).toBe('b');
+        expect(search.has('data[0]')).toBe(false);
+        expect([search.get('queries[0]'), search.get('queries[1]')]).toEqual(
+            queries,
+        );
+        expect([search.get('filters[0]'), search.get('filters[1]')]).toEqual(
+            queries,
+        );
+    });
+
+    test('sends flattened builders as multipart fields', () => {
+        const { options } = new Client().prepareRequest(
+            'POST',
+            url(),
+            { 'content-type': 'multipart/form-data' },
+            params(),
+        );
+
+        expect(options.body.getAll('queries[]')).toEqual(queries);
+        expect(options.body.getAll('filters[]')).toEqual(queries);
     });
 });
 

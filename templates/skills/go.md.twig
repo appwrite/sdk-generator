@@ -157,6 +157,37 @@ query.CursorBefore("[ROW_ID]")
 query.Select([]string{"field1", "field2"})
 query.Or([]string{query.Equal("a", 1), query.Equal("b", 2)})    // OR
 query.And([]string{query.GreaterThan("age", 18), query.LessThan("age", 65)})  // AND (default)
+
+// Aggregations (optional alias)
+query.Count("*", "total")
+query.Sum("amount", "revenue")
+query.Avg("score", "avgScore")
+query.Min("price", "minPrice")
+query.Max("price", "maxPrice")
+
+// Grouping
+query.GroupBy([]interface{}{"status", "year"})
+query.Having([]string{query.GreaterThan("total", 1)})
+query.Distinct()
+
+// Joins (table id, left key, right key, operator, alias)
+query.Join("orders", "$id", "customerId", "=", "")
+query.LeftJoin("orders", "$id", "customerId", "=", "ord")
+query.LeftJoinOn("orders", "ord", []string{
+    query.On("$id", "customerId", ""),
+    query.Equal("ord.status", "paid"),
+})
+
+// Fluent builder. Pass Build() into list methods.
+queries := query.NewBuilder().
+    Equal("status", "published").
+    LeftJoin("orders", "$id", "customerId", "=", "ord").
+    Count("*", "total").
+    GroupBy([]interface{}{"status"}).
+    Limit(25).
+    Build()
+
+_, _ = service.ListRows("[DATABASE_ID]", "[TABLE_ID]", service.WithListRowsQueries(queries))
 ```
 
 ### File Storage

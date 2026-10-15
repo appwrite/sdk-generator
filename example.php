@@ -82,13 +82,11 @@ try {
             ],
         ];
 
-        // Deep-merge exclude services so overrides add to defaults rather than replacing
-        if (isset($overrides['exclude']['services']) && isset($defaults['exclude']['services'])) {
-            $overrides['exclude']['services'] = [
-                ...$defaults['exclude']['services'],
-                ...$overrides['exclude']['services'],
-            ];
+        $exclude = $defaults['exclude'];
+        foreach ($overrides['exclude'] ?? [] as $kind => $rules) {
+            $exclude[$kind] = [...($exclude[$kind] ?? []), ...$rules];
         }
+        $overrides['exclude'] = $exclude;
 
         $config = [...$defaults, ...$overrides];
 
@@ -264,11 +262,22 @@ try {
 
     // CLI
     if (!$requestedSdk || $requestedSdk === 'cli') {
+        // CLI go.mod replace-pins github.com/appwrite/sdk-for-go/v7 to ../go.
+        $go = new SDK(new Go(), buildSpecification($spec));
+        configureSDK($go, [
+            'platform' => 'server',
+            'gitUserName' => 'appwrite',
+            'gitRepoName' => 'sdk-for-go',
+            'version' => '7.2.0-rc.3',
+        ]);
+        $go->generate(__DIR__ . '/examples/go');
+
         $language = new CLI();
         $language->setExecutableName('appwrite');
         $language->setLogo($cliLogo);
         $language->setLogoUnescaped($cliLogoUnescaped);
         $language->setNPMPackage('appwrite-cli');
+        $language->setSdkPath('../go');
 
         $sdk = new SDK($language, buildSpecification($spec));
         $sdk->setTest(false);
@@ -332,11 +341,11 @@ try {
     if (!$requestedSdk || $requestedSdk === 'go') {
         $sdk  = new SDK(new Go(), buildSpecification($spec));
         // The version decides the major-version suffix Go requires from v2 on,
-        // so examples/go declares `sdk-for-go/v6` like the published module.
+        // so examples/go declares `sdk-for-go/v7` like the published module.
         configureSDK($sdk, [
             'gitUserName' => 'appwrite',
             'gitRepoName' => 'sdk-for-go',
-            'version' => '6.2.0',
+            'version' => '7.2.0-rc.3',
         ]);
         $sdk->generate(__DIR__ . '/examples/go');
     }

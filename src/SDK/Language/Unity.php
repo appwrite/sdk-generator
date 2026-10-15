@@ -171,6 +171,11 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Query/Builder.cs',
+                'template'      => 'dotnet/Package/Query/Builder.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Role.cs',
                 'template'      => 'dotnet/Package/Role.cs.twig',
             ],

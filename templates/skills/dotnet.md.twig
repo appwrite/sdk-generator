@@ -132,6 +132,37 @@ Query.CursorBefore("[ROW_ID]")
 Query.Select(new List<string> { "field1", "field2" })
 Query.Or(new List<string> { Query.Equal("a", 1), Query.Equal("b", 2) })   // OR
 Query.And(new List<string> { Query.GreaterThan("age", 18), Query.LessThan("age", 65) })  // AND (default)
+
+// Aggregations (optional alias)
+Query.Count("*", "total")
+Query.Sum("amount", "revenue")
+Query.Avg("score", "avgScore")
+Query.Min("price", "minPrice")
+Query.Max("price", "maxPrice")
+
+// Grouping
+Query.GroupBy(new List<string> { "status", "year" })
+Query.Having(new List<string> { Query.GreaterThan("total", 1) })
+Query.Distinct()
+
+// Joins (table id, left key, right key, operator, alias)
+Query.Join("orders", "$id", "customerId")
+Query.LeftJoin("orders", "$id", "customerId", "=", "ord")
+Query.LeftJoin("orders", "ord", new List<string> {
+    Query.On("$id", "customerId"),
+    Query.Equal("ord.status", "paid"),
+})
+
+// Fluent builder. Pass Build() into list methods.
+var queries = new Query.Builder()
+    .Equal("status", "published")
+    .LeftJoin("orders", "$id", "customerId", "=", "ord")
+    .Count("*", "total")
+    .GroupBy(new List<string> { "status" })
+    .Limit(25)
+    .Build();
+
+await tablesDB.ListRows("[DATABASE_ID]", "[TABLE_ID]", queries);
 ```
 
 ### File Storage
