@@ -51,6 +51,7 @@ final class WebNodeTest extends Base
         ...Base::OPTIONAL_PARAM_RESPONSES,
         ...Base::UNION_RESPONSES,
         ...Base::MODEL_DEFAULT_RESPONSES,
+        ...Base::JS_DEFAULT_COPY_RESPONSES,
         ...Base::NULLABLE_MODEL_RESPONSES,
         ...Base::JS_MODEL_TO_STRING_RESPONSES,
         ...Base::NULLABLE_PARAM_RESPONSES,

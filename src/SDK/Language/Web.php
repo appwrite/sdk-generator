@@ -321,7 +321,7 @@ class Web extends JS
             return match ($type) {
                 self::TYPE_ARRAY => '[]',
                 self::TYPE_FILE => $this->getFileExample(),
-                self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => 'null',
+                self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => $this->getScalarExampleFallback($param),
                 self::TYPE_OBJECT => '{}',
                 self::TYPE_STRING => "''",
             };

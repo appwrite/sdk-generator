@@ -103,7 +103,11 @@ abstract class Base extends TestCase
     ];
 
     protected const JS_MODEL_TO_STRING_RESPONSES = [
-        'preset toString: {"name":"guest","count":25,"enabled":false,"tier":"free","verified":null,"scopes":["read","write"]}',
+        'preset toString: {"name":"guest","count":25,"enabled":false,"tier":"free","tags":[],"settings":{},"verified":null,"scopes":["read","write"]}',
+    ];
+
+    protected const JS_DEFAULT_COPY_RESPONSES = [
+        'preset tags shared: 0',
     ];
 
     protected const NULLABLE_PARAM_RESPONSES = [

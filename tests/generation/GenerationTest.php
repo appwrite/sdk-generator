@@ -386,6 +386,35 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A `{}` spec default decodes to an empty PHP array, and a number param
+     * without an example used to print `null`; both must keep their declared
+     * type in the generated TypeScript.
+     */
+    #[RunInSeparateProcess]
+    public function testJavascriptDefaultsAndExamplesKeepTheirTypes(): void
+    {
+        $defaults = [];
+        $examples = [];
+        foreach (['web', 'node', 'react-native', 'deno'] as $name) {
+            foreach (self::PLATFORMS as $platform) {
+                $files = $this->generate($name, $platform);
+                $general = $files['src/services/general.ts'] ?? '';
+                if (\str_contains($general, 'getpreset(')) {
+                    $this->assertStringContainsString('settings: {}', $general, "{$name}/{$platform} object default");
+                    $this->assertStringNotContainsString('settings: []', $general, "{$name}/{$platform} object default");
+                    $defaults[] = "{$name}/{$platform}";
+                }
+                if (isset($files['docs/examples/foo/get.md'])) {
+                    $this->assertMatchesRegularExpression('/\\by: 0\\b/', $files['docs/examples/foo/get.md'], "{$name}/{$platform} number example");
+                    $examples[] = "{$name}/{$platform}";
+                }
+            }
+        }
+        $this->assertNotEmpty($defaults);
+        $this->assertNotEmpty($examples);
+    }
+
+    /**
      * A canonical document keys `x-appwrite.auth` by platform. The fixture's
      * platform-auth operation lists `Project` for client and `Project, Key` for
      * server plus an optional Session, and the server alias variant lists
@@ -766,6 +795,8 @@ final class GenerationTest extends TestCase
                                     count: 25,
                                     enabled: true,
                                     tier: 'free',
+                                    tags: [],
+                                    settings: {},
                                 },
                                 properties: {
                                     parent: 'preset',
@@ -794,6 +825,8 @@ final class GenerationTest extends TestCase
                                     count: 25,
                                     enabled: true,
                                     tier: 'free',
+                                    tags: [],
+                                    settings: {},
                                 },
                                 properties: {
                                     parent: 'preset',
@@ -814,6 +847,8 @@ final class GenerationTest extends TestCase
                                     count: 25,
                                     enabled: true,
                                     tier: 'free',
+                                    tags: [],
+                                    settings: {},
                                 },
                                 properties: {
                                     parent: 'preset',
