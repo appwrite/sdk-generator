@@ -586,7 +586,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 throw new ArgumentException("Per page must be >= 1, got " + perPage);
             }
 
-            return new List<string> { Limit(perPage), Offset((page - 1) * perPage) };
+            return new List<string> { Limit(perPage), Offset(checked((page - 1) * perPage)) };
         }
 
         public static object? Flatten(object? value)

@@ -481,9 +481,12 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 // Call an API using Client
 func (client *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (*ClientResponse, error) {
 	if params != nil {
+		// Work on a copy: the caller's map may be shared or reused
+		flattened := make(map[string]interface{}, len(params))
 		for key, value := range params {
-			params[key] = flattenValue(value)
+			flattened[key] = flattenValue(value)
 		}
+		params = flattened
 	}
 
 	if client.Client == nil {

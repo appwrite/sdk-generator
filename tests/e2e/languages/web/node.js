@@ -1,4 +1,4 @@
-const { AppwriteException, Client, Foo, Bar, General, Plaintext, Query, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
+const { AppwriteException, Client, Foo, Bar, General, Plaintext, Query, flattenParam, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
 
 async function start() {
     let response;
@@ -203,6 +203,7 @@ async function start() {
     console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
     presets.presets[0].tags.push('mutated');
     console.log(`preset tags shared: ${presets.presets[1].tags.length}`);
+    console.log(`nested builder: ${JSON.stringify(flattenParam([[Query.builder().limit(1)]])) === JSON.stringify([[Query.limit(1)]]) ? 'passed' : 'failed'}`);
     console.log(`preset verified: ${preset.verified}`);
     console.log(`preset toString: ${preset.toString()}`);
 

@@ -132,6 +132,11 @@ class JsonRequestBodyTest {
         assertEquals("""{"count":1,"nested":{"value":null}}""", requestBodyUtf8(part.body))
     }
 
+    @Test
+    fun flattenTurnsArraysIntoLists() {
+        assertEquals(listOf("a", "b"), Client().flatten(arrayOf("a", "b")))
+    }
+
     private fun requestBodyUtf8(body: okhttp3.RequestBody): String {
         val buffer = Buffer()
         body.writeTo(buffer)

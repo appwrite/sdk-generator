@@ -36,6 +36,7 @@ void main() {
       'an embedded +': ['user', 'a+b'],
       'a lone #': ['user', '#'],
       'an embedded #': ['user', 'a#b'],
+      'a NUL character': ['user', 'a\u0000b'],
     };
 
     invalid.forEach((name, levels) {

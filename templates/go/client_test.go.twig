@@ -377,4 +377,25 @@ func TestCallSendsFlattenedParams(t *testing.T) {
 		t.Errorf("Expected queries[0] to be %q in the query string, got %q", query.Limit(1), got)
 	}
 }
+
+func TestCallLeavesTheCallersParamsUnchanged(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		w.Write([]byte("{}"))
+	}))
+	defer server.Close()
+
+	c := New()
+	c.Endpoint = server.URL
+	builder := query.NewBuilder().Limit(1)
+	params := map[string]interface{}{"queries": builder}
+
+	_, err := c.Call("POST", "/", map[string]interface{}{"content-type": "application/json"}, params)
+	if err != nil {
+		t.Fatalf("Expected the call to succeed, got %v", err)
+	}
+	if params["queries"] != builder {
+		t.Errorf("Expected the caller's params to keep the builder, got %#v", params["queries"])
+	}
+}
 {% endautoescape %}

@@ -876,7 +876,7 @@ class Query(
         fun page(page: Int, perPage: Int = 25): List<String> {
             require(page >= 1) { "Page must be >= 1, got $page" }
             require(perPage >= 1) { "Per page must be >= 1, got $perPage" }
-            return listOf(limit(perPage), offset((page - 1) * perPage))
+            return listOf(limit(perPage), offset(Math.multiplyExact(page - 1, perPage)))
         }
 
         /**

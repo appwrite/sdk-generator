@@ -43,6 +43,12 @@ class Unity extends DotNet
         'oauth2',
     ];
 
+    /**
+     * Configs saved before the config recorded which services it knew about
+     * (0.9.0 and earlier) knew the first 15 flags.
+     */
+    private const int UNTRACKED_SERVICE_FLAGS = 15;
+
     public function setPackageName(string $name): self
     {
         $this->setParam('packageName', $name);
@@ -721,6 +727,7 @@ class Unity extends DotNet
         return [
             ...parent::getFilters(),
             new TwigFilter('serviceFlags', $this->getServiceFlags(...)),
+            new TwigFilter('untrackedServiceMask', $this->getUntrackedServiceMask(...)),
         ];
     }
 
@@ -742,5 +749,22 @@ class Unity extends DotNet
         \usort($flags, fn(array $left, array $right): int => $left['bit'] <=> $right['bit']);
 
         return $flags;
+    }
+
+    /**
+     * The flags a config saved before 0.10.0 could hold, as one mask.
+     *
+     * @param array<Tag> $services
+     */
+    private function getUntrackedServiceMask(array $services): int
+    {
+        $mask = 0;
+        foreach ($this->getServiceFlags($services) as $flag) {
+            if ($flag['bit'] < self::UNTRACKED_SERVICE_FLAGS) {
+                $mask |= 1 << $flag['bit'];
+            }
+        }
+
+        return $mask;
     }
 }

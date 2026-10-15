@@ -32,6 +32,7 @@ final class TopicTest extends TestCase
         yield 'contains plus' => [['user', 'a+b']];
         yield 'hash' => [['user', '#']];
         yield 'contains hash' => [['user', 'a#b']];
+        yield 'contains NUL' => [['user', "a\0b"]];
     }
 
     #[DataProvider('invalidLevels')]

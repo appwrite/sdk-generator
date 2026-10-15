@@ -21,6 +21,7 @@ describe('Topic', () => {
         ['an embedded +', ['user', 'a+b']],
         ['a lone #', ['user', '#']],
         ['an embedded #', ['user', 'a#b']],
+        ['a NUL character', ['user', 'a\u0000b']],
         ['a non-string level', ['user', null]],
         ['a non-array', 'user'],
     ])('rejects %s', (_, levels) => {

@@ -504,6 +504,15 @@ namespace AppwriteTests
                     LogResult($"Topic {name}:passed");
                 }
             }
+            try
+            {
+                Query.Page(50000000, 50);
+                LogResult("Query page overflow:failed");
+            }
+            catch (System.OverflowException)
+            {
+                LogResult("Query page overflow:passed");
+            }
 
             // Channel helper tests
             LogResult(Channel.Database("db1").Collection("col1").Document().ToString());
@@ -756,6 +765,36 @@ namespace AppwriteTests
             {
                 Object.DestroyImmediate(realtimeObject);
             }
+
+            // Reinitializing the manager rebuilds Push on the new client
+            var managerObject = new GameObject("AppwriteManagerTest");
+            var manager = managerObject.AddComponent<AppwriteManager>();
+            var managerConfig = ScriptableObject.CreateInstance<AppwriteConfig>();
+            await manager.Reinitialize(managerConfig);
+            var firstManagerPush = manager.Push;
+            await manager.Reinitialize(managerConfig);
+            LogResult(!ReferenceEquals(manager.Push, firstManagerPush)
+                ? "Manager push reinitialize:passed"
+                : "Manager push reinitialize:failed");
+            Object.DestroyImmediate(managerObject);
+
+            // A config that selected every service it knew about also selects the services added since
+            var allServices = (int)AppwriteService.All;
+            var newestService = allServices;
+            while ((newestService & (newestService - 1)) != 0)
+                newestService &= newestService - 1;
+            var olderServices = allServices & ~newestService;
+            var fullConfig = ScriptableObject.CreateInstance<AppwriteConfig>();
+            JsonUtility.FromJsonOverwrite($"{{\"servicesToInitialize\":{olderServices},\"knownServices\":{olderServices}}}", fullConfig);
+            LogResult(fullConfig.ServicesToInitialize == AppwriteService.All
+                ? "Config all services:passed"
+                : $"Config all services:failed ({(int)fullConfig.ServicesToInitialize})");
+            var oldestService = allServices & -allServices;
+            var partialConfig = ScriptableObject.CreateInstance<AppwriteConfig>();
+            JsonUtility.FromJsonOverwrite($"{{\"servicesToInitialize\":{oldestService},\"knownServices\":{olderServices}}}", partialConfig);
+            LogResult((int)partialConfig.ServicesToInitialize == oldestService
+                ? "Config some services:passed"
+                : $"Config some services:failed ({(int)partialConfig.ServicesToInitialize})");
 
         }
     }
