@@ -425,7 +425,7 @@ final class GenerationTest extends TestCase
         $this->assertSame([], $this->filesContaining($files, 'use utopia\\client as'));
         $this->assertSame([], $this->filesContaining($files, 'use utopia\\client;'));
         $this->assertStringContainsString('use utopia\\client\\client as httpclient;', $files['src/Appwrite/Client.php']);
-        $this->assertDoesNotMatchRegularExpression('/"utopia-php\/client": "\^0\.[0-4]\b/', $files['composer.json']);
+        $this->assertMatchesRegularExpression('/"utopia-php\/client": "\^(?!0\.[0-4]\b)\d/', $files['composer.json']);
     }
 
     /**
