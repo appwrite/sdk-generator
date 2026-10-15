@@ -7,7 +7,7 @@ import kotlin.test.assertFailsWith
 class TopicTest {
     private fun assertPathFails(levels: List<String>) {
         assertFailsWith<IllegalArgumentException> { Topic.path(levels) }
-        assertFailsWith<IllegalArgumentException> { Topic.any().path(levels) }
+        assertFailsWith<IllegalArgumentException> { Topic.path(listOf("user")).path(levels) }
     }
 
     @Test
@@ -21,23 +21,6 @@ class TopicTest {
             "org/42/user/123/notification",
             Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString(),
         )
-    }
-
-    @Test
-    fun anyAppendsSingleLevelWildcard() {
-        assertEquals("user/+/notification", Topic.path(listOf("user")).any().path(listOf("notification")).toString())
-        assertEquals("chat/+/+/message", Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
-    }
-
-    @Test
-    fun allEndsTopic() {
-        assertEquals("org/+/logs/#", Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
-    }
-
-    @Test
-    fun staticAnyAndAll() {
-        assertEquals("+/notification", Topic.any().path(listOf("notification")).toString())
-        assertEquals("#", Topic.all().toString())
     }
 
     @Test
