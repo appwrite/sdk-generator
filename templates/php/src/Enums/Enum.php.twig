@@ -9,7 +9,7 @@ final class {{ enum.title | caseUcfirst | overrideIdentifier }}
 {
     {%~ for value in enum.enum %}
     {%~ set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
-    public const {{ key | caseEnumKey }} = '{{ value }}';
+    public const string {{ key | caseEnumKey }} = '{{ value }}';
     {%~ endfor %}
 }
 {% else %}

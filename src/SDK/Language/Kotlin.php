@@ -141,59 +141,38 @@ class Kotlin extends Language
         };
     }
 
-    public function getParamDefault(Schema|Parameter $param): string
+    /**
+     * A numeric literal of the parameter's declared type.
+     *
+     * Integers are `Long` and numbers `Double`. Java does not widen an int
+     * literal to either boxed type, and Kotlin does not widen one to `Double`.
+     */
+    protected function getNumberLiteral(mixed $value, string $type, string $lang): string
     {
-        $type       = $this->getSchemaType($param);
-        $default    = $this->getSchemaDefault($param);
-        $required   = ($param instanceof Parameter && $param->required);
+        $literal = (string) $value;
 
-        if ($required) {
-            return '';
+        if ($type === self::TYPE_INTEGER) {
+            return $lang === 'java' ? $literal . 'L' : $literal;
         }
 
-        $output = ' = ';
+        return \is_numeric($literal) && !\str_contains($literal, '.') && !\str_contains(\strtolower($literal), 'e')
+            ? $literal . '.0'
+            : $literal;
+    }
 
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_INTEGER:
-                    $output .= '-1';
-                    break;
-                case self::TYPE_NUMBER:
-                    $output .= '1.0';
-                    break;
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= '""';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
-                case self::TYPE_NUMBER:
-                    $output .= sprintf("%.1f", $default);
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "\"{$default}\"";
-                    break;
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= 'null';
-                    break;
-            }
+    /**
+     * A double-quoted string literal. Kotlin also interpolates `$`, so it is
+     * escaped there; Java takes it as-is.
+     */
+    protected function getStringLiteral(string $value, string $lang): string
+    {
+        $escaped = \str_replace(['\\', '"', "\n"], ['\\\\', '\\"', '\\n'], $value);
+
+        if ($lang !== 'java') {
+            $escaped = \str_replace('$', '\\$', $escaped);
         }
 
-        return $output;
+        return '"' . $escaped . '"';
     }
 
     /**
@@ -213,7 +192,7 @@ class Kotlin extends Language
                     break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                    $output .= '0';
+                    $output .= $this->getNumberLiteral(0, $type, $lang);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= 'false';
@@ -247,9 +226,11 @@ class Kotlin extends Language
                     }
                     break;
                 case self::TYPE_FILE:
+                    $output .= $example;
+                    break;
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
-                    $output .= $example;
+                    $output .= $this->getNumberLiteral($example, $type, $lang);
                     break;
                 case self::TYPE_ARRAY:
                     if ($this->isPermissionString($example)) {
@@ -262,7 +243,7 @@ class Kotlin extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"{$example}\"";
+                    $output .= $this->getStringLiteral((string) $example, $lang);
                     break;
             }
         }
@@ -281,9 +262,9 @@ class Kotlin extends Language
         $baseIndent = str_repeat('    ', $indentLevel + 2);
 
         foreach ($data as $key => $value) {
-            $formattedKey = '"' . $key . '"';
+            $formattedKey = $this->getStringLiteral((string) $key, 'kotlin');
             if (is_string($value)) {
-                $formattedValue = '"' . $value . '"';
+                $formattedValue = $this->getStringLiteral($value, 'kotlin');
             } elseif (is_bool($value)) {
                 $formattedValue = $value ? 'true' : 'false';
             } elseif (is_null($value)) {
@@ -321,9 +302,9 @@ class Kotlin extends Language
         $baseIndent = str_repeat('    ', $indentLevel + 2);
 
         foreach ($data as $key => $value) {
-            $formattedKey = '"' . $key . '"';
+            $formattedKey = $this->getStringLiteral((string) $key, 'java');
             if (is_string($value)) {
-                $formattedValue = '"' . $value . '"';
+                $formattedValue = $this->getStringLiteral($value, 'java');
             } elseif (is_bool($value)) {
                 $formattedValue = $value ? 'true' : 'false';
             } elseif (is_null($value)) {
@@ -375,7 +356,7 @@ class Kotlin extends Language
                     }
                 } elseif (is_string($item)) {
                     // Primitive value
-                    $arrayItems[] = '"' . $item . '"';
+                    $arrayItems[] = $this->getStringLiteral($item, $lang);
                 } elseif (is_bool($item)) {
                     $arrayItems[] = $item ? 'true' : 'false';
                 } elseif (is_null($item)) {
@@ -543,6 +524,11 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Topic.kt',
+                'template'      => '/kotlin/src/main/kotlin/io/appwrite/Topic.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Query.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Query.kt.twig',
             ],
@@ -575,6 +561,11 @@ class Kotlin extends Language
                 'scope'         => 'default',
                 'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
                 'template'      => '/kotlin/src/test/kotlin/io/appwrite/JsonRequestBodyTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/TopicTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/TopicTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -638,6 +629,11 @@ class Kotlin extends Language
         }
 
         $mapKey = 'map["' . \str_replace('$', '\\$', $propertyName) . '"]';
+        $default = $this->getModelDefault($property, $required);
+        if ($default !== null) {
+            $mapKey = '(if (map.containsKey(' . $this->getStringLiteral($propertyName, 'kotlin') . ')) ' . $mapKey
+                . ' else ' . $this->getValueLiteral($default, $property, $spec) . ')';
+        }
         $model = $this->getSchemaModel($property);
         if ($model !== null) {
             $class = $this->toPascalCase($model);
@@ -655,10 +651,16 @@ class Kotlin extends Language
             return $class . '.from(map = ' . $mapKey . ' as Map<String, Any>' . $nestedType . ')';
         }
 
-        // Only a scalar enum property is decoded through its enum class; a
-        // list of enums is cast straight across, which is how the published
-        // SDKs read it.
-        if (!($property instanceof ArraySchema) && $this->usesEnumType($property)) {
+        // Responses carry enum values as strings, so each element of an enum
+        // list goes through the enum class too; values this SDK doesn't know
+        // yet are skipped rather than failing the whole model.
+        if ($property instanceof ArraySchema && $this->usesEnumType($property)) {
+            $enumClass = 'io.appwrite.enums.' . $this->toPascalCase($this->getSchemaEnumName($property, $spec));
+            return '(' . $mapKey . ' ' . ($required ? 'as' : 'as?') . ' List<*>)' . ($required ? '' : '?')
+                . '.mapNotNull { value -> ' . $enumClass . '.values().find { it.value == value } }';
+        }
+
+        if ($this->usesEnumType($property)) {
             $enumClass = $this->toPascalCase($this->getSchemaEnumName($property, $spec));
             return $enumClass . '.values().find { it.value == '
                 . ($required ? $mapKey . ' as String' : '(' . $mapKey . ' as? String)') . ' }'
@@ -673,16 +675,62 @@ class Kotlin extends Language
         };
     }
 
+    protected function getValueLiteral(mixed $value, ?Schema $schema, Specification $spec): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (\is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (\is_int($value) || \is_float($value)) {
+            $type = $schema instanceof Schema ? $this->getSchemaType($schema) : '';
+            $numberType = $type === self::TYPE_NUMBER || ($type !== self::TYPE_INTEGER && \is_float($value))
+                ? self::TYPE_NUMBER
+                : self::TYPE_INTEGER;
+
+            return $this->getNumberLiteral($value, $numberType, 'kotlin');
+        }
+
+        if (\is_string($value)) {
+            return $this->getStringLiteral($value, 'kotlin');
+        }
+
+        $value = (array) $value;
+        if (!$schema instanceof ArraySchema) {
+            $model = $schema instanceof Schema ? $this->getSchemaModel($schema) : null;
+            $schema = $model === null ? $schema : ($spec->schemas[$model] ?? null);
+        }
+
+        if ($schema instanceof ArraySchema || (!$schema instanceof ObjectSchema && \array_is_list($value))) {
+            $items = $schema instanceof ArraySchema ? $schema->items : null;
+
+            return 'listOf<Any?>(' . \implode(', ', \array_map(fn(mixed $item): string => $this->getValueLiteral($item, $items, $spec), $value)) . ')';
+        }
+
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $itemSchema = $schema instanceof ObjectSchema
+                ? ($schema->properties[$key] ?? ($schema->additionalProperties instanceof Schema ? $schema->additionalProperties : null))
+                : null;
+            $pairs[] = $this->getStringLiteral((string) $key, 'kotlin') . ' to ' . $this->getValueLiteral($item, $itemSchema, $spec);
+        }
+
+        return 'mapOf<String, Any?>(' . \implode(', ', $pairs) . ')';
+    }
+
     #[Override]
     public function getFilters(): array
     {
         return [
             new TwigFilter('returnType', function (Operation $method, Specification $spec, string $namespace, string $generic = 'T'): string {
                 $methodType = $this->getMethodType($method, $spec);
-                if ($methodType === 'webAuth') {
+                if ($methodType === self::METHOD_TYPE_WEB_AUTH || $this->isTextResponse($method, $spec)) {
                     return 'String';
                 }
-                if ($methodType === 'location') {
+                if ($methodType === self::METHOD_TYPE_LOCATION) {
                     return 'ByteArray';
                 }
 

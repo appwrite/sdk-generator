@@ -49,11 +49,6 @@ class Web extends JS
                 'template'      => 'web/src/client.ts.twig',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'src/service.ts',
-                'template'      => 'web/src/service.ts.twig',
-            ],
-            [
                 'scope'         => 'service',
                 'destination'   => 'src/services/{{service.name | caseKebab}}.ts',
                 'template'      => 'web/src/services/template.ts.twig',
@@ -62,6 +57,17 @@ class Web extends JS
                 'scope'         => 'default',
                 'destination'   => 'src/services/realtime.ts',
                 'template'      => 'web/src/services/realtime.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/services/push.ts',
+                'template'      => 'web/src/services/push.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/services/analytics-tracking.ts',
+                'requires'      => 'analytics',
+                'template'      => 'web/src/services/analytics-tracking.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -82,6 +88,11 @@ class Web extends JS
                 'scope'         => 'default',
                 'destination'   => 'src/id.ts',
                 'template'      => 'web/src/id.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/topic.ts',
+                'template'      => 'web/src/topic.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -339,7 +350,10 @@ class Web extends JS
         $models = $this->getSchemaModels($parameter);
         if ($models !== []) {
             $type = \implode(' | ', \array_map(fn(string $model): string => 'Models.' . $this->toPascalCase($model), $models));
-            return $schema instanceof ArraySchema ? '(' . $type . ')[]' : $type;
+            if (!$schema instanceof ArraySchema) {
+                return $type;
+            }
+            return \count($models) > 1 ? '(' . $type . ')[]' : $type . '[]';
         }
 
         return match ($this->getSchemaType($parameter)) {
@@ -410,11 +424,14 @@ class Web extends JS
     public function getReturn(Operation $method, Specification $spec): string
     {
         $type = $this->getMethodType($method, $spec);
-        if ($type === 'webAuth') {
+        if ($type === self::METHOD_TYPE_WEB_AUTH) {
             return 'void | string';
         }
-        if ($type === 'location') {
+        if ($type === self::METHOD_TYPE_LOCATION) {
             return 'string';
+        }
+        if ($this->isTextResponse($method, $spec)) {
+            return 'Promise<string>';
         }
 
         $models = \array_values(\array_filter(
@@ -466,6 +483,19 @@ class Web extends JS
     }
 
     protected function getPropertyType(Schema|Parameter $value, Operation $method, Specification $spec): string
+    {
+        $type = $this->getRequestType($value, $method, $spec);
+        $schema = $this->getSchema($value);
+        // A multipart part is either present or absent on the wire, never null
+        $parts = $method->requestBody?->content['multipart/form-data']->schema->properties ?? [];
+        if (!$schema->nullable || \in_array($schema, $parts, true)) {
+            return $type;
+        }
+
+        return (\str_contains($type, ' extends ') ? '(' . $type . ')' : $type) . ' | null';
+    }
+
+    protected function getRequestType(Schema|Parameter $value, Operation $method, Specification $spec): string
     {
         if ($this->getSchemaType($value) === self::TYPE_OBJECT) {
             $responseModel = $this->getOperationResponseModels($method)[0] ?? '';
@@ -543,6 +573,36 @@ class Web extends JS
         }
 
         return implode(' &&' . "\n" . $indent, $shape);
+    }
+
+    protected function formatArgument(Operation $method, ?Parameter $parameter = null): string
+    {
+        $parameters = $this->getOperationParameters($method);
+        if (!$parameter instanceof Parameter) {
+            return 'rest[' . (\count($parameters) - 1) . ']';
+        }
+
+        foreach ($parameters as $index => $candidate) {
+            if ($candidate->name === $parameter->name) {
+                return $index === 0 ? 'paramsOrFirst' : 'rest[' . ($index - 1) . ']';
+            }
+        }
+
+        throw new InvalidArgumentException("Parameter '{$parameter->name}' is not an argument of '{$method->id}'");
+    }
+
+    protected function formatRestTuple(Operation $method, Specification $spec): string
+    {
+        $elements = [];
+        foreach (\array_slice($this->getOperationParameters($method), 1) as $parameter) {
+            $elements[] = $this->formatTupleElement($this->getPropertyType($parameter, $method, $spec));
+        }
+
+        if (isset($method->requestBody?->content['multipart/form-data'])) {
+            $elements[] = $this->formatTupleElement('(progress: UploadProgress) => void');
+        }
+
+        return $elements === [] ? '' : '...rest: [' . implode(', ', $elements) . ']';
     }
 
     /**
@@ -678,10 +738,26 @@ class Web extends JS
         $inner = str_repeat(' ', $indent + 4);
         $lines = '';
         foreach ($this->splitTopLevel($body, ';', trackGenerics: true) as $member) {
-            $lines .= $inner . $this->wrapConditionalType($member, $indent + 4) . ";\n";
+            $lines .= $inner . $this->formatObjectMember($member, $indent + 4) . "\n";
         }
 
         return $prefix . "{\n" . $lines . $pad . '}' . $suffix;
+    }
+
+    /**
+     * Render one member of an object type, exploding an inline object type
+     * that overflows the width the same way the enclosing statement does.
+     */
+    protected function formatObjectMember(string $member, int $indent): string
+    {
+        if (
+            mb_strlen(str_repeat(' ', $indent) . $member . ';') > self::PRINT_WIDTH
+            && preg_match('/^([^:{]+:\s)\{\s(.*)\s\}$/s', $member, $matches) === 1
+        ) {
+            return $this->formatObjectStatement($matches[1], $matches[2], ';', $indent);
+        }
+
+        return $this->wrapConditionalType($member, $indent) . ';';
     }
 
     /**
@@ -844,8 +920,12 @@ class Web extends JS
      * Render a model property, breaking a parenthesised union array type across
      * lines when the declaration overflows the print width.
      */
-    protected function formatModelProperty(string $label, string $type, int $indent): string
+    protected function formatModelProperty(string $label, string $type, int $indent, bool $nullable = false): string
     {
+        if ($nullable) {
+            return $this->formatNullableModelProperty($label, $type, $indent);
+        }
+
         $pad = str_repeat(' ', $indent);
         if (mb_strlen($pad . $label . ': ' . $type . ';') <= self::PRINT_WIDTH) {
             return $label . ': ' . $type . ';';
@@ -871,6 +951,34 @@ class Web extends JS
 
         return $label . ": (\n" . $inner . '| '
             . implode("\n" . $inner . '| ', $options) . "\n" . $pad . ')[];';
+    }
+
+    protected function formatNullableModelProperty(string $label, string $type, int $indent): string
+    {
+        $pad = str_repeat(' ', $indent);
+        $union = $type . ' | null';
+        if (mb_strlen($pad . $label . ': ' . $union . ';') <= self::PRINT_WIDTH) {
+            return $label . ': ' . $union . ';';
+        }
+
+        $inner = $pad . str_repeat(' ', 4);
+        if (!str_contains($type, '<') && mb_strlen($inner . $union . ';') <= self::PRINT_WIDTH) {
+            return $label . ":\n" . $inner . $union . ';';
+        }
+
+        if (preg_match('/^\((.+)\)\[\]$/', $type, $match) === 1) {
+            if (mb_strlen($inner . '| ' . $type) <= self::PRINT_WIDTH) {
+                return $label . ":\n" . $inner . '| ' . $type . "\n" . $inner . '| null;';
+            }
+
+            $options = $this->splitTopLevel($match[1], '|', trackGenerics: true);
+            $member = $inner . str_repeat(' ', 6) . '| ';
+
+            return $label . ":\n" . $inner . "| (\n" . $member . implode("\n" . $member, $options)
+                . "\n" . $inner . '  )[]' . "\n" . $inner . '| null;';
+        }
+
+        return $label . ': ' . $union . ';';
     }
 
     /**
@@ -1033,8 +1141,9 @@ class Web extends JS
 
                 return $lhs . ' ' . $this->wrapConditionalType($type, $indent);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('tsModelProperty', fn(string $label, string $type, int $indent = 8): string => $this->formatModelProperty($label, $type, $indent), ['is_safe' => ['html']]),
-            new TwigFilter('tsTupleElement', fn(string $type): string => $this->formatTupleElement($type), ['is_safe' => ['html']]),
+            new TwigFilter('tsModelProperty', fn(string $label, string $type, int $indent = 8, bool $nullable = false): string => $this->formatModelProperty($label, $type, $indent, $nullable), ['is_safe' => ['html']]),
+            new TwigFilter('tsArgument', fn(Operation $method, ?Parameter $parameter = null): string => $this->formatArgument($method, $parameter), ['is_safe' => ['html']]),
+            new TwigFilter('tsRestTuple', fn(Operation $method, Specification $spec): string => $this->formatRestTuple($method, $spec), ['is_safe' => ['html']]),
             new TwigFilter('tsTypeAlias', fn(string $name, string $generics, string $tail, int $indent = 4): string => $this->formatTypeAlias($name, $generics, $tail, $indent), ['is_safe' => ['html']]),
             new TwigFilter('tsApiPath', fn(string $path, array $replacements, int $indent = 8): string => $this->formatApiPath($path, $replacements, $indent), ['is_safe' => ['html']]),
             new TwigFilter('tsObjectStatement', fn(string $prefix, string $body, string $suffix = ';', int $indent = 8): string => $this->formatObjectStatement($prefix, trim($body), $suffix, $indent), ['is_safe' => ['html']]),
@@ -1068,9 +1177,7 @@ class Web extends JS
                     }
                 }
 
-                $hasRest = count($params) > 1;
-
-                return $this->formatOverloadCondition($hasRequired, $keys, $hasRest);
+                return $this->formatOverloadCondition($hasRequired, $keys, $this->formatRestTuple($method, $spec) !== '');
             }, ['is_safe' => ['html']]),
         ]);
     }

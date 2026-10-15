@@ -1,11 +1,13 @@
 {% import _self as helper %}
-{% macro mockParameterValue(parameter) -%}
+{% macro mockParameterValue(parameter, spec) -%}
 {%- if (parameter | enumValues) is not empty -%}
 {%- if (parameter | schemaType) == 'array' -%}
 [{{ (parameter | enumName) | caseUcfirst }}::{{ ((parameter | enumKeys)[0] ?? (parameter | enumValues)[0]) | caseEnumKey }}()]
 {%- else -%}
 {{ (parameter | enumName) | caseUcfirst }}::{{ ((parameter | enumKeys)[0] ?? (parameter | enumValues)[0]) | caseEnumKey }}()
 {%- endif -%}
+{%- elseif (parameter | schemaModel) is not empty and (parameter | schemaType) != 'array' -%}
+{{ (parameter | schemaModel) | caseUcfirst | overrideIdentifier }}::from({{ (parameter | schemaModel) | mockDefinitionPayload(spec, 4) | raw }})
 {%- elseif (parameter | schemaType) == 'object' -%}
 []
 {%- elseif (parameter | schemaType) == 'array' -%}
@@ -15,7 +17,8 @@ InputFile::withData('', 'image/png')
 {%- elseif (parameter | schemaType) == 'boolean' -%}
 true
 {%- elseif (parameter | schemaType) == 'string' -%}
-"{% if (parameter | schemaExample) is not empty %}{{ (parameter | schemaExample) | escapeDollarSign }}{% endif %}"
+{#- The service rejects an empty required path string, so fall back to the parameter name. -#}
+"{{ ((parameter | schemaExample) is not empty ? (parameter | schemaExample) : parameter.name) | escapeDollarSign }}"
 {%- elseif (parameter | schemaType) == 'integer' -%}
 1
 {%- elseif (parameter | schemaType) == 'number' -%}
@@ -40,6 +43,10 @@ use PHPUnit\Framework\TestCase;
 {% if parameter.required and (parameter | schemaType) == 'file' and 'InputFile' not in added %}
 use {{ namespace | caseNamespace }}\InputFile;
 {% set added = added|merge(['InputFile']) %}
+{% endif %}
+{% if parameter.required and (parameter | schemaModel) is not empty and (parameter | schemaType) != 'array' and (parameter | schemaModel) not in added %}
+use {{ namespace | caseNamespace }}\Models\{{ (parameter | schemaModel) | caseUcfirst | overrideIdentifier }};
+{% set added = added|merge([(parameter | schemaModel)]) %}
 {% endif %}
 {% if parameter.required and (parameter | enumName) is not empty and (parameter | enumName) not in added %}
 use {{ namespace | caseNamespace }}\Enums\{{ (parameter | enumName) | caseUcfirst }};
@@ -111,7 +118,7 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 {% if requiredParameters | length > 0 %}
         $response = $this->{{ service.name | caseCamel }}->{{ (method | methodName) | caseCamel }}(
 {% for parameter in requiredParameters %}
-            {{ helper.mockParameterValue(parameter) }}{{ loop.last ? '' : ',' }}
+            {{ helper.mockParameterValue(parameter, spec) }}{{ loop.last ? '' : ',' }}
 {% endfor %}
         );
 {% else %}

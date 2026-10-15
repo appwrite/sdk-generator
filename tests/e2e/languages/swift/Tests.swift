@@ -90,6 +90,31 @@ class Tests: XCTestCase {
         }
         print(try await general.validatePath(plain: "0", id: "0").result)
         print(try await general.validatePath(plain: "0", id: nil).result)
+        print(try await general.getQuery(value: "a&b+c#d=e%f", values: ["a&b", "c+d#e"]).result)
+
+        let zone: String = try await Plaintext(client).getZone()
+        print(zone)
+        let mixed: Mock = try await general.getMixed()
+        print(mixed.result)
+        let plaintext = Plaintext(client)
+        var imported: String = try await plaintext.importZone(records: "www 3600 IN A 192.0.2.1")
+        print(imported)
+        let zoneFile = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
+        imported = try await plaintext.importZone(records: "www 3600 IN A 192.0.2.1", zone: zoneFile)
+        print(imported)
+
+        let message = "conversation without a required file"
+        mock = try await general.optionalUpload(message: message)
+        print(mock.result)
+
+        let attachment = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
+        mock = try await general.optionalUpload(message: message, attachment: attachment)
+        print(mock.result)
+
+        mock = try await general.optionalUpload(message: message, metadata: ["source": "sdk", "uri": "café"])
+        print(mock.result)
+        mock = try await general.optionalUpload(message: message, attachment: attachment, metadata: ["source": "sdk", "uri": "café"])
+        print(mock.result)
 
         do {
             var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
@@ -127,6 +152,17 @@ class Tests: XCTestCase {
             print(error.localizedDescription)
         }
 
+        do {
+            let file = InputFile.fromData(Data(count: 5 * 1024 * 1024), filename: "boundary.bin", mimeType: "application/octet-stream")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch {
+            print(error.localizedDescription)
+        }
+
+        let profile = try await general.uploadGeneric(file: InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png"))
+        print(profile.prefs.data["result"]?.value as? String ?? "")
+
         var downloaded = try await general.download()
         print(downloaded.readString(length: downloaded.readableBytes) ?? "")
 
@@ -148,6 +184,15 @@ class Tests: XCTestCase {
             AnyCodable(["$id": "two", "title": "world"])
         ])
         print(mock.result)
+
+        let preset = try await general.getPreset()
+        print("preset: name=\(preset.name), count=\(preset.count), enabled=\(preset.enabled)")
+        for item in try await general.listPresets().presets {
+            print("preset: name=\(item.name), count=\(item.count), enabled=\(item.enabled)")
+        }
+        print("empty presets: \(try await general.listEmptyPresets().presets.count)")
+        print("preset verified: \(preset.verified.map { String($0) } ?? "null")")
+        print("preset scopes: \((preset.scopes ?? []).map { $0.rawValue }.joined(separator: ","))")
 
         do {
             try await general.error400()
@@ -319,6 +364,30 @@ class Tests: XCTestCase {
         // ID helper tests
         print(ID.unique())
         print(ID.custom("custom_id"))
+
+        // Topic helper tests
+        print(try Topic.path(["user", "123", "notification"]).toString())
+        print(try Topic.path(["org", "42", "user", "123"]).path(["notification"]).toString())
+        print(try Topic.path(["user"]).any().path(["notification"]).toString())
+        print(try Topic.path(["chat"]).any().any().path(["message"]).toString())
+        print(try Topic.path(["org"]).any().path(["logs"]).all().toString())
+        print(try Topic.any().path(["notification"]).toString())
+        print(Topic.all().toString())
+        let topicCases: [(String, [String])] = [
+            ("empty path", []),
+            ("empty level", ["user", ""]),
+            ("slash", ["user/123"]),
+            ("plus", ["user", "a+b"]),
+            ("hash", ["user", "#"]),
+        ]
+        for (name, levels) in topicCases {
+            do {
+                _ = try Topic.path(levels)
+                print("Topic \(name):failed")
+            } catch {
+                print("Topic \(name):passed")
+            }
+        }
 
         // Operator helper tests
         print(Operator.increment(1))

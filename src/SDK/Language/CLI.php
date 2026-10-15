@@ -179,14 +179,16 @@ class CLI extends Go
      * Go identifier for a flag's backing variable.
      *
      * Derived from the flag name so the two stay obviously related, then made
-     * safe for Go. Renaming here never changes the flag itself.
+     * safe for Go. The service's own package is imported into the same file, so
+     * a parameter named after it would shadow the package. Renaming here never
+     * changes the flag itself.
      */
-    protected function getGoVarName(string $name): string
+    protected function getGoVarName(string $name, Tag $service): string
     {
         $optionName = $this->getCliOptionName($name);
         $camel = lcfirst(str_replace(' ', '', ucwords(str_replace('-', ' ', $optionName))));
 
-        return in_array($camel, self::GO_RESERVED_IDENTIFIERS, true)
+        return in_array($camel, self::GO_RESERVED_IDENTIFIERS, true) || $camel === $this->getGoPackageName($service->name)
             ? $camel . 'Arg'
             : $camel;
     }
@@ -198,7 +200,7 @@ class CLI extends Go
      *
      * @return array{flag: string, var: string, register: string, goType: string, required: bool, noOptDefault: string|null}
      */
-    protected function getCliOption(Parameter $parameter): array
+    protected function getCliOption(Parameter $parameter, Tag $service): array
     {
         $flag = $this->getCliOptionName($parameter->name);
         $type = $this->getSchemaType($parameter);
@@ -216,7 +218,7 @@ class CLI extends Go
 
         return [
             'flag' => $flag,
-            'var' => $this->getGoVarName($parameter->name),
+            'var' => $this->getGoVarName($parameter->name, $service),
             'register' => $register,
             'goType' => $goType,
             'required' => $required,
@@ -254,8 +256,8 @@ class CLI extends Go
         $decodes = [];
 
         foreach ($this->getOperationParameters($method) as $parameter) {
-            $variable = $this->getGoVarName($parameter->name);
-            $flagType = $this->getCliOption($parameter)['goType'];
+            $variable = $this->getGoVarName($parameter->name, $service);
+            $flagType = $this->getCliOption($parameter, $service)['goType'];
             $sdkType = parent::getTypeName($parameter);
             $expression = $variable;
 
@@ -379,8 +381,8 @@ class CLI extends Go
     public function getFunctions(): array
     {
         return array_merge($this->getCliHelpFunctions(), [
-            new TwigFunction('getCliOption', fn(Parameter $parameter): array => $this->getCliOption($parameter)),
-            new TwigFunction('getGoVarName', fn(Parameter $parameter): string => $this->getGoVarName($parameter->name)),
+            new TwigFunction('getCliOption', fn(Parameter $parameter, Tag $service): array => $this->getCliOption($parameter, $service)),
+            new TwigFunction('getGoVarName', fn(Parameter $parameter, Tag $service): string => $this->getGoVarName($parameter->name, $service)),
             new TwigFunction('getGoCallPlan', fn(Operation $method, Tag $service): array => $this->getGoCallPlan($method, $service)),
         ]);
     }

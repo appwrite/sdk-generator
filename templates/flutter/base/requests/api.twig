@@ -17,6 +17,9 @@
       path: apiPath,
       params: apiParams,
       headers: apiHeaders,
+{% if (method | textResponse) %}
+      responseType: ResponseType.plain,
+{% endif %}
     );
 
 {% set responseModels = method | getValidResponseModels %}

@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
+use stdClass;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
@@ -254,6 +255,21 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Topic.php',
+                'template'      => 'php/src/Topic.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/ResolvedTopic.php',
+                'template'      => 'php/src/ResolvedTopic.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'tests/{{ namespace | caseNamespacePath }}/TopicTest.php',
+                'template'      => 'php/tests/TopicTest.php.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
             ],
@@ -376,58 +392,6 @@ class PHP extends Language
             self::TYPE_FILE => 'InputFile',
             default => 'mixed',
         };
-    }
-
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type = $this->getSchemaType($param);
-        $default = $this->getSchemaDefault($param);
-        $required = $param instanceof Parameter && $param->required;
-
-        if ($required) {
-            return '';
-        }
-
-        $output = ' = ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_BOOLEAN:
-                    $output .= 'null';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-                case self::TYPE_ARRAY:
-                case self::TYPE_OBJECT:
-                    $output .= '[]';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= \is_array($default) ? $this->jsonToAssoc($default) : (string) $default;
-                    break;
-                case self::TYPE_OBJECT:
-                    $decoded = \is_array($default) ? $default : json_decode((string) $default, true);
-                    $output .= $this->jsonToAssoc(\is_array($decoded) ? $decoded : []);
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$default}'";
-                    break;
-            }
-        }
-
-        return $output;
     }
 
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
@@ -610,6 +574,27 @@ class PHP extends Language
         return (string)$value;
     }
 
+    /**
+     * A spec default as a PHP literal, with arrays in short syntax as the SDK's Pint config requires.
+     */
+    protected function formatPhpDefault(mixed $value): string
+    {
+        if ($value instanceof stdClass) {
+            $value = get_object_vars($value);
+        }
+
+        if (!is_array($value)) {
+            return $this->formatPhpLiteral($value);
+        }
+
+        $items = [];
+        foreach ($value as $key => $item) {
+            $items[] = (array_is_list($value) ? '' : $this->formatPhpLiteral((string) $key) . ' => ') . $this->formatPhpDefault($item);
+        }
+
+        return '[' . implode(', ', $items) . ']';
+    }
+
     protected function escapePhpString(string $value): string
     {
         $value = str_replace('\\', '\\\\', $value);
@@ -620,7 +605,7 @@ class PHP extends Language
 
     protected function getReturn(Operation $method, ?Specification $spec = null): string
     {
-        if ((\count($method->responses) === 1 && isset($method->responses[204])) || \in_array($this->getMethodType($method, $spec), ['location', 'webAuth'], true)) {
+        if ((\count($method->responses) === 1 && isset($method->responses[204])) || $this->isTextResponse($method, $spec) || \in_array($this->getMethodType($method, $spec), [self::METHOD_TYPE_LOCATION, self::METHOD_TYPE_WEB_AUTH], true)) {
             return 'string';
         }
 
@@ -669,6 +654,7 @@ class PHP extends Language
             new TwigFilter('getResponseModels', fn(Operation $value, ?Specification $spec = null): array => $this->getResponseModels($value, $spec)),
             new TwigFilter('mockDefinitionPayload', fn(string $definitionName, Specification $spec, int $indentLevel = 2): string => $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel), ['is_safe' => ['html']]),
             new TwigFilter('methodParameters', fn(Operation $value): string => $this->getMethodParameters($value)),
+            new TwigFilter('phpLiteral', fn(mixed $value): string => $this->formatPhpDefault($value), ['is_safe' => ['html']]),
             new TwigFilter('deviceInfo', fn($value): string => php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m')),
             new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {

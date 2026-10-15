@@ -1,5 +1,5 @@
 import 'package:{{ language.params.packageName }}/src/enums.dart';
-{% if 'dart' in language.params.packageName %}
+{% if language.name == 'Dart' %}
 import 'package:test/test.dart';
 {% else %}
 import 'package:flutter_test/flutter_test.dart';

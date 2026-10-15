@@ -94,10 +94,20 @@ CMD;
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
+        ...Base::QUERY_ENCODING_RESPONSES,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
+        ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::BOUNDARY_UPLOAD_RESPONSES,
+        ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
+        ...Base::MODEL_DEFAULT_RESPONSES,
+        ...Base::NULLABLE_MODEL_RESPONSES,
+        ...Base::ENUM_ARRAY_MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,
@@ -105,7 +115,11 @@ CMD;
         Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::CHANNEL_HELPER_RESPONSES,
-        ...Base::OPERATOR_HELPER_RESPONSES
+        ...Base::OPERATOR_HELPER_RESPONSES,
+        ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_ERROR_RESPONSES,
+        ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES
     ];
 }

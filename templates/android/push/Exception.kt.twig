@@ -1,0 +1,6 @@
+package io.{{ spec.info.title | caseLower }}.exceptions
+
+/** A push error. When the broker explained a refusal or a disconnect, that is its message. */
+class {{ spec.info.title | caseUcfirst }}Exception(
+    override val message: String? = null,
+) : Exception(message)

@@ -87,6 +87,24 @@ async function start() {
   response = await general.validatePath("0", "0");
   console.log(response.result);
 
+  const zone = await new appwrite.Plaintext(client).getZone();
+  if (typeof zone !== "string") {
+    throw new Error(`Unexpected zone type: ${typeof zone}`);
+  }
+  console.log(zone);
+  console.log((await general.getMixed()).result);
+
+  const plaintext = new appwrite.Plaintext(client);
+  console.log(await plaintext.importZone("www 3600 IN A 192.0.2.1"));
+  console.log(await plaintext.importZone("www 3600 IN A 192.0.2.1", appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png")));
+
+  const message = "conversation without a required file";
+  console.log((await general.optionalUpload(message)).result);
+  console.log((await general.optionalUpload(message, undefined)).result);
+  console.log((await general.optionalUpload(message, appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png"))).result);
+  console.log((await general.optionalUpload(message, undefined, { source: "sdk", uri: "café" })).result);
+  console.log((await general.optionalUpload(message, appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png"), { source: "sdk", uri: "café" })).result);
+
   response = await general.upload(
     "string",
     123,
@@ -128,6 +146,11 @@ async function start() {
   // @ts-ignore
   console.log(response.result);
 
+  const profile = await general.uploadGeneric<{ result: string }>(
+    appwrite.InputFile.fromPath("./tests/resources/file.png", "file.png")
+  );
+  console.log(profile.prefs.result);
+
   console.log(new TextDecoder().decode(await general.download()));
 
   response = await general.enum(appwrite.MockType.First);
@@ -144,6 +167,20 @@ async function start() {
     { id: 'player2', name: 'Jane Doe', score: 200 }
   ]);
   // @ts-ignore
+  console.log(response.result);
+
+  const preset = await general.getPreset();
+  console.log(`preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}`);
+  const presets = await general.listPresets();
+  for (const item of presets.presets) {
+      console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
+  }
+  console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
+  const verified: appwrite.Models.Preset["verified"] = preset.verified ?? null;
+  console.log(`preset verified: ${verified}`);
+  console.log(`preset scopes: ${(preset.scopes ?? []).join(',')}`);
+
+  response = await general.nullable("required", null, undefined, undefined, null);
   console.log(response.result);
 
   try {

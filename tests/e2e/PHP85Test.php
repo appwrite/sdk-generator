@@ -24,7 +24,8 @@ final class PHP85Test extends Base
     protected string $class = PHP::class;
     #[Override]
     protected array $build = [
-        'composer install --working-dir=tests/e2e/sdks/php --no-interaction --no-dev --prefer-dist',
+        'composer install --working-dir=tests/e2e/sdks/php --no-interaction --prefer-dist',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/php php:8.5-cli-alpine vendor/bin/phpunit',
     ];
     #[Override]
     protected string $command =
@@ -36,20 +37,29 @@ final class PHP85Test extends Base
         ...Base::BAR_RESPONSES,
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::UNION_RESPONSES,
         'compound specialization: passed',
         'compound fallback: passed',
         'compound invalid response: passed',
+        ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
+        ...Base::MODEL_DEFAULT_RESPONSES,
+        ...Base::NULLABLE_MODEL_RESPONSES,
+        ...Base::ENUM_ARRAY_MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::ADDITIONAL_PROPERTIES_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES
     ];

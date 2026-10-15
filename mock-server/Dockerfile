@@ -22,6 +22,28 @@ RUN set -eu; \
         sleep $((n * 5)); \
     done
 
+FROM composer:2.10 AS composer_mqtt
+
+# app/mqtt.php (the mock MQTT broker) has its own dependency set: utopia-php/mqtt needs
+# utopia-php/telemetry ^0.4, which conflicts with the HTTP mock's utopia-php/framework (it
+# pins the older telemetry line and only that version carries the param(model:) the mock
+# uses). So it can't share the vendor above and is installed separately into ./vendor-mqtt
+# from its own committed lock (composer.mqtt.json/.lock), for a reproducible tree.
+WORKDIR /usr/local/src/
+
+COPY composer.mqtt.lock /usr/local/src/composer.lock
+COPY composer.mqtt.json /usr/local/src/composer.json
+
+RUN set -eu; \
+    n=0; \
+    until composer install --ignore-platform-reqs --optimize-autoloader \
+        --no-plugins --no-scripts --prefer-dist --no-interaction; do \
+        n=$((n + 1)); \
+        if [ "${n}" -ge 5 ]; then exit 1; fi; \
+        echo "composer install (mqtt) failed, retrying ${n}/5..."; \
+        sleep $((n * 5)); \
+    done
+
 FROM phpswoole/swoole:6.2.2-php8.4-alpine AS final
 
 RUN apk add docker
@@ -34,6 +56,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 WORKDIR /usr/src/code
 
 COPY --from=composer /usr/local/src/vendor /usr/src/code/vendor
+COPY --from=composer_mqtt /usr/local/src/vendor-mqtt /usr/src/code/vendor-mqtt
 
 # Add Source Code
 COPY ./src /usr/src/code/src

@@ -31,6 +31,38 @@ data class InternalCookie(
         cookie.version
     )
 
+    companion object {
+        fun from(map: Map<*, *>) = InternalCookie(
+            comment = map["comment"] as? String,
+            commentURL = map["commentURL"] as? String,
+            discard = map["discard"] as? Boolean,
+            domain = map["domain"] as String,
+            maxAge = (map["maxAge"] as? Number)?.toLong(),
+            name = map["name"] as String,
+            path = map["path"] as? String,
+            portlist = map["portlist"] as? String,
+            secure = map["secure"] as? Boolean,
+            value = map["value"] as String,
+            version = (map["version"] as? Number)?.toInt(),
+            httpOnly = map["httpOnly"] as? Boolean,
+        )
+    }
+
+    fun toMap(): Map<String, Any?> = mapOf(
+        "comment" to comment,
+        "commentURL" to commentURL,
+        "discard" to discard,
+        "domain" to domain,
+        "maxAge" to maxAge,
+        "name" to name,
+        "path" to path,
+        "portlist" to portlist,
+        "secure" to secure,
+        "value" to value,
+        "version" to version,
+        "httpOnly" to httpOnly,
+    )
+
     fun toHttpCookie() = HttpCookie(name, value).apply {
         comment = this@InternalCookie.comment
         commentURL = this@InternalCookie.commentURL

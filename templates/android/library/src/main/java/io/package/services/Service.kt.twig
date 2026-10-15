@@ -22,7 +22,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
 
 /**
- *{% if service.description is not empty %} {{ service.description | replace({"\n": "\n * "}) | kotlinDoc }}{% endif %}
+ *{{ (' ' ~ service.description) | replace({"\n": "\n * "}) | kotlinDoc }}
  */
 class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% for method in (service | operations) %}
@@ -31,7 +31,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% set pathParameters = (method | parameters('path')) %}
 {% set securityQueries = (method | securityQueries) %}
     /**
-     * {{ method.description | replace({"\n": "\n     * "}) | kotlinDoc }}
+     *{{ (' ' ~ method.description) | replace({"\n": "\n     * "}) | kotlinDoc }}
      *
     {%~ for parameter in (method | parameters('all')) %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
@@ -116,11 +116,11 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
                 }
                 is List<*> -> {
                     (it.value as List<*>).forEach { v ->
-                        apiQuery.add("${it.key}[]=${v.toString()}")
+                        apiQuery.add("${Uri.encode(it.key)}[]=${Uri.encode(v.toString())}")
                     }
                 }
                 else -> {
-                    apiQuery.add("${it.key}=${it.value.toString()}")
+                    apiQuery.add("${Uri.encode(it.key)}=${Uri.encode(it.value.toString())}")
                 }
             }
         }
@@ -224,13 +224,18 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             apiPath,
             apiHeaders,
             apiParams,
+            {%~ if (method | responseModel) | hasGenericType(spec) %}
+            responseType = classOf(),
+            {%~ else %}
             responseType = {{ method | returnType(spec, sdk.namespace | caseDot) | raw }}::class.java,
+            {%~ endif %}
             {%~ if (method | responseModel) %}
             converter,
             {%~ endif %}
-            paramName,
-            idParamName,
-            onProgress,
+            paramName = paramName,
+            idParamName = idParamName,
+            onProgress = onProgress,
+            method = "{{ method.method.value | caseUpper }}",
         )
         {%~ else %}
         return client.call(
@@ -253,7 +258,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ if (method | responseModel) | hasGenericType(spec) %}
 
     /**
-     * {{ method.description | replace({"\n": "\n     * "}) | kotlinDoc }}
+     *{{ (' ' ~ method.description) | replace({"\n": "\n     * "}) | kotlinDoc }}
      *
     {%~ for parameter in (method | parameters('all')) %}
      * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}

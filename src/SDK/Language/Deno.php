@@ -161,7 +161,7 @@ class Deno extends JS
 
         $model = $this->getSchemaModel($parameter);
         if ($model !== null) {
-            $type = $this->toPascalCase($model);
+            $type = 'Models.' . $this->toPascalCase($model);
             return $schema instanceof ArraySchema ? $type . '[]' : $type;
         }
         return match ($this->getSchemaType($parameter)) {

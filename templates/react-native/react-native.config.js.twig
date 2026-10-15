@@ -1,0 +1,12 @@
+// Autolinking: the native modules Push uses, found on iOS through the package's podspec.
+module.exports = {
+    dependency: {
+        platforms: {
+            android: {
+                packageImportPath:
+                    'import io.{{ spec.info.title | caseLower }}.reactnative.{{ spec.info.title | caseUcfirst }}PushPackage;',
+                packageInstance: 'new {{ spec.info.title | caseUcfirst }}PushPackage()',
+            },
+        },
+    },
+};

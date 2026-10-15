@@ -45,6 +45,59 @@ export const JSONbig = {
     stringify: JSONbigSerializer.stringify,
 };
 
+type DefaultsShape = string | { items: DefaultsShape };
+
+type DefaultsModel = {
+    defaults?: Record<string, unknown>;
+    properties?: Record<string, DefaultsShape>;
+};
+
+type Defaults = {
+    root: DefaultsShape;
+    models: Record<string, DefaultsModel>;
+};
+
+export function applyDefaults<T>(value: T, tree: Defaults): T {
+    return fillDefaults(value, tree.root, tree.models) as T;
+}
+
+function fillDefaults(
+    value: unknown,
+    shape: DefaultsShape,
+    models: Record<string, DefaultsModel>,
+): unknown {
+    if (typeof shape !== 'string') {
+        if (!Array.isArray(value)) {
+            return value;
+        }
+        const items = shape.items;
+        return value.map((item) => fillDefaults(item, items, models));
+    }
+    const model = models[shape];
+    if (!model || typeof value !== 'object' || value === null) {
+        return value;
+    }
+    if (Array.isArray(value)) {
+        return value;
+    }
+    const result: Record<string, unknown> = { ...model.defaults, ...value };
+    for (const [key, child] of Object.entries(model.properties ?? {})) {
+        if (key in result) {
+            result[key] = fillDefaults(result[key], child, models);
+        }
+    }
+    // The spread drops the non-enumerable JSON toString that Client.call attaches.
+    if (Object.prototype.hasOwnProperty.call(value, 'toString')) {
+        Object.defineProperty(result, 'toString', {
+            value: () => JSONbig.stringify(result),
+            writable: true,
+            enumerable: false,
+            configurable: true,
+        });
+    }
+    return result;
+}
+
 /**
  * Payload type representing a key-value pair with string keys and any values.
  */
@@ -368,6 +421,8 @@ class Client {
     config: {
         endpoint: string;
         endpointRealtime: string;
+        endpointPush: string;
+        pushClientId: string;
 {%~ for headerKey, header in globalHeaders %}
         {{ headerKey | caseLower }}: string;
 {%~ endfor %}
@@ -378,6 +433,8 @@ class Client {
     } = {
         endpoint: '{{ (spec | endpoint) }}',
         endpointRealtime: '',
+        endpointPush: '',
+        pushClientId: '',
 {%~ for headerKey, header in globalHeaders %}
         {{ headerKey | caseLower }}: '',
 {%~ endfor %}
@@ -462,6 +519,56 @@ class Client {
         }
 
         this.config.endpointRealtime = endpointRealtime;
+        return this;
+    }
+
+    /**
+     * Set Push Endpoint
+     *
+     * The MQTT-over-WebSocket URL the {{ spec.info.title | caseUcfirst }}Push service connects to.
+     *
+     * @param {string} endpointPush
+     *
+     * @returns {this}
+     */
+    setPushEndpoint(endpointPush: string): this {
+        if (!endpointPush || typeof endpointPush !== 'string') {
+            throw new {{spec.info.title | caseUcfirst}}Exception('Endpoint must be a valid string');
+        }
+
+        if (
+            !endpointPush.startsWith('ws://') &&
+            !endpointPush.startsWith('wss://')
+        ) {
+            throw new {{spec.info.title | caseUcfirst}}Exception(
+                'Invalid push endpoint URL: ' + endpointPush,
+            );
+        }
+
+        this.config.endpointPush = endpointPush;
+        return this;
+    }
+
+    /**
+     * Set Push Client Id
+     *
+     * A stable client id for the {{ spec.info.title | caseUcfirst }}Push service. The broker keys its
+     * offline-replay cursor on this id, so pass a stable value to resume replay across
+     * reloads/restarts. Defaults, when unset, to one per user and tab: stable across reloads of
+     * the tab, different in every other tab, and distinct for each connection open at the same
+     * time, so no two connections take over each other's session. An explicit id shared by
+     * several tabs or connections makes them do that.
+     *
+     * @param {string} pushClientId
+     *
+     * @returns {this}
+     */
+    setPushClientId(pushClientId: string): this {
+        if (!pushClientId || typeof pushClientId !== 'string') {
+            throw new {{spec.info.title | caseUcfirst}}Exception('Client id must be a valid string');
+        }
+
+        this.config.pushClientId = pushClientId;
         return this;
     }
 
@@ -956,15 +1063,12 @@ class Client {
         const options: RequestInit = {
             method,
             headers,
-        };
-
-        if (headers['X-Appwrite-Dev-Key'] === undefined) {
 {%~ if sdk.platform == 'console' %}
-            options.credentials = this.config.credentials;
+            credentials: this.config.credentials,
 {%~ else %}
-            options.credentials = 'include';
+            credentials: 'include',
 {%~ endif %}
-        }
+        };
 
         if (method === 'GET') {
             for (const [key, value] of Object.entries(Client.flatten(params))) {
@@ -986,6 +1090,11 @@ class Client {
                             for (const nestedValue of value) {
                                 formData.append(`${key}[]`, nestedValue);
                             }
+                        } else if (
+                            value !== null &&
+                            typeof value === 'object'
+                        ) {
+                            formData.append(key, JSONbig.stringify(value));
                         } else {
                             formData.append(key, value);
                         }
@@ -1007,6 +1116,7 @@ class Client {
         headers: Headers = {},
         originalPayload: Payload = {},
         onProgress: (progress: UploadProgress) => void,
+        responseType = 'json',
     ) {
         const [fileParam, file] =
             Object.entries(originalPayload).find(
@@ -1014,11 +1124,23 @@ class Client {
             ) ?? [];
 
         if (!file || !fileParam) {
-            throw new Error('File not found in payload');
+            return await this.call(
+                method,
+                url,
+                headers,
+                originalPayload,
+                responseType,
+            );
         }
 
-        if (file.size <= Client.CHUNK_SIZE) {
-            return await this.call(method, url, headers, originalPayload);
+        if (file.size <= Client.CHUNK_SIZE || responseType === 'text') {
+            return await this.call(
+                method,
+                url,
+                headers,
+                originalPayload,
+                responseType,
+            );
         }
 
         const totalChunks = Math.ceil(file.size / Client.CHUNK_SIZE);
@@ -1038,6 +1160,7 @@ class Client {
             url,
             firstChunkHeaders,
             firstPayload,
+            responseType,
         );
         const uploadId = response?.$id;
 
@@ -1098,6 +1221,7 @@ class Client {
                 url,
                 chunkHeaders,
                 chunkPayload,
+                responseType,
             );
 
             if (rejected) {
@@ -1215,7 +1339,9 @@ class Client {
                 );
         }
 
-        if (
+        if (responseType === 'text' && response.status < 400) {
+            data = await response.text();
+        } else if (
             response.headers.get('content-type')?.includes('application/json')
         ) {
             data = JSONbig.parse(await response.text());

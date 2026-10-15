@@ -106,7 +106,19 @@ class ClientIO extends ClientBase with ClientMixin {
     required String idParamName,
     required Map<String, String> headers,
     Function(UploadProgress)? onProgress,
+    ResponseType? responseType,
+    HttpMethod method = HttpMethod.post,
   }) async {
+    if (params[paramName] == null) {
+      return call(
+        method,
+        path: path,
+        params: params,
+        headers: headers,
+        responseType: responseType,
+      );
+    }
+
     InputFile file = params[paramName];
     if (file.path == null && file.bytes == null) {
       throw {{spec.info.title | caseUcfirst}}Exception("File path or bytes must be provided");
@@ -125,7 +137,7 @@ class ClientIO extends ClientBase with ClientMixin {
     }
 
     late Response res;
-    if (size <= chunkSize) {
+    if (size <= chunkSize || responseType == ResponseType.plain) {
       if (file.path != null) {
         params[paramName] = await http.MultipartFile.fromPath(
             paramName, file.path!,
@@ -135,10 +147,11 @@ class ClientIO extends ClientBase with ClientMixin {
             filename: file.filename);
       }
       return call(
-        HttpMethod.post,
+        method,
         path: path,
         params: params,
         headers: headers,
+        responseType: responseType,
       );
     }
 
@@ -197,7 +210,7 @@ class ClientIO extends ClientBase with ClientMixin {
       chunkHeaders['content-range'] = 'bytes $start-${end - 1}/$size';
 
       return call(
-        HttpMethod.post,
+        method,
         path: path,
         headers: chunkHeaders,
         params: chunkParams,

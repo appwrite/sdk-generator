@@ -534,12 +534,12 @@ func collectVariables(
 	// the API does not need them.
 	credentials := runCredentials{}
 	if apiErr != nil {
-		output.Warn(out, "Dynamic API key not generated. Header x-appwrite-key "+
+		output.Warn(out, "Ephemeral API key not generated. Header x-appwrite-key "+
 			"will not be set. Reason: %s", apiErr)
 	} else {
 		minted, err := mintRunCredentials(api, options.UserID, function.Scopes)
 		if err != nil {
-			output.Warn(out, "Dynamic API key not generated. Header "+
+			output.Warn(out, "Ephemeral API key not generated. Header "+
 				"x-appwrite-key will not be set. Reason: %s", err)
 		}
 		credentials = minted

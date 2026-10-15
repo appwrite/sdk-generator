@@ -1,10 +1,14 @@
 {% macro sub_schema(property) %}{% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}List<{{(property | schemaModel) | caseUcfirst | overrideIdentifier}}>{% else %}{{(property | schemaModel) | caseUcfirst | overrideIdentifier }}{% endif %}{% else %}{% if (property | schemaType) == 'object' and property.additionalProperties %}Map<String, dynamic>{% else %}{{property | typeName}}{% endif %}{% endif %}{% endmacro %}
 part of '../../models.dart';
 
+{% if requestModel.description %}
 /// {{ requestModel.description }}
+{% endif %}
 class {{ requestModelName | caseUcfirst | overrideIdentifier }} implements Model {
 {% for property in requestModel.properties %}
+{% if property.description %}
   /// {{ property.description }}
+{% endif %}
   final {% if not (property | schemaRequired) %}{{_self.sub_schema(property)}}? {{ (property | schemaName) | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ (property | schemaName) | escapeKeyword }}{% endif %};
 
 {% endfor %}
