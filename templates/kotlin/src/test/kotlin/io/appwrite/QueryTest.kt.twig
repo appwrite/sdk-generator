@@ -111,6 +111,18 @@ class QueryTest {
     }
 
     @Test
+    fun relationship() {
+        val query = Query.relationship("comments", listOf(Query.equal("approved", true), Query.limit(2)))
+        val json = JsonParser.parseString(query).asJsonObject
+        assertEquals("relationship", json.get("method").asString)
+        assertEquals("comments", json.get("attribute").asString)
+        val values = json.get("values").asJsonArray
+        assertEquals("equal", values[0].asJsonObject.get("method").asString)
+        assertEquals("limit", values[1].asJsonObject.get("method").asString)
+        assertEquals(listOf(query), Query.builder().relationship("comments", listOf(Query.equal("approved", true), Query.limit(2))).build())
+    }
+
+    @Test
     fun nestedLeftJoin() {
         val json = JsonParser.parseString(
             Query.leftJoin(

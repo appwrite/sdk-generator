@@ -334,6 +334,10 @@ async fn test_queries(client: &Client) -> Result<(), Box<dyn std::error::Error>>
         Query::equal("name", "Alice").to_string(),
         Query::greater_than("age", 18).to_string(),
     ]));
+    println!("{}", Query::relationship("comments", vec![
+        Query::equal("approved", true).to_string(),
+        Query::limit(2).to_string(),
+    ]));
     let general = General::new(client);
     let mut queries: Vec<String> = vec![
         Query::count("*", "total").to_string(),

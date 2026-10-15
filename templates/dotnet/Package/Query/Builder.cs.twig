@@ -236,6 +236,11 @@ namespace {{ spec.info.title | caseUcfirst }}
                 return Push(Query.ElemMatch(attribute, queries));
             }
 
+            public Builder Relationship(string attribute, List<string> queries)
+            {
+                return Push(Query.Relationship(attribute, queries));
+            }
+
             public Builder DistanceEqual(string attribute, object values, double distance, bool meters = true)
             {
                 return Push(Query.DistanceEqual(attribute, values, distance, meters));

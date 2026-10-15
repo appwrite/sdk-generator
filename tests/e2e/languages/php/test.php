@@ -393,6 +393,10 @@ echo Query::elemMatch('friends', [
     Query::equal('name', ['Alice']),
     Query::greaterThan('age', 18)
 ]) . "\n";
+echo Query::relationship('comments', [
+    Query::equal('approved', [true]),
+    Query::limit(2)
+]) . "\n";
 $queryTransport = $general->listRows([
     Query::count('*', 'total'),
     Query::join('orders', '$id', 'customerId'),

@@ -179,6 +179,10 @@ func (b *Builder) ElemMatch(attribute string, queries []string) *Builder {
 	return b.push(ElemMatch(attribute, queries))
 }
 
+func (b *Builder) Relationship(attribute string, queries []string) *Builder {
+	return b.push(Relationship(attribute, queries))
+}
+
 func (b *Builder) DistanceEqual(attribute string, values []interface{}, distance float64, meters bool) *Builder {
 	return b.push(DistanceEqual(attribute, values, distance, meters))
 }

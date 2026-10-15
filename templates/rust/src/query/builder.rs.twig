@@ -366,6 +366,16 @@ impl Builder {
         self
     }
 
+    pub fn relationship<S, I, Q>(mut self, attribute: S, queries: I) -> Self
+    where
+        S: Into<String>,
+        I: IntoIterator<Item = Q>,
+        Q: AsRef<str>,
+    {
+        self.queries.push(Query::relationship(attribute, queries));
+        self
+    }
+
     pub fn count(mut self, attribute: impl Into<String>, alias: impl Into<String>) -> Self {
         self.queries.push(Query::count(attribute, alias));
         self

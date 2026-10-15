@@ -216,6 +216,15 @@ module {{spec.info.title | caseUcfirst}}
                 return Query.new("elemMatch", attribute, queries.map { |query| JSON.parse(query) }).to_s
             end
 
+            # Constrain populated related documents on a relationship attribute.
+            #
+            # @param attribute [String] The relationship attribute to query.
+            # @param queries [Array<String>] Filter, order, select, and pagination queries applied to related documents.
+            # @return [String] The query string.
+            def relationship(attribute, queries)
+                return Query.new("relationship", attribute, queries.map { |query| JSON.parse(query) }).to_s
+            end
+
             def distance_equal(attribute, values, distance, meters = true)
                 return Query.new("distanceEqual", attribute, [[values, distance, meters]]).to_s
             end

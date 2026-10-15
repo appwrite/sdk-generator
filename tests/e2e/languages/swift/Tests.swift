@@ -310,6 +310,10 @@ class Tests: XCTestCase {
             Query.equal("name", value: "Alice"),
             Query.greaterThan("age", value: 18)
         ]))
+        print(Query.relationship("comments", queries: [
+            Query.equal("approved", value: true),
+            Query.limit(2)
+        ]))
         let transportQueries: [String] = [
             Query.count("*", alias: "total"),
             Query.join("orders", left: "$id", right: "customerId"),

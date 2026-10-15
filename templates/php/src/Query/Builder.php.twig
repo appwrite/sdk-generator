@@ -243,6 +243,11 @@ class Builder
         return $this->push(Query::elemMatch($attribute, $queries));
     }
 
+    public function relationship(string $attribute, array $queries): self
+    {
+        return $this->push(Query::relationship($attribute, $queries));
+    }
+
     /**
      * @param array<mixed> $values
      */

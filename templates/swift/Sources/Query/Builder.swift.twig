@@ -231,6 +231,10 @@ extension Query {
             return push(Query.elemMatch(attribute, queries: queries))
         }
 
+        public func relationship(_ attribute: String, queries: [String]) -> Builder {
+            return push(Query.relationship(attribute, queries: queries))
+        }
+
         @discardableResult
         public func distanceEqual(_ attribute: String, values: [Any], distance: Double, meters: Bool = true) -> Builder {
             return push(Query.distanceEqual(attribute, values: values, distance: distance, meters: meters))

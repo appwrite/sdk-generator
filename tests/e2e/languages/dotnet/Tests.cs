@@ -287,6 +287,10 @@ namespace AppwriteTests
                 Query.Equal("name", "Alice"),
                 Query.GreaterThan("age", 18)
             }));
+            TestContext.WriteLine(Query.Relationship("comments", new List<string> {
+                Query.Equal("approved", true),
+                Query.Limit(2)
+            }));
             var transportQueries = new List<string>
             {
                 Query.Count("*", "total"),

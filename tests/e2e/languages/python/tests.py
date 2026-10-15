@@ -251,6 +251,10 @@ print(Query.elem_match("friends", [
     Query.equal("name", "Alice"),
     Query.greater_than("age", 18)
 ]))
+print(Query.relationship("comments", [
+    Query.equal("approved", True),
+    Query.limit(2)
+]))
 query_transport = general.list_rows([
     Query.count("*", "total"),
     Query.join("orders", "$id", "customerId"),

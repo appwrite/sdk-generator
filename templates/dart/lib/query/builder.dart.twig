@@ -121,6 +121,9 @@ class QueryBuilder {
   QueryBuilder elemMatch(String attribute, List<String> queries) =>
       _push(Query.elemMatch(attribute, queries));
 
+  QueryBuilder relationship(String attribute, List<String> queries) =>
+      _push(Query.relationship(attribute, queries));
+
   QueryBuilder distanceEqual(
     String attribute,
     List<dynamic> values,

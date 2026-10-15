@@ -427,6 +427,10 @@ void main() async {
     Query.equal("name", "Alice"),
     Query.greaterThan("age", 18)
   ]));
+  print(Query.relationship("comments", [
+    Query.equal("approved", true),
+    Query.limit(2)
+  ]));
   final queryTransport = await general.listRows(queries: [
     Query.count('*', 'total'),
     Query.join('orders', '\$id', 'customerId'),

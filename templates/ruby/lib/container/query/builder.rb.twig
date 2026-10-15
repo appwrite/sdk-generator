@@ -170,6 +170,10 @@ module {{spec.info.title | caseUcfirst}}
             return push(Query.elem_match(attribute, queries))
         end
 
+        def relationship(attribute, queries)
+            return push(Query.relationship(attribute, queries))
+        end
+
         def distance_equal(attribute, values, distance, meters = true)
             return push(Query.distance_equal(attribute, values, distance, meters))
         end
