@@ -115,7 +115,7 @@ recents), Android cancels its alarms and jobs: nothing is delivered until the ap
 again, and the broker then replays what was sent meanwhile.
 
 Set the notification icon with
-`<meta-data android:name="io.{{ spec.info.title | caseLower }}.push.notification_icon" android:resource="@drawable/..." />` in your
+`<meta-data android:name="io.{{ spec.info.title | caseLower }}.reactnative.push.notification_icon" android:resource="@drawable/..." />` in your
 `<application>`; without it a generic icon is used.
 
 ```js
@@ -159,7 +159,7 @@ On Android the SDK's native module reports the taps. Elsewhere they come from `e
 
 Foreground mode runs a `remoteMessaging` foreground service, which Google Play asks apps to
 declare in the Play Console. Apps that never enable it can remove the service from their merged
-manifest with `tools:node="remove"` on `io.{{ spec.info.title | caseLower }}.services.PushService` and
+manifest with `tools:node="remove"` on `io.{{ spec.info.title | caseLower }}.reactnative.services.PushService` and
 `android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING`.
 
 {% if sdk.gettingStarted %}

@@ -51,7 +51,7 @@ final class ReactNativeAndroidTest extends Base
         'mkdir -p tests/e2e/sdks/react-native/android-test/src/main/java/io/appwrite tests/e2e/sdks/react-native/android-test/src/test/java tests/e2e/sdks/react-native/android-test/gradle/wrapper',
         'cp tests/e2e/languages/react-native/android-test/settings.gradle.kts tests/e2e/languages/react-native/android-test/build.gradle.kts tests/e2e/languages/react-native/android-test/gradle.properties tests/e2e/sdks/react-native/android-test/',
         'cp tests/e2e/languages/react-native/android-test/Tests.kt tests/e2e/sdks/react-native/android-test/src/test/java/Tests.kt',
-        'cp -R tests/e2e/sdks/react-native/android/src/main/java/io/appwrite/services tests/e2e/sdks/react-native/android/src/main/java/io/appwrite/exceptions tests/e2e/sdks/react-native/android/src/main/java/io/appwrite/reactnative tests/e2e/sdks/react-native/android-test/src/main/java/io/appwrite/',
+        'cp -R tests/e2e/sdks/react-native/android/src/main/java/io/appwrite/reactnative tests/e2e/sdks/react-native/android-test/src/main/java/io/appwrite/',
         'cp tests/e2e/sdks/react-native/android/src/main/AndroidManifest.xml tests/e2e/sdks/react-native/android-test/src/main/AndroidManifest.xml',
         'cp templates/android/gradlew tests/e2e/sdks/react-native/android-test/gradlew',
         'cp templates/android/gradle/wrapper/gradle-wrapper.jar templates/android/gradle/wrapper/gradle-wrapper.properties tests/e2e/sdks/react-native/android-test/gradle/wrapper/',

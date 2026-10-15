@@ -386,6 +386,36 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * The Flutter plugin and the React Native module embed the Android Push code.
+     * An app can depend on more than one of the three SDKs, so no Android class
+     * may share a fully qualified name with another SDK's, or the build fails on
+     * duplicate classes.
+     */
+    public function testEmbeddedAndroidPushClassesDoNotCollide(): void
+    {
+        $classes = [];
+        foreach (['android', 'flutter', 'react-native'] as $name) {
+            $classes[$name] = [];
+            foreach ($this->generate($name, 'client') as $path => $contents) {
+                if (!\str_ends_with($path, '.kt') || !\preg_match('/^package ([a-z0-9_.]+)/m', $contents, $package)) {
+                    continue;
+                }
+                \preg_match_all('/^(?:[a-z]+ )*(?:class|object|interface) ([a-z0-9_]+)/m', $contents, $declarations);
+                foreach ($declarations[1] as $class) {
+                    $classes[$name][] = $package[1] . '.' . $class;
+                }
+            }
+        }
+
+        $this->assertSame([], \array_values(\array_intersect($classes['android'], $classes['flutter'])));
+        $this->assertSame([], \array_values(\array_intersect($classes['android'], $classes['react-native'])));
+        $this->assertSame([], \array_values(\array_intersect($classes['flutter'], $classes['react-native'])));
+        $this->assertContains('io.appwrite.flutter.services.pushservice', $classes['flutter']);
+        $this->assertContains('io.appwrite.reactnative.services.pushservice', $classes['react-native']);
+        $this->assertContains('io.appwrite.services.pushservice', $classes['android']);
+    }
+
+    /**
      * A `{}` spec default decodes to an empty PHP array, and a number param
      * without an example used to print `null`; both must keep their declared
      * type in the generated TypeScript.
