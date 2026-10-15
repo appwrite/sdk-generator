@@ -346,6 +346,49 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A plugin left out of the WebGL player is missing when that player compiles,
+     * so its namespace may only be imported where WebGL players skip the code.
+     */
+    public function testUnityImportsPluginsLeftOutOfWebglOnlyOffWebgl(): void
+    {
+        $files = $this->generate('unity', 'client');
+
+        $excluded = [];
+        foreach ($files as $path => $contents) {
+            if (\str_ends_with($path, '.dll.meta') && !\str_contains($contents, "webgl: webgl\n    second:\n      enabled: 1")) {
+                $excluded[] = \strtolower(\basename($path, '.dll.meta'));
+            }
+        }
+        $this->assertContains('mqttnet', $excluded);
+
+        // Conditions under which a WebGL player does not compile the code.
+        $offWebgl = ['!unity_webgl || unity_editor', '!(unity_webgl && !unity_editor)', 'else unity_webgl && !unity_editor'];
+        foreach ($files as $path => $contents) {
+            if (!\str_ends_with($path, '.cs')) {
+                continue;
+            }
+            $conditions = [];
+            foreach (\explode("\n", $contents) as $line) {
+                $line = \trim($line);
+                if (\str_starts_with($line, '#if ')) {
+                    $conditions[] = \substr($line, 4);
+                } elseif ($line === '#else') {
+                    $conditions[] = 'else ' . \array_pop($conditions);
+                } elseif ($line === '#endif') {
+                    \array_pop($conditions);
+                } elseif (\preg_match('/^using ([\w.]+);$/', $line, $using) && \array_intersect($conditions, $offWebgl) === []) {
+                    foreach ($excluded as $plugin) {
+                        $this->assertFalse(
+                            $using[1] === $plugin || \str_starts_with($using[1], $plugin . '.'),
+                            "{$path} imports {$using[1]} on WebGL, where {$plugin}.dll is not included",
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * The analytics tracking helpers are hand-written companions to a generated
      * service. Shipping them into an SDK whose spec has no analytics service
      * leaves files, and entry-point exports, naming a class that is never

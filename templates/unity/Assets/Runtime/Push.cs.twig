@@ -5,11 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+#if !UNITY_WEBGL || UNITY_EDITOR
 using MQTTnet;
 using MQTTnet.Adapter;
 using MQTTnet.Client;
 using MQTTnet.Formatter;
 using MQTTnet.Protocol;
+#endif
 using UnityEngine;
 
 namespace {{ spec.info.title | caseUcfirst }}
@@ -34,6 +36,7 @@ namespace {{ spec.info.title | caseUcfirst }}
         public string Data => Encoding.UTF8.GetString(Payload);
     }
 
+#if !UNITY_WEBGL || UNITY_EDITOR
     /// <summary>
     /// {{ spec.info.title | caseUcfirst }} native push service — the realtime analog delivered over an MQTT broker,
     /// without FCM or APNS. Foreground delivery only: while the app is running the
@@ -1051,6 +1054,39 @@ namespace {{ spec.info.title | caseUcfirst }}
             return filterParts.Length == topicParts.Length;
         }
     }
+#else
+    /// <summary>
+    /// Push needs an MQTT connection, which a WebGL player cannot open, so on WebGL every
+    /// subscribe fails with <see cref="PlatformNotSupportedException"/>.
+    /// </summary>
+    public class Push : MonoBehaviour
+    {
+        public void Initialize(Client client) { }
+
+        public Push OnOpen(Action callback) => this;
+
+        public Push OnClose(Action callback) => this;
+
+        public Push OnError(Action<Exception> callback) => this;
+
+        public Task<PushSubscription> Subscribe(string topic, Action<PushMessage> callback, bool retry = true) => Unsupported();
+
+        public Task<PushSubscription> Subscribe(Action<PushMessage> callback, bool retry = true) => Unsupported();
+
+        public Task<PushSubscription> Subscribe(Topic topic, Action<PushMessage> callback, bool retry = true) => Unsupported();
+
+        public Task<PushSubscription> Subscribe(IEnumerable<Topic> topics, Action<PushMessage> callback, bool retry = true) => Unsupported();
+
+        public Task<PushSubscription> Subscribe(IEnumerable<TopicValue> topics, Action<PushMessage> callback, bool retry = true) => Unsupported();
+
+        public Task<PushSubscription> Subscribe(IEnumerable<string> topics, Action<PushMessage> callback, bool retry = true) => Unsupported();
+
+        public void Close() { }
+
+        private static Task<PushSubscription> Unsupported() =>
+            Task.FromException<PushSubscription>(new PlatformNotSupportedException("Push is not supported on WebGL"));
+    }
+#endif
 
     /// <summary>
     /// A topic accepted by <see cref="Push"/>: a raw string or a <see cref="Topic"/>. It converts
