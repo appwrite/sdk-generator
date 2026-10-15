@@ -473,11 +473,6 @@ func testIdHelpers() {
 func testTopicHelpers() {
 	fmt.Println(topic.Path([]string{"user", "123", "notification"}))
 	fmt.Println(topic.Path([]string{"org", "42", "user", "123"}).Path([]string{"notification"}))
-	fmt.Println(topic.Path([]string{"user"}).Any().Path([]string{"notification"}))
-	fmt.Println(topic.Path([]string{"chat"}).Any().Any().Path([]string{"message"}))
-	fmt.Println(topic.Path([]string{"org"}).Any().Path([]string{"logs"}).All())
-	fmt.Println(topic.Any().Path([]string{"notification"}))
-	fmt.Println(topic.All())
 	cases := []struct {
 		name   string
 		levels []string

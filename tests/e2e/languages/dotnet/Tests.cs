@@ -350,11 +350,6 @@ namespace AppwriteTests
             // Topic helper tests
             TestContext.WriteLine(Topic.Path(new[] { "user", "123", "notification" }).ToString());
             TestContext.WriteLine(Topic.Path(new[] { "org", "42", "user", "123" }).Path(new[] { "notification" }).ToString());
-            TestContext.WriteLine(Topic.Path(new[] { "user" }).Any().Path(new[] { "notification" }).ToString());
-            TestContext.WriteLine(Topic.Path(new[] { "chat" }).Any().Any().Path(new[] { "message" }).ToString());
-            TestContext.WriteLine(Topic.Path(new[] { "org" }).Any().Path(new[] { "logs" }).All().ToString());
-            TestContext.WriteLine(Topic.Any().Path(new[] { "notification" }).ToString());
-            TestContext.WriteLine(Topic.All().ToString());
             var topicCases = new (string Name, string[] Levels)[]
             {
                 ("empty path", new string[0]),

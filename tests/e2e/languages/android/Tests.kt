@@ -519,11 +519,6 @@ class ServiceTest {
             // Topic helper tests
             writeToFile(Topic.path(listOf("user", "123", "notification")).toString())
             writeToFile(Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString())
-            writeToFile(Topic.path(listOf("user")).any().path(listOf("notification")).toString())
-            writeToFile(Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
-            writeToFile(Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
-            writeToFile(Topic.any().path(listOf("notification")).toString())
-            writeToFile(Topic.all().toString())
             val topicErrorCases = listOf(
                 "empty path" to emptyList<String>(),
                 "empty level" to listOf("user", ""),

@@ -401,11 +401,6 @@ fn test_id_helpers() {
 fn test_topic_helpers() {
     println!("{}", topic::path(&["user", "123", "notification"]).unwrap());
     println!("{}", topic::path(&["org", "42", "user", "123"]).unwrap().path(&["notification"]).unwrap());
-    println!("{}", topic::path(&["user"]).unwrap().any().path(&["notification"]).unwrap());
-    println!("{}", topic::path(&["chat"]).unwrap().any().any().path(&["message"]).unwrap());
-    println!("{}", topic::path(&["org"]).unwrap().any().path(&["logs"]).unwrap().all());
-    println!("{}", topic::any().path(&["notification"]).unwrap());
-    println!("{}", topic::all());
     let cases: Vec<(&str, Vec<&str>)> = vec![
         ("empty path", vec![]),
         ("empty level", vec!["user", ""]),

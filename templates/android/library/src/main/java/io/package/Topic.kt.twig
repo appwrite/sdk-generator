@@ -2,7 +2,7 @@ package {{ sdk.namespace | caseDot }}
 
 /**
  * Validate the levels passed to `path()`: a non-empty list of non-empty strings, none holding
- * the level separator `/` or the wildcards `+` and `#` (use `any()` and `all()` for those).
+ * the level separator `/` or the MQTT wildcards `+` and `#`.
  */
 private fun levelsOf(levels: List<String>): List<String> {
     require(levels.isNotEmpty()) { "path() needs at least one level" }
@@ -12,10 +12,8 @@ private fun levelsOf(levels: List<String>): List<String> {
             val parts = level.split("/").joinToString(", ") { "'$it'" }
             "\"$level\" contains \"/\", split it: path([$parts])"
         }
-        require(level != "+") { "\"+\" is reserved, use any()" }
-        require(!level.contains("+")) { "\"$level\" contains \"+\", use any() for wildcards" }
-        require(level != "#") { "\"#\" is reserved, use all()" }
-        require(!level.contains("#")) { "\"$level\" contains \"#\", use all() for wildcards" }
+        require(!level.contains("+")) { "\"$level\" contains \"+\", not allowed in a topic" }
+        require(!level.contains("#")) { "\"$level\" contains \"#\", not allowed in a topic" }
     }
     return levels.toList()
 }
@@ -25,12 +23,8 @@ private fun levelsOf(levels: List<String>): List<String> {
  *
  * ```
  * Topic.path(listOf("user", userId, "notification")) // "user/123/notification"
- * Topic.path(listOf("user")).any().path(listOf("notification")) // "user/+/notification"
- * Topic.path(listOf("org")).any().path(listOf("logs")).all() // "org/+/logs/#"
+ * Topic.path(listOf("org", orgId)).path(listOf("logs")) // "org/42/logs"
  * ```
- *
- * `any()` matches exactly one level and `all()` everything below, at any depth (including the
- * parent itself). `all()` ends the topic, so it returns a [ResolvedTopic].
  *
  * @throws IllegalArgumentException from `path()` when a level is empty or holds `/`, `+` or `#`.
  */
@@ -40,29 +34,10 @@ class Topic private constructor(
     /** Append the given levels. */
     fun path(levels: List<String>): Topic = Topic(this.levels + levelsOf(levels))
 
-    /** Append a single-level wildcard (`+`): matches exactly one level. */
-    fun any(): Topic = Topic(levels + "+")
-
-    /** Append the multi-level wildcard (`#`) and end the topic. */
-    fun all(): ResolvedTopic = ResolvedTopic(levels + "#")
-
     override fun toString(): String = levels.joinToString("/")
 
     companion object {
         /** Start a topic with the given levels, e.g. `Topic.path(listOf("user", userId))`. */
         fun path(levels: List<String>): Topic = Topic(levelsOf(levels))
-
-        /** Start a topic with a single-level wildcard (`+`). */
-        fun any(): Topic = Topic(listOf("+"))
-
-        /** The multi-level wildcard alone (`#`): matches every topic. */
-        fun all(): ResolvedTopic = ResolvedTopic(listOf("#"))
     }
-}
-
-/** A topic ended by `all()`: nothing can be appended after the `#` wildcard. */
-class ResolvedTopic internal constructor(
-    private val levels: List<String>,
-) {
-    override fun toString(): String = levels.joinToString("/")
 }

@@ -372,11 +372,6 @@ class Tests: XCTestCase {
         // Topic helper tests
         print(try Topic.path(["user", "123", "notification"]).toString())
         print(try Topic.path(["org", "42", "user", "123"]).path(["notification"]).toString())
-        print(try Topic.path(["user"]).any().path(["notification"]).toString())
-        print(try Topic.path(["chat"]).any().any().path(["message"]).toString())
-        print(try Topic.path(["org"]).any().path(["logs"]).all().toString())
-        print(try Topic.any().path(["notification"]).toString())
-        print(Topic.all().toString())
         let topicCases: [(String, [String])] = [
             ("empty path", []),
             ("empty level", ["user", ""]),
