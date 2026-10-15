@@ -8,12 +8,39 @@ use RecursiveDirectoryIterator;
 use FilesystemIterator;
 use RuntimeException;
 use SplFileInfo;
+use Twig\TwigFilter;
+use Utopia\OpenAPI\Model\Tag;
 
 class Unity extends DotNet
 {
     #[Override]
     protected $params = [
         'packageName' => 'package-name',
+    ];
+
+    /**
+     * Bit positions of the service flags, in the order they were released.
+     * Projects save the selected services as the flags' integer value, so a
+     * released service keeps its bit; a new service is appended here when it ships.
+     */
+    private const array SERVICE_FLAGS = [
+        'account',
+        'avatars',
+        'databases',
+        'documentsdb',
+        'functions',
+        'graphql',
+        'locale',
+        'messaging',
+        'organization',
+        'presences',
+        'storage',
+        'tablesdb',
+        'teams',
+        'vectorsdb',
+        'analytics',
+        'apps',
+        'oauth2',
     ];
 
     public function setPackageName(string $name): self
@@ -686,5 +713,34 @@ class Unity extends DotNet
             '  assetBundleName:',
             '  assetBundleVariant:',
         ];
+    }
+
+    #[Override]
+    public function getFilters(): array
+    {
+        return [
+            ...parent::getFilters(),
+            new TwigFilter('serviceFlags', $this->getServiceFlags(...)),
+        ];
+    }
+
+    /**
+     * Each service paired with its flag bit: released services keep their
+     * position in SERVICE_FLAGS, others take the next free bits in spec order.
+     *
+     * @param array<Tag> $services
+     * @return array<array{service: Tag, bit: int}>
+     */
+    private function getServiceFlags(array $services): array
+    {
+        $flags = [];
+        $next = \count(self::SERVICE_FLAGS);
+        foreach ($services as $service) {
+            $bit = \array_search(\strtolower($service->name), self::SERVICE_FLAGS, true);
+            $flags[] = ['service' => $service, 'bit' => $bit === false ? $next++ : $bit];
+        }
+        \usort($flags, fn(array $left, array $right): int => $left['bit'] <=> $right['bit']);
+
+        return $flags;
     }
 }

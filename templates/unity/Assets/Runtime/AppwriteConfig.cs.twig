@@ -8,8 +8,8 @@ namespace {{ spec.info.title | caseUcfirst }}
     public enum {{ spec.info.title | caseUcfirst }}Service
     {
         None = 0,
-{% for service in services %}
-        {{ service.name | caseUcfirst }} = 1 << {{ loop.index0 }},
+{% for flag in services | serviceFlags %}
+        {{ flag.service.name | caseUcfirst }} = 1 << {{ flag.bit }},
 {% endfor %}
 
         [Tooltip("Selects all available services.")]
