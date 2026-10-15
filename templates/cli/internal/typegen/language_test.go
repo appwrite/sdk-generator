@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -21,7 +22,13 @@ const baselineInvocation = "types ./types"
 func loadCollections(t *testing.T) []Collection {
 	t.Helper()
 
-	payload, err := os.ReadFile(filepath.Join("testdata", "collections.json"))
+	return loadFixture(t, "collections.json")
+}
+
+func loadFixture(t *testing.T, name string) []Collection {
+	t.Helper()
+
+	payload, err := os.ReadFile(filepath.Join("testdata", name))
 	if err != nil {
 		t.Fatalf("reading fixture: %v", err)
 	}
@@ -52,7 +59,13 @@ func loadBaseline(t *testing.T, name string) string {
 func assertRendersBaseline(t *testing.T, language Language, current *Collection, strict bool, baseline string) {
 	t.Helper()
 
-	rendered, err := language.Render(loadCollections(t), current, strict, baselineInvocation)
+	assertRendersFixture(t, language, loadCollections(t), current, strict, baseline)
+}
+
+func assertRendersFixture(t *testing.T, language Language, collections []Collection, current *Collection, strict bool, baseline string) {
+	t.Helper()
+
+	rendered, err := language.Render(collections, current, strict, baselineInvocation)
 	if err != nil {
 		t.Fatalf("render: %v", err)
 	}
@@ -165,6 +178,72 @@ func TestDartMatchesBaseline(t *testing.T) {
 
 func TestCSharpMatchesBaseline(t *testing.T) {
 	assertMultiFileBaselines(t, CSharp{}, "cs")
+}
+
+func TestPythonMatchesBaseline(t *testing.T) {
+	for _, fixture := range []struct{ prefix, file string }{
+		{"python", "collections.json"},
+		{"python.coverage", "python.collections.json"},
+	} {
+		for _, mode := range []string{"loose", "strict"} {
+			t.Run(fixture.prefix+"."+mode, func(t *testing.T) {
+				baseline := fixture.prefix + "." + mode + "." + (Python{}).FileName(nil)
+				assertRendersFixture(t, Python{}, loadFixture(t, fixture.file), nil, mode == "strict", baseline)
+			})
+		}
+	}
+}
+
+func TestPythonFieldNamesAreUsableIdentifiers(t *testing.T) {
+	attributes := []Attribute{
+		{Key: "fullName"}, {Key: "full_name"}, {Key: "class"}, {Key: "_hidden"},
+		{Key: "9lives"}, {Key: "!!!"}, {Key: "model_config"}, {Key: "Items"}, {Key: "published.at"},
+	}
+	classes := pythonClasses{order: []string{"Items"}}
+
+	for strict, want := range map[bool][]string{
+		false: {"fullName", "full_name", "class_", "hidden", "field_9lives", "field", "model_config_", "Items_", "published_at"},
+		true:  {"full_name", "full_name_1", "class_", "hidden", "field_9lives", "field", "model_config_", "items", "published_at"},
+	} {
+		got := pythonFieldNames(attributes, strict, classes)
+		if strings.Join(got, " ") != strings.Join(want, " ") {
+			t.Errorf("strict=%v:\n  want %v\n  got  %v", strict, want, got)
+		}
+	}
+}
+
+func TestPythonClassNamesNeverCollide(t *testing.T) {
+	classes := newPythonClasses([]Collection{
+		{ID: "a", Name: "Orders Status"},
+		{ID: "b", Name: "Orders", Attributes: []Attribute{{Key: "status", Format: AttributeTypeEnum}}},
+		{ID: "c", Name: "orders"},
+		{ID: "d", Name: "2024 sales"},
+	})
+
+	want := map[string]string{"a": "OrdersStatus", "b": "Orders", "c": "Orders1", "d": "Model2024Sales"}
+	for id, name := range want {
+		if classes.models[id] != name {
+			t.Errorf("model %s = %q, want %q", id, classes.models[id], name)
+		}
+	}
+	if enum := classes.enums[pythonEnumKey("b", "status")]; enum != "OrdersStatus1" {
+		t.Errorf("enum = %q, want OrdersStatus1", enum)
+	}
+}
+
+func TestPythonStringMatchesBlackQuoting(t *testing.T) {
+	for value, want := range map[string]string{
+		"plain":        `"plain"`,
+		`say "hi"`:     `'say "hi"'`,
+		"it's":         `"it's"`,
+		`it's "x"`:     `'it\'s "x"'`,
+		`it's "x`:      `"it's \"x"`,
+		"a\\b\nc\x01d": `"a\\b\nc\x01d"`,
+	} {
+		if got := pythonString(value); got != want {
+			t.Errorf("pythonString(%q) = %s, want %s", value, got, want)
+		}
+	}
 }
 
 // TestPHPArrayNeverGainsNullBranch pins the early return in PHP.Type: an

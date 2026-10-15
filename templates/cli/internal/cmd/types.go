@@ -40,11 +40,12 @@ var typeLanguages = map[string]func(directory string) typegen.Language{
 	"java":   func(string) typegen.Language { return typegen.Java{} },
 	"dart":   func(string) typegen.Language { return typegen.Dart{} },
 	"cs":     func(string) typegen.Language { return typegen.CSharp{} },
+	"python": func(string) typegen.Language { return typegen.Python{} },
 }
 
 // typeLanguageChoices is the accepted `-l` values, in the order the help lists
 // them.
-var typeLanguageChoices = []string{"auto", "ts", "js", "php", "kotlin", "swift", "java", "dart", "cs"}
+var typeLanguageChoices = []string{"auto", "ts", "js", "php", "kotlin", "swift", "java", "dart", "cs", "python"}
 
 // typeLanguageAliases maps a name a user is likely to reach for to the value
 // the CLI accepts.
@@ -59,6 +60,8 @@ var typeLanguageAliases = map[string]string{
 	"javascript": "js",
 	"node":       "js",
 	"nodejs":     "js",
+	"py":         "python",
+	"python3":    "python",
 	"typescript": "ts",
 }
 
@@ -84,7 +87,7 @@ func typeLanguageNames() string {
 // a suggestion rather than only a list.
 //
 // Detection reaches this too, and there the list is the only thing that says
-// what to do next: a Python or Ruby project resolves to a language the CLI has
+// what to do next: a Ruby project resolves to a language the CLI has
 // no emitter for, so no spelling of it would have worked.
 func unsupportedLanguage(requested string) error {
 	if suggestion, ok := typeLanguageAliases[strings.ToLower(requested)]; ok {
