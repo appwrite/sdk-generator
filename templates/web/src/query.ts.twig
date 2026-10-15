@@ -1452,7 +1452,7 @@ export function flattenParam(value: unknown): unknown {
     if (isQueryValue(value)) {
         return normalizeQueries(value);
     }
-    if (!Array.isArray(value) || !value.some(isQueryValue)) {
+    if (!Array.isArray(value)) {
         return value;
     }
 
@@ -1461,7 +1461,7 @@ export function flattenParam(value: unknown): unknown {
         if (isQueryValue(item)) {
             out.push(...normalizeQueries(item));
         } else {
-            out.push(item);
+            out.push(flattenParam(item));
         }
     }
     return out;

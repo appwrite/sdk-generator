@@ -32,5 +32,6 @@ class TopicTest {
         assertPathFails(listOf("user", "a+b"))
         assertPathFails(listOf("user", "#"))
         assertPathFails(listOf("a#b"))
+        assertPathFails(listOf("user", "a\u0000b"))
     }
 }

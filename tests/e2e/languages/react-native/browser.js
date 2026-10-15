@@ -8,6 +8,7 @@ import {
     AppwriteException,
     Realtime,
     Query,
+    flattenParam,
     Permission,
     Role,
     ID,
@@ -234,6 +235,7 @@ import {
     console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
     presets.presets[0].tags.push('mutated');
     console.log(`preset tags shared: ${presets.presets[1].tags.length}`);
+    console.log(`nested builder: ${JSON.stringify(flattenParam([[Query.builder().limit(1)]])) === JSON.stringify([[Query.limit(1)]]) ? 'passed' : 'failed'}`);
     console.log(`preset verified: ${preset.verified}`);
     console.log(`preset toString: ${preset.toString()}`);
 

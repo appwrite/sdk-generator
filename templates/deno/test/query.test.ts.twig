@@ -749,6 +749,10 @@ describe('Query', () => {
         assertEquals(flattenParam([['a', 'b']]), [['a', 'b']]);
     });
 
+    test('flattenParam builds builders nested in arrays', () => {
+        assertEquals(flattenParam([[Query.builder().limit(1)]]), [[Query.limit(1)]]);
+    });
+
     test('flattenParam builds a builder value', () => {
         assertEquals(flattenParam(Query.builder().equal('status', 'active').limit(1)), [
             Query.equal('status', 'active'),

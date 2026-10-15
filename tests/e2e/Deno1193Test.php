@@ -48,6 +48,7 @@ final class Deno1193Test extends Base
         ...Base::MODEL_RESPONSES,
         ...Base::MODEL_DEFAULT_RESPONSES,
         ...Base::JS_DEFAULT_COPY_RESPONSES,
+        ...Base::JS_NESTED_BUILDER_RESPONSES,
         ...Base::NULLABLE_MODEL_RESPONSES,
         ...Base::ENUM_ARRAY_MODEL_RESPONSES,
         ...Base::NULLABLE_PARAM_RESPONSES,

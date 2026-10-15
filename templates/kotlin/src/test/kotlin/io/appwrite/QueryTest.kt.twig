@@ -163,4 +163,9 @@ class QueryTest {
         assertEquals("limit", method(queries[0]))
         assertEquals("offset", method(queries[1]))
     }
+
+    @Test(expected = ArithmeticException::class)
+    fun pageRejectsAnOffsetPastIntMax() {
+        Query.page(50_000_000, 50)
+    }
 }

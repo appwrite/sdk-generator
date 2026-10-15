@@ -40,6 +40,7 @@ func TestInvalidLevels(t *testing.T) {
 		{"user", "a+b"},
 		{"user", "#"},
 		{"user", "a#b"},
+		{"user", "a\x00b"},
 	}
 	for _, levels := range cases {
 		if !panics(func() { Path(levels) }) {

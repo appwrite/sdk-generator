@@ -110,6 +110,10 @@ abstract class Base extends TestCase
         'preset tags shared: 0',
     ];
 
+    protected const JS_NESTED_BUILDER_RESPONSES = [
+        'nested builder: passed',
+    ];
+
     protected const NULLABLE_PARAM_RESPONSES = [
         'POST:/v1/mock/tests/general/nullable:passed',
     ];
@@ -522,6 +526,16 @@ abstract class Base extends TestCase
         'Topic plus:passed',
         'Topic hash:passed',
         'Topic nul:passed',
+    ];
+
+    protected const QUERY_PAGE_OVERFLOW_RESPONSES = [
+        'Query page overflow:passed',
+    ];
+
+    protected const UNITY_MANAGER_RESPONSES = [
+        'Manager push reinitialize:passed',
+        'Config all services:passed',
+        'Config some services:passed',
     ];
 
     protected const ADDITIONAL_PROPERTIES_RESPONSES = [

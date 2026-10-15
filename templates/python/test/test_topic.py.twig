@@ -23,6 +23,7 @@ class TestTopicMethods(unittest.TestCase):
             (['user', 'a+b'], ValueError),
             (['user', '#'], ValueError),
             (['user', 'a#b'], ValueError),
+            (['user', 'a\x00b'], ValueError),
         ]
         for levels, error in cases:
             with self.subTest(levels=levels):

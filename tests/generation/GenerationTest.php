@@ -326,6 +326,26 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A config saved by 0.9.0 has no record of the services it knew, so it is
+     * read as knowing the services that had a flag in 0.9.0 (bits 0 to 14).
+     */
+    public function testUnityConfigReadsUntrackedAssetsAsKnowingTheReleasedFlags(): void
+    {
+        $files = $this->generate('unity', 'client');
+        $paths = \array_values(\array_filter(\array_keys($files), fn(string $path): bool => \str_ends_with($path, 'AppwriteConfig.cs')));
+        $config = $files[$paths[0]];
+
+        $mask = 0;
+        \preg_match_all('/ = 1 << (\\d+),/', $config, $bits);
+        foreach ($bits[1] as $bit) {
+            if ((int) $bit < 15) {
+                $mask |= 1 << (int) $bit;
+            }
+        }
+        $this->assertStringContainsString("var known = knownservices == 0 ? {$mask} : knownservices;", $config);
+    }
+
+    /**
      * The analytics tracking helpers are hand-written companions to a generated
      * service. Shipping them into an SDK whose spec has no analytics service
      * leaves files, and entry-point exports, naming a class that is never
@@ -932,6 +952,7 @@ final class GenerationTest extends TestCase
         $document->components->schemas->mock->properties->settings = (object) ['type' => 'object', 'additionalProperties' => true, 'default' => (object) ['0' => 'x']];
         $document->components->schemas->mock->properties->relatedMock->default = (object) [];
         $document->components->schemas->mock->required[] = 'relatedMock';
+        $document->components->schemas->mock->properties->enabled = (object) ['type' => 'boolean', 'default' => false];
 
         $sdk = new SDK($this->language('ruby'), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
         $sdk
@@ -949,6 +970,8 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('settings: { "0" => "x" }', $model);
         $this->assertStringContainsString('map = { "relatedMock" => {} }.merge(map)', $model);
         $this->assertStringContainsString('related_mock: UnionMock.from(map: map["relatedMock"])', $model);
+        $this->assertStringContainsString('enabled: false', $model);
+        $this->assertStringContainsString('status: nil', $model);
     }
 
     public function testPythonModelDefaultsAreValidated(): void

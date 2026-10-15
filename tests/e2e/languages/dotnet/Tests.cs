@@ -371,6 +371,15 @@ namespace AppwriteTests
                     TestContext.WriteLine($"Topic {name}:passed");
                 }
             }
+            try
+            {
+                Query.Page(50000000, 50);
+                TestContext.WriteLine("Query page overflow:failed");
+            }
+            catch (System.OverflowException)
+            {
+                TestContext.WriteLine("Query page overflow:passed");
+            }
 
             // Operator helper tests
             TestContext.WriteLine(Operator.Increment(1));

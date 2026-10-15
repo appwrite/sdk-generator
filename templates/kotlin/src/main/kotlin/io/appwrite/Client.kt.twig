@@ -753,6 +753,6 @@ class Client @JvmOverloads constructor(
             }
             out.add(flat)
         }
-        return if (changed) out else value
+        return if (changed || value is Array<*>) out else value
     }
 }
