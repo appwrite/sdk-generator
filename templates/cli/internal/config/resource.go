@@ -301,6 +301,8 @@ var (
 	TopicKeys = []string{"$id", "name", "subscribe"}
 	// WebhookKeys orders a pulled webhook.
 	WebhookKeys = []string{"$id", "name", "url", "events", "enabled", "tls"}
+	// AnalyticsKeys orders a pulled analytics property.
+	AnalyticsKeys = []string{"$id", "name", "domain", "enabled", "allowedOrigins"}
 )
 
 // FilterBySchema keeps the named keys, in the order given.

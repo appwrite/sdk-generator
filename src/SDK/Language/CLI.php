@@ -863,6 +863,11 @@ class CLI extends Go
                 'template'      => 'cli/internal/cmd/pushselect_test.go',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/analytics_test.go',
+                'template'      => 'cli/internal/cmd/analytics_test.go',
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => 'internal/config/ignore_test.go',
                 'template'      => 'cli/internal/config/ignore_test.go',

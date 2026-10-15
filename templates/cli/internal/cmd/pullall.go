@@ -81,6 +81,7 @@ func pullActions() []pullAction {
 		{Value: "teams", Label: "Teams (Auth)", Run: flat("team")},
 		{Value: "webhooks", Label: "Webhooks (Project)", Run: flat("webhook")},
 		{Value: "messages", Label: "Topics (Messaging)", Run: flat("topic")},
+		{Value: "analytics", Label: "Properties (Analytics)", Run: flat("analytics")},
 		{
 			Value: "collections", Label: "Collections (Legacy Databases)",
 			Run: database("collection"), Deprecated: true,
@@ -93,7 +94,7 @@ func pullActions() []pullAction {
 // absent upstream; see the note on pullActions.
 var pullPromptOrder = []string{
 	"settings", "functions", "tables", "buckets",
-	"teams", "webhooks", "messages", "collections",
+	"teams", "webhooks", "messages", "analytics", "collections",
 }
 
 func newPullAllCommand() *cobra.Command {

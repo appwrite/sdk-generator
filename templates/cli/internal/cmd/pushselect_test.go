@@ -174,7 +174,7 @@ func TestPushResourcesAcceptAllAsAnArgument(t *testing.T) {
 
 	for _, path := range []string{
 		"push site", "push function", "push bucket", "push team",
-		"push webhook", "push topic", "push table", "push collection",
+		"push webhook", "push topic", "push analytics", "push table", "push collection",
 	} {
 		command := resolveCommand(root, path)
 		if command == nil {
