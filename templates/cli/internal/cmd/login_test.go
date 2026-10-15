@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 )
 
 // `login --switch` was reported as "unknown flag". It was not alone: only the
@@ -334,5 +336,145 @@ func TestCloudSessionIDFallsBackWithoutASubject(t *testing.T) {
 
 	if id == "" || strings.HasPrefix(id, "@") {
 		t.Errorf("id = %q, want a usable fallback key", id)
+	}
+}
+
+func TestLoginCompletesMFAWhenTheAccountAsksForMoreFactors(t *testing.T) {
+	global := preferencesWith(t, `{}`)
+	verified := false
+	var requests []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		route := r.Method + " " + r.URL.Path
+		requests = append(requests, route)
+		body, _ := io.ReadAll(r.Body)
+		switch route {
+		case "POST /account/sessions/email":
+			w.Header().Add("Set-Cookie", "a_session_console=partial")
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"factors":["password"],"mfaUpdatedAt":""}`))
+		case "GET /account":
+			if !verified {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte(`{"message":"More factors are required to complete the sign in process.","code":401,"type":"user_more_factors_required"}`))
+
+				return
+			}
+			w.Write([]byte(`{"email":"someone@example.com"}`))
+		case "POST /account/mfa/challenges":
+			if !strings.Contains(string(body), `"factor":"totp"`) {
+				t.Errorf("challenge body = %s, want the totp factor", body)
+			}
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"$id":"challenge"}`))
+		case "PUT /account/mfa/challenges":
+			if !strings.Contains(r.Header.Get("Cookie"), "a_session_console=partial") {
+				t.Errorf("verification went out without the partial session cookie")
+			}
+			if !strings.Contains(string(body), `"challengeId":"challenge"`) ||
+				!strings.Contains(string(body), `"otp":"123456"`) {
+				t.Errorf("verification body = %s, want the challenge and the code", body)
+			}
+			verified = true
+			w.Write([]byte(`{}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+	command, _ := captureCommand()
+
+	err := loginWithPassword(command, global, server.URL, "", loginOptions{
+		Email:    "someone@example.com",
+		Password: "password",
+		MFA:      "totp",
+		Code:     "123456",
+	})
+	if err != nil {
+		t.Fatalf("err = %v after %v, want MFA completed", err, requests)
+	}
+
+	want := []string{
+		"POST /account/sessions/email",
+		"GET /account",
+		"POST /account/mfa/challenges",
+		"PUT /account/mfa/challenges",
+		"GET /account",
+	}
+	if strings.Join(requests, ", ") != strings.Join(want, ", ") {
+		t.Errorf("requests = %v, want %v", requests, want)
+	}
+
+	stored, err := preferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(stored.CurrentValue(config.PreferenceCookie), "a_session_console=partial") {
+		t.Errorf("stored cookie = %q, want the verified session", stored.CurrentValue(config.PreferenceCookie))
+	}
+}
+
+func TestLoginAbandonsTheSessionWhenMFAFails(t *testing.T) {
+	global := preferencesWith(t, `{}`)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method + " " + r.URL.Path {
+		case "POST /account/sessions/email":
+			w.Header().Add("Set-Cookie", "a_session_console=partial")
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{}`))
+		case "GET /account":
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"message":"More factors are required.","code":401,"type":"user_more_factors_required"}`))
+		case "POST /account/mfa/challenges":
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"$id":"challenge"}`))
+		default:
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"message":"Invalid token.","code":401,"type":"user_invalid_token"}`))
+		}
+	}))
+	defer server.Close()
+	command, _ := captureCommand()
+
+	err := loginWithPassword(command, global, server.URL, "", loginOptions{
+		Email:    "someone@example.com",
+		Password: "password",
+		MFA:      "totp",
+		Code:     "000000",
+	})
+	if err == nil {
+		t.Fatal("a rejected code signed in")
+	}
+
+	stored, err := preferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stored.SessionIDs()) != 0 || stored.CurrentSessionID() != "" {
+		t.Errorf("sessions = %v, current = %q, want the partial session abandoned",
+			stored.SessionIDs(), stored.CurrentSessionID())
+	}
+}
+
+func TestLoginRejectsACodeGivenAsTheFactor(t *testing.T) {
+	preferencesWith(t, `{}`)
+
+	err := runLogin(newLoginCommand(), loginOptions{
+		Endpoint: "http://127.0.0.1:1/v1",
+		MFA:      "123456",
+	})
+	if err == nil || !strings.Contains(err.Error(), "--code 123456") {
+		t.Errorf("err = %v, want it to point the code at --code", err)
+	}
+}
+
+func TestLoginRejectsAnUnknownFactor(t *testing.T) {
+	preferencesWith(t, `{}`)
+
+	err := runLogin(newLoginCommand(), loginOptions{
+		Endpoint: "http://127.0.0.1:1/v1",
+		MFA:      "sms",
+	})
+	if err == nil || !strings.Contains(err.Error(), "recoveryCode") {
+		t.Errorf("err = %v, want the accepted factors listed", err)
 	}
 }
