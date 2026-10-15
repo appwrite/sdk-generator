@@ -13,10 +13,10 @@ import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.appwrite.flutter.AppwritePushPlugin
-import io.appwrite.services.PushBackground
-import io.appwrite.services.PushMessage
-import io.appwrite.services.PushOpenActivity
-import io.appwrite.services.PushReceiver
+import io.appwrite.flutter.services.PushBackground
+import io.appwrite.flutter.services.PushMessage
+import io.appwrite.flutter.services.PushOpenActivity
+import io.appwrite.flutter.services.PushReceiver
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
@@ -135,7 +135,7 @@ class Tests {
         val notifications = context.getSystemService(NotificationManager::class.java)
         val alarms = shadowOf(context.getSystemService(AlarmManager::class.java))
         shadowOf(context.packageManager).addResolveInfoForIntent(
-            Intent("io.appwrite.push.MESSAGE").setPackage(context.packageName),
+            Intent("io.appwrite.flutter.push.MESSAGE").setPackage(context.packageName),
             ResolveInfo().apply {
                 activityInfo = ActivityInfo().apply {
                     name = E2EPushReceiver::class.java.name

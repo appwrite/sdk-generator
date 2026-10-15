@@ -22,12 +22,12 @@ import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.network.ForwardingCookieHandler
 import io.appwrite.reactnative.AppwriteCookiesModule
 import io.appwrite.reactnative.AppwritePushModule
-import io.appwrite.services.PushBackground
-import io.appwrite.services.PushBridge
-import io.appwrite.services.PushMessage
-import io.appwrite.services.PushOpenActivity
-import io.appwrite.services.PushReceiver
-import io.appwrite.services.PushStore
+import io.appwrite.reactnative.services.PushBackground
+import io.appwrite.reactnative.services.PushBridge
+import io.appwrite.reactnative.services.PushMessage
+import io.appwrite.reactnative.services.PushOpenActivity
+import io.appwrite.reactnative.services.PushReceiver
+import io.appwrite.reactnative.services.PushStore
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertFalse
@@ -134,7 +134,7 @@ class Tests {
         val notifications = context.getSystemService(NotificationManager::class.java)
         val alarms = shadowOf(context.getSystemService(AlarmManager::class.java))
         shadowOf(context.packageManager).addResolveInfoForIntent(
-            Intent("io.appwrite.push.MESSAGE").setPackage(context.packageName),
+            Intent("io.appwrite.reactnative.push.MESSAGE").setPackage(context.packageName),
             ResolveInfo().apply {
                 activityInfo = ActivityInfo().apply {
                     name = E2EPushReceiver::class.java.name

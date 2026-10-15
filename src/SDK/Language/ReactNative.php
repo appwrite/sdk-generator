@@ -89,42 +89,42 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushCore.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushCore.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushCore.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushBackground.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushBackground.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushBackground.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushWakeups.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushWakeups.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushWakeups.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushService.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushService.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushService.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushReceiver.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushReceiver.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushReceiver.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushOpenActivity.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushOpenActivity.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushOpenActivity.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushBridge.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushBridge.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushBridge.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/exceptions/{{ spec.info.title | caseUcfirst }}Exception.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/exceptions/{{ spec.info.title | caseUcfirst }}Exception.kt',
                 'template'      => 'android/push/Exception.kt.twig',
             ],
             [

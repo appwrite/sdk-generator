@@ -26,22 +26,37 @@ func (model {{ definitionName | caseUcfirst }}) New(data []byte) *{{ definitionN
 }
 
 {%~ if defaults is not empty %}
+// UnmarshalJSON decodes a response into a fresh model: present keys keep their
+// value, and required keys the response omits take their documented default.
 func (model *{{ definitionName | caseUcfirst }}) UnmarshalJSON(data []byte) error {
 	type alias {{ definitionName | caseUcfirst }}
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal([]byte({{ defaults | goJsonString }}), &fields); err != nil {
-		return err
-	}
-	if err := json.Unmarshal(data, &fields); err != nil {
+	decoded := alias{data: model.data}
+	if err := json.Unmarshal(data, &decoded); err != nil {
 		return err
 	}
 
-	merged, err := json.Marshal(fields)
-	if err != nil {
+	{%~ set width = 0 %}
+	{%~ for property in definition.properties | filter((property) => (property | schemaRequired) and (property | schemaDefault) is not null) %}
+	{%~ set width = max(width, ((property | schemaName) | caseUcfirst | escapeKeyword) | length) %}
+	{%~ endfor %}
+	var present struct {
+	{%~ for property in definition.properties | filter((property) => (property | schemaRequired) and (property | schemaDefault) is not null) %}
+		{{ ('%-' ~ width ~ 's') | format((property | schemaName) | caseUcfirst | escapeKeyword) }} json.RawMessage `json:"{{ property | schemaName }}"`
+	{%~ endfor %}
+	}
+	if err := json.Unmarshal(data, &present); err != nil {
 		return err
 	}
+	{%~ for property in definition.properties | filter((property) => (property | schemaRequired) and (property | schemaDefault) is not null) %}
+	if present.{{ (property | schemaName) | caseUcfirst | escapeKeyword }} == nil {
+		if err := json.Unmarshal([]byte({{ (property | schemaDefault) | goJsonString }}), &decoded.{{ (property | schemaName) | caseUcfirst | escapeKeyword }}); err != nil {
+			return err
+		}
+	}
+	{%~ endfor %}
 
-	return json.Unmarshal(merged, (*alias)(model))
+	*model = {{ definitionName | caseUcfirst }}(decoded)
+	return nil
 }
 
 {%~ endif %}
