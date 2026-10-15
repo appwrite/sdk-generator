@@ -414,6 +414,28 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testPhpExamplesParse(): void
+    {
+        $failures = [];
+        $script = \tempnam(\sys_get_temp_dir(), 'example');
+        foreach (self::PLATFORMS as $platform) {
+            foreach ($this->generate('php', $platform) as $path => $contents) {
+                if (!\str_starts_with($path, 'docs/examples/') || !\preg_match('/```php\n(.*?)```/s', $contents, $match)) {
+                    continue;
+                }
+                \file_put_contents($script, $match[1]);
+                \exec('php -n -l ' . \escapeshellarg($script) . ' 2>&1', $output, $code);
+                if ($code !== 0) {
+                    $failures[] = "php/{$platform} {$path}";
+                }
+                $output = [];
+            }
+        }
+        \unlink($script);
+
+        $this->assertSame([], $failures, 'Generated PHP examples must parse');
+    }
+
     /**
      * A JSON example for an untyped object array must render as Swift
      * dictionary literals, not as the JavaScript-style `{ ... }` the spec
