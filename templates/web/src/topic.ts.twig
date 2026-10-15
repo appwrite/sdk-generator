@@ -34,6 +34,9 @@ function levelsOf(levels: unknown): string[] {
         if (level.includes('#')) {
             throw new Error(`"${level}" contains "#", not allowed in a topic`);
         }
+        if (level.includes('\0')) {
+            throw new Error(`level at index ${index} contains a NUL character`);
+        }
         return level;
     });
 }

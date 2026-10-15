@@ -263,7 +263,7 @@ class Ruby extends Language
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                 case self::TYPE_BOOLEAN:
-                    $output .= 'null';
+                    $output .= 'nil';
                     break;
                 case self::TYPE_STRING:
                     $output .= "''";
@@ -295,7 +295,7 @@ class Ruby extends Language
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$example}'";
+                    $output .= "'" . \addcslashes((string) $example, "'\\") . "'";
                     break;
                 case self::TYPE_FILE:
                     $output .= "InputFile.from_path('dir/file.png')";
@@ -327,7 +327,9 @@ class Ruby extends Language
             } elseif (is_bool($node)) {
                 $value = $node ? 'true' : 'false';
             } elseif (is_string($node)) {
-                $value = '"' . $node . '"';
+                $value = "'" . \addcslashes($node, "'\\") . "'";
+            } elseif (is_null($node)) {
+                $value = 'nil';
             } else {
                 $value = $node;
             }

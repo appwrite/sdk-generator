@@ -330,7 +330,8 @@ puts Topic.path(['org', '42', 'user', '123']).path(['notification'])
     ['empty level', ['user', '']],
     ['slash', ['user/123']],
     ['plus', ['user', 'a+b']],
-    ['hash', ['user', '#']]
+    ['hash', ['user', '#']],
+    ['nul', ['user', "a\0b"]]
 ].each do |name, levels|
     begin
         Topic.path(levels)

@@ -702,6 +702,17 @@ class Python extends Language
         return \is_string($json) ? $json : 'None';
     }
 
+    /**
+     * A map field's `{}` default decodes to an empty PHP array, which would render as a list.
+     */
+    #[Override]
+    public function getModelDefault(Schema $property, bool $required): mixed
+    {
+        $default = parent::getModelDefault($property, $required);
+
+        return $default === [] && !($property instanceof ArraySchema) ? new stdClass() : $default;
+    }
+
     protected function toPythonLiteral(mixed $value): string
     {
         if (\is_object($value)) {

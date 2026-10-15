@@ -50,7 +50,7 @@ class {{ definitionName | caseUcfirst | overrideIdentifier }} implements Model {
 {% if not (property | schemaRequired) %}            )
           : null{% else %}      ){% endif %}{% else %}{% if not (property | schemaRequired) %}map['{{ propertyName | escapeDollarSign }}'] != null
           ? {% endif %}{{ modelName }}.fromMap(
-{% if not (property | schemaRequired) %}              {% else %}        {% endif %}map['{{ propertyName | escapeDollarSign }}'],
+{% if not (property | schemaRequired) %}              {% else %}        {% endif %}map['{{ propertyName | escapeDollarSign }}']{% if property | schemaRequired %} ?? <String, dynamic>{}{% endif %},
 {% if not (property | schemaRequired) %}            )
           : null{% else %}      ){% endif %}{% endif %}{% elseif property | usesEnumType %}{% set enumName = (property | enumName) %}{% if property | arraySchema %}{% if not (property | schemaRequired) %}map['{{ propertyName | escapeDollarSign }}'] != null
           ? {% endif %}List<enums.{{ enumName | caseUcfirst }}>.from(

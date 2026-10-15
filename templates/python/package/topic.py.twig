@@ -23,6 +23,8 @@ def _levels_of(levels):
             raise ValueError(f'"{level}" contains "+", not allowed in a topic')
         if "#" in level:
             raise ValueError(f'"{level}" contains "#", not allowed in a topic')
+        if "\0" in level:
+            raise ValueError(f"level at index {index} contains a NUL character")
     return tuple(levels)
 
 

@@ -47,6 +47,9 @@ List<String> _topicLevelsOf(List<String> levels) {
     if (level.contains('#')) {
       throw ArgumentError('"$level" contains "#", not allowed in a topic');
     }
+    if (level.contains('\u0000')) {
+      throw ArgumentError('level at index $index contains a NUL character');
+    }
   }
   return List.unmodifiable(levels);
 }

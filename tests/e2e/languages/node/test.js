@@ -482,6 +482,7 @@ async function start() {
         ['slash', ['user/123']],
         ['plus', ['user', 'a+b']],
         ['hash', ['user', '#']],
+        ['nul', ['user', 'a\u0000b']],
     ]) {
         try {
             Topic.path(levels);

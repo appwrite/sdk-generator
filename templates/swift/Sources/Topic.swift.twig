@@ -42,6 +42,9 @@ private func levelsOf(_ levels: [String]) throws -> [String] {
         if level.contains("#") {
             throw TopicError("\"\(level)\" contains \"#\", not allowed in a topic")
         }
+        if level.contains("\0") {
+            throw TopicError("level at index \(index) contains a NUL character")
+        }
     }
     return levels
 }

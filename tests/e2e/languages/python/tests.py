@@ -134,6 +134,7 @@ print(f"empty presets: {len(general.list_empty_presets().presets)}")
 print(f"preset verified: {'null' if preset.verified is None else preset.verified}")
 print(f"preset scopes: {','.join(scope.value for scope in (preset.scopes or []))}")
 print(f"preset tier: {preset.tier}")
+print(f"preset settings: options={len(general.get_preset_settings().options)}")
 
 try:
     response = general.error400()
@@ -318,6 +319,7 @@ for name, levels in [
     ('slash', ['user/123']),
     ('plus', ['user', 'a+b']),
     ('hash', ['user', '#']),
+    ('nul', ['user', 'a\0b']),
 ]:
     try:
         Topic.path(levels)

@@ -599,13 +599,13 @@ class Dart extends Language
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
-                        return $this->toCamelCase($enumKeys[$index]);
+                        return $this->escapeKeyword($this->toCamelCase($enumKeys[$index]));
                     }
                     if ($index !== false && isset($enumValues[$index])) {
-                        return $this->toCamelCase($enumValues[$index]);
+                        return $this->escapeKeyword($this->toCamelCase($enumValues[$index]));
                     }
                     $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
-                    return $this->toCamelCase((string)$fallback);
+                    return $this->escapeKeyword($this->toCamelCase((string)$fallback));
                 };
 
                 if ($isArray) {

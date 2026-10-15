@@ -482,6 +482,7 @@ func testTopicHelpers() {
 		{"slash", []string{"user/123"}},
 		{"plus", []string{"user", "a+b"}},
 		{"hash", []string{"user", "#"}},
+		{"nul", []string{"user", "a\x00b"}},
 	}
 	for _, c := range cases {
 		if topicPanics(c.levels) {

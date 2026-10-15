@@ -156,6 +156,8 @@ void main() async {
   print('empty presets: ${(await general.listEmptyPresets()).presets.length}');
   print('preset verified: ${preset.verified}');
   print('preset scopes: ${(preset.scopes ?? []).map((scope) => scope.value).join(',')}');
+  print('preset settings: options=${(await general.getPresetSettings()).options.length}');
+  print('preset profile: prefs=${(await general.getPresetProfile()).prefs.data.length}');
 
   try {
     await general.error400();
@@ -347,6 +349,7 @@ void main() async {
     'slash': ['user/123'],
     'plus': ['user', 'a+b'],
     'hash': ['user', '#'],
+    'nul': ['user', 'a\u0000b'],
   };
   topicCases.forEach((name, levels) {
     try {

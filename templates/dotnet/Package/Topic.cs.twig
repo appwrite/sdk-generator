@@ -71,6 +71,10 @@ namespace {{ spec.info.title | caseUcfirst }}
                 {
                     throw new ArgumentException($"\"{level}\" contains \"#\", not allowed in a topic");
                 }
+                if (level.Contains('\0'))
+                {
+                    throw new ArgumentException($"level at index {index} contains a NUL character");
+                }
             }
 
             return list;

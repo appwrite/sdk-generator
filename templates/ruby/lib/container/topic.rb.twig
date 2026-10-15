@@ -43,6 +43,7 @@ module {{spec.info.title | caseUcfirst }}
                 end
                 raise ArgumentError, "\"#{level}\" contains \"+\", not allowed in a topic" if level.include?('+')
                 raise ArgumentError, "\"#{level}\" contains \"#\", not allowed in a topic" if level.include?('#')
+                raise ArgumentError, "level at index #{index} contains a NUL character" if level.include?("\0")
             end
 
             levels.dup
