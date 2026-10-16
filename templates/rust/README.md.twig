@@ -1,6 +1,6 @@
 # {{ spec.info.title }} Rust SDK
 
-![License](https://img.shields.io/github/license/{{ sdk.gitUserName }}/sdk-for-rust.svg)
+![License](https://img.shields.io/badge/license-{{ spec.info.license.name|replace({'-': '--', '_': '__'})|url_encode }}-blue.svg)
 ![Version](https://img.shields.io/badge/api%20version-{{ spec.info.version }}-blue.svg)
 [![Crates.io](https://img.shields.io/crates/v/{{ sdk.cratePackage | default('appwrite') }}.svg)](https://crates.io/crates/{{ sdk.cratePackage | default('appwrite') }})
 [![Documentation](https://docs.rs/{{ sdk.cratePackage | default('appwrite') }}/badge.svg)](https://docs.rs/{{ sdk.cratePackage | default('appwrite') }})
