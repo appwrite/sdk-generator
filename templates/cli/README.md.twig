@@ -1,8 +1,6 @@
 # {{ spec.info.title }} {{sdk.name}} SDK
 
-{% if sdk.license %}
-![License](https://img.shields.io/badge/license-{{ sdk.license|replace({'-': '--', '_': '__'})|url_encode }}-blue.svg?style=flat-square)
-{% endif %}
+![License](https://img.shields.io/badge/license-{{ spec.info.license.name|replace({'-': '--', '_': '__'})|url_encode }}-blue.svg?style=flat-square)
 ![Version](https://img.shields.io/badge/api%20version-{{ spec.info.version|url_encode }}-blue.svg?style=flat-square)
 [![npm](https://img.shields.io/npm/v/{{ language.params.npmPackage|url_encode }}?style=flat-square)](https://www.npmjs.com/package/{{ language.params.npmPackage }})
 {% if sdk.twitterHandle %}
