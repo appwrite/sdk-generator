@@ -24,9 +24,17 @@ import (
 // stored as its own session, the way `client --key` stores one, so every
 // project command works against it without `login`. The claim code stays in
 // prefs.json, never in appwrite.config.json, which is often committed.
+//
+// Until the project is claimed its domains open only for the owner token: a
+// browser visits each domain's owner link once, an agent sends the token in
+// the X-Appwrite-Zero-Token header.
 
 const (
-	pathZero = "/zero"
+	pathZero  = "/zero"
+	pathRules = "/proxy/rules"
+
+	// zeroOwnerPath is where a domain of an unclaimed Zero takes the owner token.
+	zeroOwnerPath = "/__appwrite/zero?token="
 
 	// preferenceZero is the session field holding what `zero status` needs.
 	preferenceZero = "zero"
@@ -47,8 +55,10 @@ func newZeroCommand() *cobra.Command {
 		Short: "Get a working project instantly, no signup",
 		Long: "Create an Appwrite project without an account and link this directory to it.\n\n" +
 			"The project is yours to build on for a limited time. Claim it with the printed " +
-			"link to keep it; unclaimed projects are deleted. --json prints the manifest, " +
-			"including the claim link, for agents to hand back.",
+			"link to keep it; unclaimed projects are deleted. Until then its domains open only " +
+			"for you: visit a domain's owner link once, or send the access token in the " +
+			"X-Appwrite-Zero-Token header. --json prints the manifest, including the claim " +
+			"link and the access token, for agents to hand back.",
 		Args: cobra.NoArgs,
 		RunE: func(command *cobra.Command, args []string) error {
 			return runZero(command, endpoint)
@@ -111,7 +121,7 @@ func runZero(command *cobra.Command, endpoint string) error {
 	}
 
 	stored := config.NewObject()
-	for _, key := range []string{"$id", "secret", "projectId", "consoleUrl", "claimUrl", "expiresAt", "claimBy"} {
+	for _, key := range []string{"$id", "secret", "projectId", "consoleUrl", "claimUrl", "accessToken", "expiresAt", "claimBy"} {
 		stored.Set(key, zero.GetString(key))
 	}
 	session := config.NewObject()
@@ -164,10 +174,13 @@ func printZeroWelcome(out io.Writer, zero *jsonx.Object, path string) {
 		timeLeft(zero.GetString("expiresAt"), now), timeLeft(zero.GetString("claimBy"), now))
 	fmt.Fprintf(out, "    %s\n", zero.GetString("claimUrl"))
 	fmt.Fprintln(out)
+	fmt.Fprintln(out, "  Until then its domains open only for you, through each domain's owner link:")
+	fmt.Fprintf(out, "    https://<domain>%s%s\n", zeroOwnerPath, zero.GetString("accessToken"))
+	fmt.Fprintln(out)
 	fmt.Fprintln(out, output.Heading("  Next steps"))
 	fmt.Fprintf(out, "    %s tablesdb list       Call the project with its API key\n", name)
 	fmt.Fprintf(out, "    %s push                Deploy this directory's resources\n", name)
-	fmt.Fprintf(out, "    %s zero status         Check the time left\n", name)
+	fmt.Fprintf(out, "    %s zero status         Check the time left and get each domain's owner link\n", name)
 }
 
 func runZeroStatus(command *cobra.Command) error {
@@ -205,11 +218,42 @@ func runZeroStatus(command *cobra.Command) error {
 		report.Set("buildTimeLeft", timeLeft(zero.GetString("expiresAt"), now))
 		report.Set("claimTimeLeft", timeLeft(zero.GetString("claimBy"), now))
 		report.Set("claimUrl", stored.GetString("claimUrl"))
+
+		links, err := zeroOwnerLinks(session, zero.GetString("projectId"), stored.GetString("accessToken"))
+		if err != nil {
+			return err
+		}
+		report.Set("ownerLinks", links)
 	}
 	report.Set("expiresAt", zero.GetString("expiresAt"))
 	report.Set("claimBy", zero.GetString("claimBy"))
 
 	return app.RenderValue(report)
+}
+
+// zeroOwnerLinks lists the link that opens each of the project's domains for
+// the owner while the project is unclaimed.
+func zeroOwnerLinks(session *config.Object, projectID, token string) ([]string, error) {
+	links := []string{}
+	if token == "" {
+		return links, nil
+	}
+
+	var rules jsonx.Object
+	err := client.New(session.GetString(config.PreferenceEndpoint), app.Version).
+		WithoutResponseFormat().
+		SetProject(projectID).
+		SetKey(session.GetString(config.PreferenceKey)).
+		Call("GET", pathRules, nil, &rules)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, rule := range rules.GetObjects("rules") {
+		links = append(links, "https://"+rule.GetString("domain")+zeroOwnerPath+url.QueryEscape(token))
+	}
+
+	return links, nil
 }
 
 // zeroSession finds the Zero session for this directory's project, falling
