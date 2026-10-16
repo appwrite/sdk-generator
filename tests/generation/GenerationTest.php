@@ -849,6 +849,45 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * `createQuery` is `listRows` and `listDocuments` with the queries in the
+     * body, so its CLI command offers the same `--select` flag.
+     */
+    public function testCliQueryBodyCommandsOfferSelect(): void
+    {
+        $queries = ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Array of query strings.'];
+        $operation = static fn(string $method, string $verb): array => [
+            'operationId' => 'general' . \ucfirst($method),
+            'tags' => ['general'],
+            'summary' => $method,
+            'description' => $method . '.',
+            'parameters' => $verb === 'get'
+                ? [['name' => 'queries', 'in' => 'query', 'required' => false, 'description' => 'Array of query strings.', 'schema' => $queries]]
+                : [],
+            'requestBody' => $verb === 'post'
+                ? ['content' => ['application/json' => ['schema' => ['type' => 'object', 'properties' => ['queries' => $queries]]]]]
+                : null,
+            'responses' => ['200' => ['description' => 'ok']],
+            'x-appwrite' => ['method' => $method],
+        ];
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'general']],
+            'paths' => [
+                '/tests/rows' => ['get' => \array_filter($operation('listRows', 'get'), static fn(mixed $value): bool => $value !== null)],
+                '/tests/rows/query' => ['post' => \array_filter($operation('createQuery', 'post'), static fn(mixed $value): bool => $value !== null)],
+            ],
+        ];
+
+        $service = $this->generateDocument($document, 'cli', 'query-select')['internal/cmd/services/general.go'];
+
+        foreach (['ListRows', 'CreateQuery'] as $command) {
+            \preg_match('/func newGeneral' . $command . 'Command\(\).*?\n}\n/s', $service, $body);
+            $this->assertStringContainsString('StringArrayVar(&selectAttributes, "select"', $body[0] ?? '', "{$command} lacks --select");
+        }
+    }
+
+    /**
      * An upload whose only parameter is the file still takes the progress
      * callback as its second positional argument.
      */
