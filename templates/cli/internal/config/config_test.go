@@ -397,10 +397,11 @@ func TestMigrateLegacySessionIgnoresAPartialOrModernFile(t *testing.T) {
 
 func TestGlobalPathFollowsXDGConfigHome(t *testing.T) {
 	cases := []struct {
-		name   string
-		legacy bool
-		xdg    func(home string) string
-		want   func(home, xdg string) string
+		name    string
+		legacy  bool
+		missing bool
+		xdg     func(home string) string
+		want    func(home, xdg string) string
 	}{
 		{
 			name:   "existing home directory wins over XDG",
@@ -412,6 +413,12 @@ func TestGlobalPathFollowsXDGConfigHome(t *testing.T) {
 			name: "absolute XDG_CONFIG_HOME",
 			xdg:  func(home string) string { return filepath.Join(home, "xdg") },
 			want: func(_, xdg string) string { return filepath.Join(xdg, "appwrite", "prefs.json") },
+		},
+		{
+			name:    "missing XDG_CONFIG_HOME directory",
+			missing: true,
+			xdg:     func(home string) string { return filepath.Join(home, "xdg") },
+			want:    func(home, _ string) string { return filepath.Join(home, ".appwrite", "prefs.json") },
 		},
 		{
 			name: "unset XDG_CONFIG_HOME",
@@ -433,6 +440,11 @@ func TestGlobalPathFollowsXDGConfigHome(t *testing.T) {
 			xdg := test.xdg(home)
 			t.Setenv("XDG_CONFIG_HOME", xdg)
 
+			if filepath.IsAbs(xdg) && !test.missing {
+				if err := os.MkdirAll(xdg, 0o700); err != nil {
+					t.Fatal(err)
+				}
+			}
 			if test.legacy {
 				if err := os.MkdirAll(filepath.Join(home, ".appwrite"), 0o700); err != nil {
 					t.Fatal(err)
@@ -452,7 +464,7 @@ func TestGlobalPathFollowsXDGConfigHome(t *testing.T) {
 
 func TestGlobalWriteCreatesTheXDGDirectory(t *testing.T) {
 	home := t.TempDir()
-	xdg := filepath.Join(t.TempDir(), "config")
+	xdg := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", xdg)

@@ -86,11 +86,15 @@ func GlobalDirectory(executableName string) (string, error) {
 		return legacy, nil
 	}
 
-	if xdg := os.Getenv("XDG_CONFIG_HOME"); filepath.IsAbs(xdg) {
-		return filepath.Join(xdg, executableName), nil
+	xdg := os.Getenv("XDG_CONFIG_HOME")
+	if !filepath.IsAbs(xdg) {
+		return legacy, nil
+	}
+	if info, err := os.Stat(xdg); err != nil || !info.IsDir() {
+		return legacy, nil
 	}
 
-	return legacy, nil
+	return filepath.Join(xdg, executableName), nil
 }
 
 // LoadGlobal reads the preferences file. A missing or unparseable file yields

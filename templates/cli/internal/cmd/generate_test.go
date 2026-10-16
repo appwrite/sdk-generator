@@ -44,6 +44,7 @@ func TestGenerateEndpointFallsBackToTheDefault(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_CONFIG_HOME", "")
 
 	if got := resolveGenerateEndpoint(""); got != config.DefaultEndpoint {
 		t.Errorf("endpoint = %q, want %q", got, config.DefaultEndpoint)
