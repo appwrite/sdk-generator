@@ -398,6 +398,21 @@ jobs:
           ./appwrite --help | grep -q "GET STARTED"
           SHELL=bash ./appwrite completion bash >/dev/null
 
+      - name: Check generated Python types
+        if: matrix.sdk == 'cli'
+        working-directory: examples/cli/internal/typegen/testdata
+        run: |
+          environment="$RUNNER_TEMP/typegen-python"
+          python3 -m venv "$environment"
+          "$environment/bin/pip" install --quiet black==26.10.1 mypy==2.4.0 pydantic==2.14.1
+          "$environment/bin/black" --check python.*.py
+          for baseline in python.*.py; do
+            directory="$environment/baselines/$baseline"
+            mkdir -p "$directory"
+            cp "$baseline" "$directory/appwrite_types.py"
+            (cd "$directory" && "$environment/bin/mypy" --strict appwrite_types.py && "$environment/bin/python" -W error -c 'import appwrite_types')
+          done
+
       # The CLI ships as a native binary behind an npm launcher, so it has no
       # dist/ entry points to check -- what can break is the launcher itself
       # and the two scripts that assemble the platform packages.

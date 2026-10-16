@@ -1808,6 +1808,36 @@ class CLI extends Go
                 'template'      => 'cli/internal/typegen/testdata/cs.strict.BooksZines.cs',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/python.go',
+                'template'      => 'cli/internal/typegen/python.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.collections.json',
+                'template'      => 'cli/internal/typegen/testdata/python.collections.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.loose.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.loose.appwrite_types.py',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.strict.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.strict.appwrite_types.py',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.coverage.loose.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.coverage.loose.appwrite_types.py',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.coverage.strict.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.coverage.strict.appwrite_types.py',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/generator/generator.go',
                 'template'      => 'cli/internal/generator/generator.go',
