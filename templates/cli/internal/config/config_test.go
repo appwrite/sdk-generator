@@ -418,7 +418,7 @@ func TestGlobalPathFollowsXDGConfigHome(t *testing.T) {
 			name:    "missing XDG_CONFIG_HOME directory",
 			missing: true,
 			xdg:     func(home string) string { return filepath.Join(home, "xdg") },
-			want:    func(home, _ string) string { return filepath.Join(home, ".appwrite", "prefs.json") },
+			want:    func(_, xdg string) string { return filepath.Join(xdg, "appwrite", "prefs.json") },
 		},
 		{
 			name: "unset XDG_CONFIG_HOME",
@@ -464,7 +464,7 @@ func TestGlobalPathFollowsXDGConfigHome(t *testing.T) {
 
 func TestGlobalWriteCreatesTheXDGDirectory(t *testing.T) {
 	home := t.TempDir()
-	xdg := t.TempDir()
+	xdg := filepath.Join(t.TempDir(), "config")
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_CONFIG_HOME", xdg)
