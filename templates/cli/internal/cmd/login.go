@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os/exec"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -59,9 +60,10 @@ func newLoginCommand() *cobra.Command {
 		"Email for self hosted login, or stored account email with --switch")
 	flags.StringVar(&options.Password, "password", "", "Password, for self hosted instances")
 	flags.StringVar(&options.MFA, "mfa", "",
-		"Factor used for MFA on self hosted instances. "+
-			"Must be one of: email, phone, totp, recoveryCode")
-	flags.StringVar(&options.Code, "code", "", "Code used for MFA on self hosted instances")
+		"MFA factor to challenge on self hosted instances, one of: "+
+			strings.Join(mfaFactors, ", ")+". Pass the code itself with --code")
+	flags.StringVar(&options.Code, "code", "",
+		"MFA code from the factor chosen with --mfa, on self hosted instances")
 	flags.BoolVar(&options.Switch, "switch", false, "Switch to another signed-in account")
 	flags.BoolVar(&options.New, "new", false, "Sign in to another account")
 
@@ -89,6 +91,10 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 
 	if options.Switch {
 		return switchAccount(command, global, previous, options.Endpoint, options.Email)
+	}
+
+	if err := validateFactor(options.MFA); err != nil {
+		return err
 	}
 
 	configEndpoint := resolveLoginEndpoint(options.Endpoint)
@@ -376,41 +382,38 @@ func loginWithPassword(
 	credentials.Set("email", email)
 	credentials.Set("password", password)
 
-	err := api.Call("POST", "/account/sessions/email", credentials, nil)
-	if err != nil {
-		if !isMFARequired(err) {
-			abandon()
+	if err := api.Call("POST", "/account/sessions/email", credentials, nil); err != nil {
+		abandon()
 
-			if endpoint != config.DefaultEndpoint && isInvalidCredentials(err) {
-				output.Log(out, "Use the --endpoint option for self-hosted instances")
-			}
-
-			return err
+		if endpoint != config.DefaultEndpoint && isInvalidCredentials(err) {
+			output.Log(out, "Use the --endpoint option for self-hosted instances")
 		}
 
-		if err := completeMFA(command, api, options); err != nil {
-			abandon()
-
-			return err
-		}
+		return err
 	}
 
 	// The cookie IS the credential for this flow, so a sign-in that does not
 	// produce one has not signed anyone in.
-	sessionCookie := api.SessionCookie()
-	if sessionCookie == "" {
+	if api.SessionCookie() == "" {
 		abandon()
 
 		return errors.New("sign-in did not return a session")
 	}
-	session.Set(config.PreferenceCookie, sessionCookie)
 
 	account := jsonx.NewObject()
-	if err := api.Call("GET", "/account", nil, account); err != nil {
+	err := api.Call("GET", "/account", nil, account)
+	if isMFARequired(err) {
+		err = completeMFA(command, api, options)
+		if err == nil {
+			err = api.Call("GET", "/account", nil, account)
+		}
+	}
+	if err != nil {
 		abandon()
 
 		return err
 	}
+	session.Set(config.PreferenceCookie, api.SessionCookie())
 
 	if actual := account.GetString("email"); actual != "" {
 		session.Set(config.PreferenceEmail, actual)
@@ -479,6 +482,21 @@ func completeMFA(command *cobra.Command, api *client.Client, options loginOption
 	answer.Set("otp", code)
 
 	return api.Call("PUT", "/account/mfa/challenges", answer, nil)
+}
+
+var mfaFactors = []string{"email", "phone", "totp", "recoveryCode"}
+
+func validateFactor(factor string) error {
+	if factor == "" || slices.Contains(mfaFactors, factor) {
+		return nil
+	}
+
+	if strings.Trim(factor, "0123456789") == "" {
+		return fmt.Errorf("--mfa takes the factor (%s), not the code. "+
+			"Pass the code with --code %s", strings.Join(mfaFactors, ", "), factor)
+	}
+
+	return fmt.Errorf("--mfa must be one of: %s", strings.Join(mfaFactors, ", "))
 }
 
 // isMFARequired reports whether a sign-in stopped to ask for a second factor.
