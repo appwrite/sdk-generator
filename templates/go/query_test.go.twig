@@ -403,6 +403,38 @@ func TestCrossJoin(t *testing.T) {
 	}
 }
 
+func TestNestedJoinWithoutAliasLeavesTheAliasToTheServer(t *testing.T) {
+	q := JoinOn("orders", "", []string{On("$id", "customerId", "")})
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+	if data["method"] != "join" {
+		t.Errorf("Expected join, got %v", data["method"])
+	}
+	values := data["values"].([]interface{})
+	if len(values) != 1 {
+		t.Fatalf("Expected only the ON condition, got %v", values)
+	}
+	if values[0].(map[string]interface{})["method"] != "on" {
+		t.Errorf("Expected on, got %v", values[0])
+	}
+}
+
+func TestCrossJoinWithoutAliasLeavesTheAliasToTheServer(t *testing.T) {
+	q := CrossJoin("orders", "")
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(q), &data); err != nil {
+		t.Fatal(err)
+	}
+	if data["method"] != "crossJoin" {
+		t.Errorf("Expected crossJoin, got %v", data["method"])
+	}
+	if values, ok := data["values"].([]interface{}); ok && len(values) != 0 {
+		t.Errorf("Expected no alias, got %v", values)
+	}
+}
+
 func TestVectorDot(t *testing.T) {
 	q := VectorDot("embedding", []float64{0.1, 0.2})
 	var data map[string]interface{}

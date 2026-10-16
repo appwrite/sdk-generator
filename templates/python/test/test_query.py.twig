@@ -267,6 +267,19 @@ class TestQueryMethods(unittest.TestCase):
             parsed(Query.cross_join('orders', 'ord')), {'method': 'crossJoin', 'attribute': 'orders', 'values': ['ord']}
         )
 
+    def test_nested_join_without_alias_leaves_the_alias_to_the_server(self):
+        query = json.loads(Query.join('orders', [Query.on('$id', 'customerId')]))
+        self.assertEqual(query['method'], 'join')
+        self.assertEqual(query['attribute'], 'orders')
+        self.assertEqual(len(query['values']), 1)
+        self.assertEqual(query['values'][0]['method'], 'on')
+
+    def test_cross_join_without_alias_leaves_the_alias_to_the_server(self):
+        query = json.loads(Query.cross_join('orders'))
+        self.assertEqual(query['method'], 'crossJoin')
+        self.assertEqual(query['attribute'], 'orders')
+        self.assertEqual(query.get('values') or [], [])
+
     def test_not_covers(self):
         self.assertEqual(
             parsed(Query.not_covers('location', [1, 2])),

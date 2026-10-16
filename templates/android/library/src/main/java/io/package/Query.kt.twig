@@ -584,7 +584,7 @@ class Query(
         fun max(attribute: String, alias: String = "") = Query("max", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
         /**
-         * Standard deviation of [attribute], optionally aliased.
+         * Population standard deviation of [attribute] (the same as stddevPop), optionally aliased.
          *
          * @param attribute The attribute to inspect.
          * @param alias Optional result alias.
@@ -611,7 +611,7 @@ class Query(
         fun stddevSamp(attribute: String, alias: String = "") = Query("stddevSamp", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
 
         /**
-         * Variance of [attribute], optionally aliased.
+         * Population variance of [attribute] (the same as varPop), optionally aliased.
          *
          * @param attribute The attribute to inspect.
          * @param alias Optional result alias.
@@ -698,19 +698,19 @@ class Query(
         fun on(left: String, right: String, operator: String = "=") = Query("on", values = listOf(left, operator, right)).toJson()
 
         /**
-         * Inner join. [table] is the joined collection/table ID.
+         * Inner join. [table] is the joined collection/table ID; without an alias the join is named after it.
          *
          * @param table Joined table ID.
          * @param left Left-hand join column.
          * @param right Right-hand join column.
          * @param operator Comparison operator. Defaults to `=`.
-         * @param alias Optional table alias.
+         * @param alias Optional table alias. Defaults to the table ID.
          * @returns The query string.
          */
         fun join(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("join", table, left, right, operator, alias)
 
         /**
-         * Inner join with nested ON queries and no alias.
+         * Inner join with nested ON queries, named after the table ID.
          *
          * @param table Joined table ID.
          * @param on Nested ON queries, including [on].
@@ -729,19 +729,19 @@ class Query(
         fun join(table: String, alias: String, on: List<String>) = nestedJoin("join", table, alias, on)
 
         /**
-         * Left join. [table] is the joined collection/table ID.
+         * Left join. [table] is the joined collection/table ID; without an alias the join is named after it.
          *
          * @param table Joined table ID.
          * @param left Left-hand join column.
          * @param right Right-hand join column.
          * @param operator Comparison operator. Defaults to `=`.
-         * @param alias Optional table alias.
+         * @param alias Optional table alias. Defaults to the table ID.
          * @returns The query string.
          */
         fun leftJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("leftJoin", table, left, right, operator, alias)
 
         /**
-         * Left join with nested ON queries and no alias.
+         * Left join with nested ON queries, named after the table ID.
          *
          * @param table Joined table ID.
          * @param on Nested ON queries, including [on].
@@ -760,19 +760,19 @@ class Query(
         fun leftJoin(table: String, alias: String, on: List<String>) = nestedJoin("leftJoin", table, alias, on)
 
         /**
-         * Right join. [table] is the joined collection/table ID.
+         * Right join. [table] is the joined collection/table ID; without an alias the join is named after it.
          *
          * @param table Joined table ID.
          * @param left Left-hand join column.
          * @param right Right-hand join column.
          * @param operator Comparison operator. Defaults to `=`.
-         * @param alias Optional table alias.
+         * @param alias Optional table alias. Defaults to the table ID.
          * @returns The query string.
          */
         fun rightJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("rightJoin", table, left, right, operator, alias)
 
         /**
-         * Right join with nested ON queries and no alias.
+         * Right join with nested ON queries, named after the table ID.
          *
          * @param table Joined table ID.
          * @param on Nested ON queries, including [on].
@@ -791,19 +791,19 @@ class Query(
         fun rightJoin(table: String, alias: String, on: List<String>) = nestedJoin("rightJoin", table, alias, on)
 
         /**
-         * Full outer join. [table] is the joined collection/table ID.
+         * Full outer join. [table] is the joined collection/table ID; without an alias the join is named after it.
          *
          * @param table Joined table ID.
          * @param left Left-hand join column.
          * @param right Right-hand join column.
          * @param operator Comparison operator. Defaults to `=`.
-         * @param alias Optional table alias.
+         * @param alias Optional table alias. Defaults to the table ID.
          * @returns The query string.
          */
         fun fullOuterJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("fullOuterJoin", table, left, right, operator, alias)
 
         /**
-         * Full outer join with nested ON queries and no alias.
+         * Full outer join with nested ON queries, named after the table ID.
          *
          * @param table Joined table ID.
          * @param on Nested ON queries, including [on].
@@ -822,10 +822,10 @@ class Query(
         fun fullOuterJoin(table: String, alias: String, on: List<String>) = nestedJoin("fullOuterJoin", table, alias, on)
 
         /**
-         * Cross join. [table] is the joined collection/table ID.
+         * Cross join. [table] is the joined collection/table ID; without an alias the join is named after it.
          *
          * @param table Joined table ID.
-         * @param alias Optional table alias.
+         * @param alias Optional table alias. Defaults to the table ID.
          * @returns The query string.
          */
         fun crossJoin(table: String, alias: String = "") = Query("crossJoin", table, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
