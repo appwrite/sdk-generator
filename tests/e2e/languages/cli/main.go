@@ -115,6 +115,7 @@ func (h *harness) command(args ...string) *exec.Cmd {
 	command.Env = append(os.Environ(),
 		"HOME="+h.home,
 		"USERPROFILE="+h.home,
+		"XDG_CONFIG_HOME="+filepath.Join(h.home, ".config"),
 	)
 
 	return command

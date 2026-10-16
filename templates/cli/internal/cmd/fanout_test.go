@@ -118,6 +118,7 @@ func TestAllSubcommandsNeverPrompt(t *testing.T) {
 			home := t.TempDir()
 			t.Setenv("HOME", home)
 			t.Setenv("USERPROFILE", home)
+			t.Setenv("XDG_CONFIG_HOME", "")
 			inDirectory(t, t.TempDir())
 
 			root := NewRootCommand()

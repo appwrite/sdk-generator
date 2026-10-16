@@ -1123,6 +1123,11 @@ class CLI extends Go
                 'template'      => 'cli/internal/cmd/initscaffold_test.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initsite_test.go',
+                'template'      => 'cli/internal/cmd/initsite_test.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/initfunction.go',
                 'template'      => 'cli/internal/cmd/initfunction.go',
@@ -1591,6 +1596,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/typegen/enum_style.go',
+                'template'      => 'cli/internal/typegen/enum_style.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/typegen/language.go',
                 'template'      => 'cli/internal/typegen/language.go',
             ],
@@ -1626,6 +1636,16 @@ class CLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/typegen/testdata/ts.strict.appwrite.d.ts',
                 'template'      => 'cli/internal/typegen/testdata/ts.strict.appwrite.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/ts.const.appwrite.d.ts',
+                'template'      => 'cli/internal/typegen/testdata/ts.const.appwrite.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/ts.const.appwrite.ts',
+                'template'      => 'cli/internal/typegen/testdata/ts.const.appwrite.ts',
             ],
             [
                 'scope'         => 'copy',
@@ -1851,6 +1871,11 @@ class CLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/generator/testdata/server.types.ts',
                 'template'      => 'cli/internal/generator/testdata/server.types.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.const.types.ts',
+                'template'      => 'cli/internal/generator/testdata/server.const.types.ts',
             ],
             [
                 'scope'         => 'copy',
