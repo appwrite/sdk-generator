@@ -30,6 +30,10 @@ class WarehousesStatus1(str, Enum):
     CLOSED = "closed"
 
 
+class ArchivedWarehousesStatus(str, Enum):
+    SEALED = "sealed"
+
+
 class InventoryItems(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
@@ -48,8 +52,8 @@ class InventoryItems(BaseModel):
     model_config_: Optional[str] = Field(default=None, alias="model_config")
     str_: Optional[str] = Field(default=None, alias="str")
     hidden: Optional[str] = Field(default=None, alias="_hidden")
-    full_name: str = Field(alias="fullName")
-    full_name_1: Optional[str] = Field(default=None, alias="full_name")
+    full_name_1: str = Field(alias="fullName")
+    full_name: Optional[str] = None
     field_9lives: Optional[int] = Field(default=None, alias="9lives")
     field: Optional[str] = Field(default=None, alias="!!!")
     a_rather_long_column_key_that_needs_wrapping_too: Optional[List[float]] = Field(
@@ -93,3 +97,10 @@ class ATableWhoseNameIsLongEnoughThatTheClassStatementForItsModelCannotFitOnOneL
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     value: str
+
+
+class ArchivedWarehouses(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    status: ArchivedWarehousesStatus
+    successor: Optional[Union[ArchivedWarehouses, str]] = None

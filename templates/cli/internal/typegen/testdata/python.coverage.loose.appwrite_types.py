@@ -30,6 +30,10 @@ class WarehousesStatus1(str, Enum):
     CLOSED = "closed"
 
 
+class ArchivedWarehousesStatus(str, Enum):
+    SEALED = "sealed"
+
+
 class InventoryItems(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
@@ -93,3 +97,10 @@ class ATableWhoseNameIsLongEnoughThatTheClassStatementForItsModelCannotFitOnOneL
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     value: str
+
+
+class ArchivedWarehouses(BaseModel):
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
+
+    status: ArchivedWarehousesStatus
+    successor: Optional[Union[ArchivedWarehouses, str]] = None

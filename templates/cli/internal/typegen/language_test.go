@@ -203,7 +203,7 @@ func TestPythonFieldNamesAreUsableIdentifiers(t *testing.T) {
 
 	for strict, want := range map[bool][]string{
 		false: {"fullName", "full_name", "class_", "hidden", "field_9lives", "field", "model_config_", "Items_", "published_at"},
-		true:  {"full_name", "full_name_1", "class_", "hidden", "field_9lives", "field", "model_config_", "items", "published_at"},
+		true:  {"full_name_1", "full_name", "class_", "hidden", "field_9lives", "field", "model_config_", "items", "published_at"},
 	} {
 		got := pythonFieldNames(attributes, strict, classes)
 		if strings.Join(got, " ") != strings.Join(want, " ") {
@@ -222,12 +222,45 @@ func TestPythonClassNamesNeverCollide(t *testing.T) {
 
 	want := map[string]string{"a": "OrdersStatus", "b": "Orders", "c": "Orders1", "d": "Model2024Sales"}
 	for id, name := range want {
-		if classes.models[id] != name {
-			t.Errorf("model %s = %q, want %q", id, classes.models[id], name)
+		if model := classes.models[pythonModelKey(Collection{ID: id})]; model != name {
+			t.Errorf("model %s = %q, want %q", id, model, name)
 		}
 	}
-	if enum := classes.enums[pythonEnumKey("b", "status")]; enum != "OrdersStatus1" {
+	if enum := classes.enums[pythonEnumKey(Collection{ID: "b"}, "status")]; enum != "OrdersStatus1" {
 		t.Errorf("enum = %q, want OrdersStatus1", enum)
+	}
+}
+
+func TestPythonModelsAreKeyedByDatabase(t *testing.T) {
+	collections := []Collection{
+		{ID: "items", DatabaseID: "a", Name: "First", Attributes: []Attribute{
+			{Key: "status", Type: AttributeTypeString, Format: AttributeTypeEnum, Required: true, Elements: []string{"open"}},
+			{Key: "owner", Type: AttributeTypeRelationship, Required: true, RelatedTable: "owners", RelationType: "oneToOne", Side: "parent"},
+		}},
+		{ID: "items", DatabaseID: "b", Name: "Second", Attributes: []Attribute{
+			{Key: "status", Type: AttributeTypeString, Format: AttributeTypeEnum, Required: true, Elements: []string{"closed"}},
+			{Key: "owner", Type: AttributeTypeRelationship, Required: true, RelatedTable: "owners", RelationType: "oneToOne", Side: "parent"},
+		}},
+		{ID: "owners", DatabaseID: "a", Name: "First Owners"},
+		{ID: "owners", DatabaseID: "b", Name: "Second Owners"},
+	}
+
+	rendered, err := (Python{}).Render(collections, nil, false, baselineInvocation)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+
+	for _, want := range []string{
+		"class FirstStatus(str, Enum):\n    OPEN = \"open\"\n",
+		"class SecondStatus(str, Enum):\n    CLOSED = \"closed\"\n",
+		"class First(BaseModel):\n    model_config = ConfigDict(extra=\"allow\", populate_by_name=True)\n\n    status: FirstStatus\n    owner: Union[FirstOwners, str]\n",
+		"class Second(BaseModel):\n    model_config = ConfigDict(extra=\"allow\", populate_by_name=True)\n\n    status: SecondStatus\n    owner: Union[SecondOwners, str]\n",
+		"class FirstOwners(BaseModel):",
+		"class SecondOwners(BaseModel):",
+	} {
+		if strings.Count(rendered, want) != 1 {
+			t.Errorf("want exactly one %q in:\n%s", want, rendered)
+		}
 	}
 }
 

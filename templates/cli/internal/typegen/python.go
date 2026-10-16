@@ -36,8 +36,12 @@ type pythonClasses struct {
 	order  []string
 }
 
-func pythonEnumKey(collectionID, attributeKey string) string {
-	return collectionID + "\x00" + attributeKey
+func pythonModelKey(collection Collection) string {
+	return collection.DatabaseID + "\x00" + collection.ID
+}
+
+func pythonEnumKey(collection Collection, attributeKey string) string {
+	return pythonModelKey(collection) + "\x00" + attributeKey
 }
 
 func pythonClassName(value string) string {
@@ -65,7 +69,7 @@ func newPythonClasses(collections []Collection) pythonClasses {
 	}
 
 	for _, collection := range collections {
-		classes.models[collection.ID] = claim(pythonClassName(collection.Name))
+		classes.models[pythonModelKey(collection)] = claim(pythonClassName(collection.Name))
 	}
 	for _, collection := range collections {
 		for _, attribute := range collection.Attributes {
@@ -74,30 +78,41 @@ func newPythonClasses(collections []Collection) pythonClasses {
 			}
 
 			name := pythonClassName(collection.Name) + ToPascalCase(attribute.Key)
-			classes.enums[pythonEnumKey(collection.ID, attribute.Key)] = claim(name)
+			classes.enums[pythonEnumKey(collection, attribute.Key)] = claim(name)
 		}
 	}
 
 	return classes
 }
 
-func pythonCollectionID(collections []Collection, collectionName string) string {
+func pythonCollection(collections []Collection, collectionName string) Collection {
 	for _, collection := range collections {
 		if collection.Name == collectionName {
-			return collection.ID
+			return collection
 		}
 	}
 
-	return collectionName
+	return Collection{ID: collectionName}
+}
+
+func pythonRelated(attribute Attribute, collections []Collection, owner Collection) (Collection, error) {
+	id := RelatedCollectionID(attribute)
+	for _, collection := range collections {
+		if collection.ID == id && collection.DatabaseID == owner.DatabaseID {
+			return collection, nil
+		}
+	}
+
+	return RelatedCollection(attribute, collections)
 }
 
 func (p Python) Type(attribute Attribute, collections []Collection, collectionName string) (string, error) {
 	classes := newPythonClasses(collections)
 
-	return p.annotation(attribute, collections, pythonCollectionID(collections, collectionName), classes)
+	return p.annotation(attribute, collections, pythonCollection(collections, collectionName), classes)
 }
 
-func (p Python) annotation(attribute Attribute, collections []Collection, collectionID string, classes pythonClasses) (string, error) {
+func (p Python) annotation(attribute Attribute, collections []Collection, collection Collection, classes pythonClasses) (string, error) {
 	var literal string
 
 	switch attribute.Type {
@@ -105,7 +120,7 @@ func (p Python) annotation(attribute Attribute, collections []Collection, collec
 		AttributeTypeMediumText, AttributeTypeLongText, AttributeTypeDateTime:
 		literal = "str"
 		if attribute.Format == AttributeTypeEnum {
-			literal = classes.enums[pythonEnumKey(collectionID, attribute.Key)]
+			literal = classes.enums[pythonEnumKey(collection, attribute.Key)]
 		}
 	case AttributeTypeInteger, AttributeTypeBigInt:
 		literal = "int"
@@ -114,12 +129,12 @@ func (p Python) annotation(attribute Attribute, collections []Collection, collec
 	case AttributeTypeBoolean:
 		literal = "bool"
 	case AttributeTypeRelationship:
-		related, err := RelatedCollection(attribute, collections)
+		related, err := pythonRelated(attribute, collections, collection)
 		if err != nil {
 			return "", err
 		}
 
-		literal = "Union[" + classes.models[related.ID] + ", str]"
+		literal = "Union[" + classes.models[pythonModelKey(related)] + ", str]"
 		if IsRelationshipList(attribute) {
 			literal = "List[" + literal + "]"
 		}
@@ -146,6 +161,10 @@ func (p Python) FileName(*Collection) string { return "appwrite_types.py" }
 
 func pythonFieldNames(attributes []Attribute, strict bool, classes pythonClasses) []string {
 	used := map[string]bool{}
+	keys := map[string]bool{}
+	for _, attribute := range attributes {
+		keys[attribute.Key] = true
+	}
 	names := make([]string, len(attributes))
 
 	for index, attribute := range attributes {
@@ -161,7 +180,7 @@ func pythonFieldNames(attributes []Attribute, strict bool, classes pythonClasses
 		}
 
 		candidate := name
-		for suffix := 1; used[candidate]; suffix++ {
+		for suffix := 1; used[candidate] || (candidate != attribute.Key && keys[candidate]); suffix++ {
 			candidate = fmt.Sprintf("%s_%d", name, suffix)
 		}
 		used[candidate] = true
@@ -398,7 +417,7 @@ func (p Python) Render(collections []Collection, _ *Collection, strict bool, inv
 	for index, collection := range collections {
 		names := pythonFieldNames(collection.Attributes, strict, classes)
 		for position, attribute := range collection.Attributes {
-			annotation, err := p.annotation(attribute, collections, collection.ID, classes)
+			annotation, err := p.annotation(attribute, collections, collection, classes)
 			if err != nil {
 				return "", err
 			}
@@ -462,7 +481,7 @@ func (p Python) Render(collections []Collection, _ *Collection, strict bool, inv
 			}
 
 			out.WriteString("\n\n")
-			pythonBracketed(&out, "", "class "+classes.enums[pythonEnumKey(collection.ID, attribute.Key)],
+			pythonBracketed(&out, "", "class "+classes.enums[pythonEnumKey(collection, attribute.Key)],
 				"(", []string{"str", "Enum"}, ")", ":")
 
 			members := generateEnumMembers(attribute.Elements)
@@ -477,7 +496,7 @@ func (p Python) Render(collections []Collection, _ *Collection, strict bool, inv
 
 	for index, collection := range collections {
 		out.WriteString("\n\n")
-		pythonBracketed(&out, "", "class "+classes.models[collection.ID], "(", []string{"BaseModel"}, ")", ":")
+		pythonBracketed(&out, "", "class "+classes.models[pythonModelKey(collection)], "(", []string{"BaseModel"}, ")", ":")
 		out.WriteString(pythonIndent + `model_config = ConfigDict(extra="allow", populate_by_name=True)` + "\n")
 
 		if len(models[index]) > 0 {
