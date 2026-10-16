@@ -1123,6 +1123,11 @@ class CLI extends Go
                 'template'      => 'cli/internal/cmd/initscaffold_test.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initsite_test.go',
+                'template'      => 'cli/internal/cmd/initsite_test.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/initfunction.go',
                 'template'      => 'cli/internal/cmd/initfunction.go',
