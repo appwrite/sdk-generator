@@ -9,7 +9,10 @@ use Iterator;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Apple;
+use Appwrite\SDK\Language\ClaudePlugin;
 use Appwrite\SDK\Language\CLI;
+use Appwrite\SDK\Language\CodexPlugin;
+use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Dart;
 use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\DotNet;
@@ -25,6 +28,7 @@ use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\REST;
 use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Rust;
+use Appwrite\SDK\Language\Skills;
 use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\Unity;
 use Appwrite\SDK\Language\Web;
@@ -110,6 +114,19 @@ final class GenerationTest extends TestCase
         'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated', 'src/enums/localized_status.rs', 'Value1,', 'src/enums/province_type.rs', 'Capital,'],
     ];
 
+    /**
+     * Targets that ship Agent Skills, whose `SKILL.md` frontmatter name must
+     * match the directory holding it.
+     *
+     * @var array<string, class-string<Language>>
+     */
+    private const array SKILL_LANGUAGES = [
+        'skills' => Skills::class,
+        'claude-plugin' => ClaudePlugin::class,
+        'cursor-plugin' => CursorPlugin::class,
+        'codex-plugin' => CodexPlugin::class,
+    ];
+
     /** @var array<string, array<string, string>> generated tree per language and platform */
     private static array $generated = [];
 
@@ -150,7 +167,7 @@ final class GenerationTest extends TestCase
 
     private function language(string $name): Language
     {
-        $language = new (self::languageClasses()[$name])();
+        $language = new ((self::languageClasses() + self::SKILL_LANGUAGES)[$name])();
         if ($language instanceof CLI) {
             $language->setExecutableName('appwrite');
         }
@@ -1163,6 +1180,26 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('self.metadataList = try container.contains(.metadataList) ? container.decode([AnyCodable].self, forKey: .metadataList) : ([["enabled": NSNull(), "label": "x", "ratio": 1.0] as [String: Any], [Any]()] as [Any]).map { AnyCodable($0) }', $model);
         $this->assertStringContainsString('self.zzmocks = try container.contains(.zzmocks) ? container.decode([UnionMock].self, forKey: .zzmocks) : ([["type": "mock", "result": "ok"] as [String: Any]] as [Any]).map { UnionMock.from(map: $0 as! [String: Any]) }', $model);
         $this->assertStringContainsString('self.zzsettings = try container.contains(.zzsettings) ? container.decode([String: AnyCodable].self, forKey: .zzsettings) : ([String: Any]()).mapValues { AnyCodable($0) }', $model);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function skillLanguages(): iterable
+    {
+        foreach (\array_keys(self::SKILL_LANGUAGES) as $name) {
+            yield $name => [$name];
+        }
+    }
+
+    #[DataProvider('skillLanguages')]
+    public function testSkillNamesMatchTheirDirectories(string $name): void
+    {
+        $skills = \array_filter($this->generate($name, 'console'), static fn(string $path): bool => \basename($path) === 'SKILL.md', ARRAY_FILTER_USE_KEY);
+        $this->assertNotEmpty($skills);
+
+        foreach ($skills as $path => $contents) {
+            $this->assertSame(1, \preg_match('/\\A---\\nname: (\\S+)\\n/', $contents, $match), "{$name}: {$path} has no frontmatter name");
+            $this->assertSame(\basename(\dirname($path)), $match[1], "{$name}: {$path}");
+        }
     }
 
     public function testGoModelCommentsAreNotHtmlEscaped(): void

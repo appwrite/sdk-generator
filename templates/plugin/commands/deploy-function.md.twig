@@ -1,5 +1,5 @@
 ---
-name: deploy-function
+name: {{ language.name == 'CodexPlugin' ? 'deploy-function' | skillName(spec) : 'deploy-function' }}
 description: Deploy a function using the {{ spec.info.title }} CLI
 {% if language.name == 'ClaudePlugin' %}
 disable-model-invocation: true
