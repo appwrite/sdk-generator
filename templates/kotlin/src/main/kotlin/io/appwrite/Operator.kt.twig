@@ -23,6 +23,8 @@ class Operator(
     override fun toString() = this.toJson()
 
     companion object {
+        @JvmStatic
+        @JvmOverloads
         fun increment(value: Number = 1, max: Number? = null): String {
             require(!value.toDouble().isNaN() && !value.toDouble().isInfinite()) { "Value cannot be NaN or Infinity" }
             max?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Max cannot be NaN or Infinity" } }
@@ -31,6 +33,8 @@ class Operator(
             return Operator("increment", values).toJson()
         }
 
+        @JvmStatic
+        @JvmOverloads
         fun decrement(value: Number = 1, min: Number? = null): String {
             require(!value.toDouble().isNaN() && !value.toDouble().isInfinite()) { "Value cannot be NaN or Infinity" }
             min?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Min cannot be NaN or Infinity" } }
@@ -39,6 +43,8 @@ class Operator(
             return Operator("decrement", values).toJson()
         }
 
+        @JvmStatic
+        @JvmOverloads
         fun multiply(factor: Number, max: Number? = null): String {
             require(!factor.toDouble().isNaN() && !factor.toDouble().isInfinite()) { "Factor cannot be NaN or Infinity" }
             max?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Max cannot be NaN or Infinity" } }
@@ -47,6 +53,8 @@ class Operator(
             return Operator("multiply", values).toJson()
         }
 
+        @JvmStatic
+        @JvmOverloads
         fun divide(divisor: Number, min: Number? = null): String {
             require(!divisor.toDouble().isNaN() && !divisor.toDouble().isInfinite()) { "Divisor cannot be NaN or Infinity" }
             min?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Min cannot be NaN or Infinity" } }
@@ -56,12 +64,15 @@ class Operator(
             return Operator("divide", values).toJson()
         }
 
+        @JvmStatic
         fun modulo(divisor: Number): String {
             require(!divisor.toDouble().isNaN() && !divisor.toDouble().isInfinite()) { "Divisor cannot be NaN or Infinity" }
             require(divisor.toDouble() != 0.0) { "Divisor cannot be zero" }
             return Operator("modulo", listOf(divisor)).toJson()
         }
 
+        @JvmStatic
+        @JvmOverloads
         fun power(exponent: Number, max: Number? = null): String {
             require(!exponent.toDouble().isNaN() && !exponent.toDouble().isInfinite()) { "Exponent cannot be NaN or Infinity" }
             max?.let { require(!it.toDouble().isNaN() && !it.toDouble().isInfinite()) { "Max cannot be NaN or Infinity" } }
@@ -70,59 +81,74 @@ class Operator(
             return Operator("power", values).toJson()
         }
 
+        @JvmStatic
         fun arrayAppend(values: List<Any?>): String {
             return Operator("arrayAppend", values).toJson()
         }
 
+        @JvmStatic
         fun arrayPrepend(values: List<Any?>): String {
             return Operator("arrayPrepend", values).toJson()
         }
 
+        @JvmStatic
         fun arrayInsert(index: Int, value: Any): String {
             return Operator("arrayInsert", listOf(index, value)).toJson()
         }
 
+        @JvmStatic
         fun arrayRemove(value: Any): String {
             return Operator("arrayRemove", listOf(value)).toJson()
         }
 
+        @JvmStatic
         fun arrayUnique(): String {
             return Operator("arrayUnique", emptyList()).toJson()
         }
 
+        @JvmStatic
         fun arrayIntersect(values: List<Any?>): String {
             return Operator("arrayIntersect", values).toJson()
         }
 
+        @JvmStatic
         fun arrayDiff(values: List<Any?>): String {
             return Operator("arrayDiff", values).toJson()
         }
 
+        @JvmStatic
+        @JvmOverloads
         fun arrayFilter(condition: Condition, value: Any? = null): String {
             val values = listOf<Any?>(condition.value, value)
             return Operator("arrayFilter", values).toJson()
         }
 
+        @JvmStatic
         fun stringConcat(value: Any): String {
             return Operator("stringConcat", listOf(value)).toJson()
         }
 
+        @JvmStatic
         fun stringReplace(search: String, replace: String): String {
             return Operator("stringReplace", listOf(search, replace)).toJson()
         }
 
+        @JvmStatic
         fun toggle(): String {
             return Operator("toggle", emptyList()).toJson()
         }
 
+        @JvmStatic
         fun dateAddDays(days: Int): String {
             return Operator("dateAddDays", listOf(days)).toJson()
         }
 
+        @JvmStatic
         fun dateSubDays(days: Int): String {
             return Operator("dateSubDays", listOf(days)).toJson()
         }
 
+        @JvmStatic
         fun dateSetNow(): String {
             return Operator("dateSetNow", emptyList()).toJson()
         }
