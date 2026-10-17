@@ -1,4 +1,7 @@
 import './shims/expo-runtime';
+import { useExpoFileSystem } from './shims/metro-require';
+import { written } from './shims/expo-file-system';
+import { Platform } from 'react-native';
 import {
     Client,
     Foo,
@@ -202,6 +205,16 @@ import {
     console.log(response.result);
     response = await general.upload({ x: 'string', y: 123, z: ['string in array'], file: largeFile });
     console.log(response.result);
+
+    Platform.OS = 'android';
+    for (const major of [58, 18]) {
+        useExpoFileSystem(major);
+        response = await general.upload('string', 123, ['string in array'], largeFile);
+        console.log(response.result);
+        console.log(`expo-file-system ${major} chunk files left: ${written.size}`);
+    }
+    useExpoFileSystem(58);
+    Platform.OS = 'web';
 
     response = await general.uploadGeneric({ file: smallFile });
     console.log(response.prefs.result);

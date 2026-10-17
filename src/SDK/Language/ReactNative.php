@@ -164,6 +164,11 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/lib/file-system.ts',
+                'template'      => 'react-native/src/lib/file-system.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/lib/polyfills.ts',
                 'template'      => 'react-native/src/lib/polyfills.ts.twig',
             ],

@@ -1,6 +1,6 @@
 // Serves files over HTTP from the test server so the SDK's upload code can
 // read them the way it reads a device file in Expo.
-const written = new Map();
+export const written = new Map();
 
 const bytesOf = async (uri) => {
   if (written.has(uri)) {

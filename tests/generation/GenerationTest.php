@@ -158,6 +158,14 @@ final class GenerationTest extends TestCase
         ],
     ];
 
+    /** @var array<string, array<string, string>> */
+    private const array PEER_DEPENDENCIES = [
+        'react-native' => [
+            'expo' => '>=52.0.0',
+            'expo-file-system' => '>=18.0.0',
+        ],
+    ];
+
     /** @var array<string, array<string, string>> generated tree per language and platform */
     private static array $generated = [];
 
@@ -789,6 +797,33 @@ final class GenerationTest extends TestCase
             $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
             foreach ($declarations as $declaration) {
                 $this->assertStringContainsString(\strtolower($declaration), $files[$path], "{$name}: {$path} lacks `{$declaration}`");
+            }
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function peerLanguages(): iterable
+    {
+        foreach (\array_keys(self::PEER_DEPENDENCIES) as $name) {
+            yield $name => [$name];
+        }
+    }
+
+    #[DataProvider('peerLanguages')]
+    public function testNativeModulesArePeerDependencies(string $name): void
+    {
+        $files = $this->generate($name, 'client');
+
+        foreach (['package.json' => null, 'package-lock.json' => ''] as $path => $root) {
+            $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
+            $package = \json_decode($files[$path], true, flags: JSON_THROW_ON_ERROR);
+            if ($root !== null) {
+                $package = $package['packages'][$root];
+            }
+
+            foreach (self::PEER_DEPENDENCIES[$name] as $dependency => $range) {
+                $this->assertSame($range, $package['peerdependencies'][$dependency] ?? null, "{$name}: {$path} does not declare {$dependency} as a {$range} peer");
+                $this->assertArrayNotHasKey($dependency, $package['dependencies'] ?? [], "{$name}: {$path} bundles {$dependency} as a dependency");
             }
         }
     }
