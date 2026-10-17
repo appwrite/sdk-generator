@@ -376,6 +376,44 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A package installed from a git URL is read-only, so a manifest shipped in
+     * it keeps a placeholder OAuth scheme that the app can never fill in. The
+     * scheme the runtime waits for is registered at build time instead.
+     */
+    public function testUnityRegistersTheOAuthCallbackWithoutAPackageManifest(): void
+    {
+        $files = $this->generate('unity', 'client');
+
+        $manifests = \array_filter(\array_keys($files), fn(string $path): bool => \str_contains(\strtolower($path), 'androidmanifest.xml'));
+        $this->assertSame([], \array_values($manifests));
+
+        foreach ($files as $path => $contents) {
+            if (!\str_starts_with($path, 'docs~/')) {
+                $this->assertStringNotContainsString('<your_project_id>', $contents, "{$path} ships a project ID placeholder");
+            }
+        }
+
+        $this->assertStringContainsString('$"appwrite-callback-{projectid}"', $files['Runtime/Core/WebAuthComponent.cs']);
+        $processor = $files['Editor/AppwriteAndroidManifestProcessor.cs'] ?? '';
+        $this->assertStringContainsString(': ipostgenerategradleandroidproject', $processor);
+        $this->assertStringContainsString('callbackschemeprefix = "appwrite-callback-"', $processor);
+        $this->assertStringContainsString('"android.intent.category.browsable"', $processor);
+    }
+
+    /**
+     * The setup window links to this SDK's documentation and the configured
+     * community, not the generator's homepage URL or a fixed invite.
+     */
+    public function testUnitySetupWindowLinksToTheSdkDocumentation(): void
+    {
+        $window = $this->generate('unity', 'client')['Editor/AppwriteSetupWindow.cs'];
+
+        $this->assertStringContainsString('application.openurl("https://github.com/', $window);
+        $this->assertStringContainsString('#readme")', $window);
+        $this->assertStringNotContainsString('discord.gg', $window);
+    }
+
+    /**
      * A plugin left out of the WebGL player is missing when that player compiles,
      * so its namespace may only be imported where WebGL players skip the code.
      */
