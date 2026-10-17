@@ -21,6 +21,10 @@ public final class JavaInterop {
 
         lines.add(ID.unique());
         lines.add(Permission.read(Role.any()));
+        lines.add(Query.limit(1));
+        lines.add(Query.count());
+        lines.add(Operator.increment());
+        lines.add(Operator.increment(5));
 
         try {
             general.validatePath("0", "", new CoroutineCallback<>((result, error) -> {

@@ -28,6 +28,7 @@ final class Android5Java17Test extends Base
         'cp tests/e2e/languages/android/Tests.kt tests/e2e/sdks/android/library/src/test/java/Tests.kt',
         'mkdir -p tests/e2e/sdks/android/library/src/test/java/io/appwrite',
         'cp tests/e2e/languages/kotlin/JavaInterop.java tests/e2e/sdks/android/library/src/test/java/io/appwrite/JavaInterop.java',
+        'cp tests/e2e/languages/android/ChannelInterop.java tests/e2e/sdks/android/library/src/test/java/io/appwrite/ChannelInterop.java',
         'php tests/e2e/languages/kotlin/java-examples.php tests/e2e/sdks/android/docs/examples/java tests/e2e/sdks/android/library/src/test/java/examples "android.content.Context context, androidx.activity.ComponentActivity activity"',
         'chmod +x tests/e2e/sdks/android/gradlew',
     ];
@@ -64,6 +65,7 @@ final class Android5Java17Test extends Base
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::JAVA_INTEROP_RESPONSES,
+        ...Base::ANDROID_JAVA_INTEROP_RESPONSES,
         ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::CHANNEL_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES,

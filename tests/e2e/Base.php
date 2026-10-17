@@ -517,9 +517,18 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const ANDROID_JAVA_INTEROP_RESPONSES = [
+        'databases.db1',
+        'account',
+    ];
+
     protected const JAVA_INTEROP_RESPONSES = [
         'unique()',
         'read("any")',
+        '{"method":"limit","values":[1]}',
+        '{"method":"count","attribute":"*"}',
+        '{"method":"increment","values":[1]}',
+        '{"method":"increment","values":[5]}',
         'Missing required parameter: "id"',
         'PUT:/v1/mock/tests/general/upload-generic:passed',
     ];
