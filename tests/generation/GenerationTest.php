@@ -11,7 +11,6 @@ use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Apple;
 use Appwrite\SDK\Language\CLI;
 use Appwrite\SDK\Language\Dart;
-use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Go;
@@ -95,7 +94,6 @@ final class GenerationTest extends TestCase
         'web' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'node' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'react-native' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
-        'deno' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'php' => ['src/Appwrite/Enums/WebhookEvent.php', 'USERCREATED', 'src/Appwrite/Enums/LocalizedStatus.php', 'public static function VALUE1', 'src/Appwrite/Enums/ProvinceType.php', 'public static function CAPITAL'],
         'python' => ['appwrite/enums/webhook_event.py', 'USERCREATED = "user.created"', 'appwrite/enums/localized_status.py', 'VALUE1 = "រាជធានី"', 'appwrite/enums/province_type.py', 'CAPITAL = "រាជធានី"'],
         'ruby' => ['lib/appwrite/enums/webhook_event.rb', "USERCREATED = 'user.created'", 'lib/appwrite/enums/localized_status.rb', "VALUE1 = 'រាជធានី'", 'lib/appwrite/enums/province_type.rb', "CAPITAL = 'រាជធានី'"],
@@ -128,7 +126,6 @@ final class GenerationTest extends TestCase
             'php' => PHP::class,
             'web' => Web::class,
             'node' => Node::class,
-            'deno' => Deno::class,
             'cli' => CLI::class,
             'ruby' => Ruby::class,
             'python' => Python::class,
@@ -520,7 +517,7 @@ final class GenerationTest extends TestCase
     {
         $defaults = [];
         $examples = [];
-        foreach (['web', 'node', 'react-native', 'deno'] as $name) {
+        foreach (['web', 'node', 'react-native'] as $name) {
             foreach (self::PLATFORMS as $platform) {
                 $files = $this->generate($name, $platform);
                 $general = $files['src/services/general.ts'] ?? '';
