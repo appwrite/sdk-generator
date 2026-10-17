@@ -36,7 +36,7 @@ type loginOptions struct {
 	Password   string
 	MFA        string
 	Code       string
-	SelfSigned string
+	SelfSigned *string
 	// Switch changes which signed-in account is current, without signing in.
 	Switch bool
 	// New signs in again even when an account is already signed in.
@@ -45,11 +45,16 @@ type loginOptions struct {
 
 func newLoginCommand() *cobra.Command {
 	options := loginOptions{}
+	selfSigned := ""
 
 	command := &cobra.Command{
 		Use:   "login",
 		Short: "Sign in to an Appwrite endpoint",
 		RunE: func(command *cobra.Command, args []string) error {
+			if command.Flags().Changed("self-signed") {
+				options.SelfSigned = &selfSigned
+			}
+
 			return runLogin(command, options)
 		},
 	}
@@ -65,7 +70,7 @@ func newLoginCommand() *cobra.Command {
 			strings.Join(mfaFactors, ", ")+". Pass the code itself with --code")
 	flags.StringVar(&options.Code, "code", "",
 		"MFA code from the factor chosen with --mfa, on self hosted instances")
-	flags.StringVar(&options.SelfSigned, "self-signed", "",
+	flags.StringVar(&selfSigned, "self-signed", "",
 		"Accept a self-signed certificate on self hosted instances ( true or false )")
 	flags.BoolVar(&options.Switch, "switch", false, "Switch to another signed-in account")
 	flags.BoolVar(&options.New, "new", false, "Sign in to another account")
@@ -88,7 +93,7 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	previous := global.CurrentSessionID()
 
 	if options.Switch && (options.Password != "" || options.MFA != "" ||
-		options.Code != "" || options.SelfSigned != "") {
+		options.Code != "" || options.SelfSigned != nil) {
 		return errors.New("--password, --mfa, --code and --self-signed cannot be used with --switch. " +
 			"Use --endpoint and/or --email to select a stored account")
 	}
@@ -102,8 +107,8 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	}
 
 	selfSigned := global.CurrentBool(config.PreferenceSelfSigned)
-	if options.SelfSigned != "" {
-		selfSigned, err = strconv.ParseBool(options.SelfSigned)
+	if options.SelfSigned != nil {
+		selfSigned, err = strconv.ParseBool(*options.SelfSigned)
 		if err != nil {
 			return fmt.Errorf("--self-signed must be true or false: %w", err)
 		}
@@ -128,7 +133,7 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	}
 
 	if cloud && (options.Email != "" || options.Password != "" ||
-		options.MFA != "" || options.Code != "" || options.SelfSigned != "") {
+		options.MFA != "" || options.Code != "" || options.SelfSigned != nil) {
 		return fmt.Errorf("cloud sign-in happens in your browser. Run '%s login' "+
 			"without --email, --password, --mfa, --code or --self-signed -- those options are "+
 			"for self-hosted instances", app.ExecutableName)

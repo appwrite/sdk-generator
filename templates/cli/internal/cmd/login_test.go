@@ -536,7 +536,7 @@ func TestLoginSelfSignedFlagWorksWithoutAPriorClientCall(t *testing.T) {
 		Endpoint:   server.URL,
 		Email:      "someone@example.com",
 		Password:   "password",
-		SelfSigned: "true",
+		SelfSigned: new("true"),
 	})
 	if err != nil {
 		t.Fatalf("err = %v, want --self-signed true to accept the certificate", err)
@@ -563,7 +563,7 @@ func TestLoginSelfSignedFlagOverridesTheStoredPreference(t *testing.T) {
 		Endpoint:   server.URL,
 		Email:      "someone@example.com",
 		Password:   "password",
-		SelfSigned: "false",
+		SelfSigned: new("false"),
 	})
 	if err == nil {
 		t.Fatal("--self-signed false accepted an untrusted certificate")
@@ -616,7 +616,7 @@ func TestLoginRejectsAnInvalidSelfSignedValue(t *testing.T) {
 
 	err := runLogin(newLoginCommand(), loginOptions{
 		Endpoint:   "http://127.0.0.1:1/v1",
-		SelfSigned: "maybe",
+		SelfSigned: new("maybe"),
 	})
 	if err == nil || !strings.Contains(err.Error(), "--self-signed must be true or false") {
 		t.Errorf("err = %v, want the invalid value rejected", err)
@@ -628,7 +628,7 @@ func TestLoginRejectsSelfSignedAgainstCloud(t *testing.T) {
 
 	err := runLogin(newLoginCommand(), loginOptions{
 		Endpoint:   "https://cloud.appwrite.io/v1",
-		SelfSigned: "true",
+		SelfSigned: new("true"),
 	})
 	if err == nil || !strings.Contains(err.Error(), "--self-signed") {
 		t.Errorf("err = %v, want --self-signed rejected for Cloud", err)
@@ -638,8 +638,24 @@ func TestLoginRejectsSelfSignedAgainstCloud(t *testing.T) {
 func TestLoginRejectsSelfSignedWithSwitch(t *testing.T) {
 	preferencesWith(t, `{}`)
 
-	err := runLogin(newLoginCommand(), loginOptions{Switch: true, SelfSigned: "true"})
+	err := runLogin(newLoginCommand(), loginOptions{Switch: true, SelfSigned: new("true")})
 	if err == nil || !strings.Contains(err.Error(), "cannot be used with --switch") {
 		t.Errorf("err = %v, want --self-signed rejected with --switch", err)
+	}
+}
+
+func TestLoginRejectsAnExplicitlyEmptySelfSigned(t *testing.T) {
+	preferencesWith(t, `{
+  "current": "default",
+  "default": {"selfSigned": true}
+}`)
+	command := newLoginCommand()
+	command.SetArgs([]string{"--endpoint", "http://127.0.0.1:1/v1", "--self-signed="})
+	command.SilenceUsage = true
+	command.SilenceErrors = true
+
+	err := command.Execute()
+	if err == nil || !strings.Contains(err.Error(), "--self-signed must be true or false") {
+		t.Errorf("err = %v, want an empty --self-signed rejected rather than inheriting the stored preference", err)
 	}
 }
