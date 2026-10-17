@@ -802,6 +802,40 @@ final class GenerationTest extends TestCase
     }
 
     /** @return iterable<string, array{string}> */
+    public static function guideLanguages(): iterable
+    {
+        foreach (\array_keys(self::languageClasses()) as $name) {
+            if (!\in_array($name, ['rest', 'graphql'], true)) {
+                yield $name => [$name];
+            }
+        }
+    }
+
+    #[DataProvider('guideLanguages')]
+    public function testReadmeRendersTheGuideVerbatim(string $name): void
+    {
+        $guide = "```\nclient.set('<REGION>', \"a & b\") => ok\n```";
+        $dir = self::OUTPUT . '/' . $name . '/guide';
+        $this->removeDirectory($dir);
+
+        new SDK($this->language($name), Parser::parse((string) \file_get_contents(self::FIXTURE)))
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace(\in_array($name, ['android', 'kotlin'], true) ? 'io.appwrite' : 'appwrite')
+            ->setGettingStarted($guide)
+            ->setExamples($guide)
+            ->setTest('true')
+            ->generate($dir);
+
+        $readme = (string) \file_get_contents($dir . '/README.md');
+        $this->assertStringContainsString($guide, $readme, "{$name}: README.md escapes the getting started guide");
+        if (\is_file($dir . '/example/README.md')) {
+            $this->assertStringContainsString($guide, (string) \file_get_contents($dir . '/example/README.md'), "{$name}: example/README.md escapes the examples");
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
     public static function peerLanguages(): iterable
     {
         foreach (\array_keys(self::PEER_DEPENDENCIES) as $name) {
