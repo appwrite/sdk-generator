@@ -18,7 +18,7 @@ func TestLoginOffersEveryOption(t *testing.T) {
 	command := newLoginCommand()
 
 	for _, name := range []string{
-		"endpoint", "email", "password", "mfa", "code", "switch", "new",
+		"endpoint", "email", "password", "mfa", "code", "self-signed", "switch", "new",
 	} {
 		if command.Flags().Lookup(name) == nil {
 			t.Errorf("--%s is missing", name)
@@ -383,7 +383,7 @@ func TestLoginCompletesMFAWhenTheAccountAsksForMoreFactors(t *testing.T) {
 	defer server.Close()
 	command, _ := captureCommand()
 
-	err := loginWithPassword(command, global, server.URL, "", loginOptions{
+	err := loginWithPassword(command, global, server.URL, "", false, loginOptions{
 		Email:    "someone@example.com",
 		Password: "password",
 		MFA:      "totp",
@@ -435,7 +435,7 @@ func TestLoginAbandonsTheSessionWhenMFAFails(t *testing.T) {
 	defer server.Close()
 	command, _ := captureCommand()
 
-	err := loginWithPassword(command, global, server.URL, "", loginOptions{
+	err := loginWithPassword(command, global, server.URL, "", false, loginOptions{
 		Email:    "someone@example.com",
 		Password: "password",
 		MFA:      "totp",
@@ -476,5 +476,170 @@ func TestLoginRejectsAnUnknownFactor(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "recoveryCode") {
 		t.Errorf("err = %v, want the accepted factors listed", err)
+	}
+}
+
+func selfSignedAppwrite(t *testing.T) *httptest.Server {
+	t.Helper()
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method + " " + r.URL.Path {
+		case "GET /health/version":
+			w.Write([]byte(`{"version":"1.8.0"}`))
+		case "POST /account/sessions/email":
+			w.Header().Add("Set-Cookie", "a_session_console=secret")
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{}`))
+		case "GET /account":
+			w.Write([]byte(`{"email":"someone@example.com"}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	return server
+}
+
+func TestLoginSignsInWithTheStoredSelfSignedPreference(t *testing.T) {
+	preferencesWith(t, `{
+  "current": "default",
+  "default": {"selfSigned": true}
+}`)
+	server := selfSignedAppwrite(t)
+	command, _ := captureCommand()
+
+	err := runLogin(command, loginOptions{
+		Endpoint: server.URL,
+		Email:    "someone@example.com",
+		Password: "password",
+	})
+	if err != nil {
+		t.Fatalf("err = %v, want the sign-in to accept the self-signed certificate", err)
+	}
+
+	stored, err := preferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !stored.CurrentBool(config.PreferenceSelfSigned) {
+		t.Error("the new session does not trust the self-signed certificate it signed in with")
+	}
+}
+
+func TestLoginSelfSignedFlagWorksWithoutAPriorClientCall(t *testing.T) {
+	preferencesWith(t, `{}`)
+	server := selfSignedAppwrite(t)
+	command, _ := captureCommand()
+
+	err := runLogin(command, loginOptions{
+		Endpoint:   server.URL,
+		Email:      "someone@example.com",
+		Password:   "password",
+		SelfSigned: "true",
+	})
+	if err != nil {
+		t.Fatalf("err = %v, want --self-signed true to accept the certificate", err)
+	}
+
+	stored, err := preferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !stored.CurrentBool(config.PreferenceSelfSigned) {
+		t.Error("the new session does not trust the self-signed certificate it signed in with")
+	}
+}
+
+func TestLoginSelfSignedFlagOverridesTheStoredPreference(t *testing.T) {
+	preferencesWith(t, `{
+  "current": "default",
+  "default": {"selfSigned": true}
+}`)
+	server := selfSignedAppwrite(t)
+	command, _ := captureCommand()
+
+	err := runLogin(command, loginOptions{
+		Endpoint:   server.URL,
+		Email:      "someone@example.com",
+		Password:   "password",
+		SelfSigned: "false",
+	})
+	if err == nil {
+		t.Fatal("--self-signed false accepted an untrusted certificate")
+	}
+}
+
+func TestLoginCompletesMFAOverASelfSignedCertificate(t *testing.T) {
+	global := preferencesWith(t, `{}`)
+	verified := false
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method + " " + r.URL.Path {
+		case "POST /account/sessions/email":
+			w.Header().Add("Set-Cookie", "a_session_console=partial")
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{}`))
+		case "GET /account":
+			if !verified {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte(`{"message":"More factors are required.","code":401,"type":"user_more_factors_required"}`))
+
+				return
+			}
+			w.Write([]byte(`{"email":"someone@example.com"}`))
+		case "POST /account/mfa/challenges":
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"$id":"challenge"}`))
+		case "PUT /account/mfa/challenges":
+			verified = true
+			w.Write([]byte(`{}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+	command, _ := captureCommand()
+
+	err := loginWithPassword(command, global, server.URL, "", true, loginOptions{
+		Email:    "someone@example.com",
+		Password: "password",
+		MFA:      "totp",
+		Code:     "123456",
+	})
+	if err != nil {
+		t.Fatalf("err = %v, want MFA completed over the self-signed certificate", err)
+	}
+}
+
+func TestLoginRejectsAnInvalidSelfSignedValue(t *testing.T) {
+	preferencesWith(t, `{}`)
+
+	err := runLogin(newLoginCommand(), loginOptions{
+		Endpoint:   "http://127.0.0.1:1/v1",
+		SelfSigned: "maybe",
+	})
+	if err == nil || !strings.Contains(err.Error(), "--self-signed must be true or false") {
+		t.Errorf("err = %v, want the invalid value rejected", err)
+	}
+}
+
+func TestLoginRejectsSelfSignedAgainstCloud(t *testing.T) {
+	preferencesWith(t, `{}`)
+
+	err := runLogin(newLoginCommand(), loginOptions{
+		Endpoint:   "https://cloud.appwrite.io/v1",
+		SelfSigned: "true",
+	})
+	if err == nil || !strings.Contains(err.Error(), "--self-signed") {
+		t.Errorf("err = %v, want --self-signed rejected for Cloud", err)
+	}
+}
+
+func TestLoginRejectsSelfSignedWithSwitch(t *testing.T) {
+	preferencesWith(t, `{}`)
+
+	err := runLogin(newLoginCommand(), loginOptions{Switch: true, SelfSigned: "true"})
+	if err == nil || !strings.Contains(err.Error(), "cannot be used with --switch") {
+		t.Errorf("err = %v, want --self-signed rejected with --switch", err)
 	}
 }
