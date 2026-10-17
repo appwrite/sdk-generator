@@ -7,6 +7,7 @@ Gem::Specification.new do |spec|
     spec.homepage = '{{ spec.info.contact.url }}'
     spec.email = '{{ spec.info.contact.email }}'
     spec.files = Dir['lib/**/*.rb']
+    spec.required_ruby_version = '>= 2.7'
 
     spec.add_dependency 'mime-types', '~> 3.4.1'
 end
