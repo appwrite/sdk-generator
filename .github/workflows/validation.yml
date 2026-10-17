@@ -268,6 +268,7 @@ jobs:
               osv-scanner scan source --lockfile=pubspec.lock
               dart analyze --no-fatal-warnings
               flutter test
+              ../../scripts/validate-dart-examples.sh .
               ;;
             apple|swift)
               if [ ! -f .swift-format ]; then
@@ -337,6 +338,7 @@ jobs:
               dart pub get
               osv-scanner scan source --lockfile=pubspec.lock
               dart analyze --no-fatal-warnings
+              ../../scripts/validate-dart-examples.sh .
               ;;
             go)
               go mod tidy || true
