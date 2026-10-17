@@ -15,6 +15,7 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
 )
 
 // Implements session handling and the `whoami` command.
@@ -28,6 +29,18 @@ var ErrConsoleNeedsSession = errors.New(
 	"session not found. Run `" + app.ExecutableName + " login`. API keys work for project commands " +
 		"(e.g. `" + app.ExecutableName + " push functions`), not console-only commands " +
 		"(e.g. `" + app.ExecutableName + " push settings`)")
+
+func skipsConsoleOnly(command *cobra.Command, resource, verb string, err error) bool {
+	if !errors.Is(err, ErrConsoleNeedsSession) {
+		return false
+	}
+
+	output.Warn(command.OutOrStdout(),
+		"Skipping %s: it needs a signed-in session, and only an API key is configured. Run `%s login` to %s %s too.",
+		resource, app.ExecutableName, verb, resource)
+
+	return true
+}
 
 // preferences loads the user's global preferences.
 func preferences() (*config.Global, error) {

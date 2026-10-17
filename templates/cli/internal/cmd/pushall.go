@@ -164,6 +164,10 @@ func runPushActions(command *cobra.Command, actions []pushAction, everything boo
 				continue
 			}
 			if err := action.Run(command); err != nil {
+				if skipsConsoleOnly(command, action.Value, "push", err) {
+					continue
+				}
+
 				return err
 			}
 		}
