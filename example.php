@@ -38,7 +38,7 @@ final class Config
     public const string TITLE = 'Appwrite';
     public const string DESCRIPTION = 'Appwrite backend as a service';
     public const string LICENSE_NAME = 'BSD-3-Clause';
-    public const string LICENSE_URL = 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE';
+    public const string LICENSE_URL = 'https://raw.githubusercontent.com/appwrite/appwrite/main/LICENSE';
     public const string COVER_IMAGE = 'https://github.com/appwrite/appwrite/raw/main/public/images/github.png';
     public const string TWITTER = 'appwrite';
     public const string DISCORD_CHANNEL = '564160730845151244';
