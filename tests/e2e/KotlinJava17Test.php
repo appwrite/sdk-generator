@@ -26,6 +26,9 @@ final class KotlinJava17Test extends Base
     protected array $build = [
         'mkdir -p tests/e2e/sdks/kotlin/src/test/kotlin',
         'cp tests/e2e/languages/kotlin/Tests.kt tests/e2e/sdks/kotlin/src/test/kotlin/Tests.kt',
+        'mkdir -p tests/e2e/sdks/kotlin/src/test/java/io/appwrite',
+        'cp tests/e2e/languages/kotlin/JavaInterop.java tests/e2e/sdks/kotlin/src/test/java/io/appwrite/JavaInterop.java',
+        'php tests/e2e/languages/kotlin/java-examples.php tests/e2e/sdks/kotlin/docs/examples/java tests/e2e/sdks/kotlin/src/test/java/examples',
         'chmod +x tests/e2e/sdks/kotlin/gradlew',
     ];
     #[Override]
@@ -59,6 +62,7 @@ final class KotlinJava17Test extends Base
         Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        ...Base::JAVA_INTEROP_RESPONSES,
         ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES
     ];

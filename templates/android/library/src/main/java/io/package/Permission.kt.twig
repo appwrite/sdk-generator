@@ -12,6 +12,7 @@ class Permission {
          * @param role The role for which to generate the permission.
          * @returns The read permission string.
          */
+        @JvmStatic
         fun read(role: String): String {
             return "read(\"${role}\")"
         }
@@ -25,6 +26,7 @@ class Permission {
          * @param role The role for which to generate the permission.
          * @returns The write permission string.
          */
+        @JvmStatic
         fun write(role: String): String {
             return "write(\"${role}\")"
         }
@@ -35,6 +37,7 @@ class Permission {
          * @param role The role for which to generate the permission.
          * @returns The create permission string.
          */
+        @JvmStatic
         fun create(role: String): String {
             return "create(\"${role}\")"
         }
@@ -45,6 +48,7 @@ class Permission {
          * @param role The role for which to generate the permission.
          * @returns The update permission string.
          */
+        @JvmStatic
         fun update(role: String): String {
             return "update(\"${role}\")"
         }
@@ -55,6 +59,7 @@ class Permission {
          * @param role The role for which to generate the permission.
          * @returns The delete permission string.
          */
+        @JvmStatic
         fun delete(role: String): String {
             return "delete(\"${role}\")"
         }

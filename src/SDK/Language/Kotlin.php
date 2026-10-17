@@ -236,7 +236,7 @@ class Kotlin extends Language
                     if ($this->isPermissionString($example)) {
                         $output .= $this->getPermissionExample($example, $lang);
                     } else {
-                        $output .= $this->getArrayExample($example, $lang);
+                        $output .= $this->getArrayExample($example, $lang, $this->getArrayLeafType($param));
                     }
                     break;
                 case self::TYPE_BOOLEAN:
@@ -337,7 +337,7 @@ class Kotlin extends Language
      * @param string $example Array example like '[1, 2, 3]' or '[{"key": "value"}]'
      * @param string $lang Language variant: 'kotlin' or 'java'
      */
-    protected function getArrayExample(string $example, string $lang = 'kotlin'): string
+    protected function getArrayExample(string $example, string $lang = 'kotlin', ?string $leafType = null): string
     {
         // Try to decode as JSON to handle arrays of objects
         $decoded = json_decode($example, true);
@@ -352,7 +352,7 @@ class Kotlin extends Language
                         $arrayItems[] = $lang === 'java' ? $this->getJavaMapExample($item) : $this->getKotlinMapExample($item);
                     } else {
                         // It's a nested array, recursively convert it
-                        $arrayItems[] = $this->getArrayExample(json_encode($item), $lang);
+                        $arrayItems[] = $this->getArrayExample(json_encode($item), $lang, $leafType);
                     }
                 } elseif (is_string($item)) {
                     // Primitive value
@@ -361,6 +361,8 @@ class Kotlin extends Language
                     $arrayItems[] = $item ? 'true' : 'false';
                 } elseif (is_null($item)) {
                     $arrayItems[] = 'null';
+                } elseif ((is_int($item) || is_float($item)) && ($leafType === self::TYPE_INTEGER || $leafType === self::TYPE_NUMBER)) {
+                    $arrayItems[] = $this->getNumberLiteral($item, $leafType, $lang);
                 } else {
                     $arrayItems[] = (string)$item;
                 }
@@ -380,6 +382,16 @@ class Kotlin extends Language
         return $lang === 'java'
             ? 'List.of(' . $example . ')'
             : 'listOf(' . $example . ')';
+    }
+
+    protected function getArrayLeafType(Schema|Parameter $param): ?string
+    {
+        $items = $this->getArraySchema($param);
+        while ($items instanceof ArraySchema) {
+            $items = $items->items;
+        }
+
+        return $items instanceof Schema ? $this->getSchemaType($items) : null;
     }
 
     /**

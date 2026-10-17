@@ -517,6 +517,13 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const JAVA_INTEROP_RESPONSES = [
+        'unique()',
+        'read("any")',
+        'Missing required parameter: "id"',
+        'PUT:/v1/mock/tests/general/upload-generic:passed',
+    ];
+
     protected const TOPIC_HELPER_RESPONSES = [
         'user/123/notification',
         'org/42/user/123/notification',
