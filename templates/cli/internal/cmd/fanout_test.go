@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -204,6 +206,100 @@ func TestPickerOffersOnlyRealActions(t *testing.T) {
 		pullValues = append(pullValues, action.Value)
 	}
 	assertResolves("pull", pullPromptOrder, pullValues)
+}
+
+func TestEverythingSkipsConsoleOnlyActionsUnderAnAPIKey(t *testing.T) {
+	for _, run := range []struct {
+		name string
+		call func(*cobra.Command, *[]string) error
+	}{
+		{"pull", func(command *cobra.Command, ran *[]string) error {
+			return runPull(command, []pullAction{
+				{Value: "settings", Run: refuseConsole},
+				{Value: "functions", Run: record(ran, "functions")},
+			}, true)
+		}},
+		{"push", func(command *cobra.Command, ran *[]string) error {
+			return runPushActions(command, []pushAction{
+				{Value: "settings", Run: refuseConsole},
+				{Value: "functions", Run: record(ran, "functions")},
+			}, true)
+		}},
+	} {
+		t.Run(run.name, func(t *testing.T) {
+			isolateGlobalAll(t)
+
+			command, out := captureCommand()
+			var ran []string
+
+			if err := run.call(command, &ran); err != nil {
+				t.Fatalf("`%s all` stopped at settings: %v", run.name, err)
+			}
+			if !slices.Contains(ran, "functions") {
+				t.Errorf("`%s all` never reached functions", run.name)
+			}
+			if !strings.Contains(out.String(), "Skipping settings") {
+				t.Errorf("the skipped settings were not reported:\n%s", out)
+			}
+		})
+	}
+}
+
+func TestEverythingStillStopsOnOtherErrors(t *testing.T) {
+	isolateGlobalAll(t)
+
+	var ran []string
+	failure := errors.New("boom")
+
+	err := runPushActions(&cobra.Command{}, []pushAction{
+		{Value: "settings", Run: func(*cobra.Command) error { return failure }},
+		{Value: "functions", Run: record(&ran, "functions")},
+	}, true)
+	if !errors.Is(err, failure) {
+		t.Errorf("err = %v, want the settings failure", err)
+	}
+	if len(ran) != 0 {
+		t.Errorf("ran %v after a failure", ran)
+	}
+}
+
+func TestAllUnderAnAPIKeyLeavesOutOnlySettings(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"total":0}`))
+	}))
+	t.Cleanup(server.Close)
+
+	for _, name := range []string{"pull", "push"} {
+		t.Run(name, func(t *testing.T) {
+			isolateGlobalAll(t)
+
+			preferencesWith(t, `{"current":"ci","ci":{"endpoint":"`+server.URL+`","key":"secret"}}`)
+			t.Setenv("XDG_CONFIG_HOME", "")
+			directory := t.TempDir()
+			inDirectory(t, directory)
+			if err := os.WriteFile(filepath.Join(directory, config.LocalFileName),
+				[]byte(`{"projectId":"probe","projectName":"probe"}`), 0o600); err != nil {
+				t.Fatal(err)
+			}
+
+			root := NewRootCommand()
+			root.SetArgs([]string{name, "all", "--force"})
+			out := &strings.Builder{}
+			root.SetOut(out)
+			root.SetErr(out)
+
+			if err := root.Execute(); err != nil {
+				t.Fatalf("`%s all` with an API key failed: %v\n%s", name, err, out)
+			}
+			if !strings.Contains(out.String(), "Skipping settings") {
+				t.Errorf("the skipped settings were not reported:\n%s", out)
+			}
+		})
+	}
+}
+
+func refuseConsole(*cobra.Command) error {
+	return ErrConsoleNeedsSession
 }
 
 func record(ran *[]string, value string) func(*cobra.Command) error {
