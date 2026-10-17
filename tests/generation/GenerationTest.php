@@ -14,7 +14,6 @@ use Appwrite\SDK\Language\CLI;
 use Appwrite\SDK\Language\CodexPlugin;
 use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Dart;
-use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Go;
@@ -99,7 +98,6 @@ final class GenerationTest extends TestCase
         'web' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'node' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'react-native' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
-        'deno' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'php' => ['src/Appwrite/Enums/WebhookEvent.php', 'USERCREATED', 'src/Appwrite/Enums/LocalizedStatus.php', 'public static function VALUE1', 'src/Appwrite/Enums/ProvinceType.php', 'public static function CAPITAL'],
         'python' => ['appwrite/enums/webhook_event.py', 'USERCREATED = "user.created"', 'appwrite/enums/localized_status.py', 'VALUE1 = "រាជធានី"', 'appwrite/enums/province_type.py', 'CAPITAL = "រាជធានី"'],
         'ruby' => ['lib/appwrite/enums/webhook_event.rb', "USERCREATED = 'user.created'", 'lib/appwrite/enums/localized_status.rb', "VALUE1 = 'រាជធានី'", 'lib/appwrite/enums/province_type.rb', "CAPITAL = 'រាជធានី'"],
@@ -127,6 +125,39 @@ final class GenerationTest extends TestCase
         'codex-plugin' => CodexPlugin::class,
     ];
 
+    /**
+     * Package metadata each language must declare, by generated path: the
+     * runtime floor its code and dependencies need, and every interpreter
+     * version the e2e suite runs it on.
+     *
+     * @var array<string, array<string, list<string>>>
+     */
+    private const array PACKAGE_METADATA = [
+        'ruby' => [
+            'appwrite.gemspec' => ["spec.required_ruby_version = '>= 2.7'"],
+        ],
+        'node' => [
+            'package.json' => ['"engines": {', '"node": ">=18.17"'],
+            'package-lock.json' => ['"engines": {', '"node": ">=18.17"'],
+        ],
+        'python' => [
+            'setup.py' => [
+                "'Programming Language :: Python :: 3.9'",
+                "'Programming Language :: Python :: 3.10'",
+                "'Programming Language :: Python :: 3.11'",
+                "'Programming Language :: Python :: 3.12'",
+                "'Programming Language :: Python :: 3.13'",
+            ],
+            'pyproject.toml' => [
+                '"Programming Language :: Python :: 3.9"',
+                '"Programming Language :: Python :: 3.10"',
+                '"Programming Language :: Python :: 3.11"',
+                '"Programming Language :: Python :: 3.12"',
+                '"Programming Language :: Python :: 3.13"',
+            ],
+        ],
+    ];
+
     /** @var array<string, array<string, string>> generated tree per language and platform */
     private static array $generated = [];
 
@@ -145,7 +176,6 @@ final class GenerationTest extends TestCase
             'php' => PHP::class,
             'web' => Web::class,
             'node' => Node::class,
-            'deno' => Deno::class,
             'cli' => CLI::class,
             'ruby' => Ruby::class,
             'python' => Python::class,
@@ -363,6 +393,44 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A package installed from a git URL is read-only, so a manifest shipped in
+     * it keeps a placeholder OAuth scheme that the app can never fill in. The
+     * scheme the runtime waits for is registered at build time instead.
+     */
+    public function testUnityRegistersTheOAuthCallbackWithoutAPackageManifest(): void
+    {
+        $files = $this->generate('unity', 'client');
+
+        $manifests = \array_filter(\array_keys($files), fn(string $path): bool => \str_contains(\strtolower($path), 'androidmanifest.xml'));
+        $this->assertSame([], \array_values($manifests));
+
+        foreach ($files as $path => $contents) {
+            if (!\str_starts_with($path, 'docs~/')) {
+                $this->assertStringNotContainsString('<your_project_id>', $contents, "{$path} ships a project ID placeholder");
+            }
+        }
+
+        $this->assertStringContainsString('$"appwrite-callback-{projectid}"', $files['Runtime/Core/WebAuthComponent.cs']);
+        $processor = $files['Editor/AppwriteAndroidManifestProcessor.cs'] ?? '';
+        $this->assertStringContainsString(': ipostgenerategradleandroidproject', $processor);
+        $this->assertStringContainsString('callbackschemeprefix = "appwrite-callback-"', $processor);
+        $this->assertStringContainsString('"android.intent.category.browsable"', $processor);
+    }
+
+    /**
+     * The setup window links to this SDK's documentation and the configured
+     * community, not the generator's homepage URL or a fixed invite.
+     */
+    public function testUnitySetupWindowLinksToTheSdkDocumentation(): void
+    {
+        $window = $this->generate('unity', 'client')['Editor/AppwriteSetupWindow.cs'];
+
+        $this->assertStringContainsString('application.openurl("https://github.com/', $window);
+        $this->assertStringContainsString('#readme")', $window);
+        $this->assertStringNotContainsString('discord.gg', $window);
+    }
+
+    /**
      * A plugin left out of the WebGL player is missing when that player compiles,
      * so its namespace may only be imported where WebGL players skip the code.
      */
@@ -537,7 +605,7 @@ final class GenerationTest extends TestCase
     {
         $defaults = [];
         $examples = [];
-        foreach (['web', 'node', 'react-native', 'deno'] as $name) {
+        foreach (['web', 'node', 'react-native'] as $name) {
             foreach (self::PLATFORMS as $platform) {
                 $files = $this->generate($name, $platform);
                 $general = $files['src/services/general.ts'] ?? '';
@@ -701,6 +769,27 @@ final class GenerationTest extends TestCase
         foreach ([[$knownPath, $knownDeclaration], [$knownPath, 'user.updated'], [$localizedPath, $localizedDeclaration], [$annotatedPath, $annotatedDeclaration]] as [$path, $declaration]) {
             $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
             $this->assertStringContainsString(\strtolower($declaration), $files[$path], "{$name}: {$path} lacks `{$declaration}`");
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function packageLanguages(): iterable
+    {
+        foreach (\array_keys(self::PACKAGE_METADATA) as $name) {
+            yield $name => [$name];
+        }
+    }
+
+    #[DataProvider('packageLanguages')]
+    public function testPackageMetadataIsDeclared(string $name): void
+    {
+        $files = $this->generate($name, 'server');
+
+        foreach (self::PACKAGE_METADATA[$name] as $path => $declarations) {
+            $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
+            foreach ($declarations as $declaration) {
+                $this->assertStringContainsString(\strtolower($declaration), $files[$path], "{$name}: {$path} lacks `{$declaration}`");
+            }
         }
     }
 
