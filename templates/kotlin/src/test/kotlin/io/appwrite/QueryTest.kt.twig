@@ -2,6 +2,7 @@ package {{ sdk.namespace | caseDot }}
 
 import com.google.gson.JsonParser
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QueryTest {
@@ -103,6 +104,25 @@ class QueryTest {
     @Test
     fun crossJoin() {
         assertEquals("crossJoin", method(Query.crossJoin("orders", "ord")))
+    }
+
+    @Test
+    fun nestedJoinWithoutAliasLeavesTheAliasToTheServer() {
+        val json = JsonParser.parseString(Query.join("orders", listOf(Query.on("\$id", "customerId")))).asJsonObject
+        assertEquals("join", json.get("method").asString)
+        assertEquals("orders", json.get("attribute").asString)
+        val values = json.get("values").asJsonArray
+        assertEquals(1, values.size())
+        assertEquals("on", values[0].asJsonObject.get("method").asString)
+    }
+
+    @Test
+    fun crossJoinWithoutAliasLeavesTheAliasToTheServer() {
+        val json = JsonParser.parseString(Query.crossJoin("orders")).asJsonObject
+        assertEquals("crossJoin", json.get("method").asString)
+        assertEquals("orders", json.get("attribute").asString)
+        val values = json.get("values")
+        assertTrue(values == null || values.isJsonNull || values.asJsonArray.size() == 0)
     }
 
     @Test
