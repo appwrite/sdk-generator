@@ -51,6 +51,21 @@ You can also add the package to `Packages/manifest.json` directly:
 1. Download the source code archive of a release from [GitHub](https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/releases) and extract it.
 2. In **Window > Package Manager**, click the **+** button and select **Add package from disk** (**Install package from disk** in Unity 6).
 3. Select the `package.json` file in the extracted folder.
+
+## OAuth on Android
+
+OAuth sign-in returns to your app through the `{{ spec.info.title | caseLower }}-callback-<PROJECT_ID>` URL scheme. When you build for Android, the package registers this scheme on the Unity activity for the project ID set on each `{{ spec.info.title | caseUcfirst }}Config` asset in your project, so you do not need to edit any manifest.
+
+If you create the client in code without a `{{ spec.info.title | caseUcfirst }}Config` asset, enable **Custom Main Manifest** in **Project Settings > Player > Android > Publishing Settings** and add this intent filter to the Unity activity in `Assets/Plugins/Android/AndroidManifest.xml`, replacing `<PROJECT_ID>` with your project ID:
+
+```xml
+<intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="{{ spec.info.title | caseLower }}-callback-<PROJECT_ID>" />
+</intent-filter>
+```
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|trim|raw }}
