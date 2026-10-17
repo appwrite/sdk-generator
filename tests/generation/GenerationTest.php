@@ -108,6 +108,39 @@ final class GenerationTest extends TestCase
         'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated', 'src/enums/localized_status.rs', 'Value1,', 'src/enums/province_type.rs', 'Capital,'],
     ];
 
+    /**
+     * Package metadata each language must declare, by generated path: the
+     * runtime floor its code and dependencies need, and every interpreter
+     * version the e2e suite runs it on.
+     *
+     * @var array<string, array<string, list<string>>>
+     */
+    private const array PACKAGE_METADATA = [
+        'ruby' => [
+            'appwrite.gemspec' => ["spec.required_ruby_version = '>= 2.7'"],
+        ],
+        'node' => [
+            'package.json' => ['"engines": {', '"node": ">=18.17"'],
+            'package-lock.json' => ['"engines": {', '"node": ">=18.17"'],
+        ],
+        'python' => [
+            'setup.py' => [
+                "'Programming Language :: Python :: 3.9'",
+                "'Programming Language :: Python :: 3.10'",
+                "'Programming Language :: Python :: 3.11'",
+                "'Programming Language :: Python :: 3.12'",
+                "'Programming Language :: Python :: 3.13'",
+            ],
+            'pyproject.toml' => [
+                '"Programming Language :: Python :: 3.9"',
+                '"Programming Language :: Python :: 3.10"',
+                '"Programming Language :: Python :: 3.11"',
+                '"Programming Language :: Python :: 3.12"',
+                '"Programming Language :: Python :: 3.13"',
+            ],
+        ],
+    ];
+
     /** @var array<string, array<string, string>> generated tree per language and platform */
     private static array $generated = [];
 
@@ -681,6 +714,27 @@ final class GenerationTest extends TestCase
         foreach ([[$knownPath, $knownDeclaration], [$knownPath, 'user.updated'], [$localizedPath, $localizedDeclaration], [$annotatedPath, $annotatedDeclaration]] as [$path, $declaration]) {
             $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
             $this->assertStringContainsString(\strtolower($declaration), $files[$path], "{$name}: {$path} lacks `{$declaration}`");
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function packageLanguages(): iterable
+    {
+        foreach (\array_keys(self::PACKAGE_METADATA) as $name) {
+            yield $name => [$name];
+        }
+    }
+
+    #[DataProvider('packageLanguages')]
+    public function testPackageMetadataIsDeclared(string $name): void
+    {
+        $files = $this->generate($name, 'server');
+
+        foreach (self::PACKAGE_METADATA[$name] as $path => $declarations) {
+            $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
+            foreach ($declarations as $declaration) {
+                $this->assertStringContainsString(\strtolower($declaration), $files[$path], "{$name}: {$path} lacks `{$declaration}`");
+            }
         }
     }
 
