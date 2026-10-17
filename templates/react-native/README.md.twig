@@ -22,8 +22,10 @@
 ## Installation
 
 ```bash
-npx expo install {{ language.params.npmPackage }} react-native-url-polyfill
+npx expo install {{ language.params.npmPackage }} expo-file-system react-native-url-polyfill
 ```
+
+The SDK supports Expo SDK 52 and later. It reads files for uploads through `expo-file-system`, which your app provides: `npx expo install` picks the version that matches your Expo SDK.
 
 The SDK uses Expo modules. In a React Native project created without Expo, run `npx install-expo-modules@latest` first.
 
@@ -49,7 +51,7 @@ import {{ '{' }} Push {{ '}' }} from '{{ language.params.npmPackage }}';
 const push = new Push(client);
 ```
 
-On Expo SDK 52 and older, enable package exports in `metro.config.js` so `mqtt` resolves to its React Native build (Expo SDK 53 and later do this by default):
+On Expo SDK 52, enable package exports in `metro.config.js` so `mqtt` resolves to its React Native build (Expo SDK 53 and later do this by default):
 
 ```js
 config.resolver.unstable_enablePackageExports = true;
