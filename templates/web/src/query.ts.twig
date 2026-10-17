@@ -824,7 +824,7 @@ export class Query {
         new Query('on', undefined, [left, operator, right]).toString();
 
     /**
-     * Inner join. `table` is the joined collection/table ID; without an alias the join is named after it.
+     * Inner join. `table` is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
      */
     static join = (
         table: string,
@@ -842,7 +842,7 @@ export class Query {
             alias,
         );
 
-    /** Left join. `table` is the joined collection/table ID; without an alias the join is named after it. */
+    /** Left join. `table` is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query. */
     static leftJoin = (
         table: string,
         leftOrAliasOrOn: string | string[],
@@ -859,7 +859,7 @@ export class Query {
             alias,
         );
 
-    /** Right join. `table` is the joined collection/table ID; without an alias the join is named after it. */
+    /** Right join. `table` is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query. */
     static rightJoin = (
         table: string,
         leftOrAliasOrOn: string | string[],
@@ -876,7 +876,7 @@ export class Query {
             alias,
         );
 
-    /** Full outer join. `table` is the joined collection/table ID; without an alias the join is named after it. */
+    /** Full outer join. `table` is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query. */
     static fullOuterJoin = (
         table: string,
         leftOrAliasOrOn: string | string[],
@@ -893,7 +893,7 @@ export class Query {
             alias,
         );
 
-    /** Cross join. `table` is the joined collection/table ID; without an alias the join is named after it. */
+    /** Cross join. `table` is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query. */
     static crossJoin = (table: string, alias: string = ''): string =>
         new Query(
             'crossJoin',
