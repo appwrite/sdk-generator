@@ -67,6 +67,7 @@ final class Node20Test extends Base
         ...Base::NULLABLE_PARAM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
+        ...Base::OAUTH_EXCEPTION_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
