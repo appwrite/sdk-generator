@@ -65,9 +65,9 @@ val push = Push(client, context)
 val subscription = push.subscribe { message ->
     Log.d("Appwrite", "${message.topic}: ${message.data}")
 }
-
-subscription.unsubscribe()
 ```
+
+Keep `subscription` while you want messages, and call `subscription.unsubscribe()` when you stop listening, for example in your activity's `onDestroy()`.
 
 ### Background delivery
 
