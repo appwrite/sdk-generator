@@ -31,11 +31,12 @@ import (
 
 // loginOptions are the flags `login` was given.
 type loginOptions struct {
-	Endpoint string
-	Email    string
-	Password string
-	MFA      string
-	Code     string
+	Endpoint   string
+	Email      string
+	Password   string
+	MFA        string
+	Code       string
+	SelfSigned *string
 	// Switch changes which signed-in account is current, without signing in.
 	Switch bool
 	// New signs in again even when an account is already signed in.
@@ -44,11 +45,16 @@ type loginOptions struct {
 
 func newLoginCommand() *cobra.Command {
 	options := loginOptions{}
+	selfSigned := ""
 
 	command := &cobra.Command{
 		Use:   "login",
 		Short: "Sign in to an Appwrite endpoint",
 		RunE: func(command *cobra.Command, args []string) error {
+			if command.Flags().Changed("self-signed") {
+				options.SelfSigned = &selfSigned
+			}
+
 			return runLogin(command, options)
 		},
 	}
@@ -64,6 +70,8 @@ func newLoginCommand() *cobra.Command {
 			strings.Join(mfaFactors, ", ")+". Pass the code itself with --code")
 	flags.StringVar(&options.Code, "code", "",
 		"MFA code from the factor chosen with --mfa, on self hosted instances")
+	flags.StringVar(&selfSigned, "self-signed", "",
+		"Accept a self-signed certificate on self hosted instances ( true or false )")
 	flags.BoolVar(&options.Switch, "switch", false, "Switch to another signed-in account")
 	flags.BoolVar(&options.New, "new", false, "Sign in to another account")
 
@@ -84,8 +92,9 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	}
 	previous := global.CurrentSessionID()
 
-	if options.Switch && (options.Password != "" || options.MFA != "" || options.Code != "") {
-		return errors.New("--password, --mfa and --code cannot be used with --switch. " +
+	if options.Switch && (options.Password != "" || options.MFA != "" ||
+		options.Code != "" || options.SelfSigned != nil) {
+		return errors.New("--password, --mfa, --code and --self-signed cannot be used with --switch. " +
 			"Use --endpoint and/or --email to select a stored account")
 	}
 
@@ -95,6 +104,14 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 
 	if err := validateFactor(options.MFA); err != nil {
 		return err
+	}
+
+	selfSigned := global.CurrentBool(config.PreferenceSelfSigned)
+	if options.SelfSigned != nil {
+		selfSigned, err = strconv.ParseBool(*options.SelfSigned)
+		if err != nil {
+			return fmt.Errorf("--self-signed must be true or false: %w", err)
+		}
 	}
 
 	configEndpoint := resolveLoginEndpoint(options.Endpoint)
@@ -110,16 +127,15 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	// Checked BEFORE anything is prompted for, so a wrong endpoint fails
 	// immediately rather than after the email and password are typed.
 	if options.Endpoint != "" && !cloud {
-		if err := verifyEndpoint(configEndpoint,
-			global.CurrentBool(config.PreferenceSelfSigned)); err != nil {
+		if err := verifyEndpoint(configEndpoint, selfSigned); err != nil {
 			return err
 		}
 	}
 
 	if cloud && (options.Email != "" || options.Password != "" ||
-		options.MFA != "" || options.Code != "") {
+		options.MFA != "" || options.Code != "" || options.SelfSigned != nil) {
 		return fmt.Errorf("cloud sign-in happens in your browser. Run '%s login' "+
-			"without --email, --password, --mfa or --code -- those options are "+
+			"without --email, --password, --mfa, --code or --self-signed -- those options are "+
 			"for self-hosted instances", app.ExecutableName)
 	}
 
@@ -142,7 +158,7 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	}
 
 	if !cloud {
-		return loginWithPassword(command, global, configEndpoint, previous, options)
+		return loginWithPassword(command, global, configEndpoint, previous, selfSigned, options)
 	}
 
 	return loginWithDevice(command, configEndpoint)
@@ -335,6 +351,7 @@ func loginWithPassword(
 	command *cobra.Command,
 	global *config.Global,
 	endpoint, previous string,
+	selfSigned bool,
 	options loginOptions,
 ) error {
 	out := command.OutOrStdout()
@@ -362,6 +379,9 @@ func loginWithPassword(
 	session := config.NewObject()
 	session.Set(config.PreferenceEndpoint, endpoint)
 	session.Set(config.PreferenceEmail, email)
+	if selfSigned {
+		session.Set(config.PreferenceSelfSigned, true)
+	}
 	global.AddSession(sessionID, session)
 	global.SetCurrentSessionID(sessionID)
 	if err := global.Write(); err != nil {
@@ -376,6 +396,7 @@ func loginWithPassword(
 
 	api := client.New(endpoint, app.Version).
 		SetProject(config.ProjectConsole).
+		SetSelfSigned(selfSigned).
 		SetLocale("en-US")
 
 	credentials := jsonx.NewObject()
