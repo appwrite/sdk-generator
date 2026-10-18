@@ -21,15 +21,15 @@ const browser = (options) => [
     typescript(options),
 ];
 
-const minify = (options = {}) =>
+const minify = (ecma, options = {}) =>
     terser({
-        ecma: 2020,
+        ecma,
         format: { comments: false },
         compress: { passes: 3 },
         ...options,
     });
 
-const iife = (file, options) => ({
+const iife = (file, options, ecma) => ({
     input: 'src/index.ts',
     plugins: browser(options),
     output: [
@@ -41,7 +41,7 @@ const iife = (file, options) => ({
             // A script tag has no module loader, so the lazy mqtt.js import is inlined here.
             inlineDynamicImports: true,
             sourcemap: true,
-            plugins: [minify()],
+            plugins: [minify(ecma)],
         },
     ],
 });
@@ -69,48 +69,45 @@ export default [
             },
         ],
     },
-    iife(pkg.jsdelivr, { outDir: 'dist' }),
+    iife(pkg.jsdelivr, { outDir: 'dist' }, 2015),
 ];
 {% if language.params.cdnPath %}
 
-const helpers = [
-    'client',
-    'query',
-    'id',
-    'permission',
-    'role',
-    'operator',
-    'channel',
-    'topic',
-]
-    .filter((name) => existsSync(`src/${name}.ts`))
-    .map((name) => [name, `src/${name}.ts`]);
+const entries = (dir, prefix = '') =>
+    existsSync(dir)
+        ? readdirSync(dir)
+              .filter((file) => file.endsWith('.ts'))
+              .map((file) => [prefix + file.slice(0, -3), `${dir}/${file}`])
+        : [];
 
-const services = readdirSync('src/services')
-    .filter((file) => file.endsWith('.ts'))
-    .map((file) => [file.slice(0, -3), `src/services/${file}`]);
+const input = {};
+for (const [name, file] of [
+    ...entries('src').filter(([name]) => name !== 'models'),
+    ...entries('src/services'),
+    ...entries('src/enums', 'enums/'),
+]) {
+    if (name in input) {
+        throw new Error(`${file} and ${input[name]} both build ${name}.js`);
+    }
+    input[name] = file;
+}
 
 const modern = { outDir: 'dist/cdn', target: 'ES2020' };
 
 const cdn = [
     {
-        input: {
-            index: 'src/index.ts',
-            ...Object.fromEntries(helpers),
-            ...Object.fromEntries(services),
-        },
+        input,
         plugins: browser(modern),
         output: {
             format: 'es',
             dir: 'dist/cdn',
             entryFileNames: '[name].js',
             chunkFileNames: 'chunks/[name]-[hash].js',
-            minifyInternalExports: true,
             sourcemap: true,
-            plugins: [minify({ module: true })],
+            plugins: [minify(2020, { module: true })],
         },
     },
-    iife('dist/cdn/sdk.min.js', modern),
+    iife('dist/cdn/sdk.min.js', modern, 2020),
 ];
 
 export default process.env.CDN ? cdn : libs;
