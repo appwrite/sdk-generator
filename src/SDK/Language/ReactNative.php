@@ -9,7 +9,6 @@ use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Specification;
 use Override;
-use Twig\TwigFilter;
 
 class ReactNative extends Web
 {

@@ -18,9 +18,6 @@ class Ruby extends Language
         'gemPackage' => 'gemName',
     ];
 
-    /**
-     * @return $this
-     */
     public function setGemPackage(string $name): self
     {
         $this->setParam('gemPackage', $name);

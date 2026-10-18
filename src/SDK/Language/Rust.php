@@ -6,7 +6,6 @@ use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
-use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -23,9 +22,6 @@ class Rust extends Language
         "cratePackage" => "packageName",
     ];
 
-    /**
-     * @return $this
-     */
     public function setCratePackage(string $name): self
     {
         $this->setParam("cratePackage", $name);

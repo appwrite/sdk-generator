@@ -591,7 +591,7 @@ class Unity extends DotNet
             if ($relative === '') {
                 continue;
             }
-            $skip = array_any(explode('/', $relative), fn($segment): bool => $segment === '' || $segment[0] === '.' || str_ends_with((string) $segment, '~'));
+            $skip = array_any(explode('/', $relative), fn($segment): bool => $segment === '' || $segment[0] === '.' || str_ends_with($segment, '~'));
             if ($skip) {
                 continue;
             }
