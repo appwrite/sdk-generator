@@ -283,7 +283,7 @@ public class WebSocketClient {
             }
         )
 
-        return channel.pipeline.addHTTPClientHandlers(withClientUpgrade: config).flatMap { _ in
+        return channel.pipeline.addHTTPClientHandlers(leftOverBytesStrategy: .forwardBytes, withClientUpgrade: config).flatMap { _ in
             return channel.pipeline.addHandler(httpHandler).flatMap { _ in
                 if self.tlsEnabled {
                     let tlsConfig = TLSConfiguration.makeClientConfiguration()
@@ -425,7 +425,7 @@ public class WebSocketClient {
                 promise: promise
             )
         } catch let error {
-            print(error)
+            FileHandle.standardError.write(Data("\(error)\n".utf8))
         }
     }
 

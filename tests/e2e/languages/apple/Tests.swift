@@ -339,6 +339,8 @@ class Tests: XCTestCase {
             print("Realtime disconnect:failed")
         }
 
+        print(try await firstFrameAfterUpgrade())
+
         mock = try await general.setCookie()
         print(mock.result)
 
@@ -702,6 +704,16 @@ class Tests: XCTestCase {
         let kickedError = await firstError(Push(client), subscribingTo: "e2e-disconnect/kicked-by-test")
         print(!kickedError.isEmpty ? "Push disconnect error:passed" : "Push disconnect error:failed")
 
+        // With no onError, the broker's DISCONNECT is logged to stderr, which must stay out of
+        // the stdout this harness compares.
+        let unhandledPush = Push(client)
+        let unhandledClosed = XCTestExpectation(description: "push closed without onError")
+        _ = unhandledPush.onClose { unhandledClosed.fulfill() }
+        _ = try? await unhandledPush.subscribe("e2e-disconnect/unhandled") { _ in }
+        let unhandledResult = await XCTWaiter().fulfillment(of: [unhandledClosed], timeout: 10)
+        unhandledPush.close()
+        print(unhandledResult == .completed ? "Push disconnect without onError:passed" : "Push disconnect without onError:failed")
+
         func outcome(_ subscribing: () async throws -> Void) async -> String {
             do {
                 try await subscribing()
@@ -822,6 +834,28 @@ class Tests: XCTestCase {
         )
     }
 
+    /// A server may write its first frame in the same packet as the 101 response.
+    func firstFrameAfterUpgrade() async throws -> String {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        let server = try await ServerBootstrap(group: group)
+            .childChannelInitializer { $0.pipeline.addHandler(UpgradeWithFirstFrame()) }
+            .bind(host: "127.0.0.1", port: 0)
+            .get()
+        let received = XCTestExpectation(description: "first frame")
+        let socket = WebSocketClient("ws://127.0.0.1:\(server.localAddress!.port!)/v1/realtime", tlsEnabled: false)!
+        socket.onMessage { (text: String) in
+            if text == UpgradeWithFirstFrame.text {
+                received.fulfill()
+            }
+        }
+        try await socket.connect()
+        let result = await XCTWaiter().fulfillment(of: [received], timeout: 5)
+        socket.close()
+        try await server.close()
+        return result == .completed ? "WebSocket first frame:passed" : "WebSocket first frame:failed"
+    }
+
     func parse(from json: String) -> String? {
         if let data = json.data(using: .utf8),
            let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
@@ -829,6 +863,32 @@ class Tests: XCTestCase {
             return result
         }
         return nil
+    }
+}
+
+/// Answers the upgrade request with the 101 response and a text frame in one write.
+final class UpgradeWithFirstFrame: ChannelInboundHandler, @unchecked Sendable {
+    typealias InboundIn = ByteBuffer
+    typealias OutboundOut = ByteBuffer
+
+    static let text = "first-frame"
+    // Sec-WebSocket-Accept for the fixed Sec-WebSocket-Key WebSocketClient sends.
+    private static let accept = "ZXBe/0Qtt2IZI9ybavBlj+XPte8="
+
+    private var request = ""
+
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        var buffer = unwrapInboundIn(data)
+        request += buffer.readString(length: buffer.readableBytes) ?? ""
+        guard request.hasSuffix("\r\n\r\n") else {
+            return
+        }
+        var response = context.channel.allocator.buffer(
+            string: "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: \(Self.accept)\r\n\r\n"
+        )
+        response.writeBytes([0x81, UInt8(Self.text.utf8.count)])
+        response.writeString(Self.text)
+        context.writeAndFlush(wrapOutboundOut(response), promise: nil)
     }
 }
 

@@ -27,9 +27,11 @@ final class AppleSwift61Test extends Base
         'mkdir -p tests/e2e/sdks/apple/Tests/AppwriteTests',
         'cp tests/e2e/languages/apple/Tests.swift tests/e2e/sdks/apple/Tests/AppwriteTests/Tests.swift',
     ];
+    // `swift test` forwards the tests' stderr into its stdout, so the SDK's stderr diagnostics
+    // would land in the output compared below. Running the XCTest bundle keeps them apart.
     #[Override]
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/apple swift:6.1-jammy swift test';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/apple swift:6.1-jammy sh -c "swift build --build-tests && .build/debug/AppwritePackageTests.xctest; swift test --skip-build --disable-xctest"';
 
     #[Override]
     protected array $expectedOutput = [
@@ -56,6 +58,7 @@ final class AppleSwift61Test extends Base
         ...Base::ENUM_ARRAY_MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
+        'WebSocket first frame:passed',
         ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         Base::QUERY_TRANSPORT_RESPONSE,
@@ -67,6 +70,7 @@ final class AppleSwift61Test extends Base
         ...Base::PUSH_RESPONSES,
         ...Base::PUSH_SIGN_IN_SESSION_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
+        'Push disconnect without onError:passed',
         ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
         ...Base::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,
         ...Base::PUSH_CLOSE_FROM_CALLBACK_RESPONSES,
