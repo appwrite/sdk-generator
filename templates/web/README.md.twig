@@ -35,6 +35,44 @@ import {{ '{' }} Client, Account {{ '}' }} from '{{ language.params.npmPackage }
 
 ### CDN
 
+{% if language.params.cdnPath %}
+{% set cdnURL = 'https://sdk.appwrite.io/' ~ language.params.cdnPath ~ '/' ~ sdk.version ~ '/' %}
+Every release is published to `{{ cdnURL }}`.
+
+#### ES modules
+
+Each service and helper is its own module, so the browser downloads only what you import:
+
+```html
+<script type="module">
+    import {{ '{' }} Client {{ '}' }} from '{{ cdnURL }}client.js';
+    import {{ '{' }} Account {{ '}' }} from '{{ cdnURL }}account.js';
+</script>
+```
+
+#### Script tag
+
+Add the script before any code that uses the SDK. It exposes every export on the global `Appwrite` object:
+
+```html
+<script src="{{ cdnURL }}sdk.min.js"></script>
+<script>
+    const {{ '{' }} Client, Account {{ '}' }} = Appwrite;
+</script>
+```
+
+#### Subresource integrity
+
+`integrity.json` in the same directory maps each `.js` file to its `sha384-` hash. Set that hash as the `integrity` attribute of the `<script>` tag, together with `crossorigin="anonymous"`.
+
+#### jsDelivr
+
+The script tag build is also available from jsDelivr:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/{{ language.params.npmPackage }}@{{ sdk.version }}"></script>
+```
+{% else %}
 Add the script before any code that uses the SDK. It exposes every export on the global `Appwrite` object:
 
 ```html
@@ -43,6 +81,7 @@ Add the script before any code that uses the SDK. It exposes every export on the
     const {{ '{' }} Client, Account {{ '}' }} = Appwrite;
 </script>
 ```
+{% endif %}
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|trim|raw }}

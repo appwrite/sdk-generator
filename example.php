@@ -230,7 +230,9 @@ try {
 
     // Web
     if (!$requestedSdk || $requestedSdk === 'web') {
-        $sdk  = new SDK(new Web(), buildSpecification($spec));
+        $web = new Web();
+        $web->setCdnPath('web');
+        $sdk  = new SDK($web, buildSpecification($spec));
         configureSDK($sdk, ['platform' => $platform]);
         $sdk->generate(__DIR__ . '/examples/web');
     }

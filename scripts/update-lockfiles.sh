@@ -49,7 +49,7 @@ strip_twig() {
     # Replace {{ ... }} expressions with a safe placeholder so npm can parse
     # the file as plain JSON. Only metadata fields use Twig
     # vars; dependency versions are all static.
-    sed 's/{{[^}]*}}/PLACEHOLDER/g' "$1"
+    sed -e '/^[[:space:]]*{%[^}]*%}[[:space:]]*$/d' -e 's/{{[^}]*}}/PLACEHOLDER/g' "$1"
 }
 
 replace_first() {
@@ -120,7 +120,7 @@ update_npm() {
     strip_twig "$template" > "$dir/package.json"
     (cd "$dir" && npm_config_legacy_peer_deps=false npm install --package-lock-only --ignore-scripts --silent 2>/dev/null)
     cp "$dir/package-lock.json" "$dest"
-    sync_npm_overrides "$dest" "$template"
+    sync_npm_overrides "$dest" "$dir/package.json"
     restore_twig_npm "$dest" "$twig_name"
     echo "  updated templates/$lang/package-lock.json.twig"
 }

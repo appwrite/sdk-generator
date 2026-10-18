@@ -241,6 +241,7 @@ jobs:
               npm run lint
               npm run analyse
               npm run build
+              npm run build:cdn
               ;;
             cli)
               go mod tidy
