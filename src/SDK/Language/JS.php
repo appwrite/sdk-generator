@@ -37,9 +37,6 @@ abstract class JS extends Language
         'npmPackage' => 'packageName',
     ];
 
-    /**
-     * @return $this
-     */
     public function setNPMPackage(string $name): self
     {
         $this->setParam('npmPackage', $name);

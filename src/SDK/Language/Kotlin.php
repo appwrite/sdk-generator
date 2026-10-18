@@ -286,9 +286,8 @@ class Kotlin extends Language
         if (count($mapEntries) > 0) {
             $closeIndent = str_repeat('    ', $indentLevel + 1);
             return "mapOf(\n" . implode(",\n", $mapEntries) . "\n" . $closeIndent . ")";
-        } else {
-            return 'mapOf( "a" to "b" )';
         }
+        return 'mapOf( "a" to "b" )';
     }
 
     /**
@@ -326,9 +325,8 @@ class Kotlin extends Language
         if (count($mapEntries) > 0) {
             $closeIndent = str_repeat('    ', $indentLevel + 1);
             return "Map.of(\n" . implode(",\n", $mapEntries) . "\n" . $closeIndent . ")";
-        } else {
-            return 'Map.of("a", "b")';
         }
+        return 'Map.of("a", "b")';
     }
 
     /**

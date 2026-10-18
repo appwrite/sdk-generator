@@ -7,7 +7,6 @@ use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Model\Tag;
-use Utopia\OpenAPI\Specification;
 use Override;
 use Twig\TwigFunction;
 

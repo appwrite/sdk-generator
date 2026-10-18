@@ -21,9 +21,6 @@ class Dart extends Language
         'packageName' => 'packageName',
     ];
 
-    /**
-     * @return $this
-     */
     public function setPackageName(string $name): self
     {
         $this->setParam('packageName', $name);
