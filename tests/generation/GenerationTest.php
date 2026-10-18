@@ -171,8 +171,11 @@ final class GenerationTest extends TestCase
         '.github/workflows/publish.yml' => ['npm run build:cdn', 'environment: cdn', 'r2:appwrite-sdk/zzcdn/', '--immutable'],
         'package.json' => ['"build:cdn"', '"!dist/cdn"'],
         'README.md' => ['https://sdk.appwrite.io/zzcdn/'],
-        'rollup.config.mjs' => ['dist/cdn'],
+        'rollup.config.mjs' => ['dist/cdn', "entries('src/enums', 'enums/')"],
     ];
+
+    /** @var list<string> */
+    private const array CDN_TOKENS = ['sdk.appwrite.io', 'r2:appwrite-sdk', 'build:cdn', 'dist/cdn', 'environment: cdn'];
 
     /** @var array<string, array<string, string>> generated tree per language and platform */
     private static array $generated = [];
@@ -227,9 +230,9 @@ final class GenerationTest extends TestCase
      *
      * @return array<string, string>
      */
-    private function generate(string $name, string $platform, string $unionVariant = ''): array
+    private function generate(string $name, string $platform, string $unionVariant = '', ?Language $language = null, string $variant = ''): array
     {
-        $key = $platform . $unionVariant;
+        $key = $platform . $unionVariant . $variant;
         if (isset(self::$generated[$name][$key])) {
             return self::$generated[$name][$key];
         }
@@ -247,7 +250,7 @@ final class GenerationTest extends TestCase
                 ];
             }
         }
-        $sdk = new SDK($this->language($name), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk = new SDK($language ?? $this->language($name), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
         $sdk
             ->setName('test')
             ->setVersion('0.0.1')
@@ -933,67 +936,33 @@ final class GenerationTest extends TestCase
      */
     public function testWebPublishesToTheCdnOnlyWhenPathIsSet(): void
     {
-        $cdn = $this->generateWeb(new Web()->setCdnPath('zzcdn'), 'cdn');
-        $npm = $this->generateWeb(new Web(), 'npm');
+        $cdn = $this->generate('web', 'client', language: new Web()->setCdnPath('zzcdn'), variant: '-cdn');
+        $npm = $this->generate('web', 'client');
         $missing = [];
-        $leaked = [];
         foreach (self::CDN_ARTIFACTS as $path => $tokens) {
             foreach ($tokens as $token) {
-                if (!\str_contains($cdn[\strtolower($path)] ?? '', $token)) {
+                if (!\str_contains($cdn[$path] ?? '', $token)) {
                     $missing[] = "{$path}: {$token}";
-                }
-                foreach ($this->filesContaining($npm, $token) as $match) {
-                    $leaked[] = "{$match}: {$token}";
                 }
             }
         }
 
         $this->assertSame([], $missing, 'web with a CDN path lacks CDN artifacts');
-        $this->assertSame([], $leaked, 'web without a CDN path renders CDN artifacts');
 
-        foreach ([$cdn, $npm] as $files) {
-            $this->assertStringContainsString('"@rollup/plugin-terser"', $files['package.json'], 'web: package.json lacks @rollup/plugin-terser');
-        }
-
-        foreach ([['node', 'server'], ['react-native', 'client']] as [$name, $platform]) {
-            $files = $this->generate($name, $platform);
-            foreach (['build:cdn', 'sdk.appwrite.io'] as $token) {
-                $this->assertSame([], $this->filesContaining($files, $token), "{$name} renders `{$token}`");
-            }
-        }
-    }
-
-    /** @return array<string, string> */
-    private function generateWeb(Web $language, string $key): array
-    {
-        $dir = self::OUTPUT . '/web-cdn/' . $key;
-        $this->removeDirectory($dir);
-
-        new SDK($language, Parser::parse((string) \file_get_contents(self::FIXTURE)))
-            ->setName('test')
-            ->setVersion('0.0.1')
-            ->setPlatform('client')
-            ->setNamespace('appwrite')
-            ->setExclude([
-                'services' => [
-                    ['name' => 'zzexcludedservice'],
-                ],
-                'methods' => [
-                    ['name' => 'createExcludedGeneralFixture'],
-                ],
-            ])
-            ->setTest('true')
-            ->generate($dir);
-
-        $files = [];
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
-        foreach ($iterator as $file) {
-            if ($file->isFile()) {
-                $files[\strtolower(\substr((string) $file->getPathname(), \strlen($dir) + 1))] = \strtolower((string) \file_get_contents($file->getPathname()));
+        $leaked = [];
+        foreach (['web' => $npm, 'node' => $this->generate('node', 'server'), 'react-native' => $this->generate('react-native', 'client')] as $name => $files) {
+            foreach (self::CDN_TOKENS as $token) {
+                foreach ($this->filesContaining($files, $token) as $match) {
+                    $leaked[] = "{$name}: {$match}: {$token}";
+                }
             }
         }
 
-        return $files;
+        $this->assertSame([], $leaked, 'a JavaScript SDK without a CDN path renders CDN artifacts');
+
+        foreach (['cdn' => $cdn, 'npm' => $npm] as $mode => $files) {
+            $this->assertStringContainsString('terser(', $files['rollup.config.mjs'], "web ({$mode}): rollup.config.mjs does not minify");
+        }
     }
 
     /**
