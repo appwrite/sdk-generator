@@ -574,6 +574,11 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/JsonCastTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/JsonCastTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/TopicTest.kt',
                 'template'      => '/kotlin/src/test/kotlin/io/appwrite/TopicTest.kt.twig',
             ],

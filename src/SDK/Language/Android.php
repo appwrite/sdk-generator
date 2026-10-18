@@ -157,6 +157,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/JsonCastTest.kt',
+                'template'      => '/android/library/src/test/java/io/package/JsonCastTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/TopicTest.kt',
                 'template'      => '/android/library/src/test/java/io/package/TopicTest.kt.twig',
             ],
