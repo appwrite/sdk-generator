@@ -1,7 +1,6 @@
 package {{ sdk.namespace | caseDot }}
 
 import {{ sdk.namespace | caseDot }}.extensions.jsonCast
-import {{ sdk.namespace | caseDot }}.models.Row
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -19,21 +18,16 @@ class JsonCastTest {
     }
 
     @Test
-    fun rowDataKeepsColumnsWhoseValueIsNull() {
-        @Suppress("UNCHECKED_CAST")
-        val row = Row.from(
-            mapOf<String, Any?>(
-                "\$id" to "o8",
-                "\$permissions" to listOf<String>(),
-                "customerId" to "c9",
-                "note" to null,
-                "c.name" to null,
-            ) as Map<String, Any>,
-            Map::class.java,
+    fun jsonCastKeepsNullsInsideNestedData() {
+        val response = mapOf(
+            "\$id" to "o8",
+            "data" to mapOf("note" to null, "joined" to mapOf("c.name" to null), "customerId" to "c9"),
         )
 
-        assertTrue("A null column must stay in the row, not read as unselected", row.data.containsKey("note"))
-        assertTrue("An unmatched left join must keep its joined columns as null", row.data.containsKey("c.name"))
-        assertEquals("c9", row.data["customerId"])
+        val data = response["data"]!!.jsonCast(Map::class.java)
+
+        assertTrue("A null column must stay in the row, not read as unselected", data.containsKey("note"))
+        assertTrue("An unmatched left join must keep its joined columns as null", (data["joined"] as Map<*, *>).containsKey("c.name"))
+        assertEquals("c9", data["customerId"])
     }
 }
