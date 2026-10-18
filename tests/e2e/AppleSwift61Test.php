@@ -56,6 +56,7 @@ final class AppleSwift61Test extends Base
         ...Base::ENUM_ARRAY_MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
+        'WebSocket first frame:passed',
         ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         Base::QUERY_TRANSPORT_RESPONSE,
