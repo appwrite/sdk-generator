@@ -28,7 +28,8 @@ final class WebChromiumTest extends Base
         'cp tests/e2e/languages/web/node.js tests/e2e/sdks/web/node.js',
         'cp tests/e2e/languages/web/index.html tests/e2e/sdks/web/index.html',
         'cp tests/e2e/languages/web/tab.html tests/e2e/sdks/web/tab.html',
-        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy sh -c "npm install && npm run build"',
+        'cp tests/e2e/languages/web/module.html tests/e2e/sdks/web/module.html',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy sh -c "npm install && npm run build && npm run build:cdn"',
     ];
     #[Override]
     protected string $command =
@@ -78,6 +79,18 @@ final class WebChromiumTest extends Base
         ...Base::PUSH_SESSION_REPLAY_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
         ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
-        ...Base::WEB_PUSH_CONNECTION_RESPONSES
+        ...Base::WEB_PUSH_CONNECTION_RESPONSES,
+        ...Base::PING_RESPONSE,
+        ...Base::FOO_RESPONSES,
+        ...Base::ID_HELPER_RESPONSES,
     ];
+
+    #[Override]
+    public function getLanguage(): Web
+    {
+        $language = new Web();
+        $language->setCdnPath('web');
+
+        return $language;
+    }
 }
