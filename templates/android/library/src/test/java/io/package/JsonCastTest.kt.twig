@@ -1,0 +1,39 @@
+package {{ sdk.namespace | caseDot }}
+
+import {{ sdk.namespace | caseDot }}.extensions.jsonCast
+import {{ sdk.namespace | caseDot }}.models.Row
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class JsonCastTest {
+    @Test
+    fun jsonCastKeepsKeysWhoseValueIsNull() {
+        val cast = mapOf("note" to null, "c.name" to null, "price" to 15L).jsonCast(Map::class.java)
+
+        assertTrue(cast.containsKey("note"))
+        assertNull(cast["note"])
+        assertTrue(cast.containsKey("c.name"))
+        assertEquals(15L, cast["price"])
+    }
+
+    @Test
+    fun rowDataKeepsColumnsWhoseValueIsNull() {
+        @Suppress("UNCHECKED_CAST")
+        val row = Row.from(
+            mapOf<String, Any?>(
+                "\$id" to "o8",
+                "\$permissions" to listOf<String>(),
+                "customerId" to "c9",
+                "note" to null,
+                "c.name" to null,
+            ) as Map<String, Any>,
+            Map::class.java,
+        )
+
+        assertTrue("A null column must stay in the row, not read as unselected", row.data.containsKey("note"))
+        assertTrue("An unmatched left join must keep its joined columns as null", row.data.containsKey("c.name"))
+        assertEquals("c9", row.data["customerId"])
+    }
+}
