@@ -1,0 +1,14 @@
+extends: existence
+message: "Avoid the unverifiable claim '%s'."
+link: https://developers.google.com/style/excessive-claims
+level: suggestion
+ignorecase: true
+# The guide also names 'never', 'always', and 'ensure', but in technical writing
+# those are usually legitimate instructions ('never commit secrets') rather than
+# product claims: they accounted for 125 of 142 hits on a 950-file corpus.
+# 'best practices' is a fixed term, not a superlative.
+tokens:
+  - 'best(?! practices?)'
+  - simplest
+  - fastest
+  - guarantees?

@@ -1,0 +1,12 @@
+extends: existence
+message: "Don't attribute human qualities to software or hardware ('%s')."
+link: https://developers.google.com/style/anthropomorphism
+level: suggestion
+ignorecase: true
+# Limited to the two verbs the guide itself names. Broader lists (wants, knows,
+# thinks) can't tell a software subject from a human one: on a 950-file corpus
+# they produced 8 false positives ('the customer wants', 'your audience knows')
+# for every 2 real ones.
+tokens:
+  - sees
+  - tells
