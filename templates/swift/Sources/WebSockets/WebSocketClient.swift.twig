@@ -425,7 +425,7 @@ public class WebSocketClient {
                 promise: promise
             )
         } catch let error {
-            print(error)
+            FileHandle.standardError.write(Data("\(error)\n".utf8))
         }
     }
 

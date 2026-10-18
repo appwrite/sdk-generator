@@ -704,6 +704,16 @@ class Tests: XCTestCase {
         let kickedError = await firstError(Push(client), subscribingTo: "e2e-disconnect/kicked-by-test")
         print(!kickedError.isEmpty ? "Push disconnect error:passed" : "Push disconnect error:failed")
 
+        // With no onError, the broker's DISCONNECT is logged to stderr, which must stay out of
+        // the stdout this harness compares.
+        let unhandledPush = Push(client)
+        let unhandledClosed = XCTestExpectation(description: "push closed without onError")
+        _ = unhandledPush.onClose { unhandledClosed.fulfill() }
+        _ = try? await unhandledPush.subscribe("e2e-disconnect/unhandled") { _ in }
+        let unhandledResult = await XCTWaiter().fulfillment(of: [unhandledClosed], timeout: 10)
+        unhandledPush.close()
+        print(unhandledResult == .completed ? "Push disconnect without onError:passed" : "Push disconnect without onError:failed")
+
         func outcome(_ subscribing: () async throws -> Void) async -> String {
             do {
                 try await subscribing()
