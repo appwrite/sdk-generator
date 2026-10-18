@@ -46,9 +46,8 @@ ensure_composer() {
 }
 
 strip_twig() {
-    # Replace {{ ... }} expressions with a safe placeholder so npm can parse
-    # the file as plain JSON. Only metadata fields use Twig
-    # vars; dependency versions are all static.
+    # Drop {% ... %} tag lines, keeping every conditional branch, and replace
+    # {{ ... }} expressions with a placeholder so npm can parse plain JSON.
     sed -e '/^[[:space:]]*{%[^}]*%}[[:space:]]*$/d' -e 's/{{[^}]*}}/PLACEHOLDER/g' "$1"
 }
 
