@@ -930,10 +930,6 @@ final class GenerationTest extends TestCase
         return (string) \file_get_contents($dir . '/go.mod');
     }
 
-    /**
-     * Only a Web SDK given a CDN path builds, uploads and documents the CDN
-     * bundle; every other JavaScript package publishes to npm alone.
-     */
     public function testWebPublishesToTheCdnOnlyWhenPathIsSet(): void
     {
         $cdn = $this->generate('web', 'client', language: new Web()->setCdnPath('zzcdn'), variant: '-cdn');
