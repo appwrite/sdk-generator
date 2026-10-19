@@ -137,8 +137,8 @@ final class GenerationTest extends TestCase
             'appwrite.gemspec' => ["spec.required_ruby_version = '>= 2.7'"],
         ],
         'node' => [
-            'package.json' => ['"engines": {', '"node": ">=18.17"'],
-            'package-lock.json' => ['"engines": {', '"node": ">=18.17"'],
+            'package.json' => ['"engines": {', '"node": ">=20.0.0"'],
+            'package-lock.json' => ['"engines": {', '"node": ">=20.0.0"'],
         ],
         'python' => [
             'setup.py' => [

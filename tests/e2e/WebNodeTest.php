@@ -32,7 +32,7 @@ final class WebNodeTest extends Base
     ];
     #[Override]
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web node:18-alpine node node.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web node:20-alpine node node.js';
 
     #[Override]
     protected array $expectedOutput = [
