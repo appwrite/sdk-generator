@@ -1,5 +1,9 @@
-type OperatorValuesSingle = string | number | boolean;
-export type OperatorValuesList = string[] | number[] | boolean[] | any[];
+import JSONbigModule from 'json-bigint';
+const JSONbig = JSONbigModule({ useNativeBigInt: true });
+
+type OperatorValuesSingle = string | number | bigint | boolean;
+export type OperatorValuesList =
+    string[] | number[] | bigint[] | boolean[] | any[];
 export type OperatorValues = OperatorValuesSingle | OperatorValuesList;
 
 export enum Condition {
@@ -45,7 +49,7 @@ export class Operator {
      * @returns {string}
      */
     toString(): string {
-        return JSON.stringify({
+        return JSONbig.stringify({
             method: this.method,
             values: this.values,
         });
