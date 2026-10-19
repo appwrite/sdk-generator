@@ -35,13 +35,16 @@ server.listen(3000, async () => {
 
         const modulePage = await context.newPage();
         modulePage.on('console', log);
+        let mqttRequests = 0;
         modulePage.on('request', request => {
             if (/chunks\/mqtt/.test(request.url())) {
-                console.log(`Module flow loaded ${request.url()}`);
+                mqttRequests++;
             }
         });
         await modulePage.goto('http://localhost:3000/module.html');
         await modulePage.waitForFunction(() => window.moduleDone === true, null, { timeout: 15000 });
+        await modulePage.waitForLoadState('networkidle');
+        console.log(`MQTT chunks requested: ${mqttRequests}`);
     } catch (error) {
         console.log(`Test failed: ${error}`);
     } finally {

@@ -83,6 +83,7 @@ final class WebChromiumTest extends Base
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
+        'MQTT chunks requested: 0',
     ];
 
     #[Override]
