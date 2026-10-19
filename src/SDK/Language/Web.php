@@ -15,6 +15,18 @@ use Twig\TwigFilter;
 
 class Web extends JS
 {
+    protected $params = [
+        'npmPackage' => 'packageName',
+        'cdnPath' => '',
+    ];
+
+    public function setCdnPath(string $path): self
+    {
+        $this->setParam('cdnPath', $path);
+
+        return $this;
+    }
+
     public function getName(): string
     {
         return 'Web';

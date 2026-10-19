@@ -35,6 +35,48 @@ import {{ '{' }} Client, Account {{ '}' }} from '{{ language.params.npmPackage }
 
 ### CDN
 
+{% if language.params.cdnPath %}
+{% set cdnURL = 'https://sdk.appwrite.io/' ~ language.params.cdnPath ~ '/' ~ sdk.version ~ '/' %}
+{% set enum = allEnums|filter(enum => enum.title|caseUcfirst == 'OAuthProvider')|first ?: allEnums|first %}
+Every release is published to `{{ cdnURL }}`.
+
+#### ES modules
+
+Each service, helper and enum is its own module, so the browser downloads only what you import. A service is served under its name in kebab case{% if services['tablesDB'] is defined %}, such as `TablesDB` from `tables-db.js`{% endif %}{% if enum %}, and enums under `enums/`, such as `{{ enum.title|caseUcfirst }}` from `enums/{{ enum.title|caseKebab }}.js`{% endif %}. `index.js` re-exports everything, so importing it loads every service:
+
+```html
+<script type="module">
+    import {{ '{' }} Client {{ '}' }} from '{{ cdnURL }}client.js';
+    import {{ '{' }} Account {{ '}' }} from '{{ cdnURL }}account.js';
+{% if enum %}
+    import {{ '{' }} {{ enum.title|caseUcfirst }} {{ '}' }} from '{{ cdnURL }}enums/{{ enum.title|caseKebab }}.js';
+{% endif %}
+</script>
+```
+
+#### Script tag
+
+Add the script before any code that uses the SDK. It exposes every export on the global `Appwrite` object:
+
+```html
+<script src="{{ cdnURL }}sdk.min.js"></script>
+<script>
+    const {{ '{' }} Client, Account {{ '}' }} = Appwrite;
+</script>
+```
+
+#### Subresource integrity
+
+`integrity.json` in the same directory maps each `.js` file to its `sha384-` hash. An `integrity` attribute checks only the file it is set on. `sdk.min.js` is a single file, so its hash as the `integrity` attribute, together with `crossorigin="anonymous"`, covers the whole SDK. ES modules import other modules and shared chunks, so supply their hashes through the `integrity` field of an import map to cover those too.
+
+#### jsDelivr
+
+The script tag build is also available from jsDelivr:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/{{ language.params.npmPackage }}@{{ sdk.version }}"></script>
+```
+{% else %}
 Add the script before any code that uses the SDK. It exposes every export on the global `Appwrite` object:
 
 ```html
@@ -43,6 +85,7 @@ Add the script before any code that uses the SDK. It exposes every export on the
     const {{ '{' }} Client, Account {{ '}' }} = Appwrite;
 </script>
 ```
+{% endif %}
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|trim|raw }}

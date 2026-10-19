@@ -36,7 +36,6 @@ jobs:
           Go118,
           KotlinJava17,
           Node26,
-          Node18,
           Node20,
           PHP85,
           Python39,
