@@ -340,6 +340,7 @@ class Tests: XCTestCase {
         }
 
         print(try await firstFrameAfterUpgrade())
+        print(try await connectRejectsUpgrade())
         print(try await subscribeReusesSocket())
         print(try await realtimeReconnects())
 
@@ -857,6 +858,29 @@ class Tests: XCTestCase {
         return result == .completed ? "WebSocket first frame:passed" : "WebSocket first frame:failed"
     }
 
+    /// connect() must throw when the server answers the upgrade with anything but 101, mapping known statuses.
+    func connectRejectsUpgrade() async throws -> String {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        var outcomes: [String] = []
+        for status in ["404 Not Found", "403 Forbidden"] {
+            let server = try await ScriptedUpgrade.serve(on: group) { _ in
+                ScriptedUpgrade(.reject(status: status))
+            }
+            let socket = WebSocketClient("ws://127.0.0.1:\(server.localAddress!.port!)/v1/realtime", tlsEnabled: false)!
+            do {
+                try await socket.connect()
+                outcomes.append("connected")
+            } catch {
+                outcomes.append(String(describing: error))
+            }
+            try await server.close()
+        }
+        return outcomes == ["notFound", "upgradeRejected"]
+            ? "WebSocket upgrade rejection:passed"
+            : "WebSocket upgrade rejection:failed (\(outcomes.joined(separator: ", ")))"
+    }
+
     /// A subscribe made right after another has returned must reuse that subscribe's socket, even when
     /// the server is slow to accept the upgrade.
     func subscribeReusesSocket() async throws -> String {
@@ -919,14 +943,15 @@ class Tests: XCTestCase {
     }
 }
 
-/// Answers the WebSocket upgrade request from raw bytes, so a test controls when the 101 response is
-/// written, the frames sent with it and whether the server then closes the socket.
+/// Answers the WebSocket upgrade request from raw bytes, so a test controls whether and when the upgrade
+/// is accepted, the frames sent with it and whether the server then closes the socket.
 final class ScriptedUpgrade: ChannelInboundHandler, @unchecked Sendable {
     typealias InboundIn = ByteBuffer
     typealias OutboundOut = ByteBuffer
 
     enum Reply {
         case accept(frames: [String], close: Bool = false)
+        case reject(status: String)
         case drop
     }
 
@@ -976,6 +1001,9 @@ final class ScriptedUpgrade: ChannelInboundHandler, @unchecked Sendable {
         switch reply {
         case .drop:
             context.close(promise: nil)
+        case .reject(let status):
+            let response = context.channel.allocator.buffer(string: "HTTP/1.1 \(status)\r\nContent-Length: 0\r\n\r\n")
+            context.writeAndFlush(wrapOutboundOut(response), promise: nil)
         case .accept(let frames, let close):
             var response = context.channel.allocator.buffer(
                 string: "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: \(Self.accept)\r\n\r\n"

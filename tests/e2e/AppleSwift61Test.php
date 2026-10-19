@@ -59,6 +59,7 @@ final class AppleSwift61Test extends Base
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         'WebSocket first frame:passed',
+        'WebSocket upgrade rejection:passed',
         'Realtime subscribe reuses socket:passed',
         'Realtime reconnect:passed',
         ...Base::COOKIE_RESPONSES,
