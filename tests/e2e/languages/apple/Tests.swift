@@ -340,6 +340,9 @@ class Tests: XCTestCase {
         }
 
         print(try await firstFrameAfterUpgrade())
+        print(try await connectRejectsUpgrade())
+        print(try await subscribeReusesSocket())
+        print(try await realtimeReconnects())
 
         mock = try await general.setCookie()
         print(mock.result)
@@ -838,14 +841,13 @@ class Tests: XCTestCase {
     func firstFrameAfterUpgrade() async throws -> String {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer { try? group.syncShutdownGracefully() }
-        let server = try await ServerBootstrap(group: group)
-            .childChannelInitializer { $0.pipeline.addHandler(UpgradeWithFirstFrame()) }
-            .bind(host: "127.0.0.1", port: 0)
-            .get()
+        let server = try await ScriptedUpgrade.serve(on: group) { _ in
+            ScriptedUpgrade(.accept(frames: [ScriptedUpgrade.firstFrame]))
+        }
         let received = XCTestExpectation(description: "first frame")
         let socket = WebSocketClient("ws://127.0.0.1:\(server.localAddress!.port!)/v1/realtime", tlsEnabled: false)!
         socket.onMessage { (text: String) in
-            if text == UpgradeWithFirstFrame.text {
+            if text == ScriptedUpgrade.firstFrame {
                 received.fulfill()
             }
         }
@@ -854,6 +856,81 @@ class Tests: XCTestCase {
         socket.close()
         try await server.close()
         return result == .completed ? "WebSocket first frame:passed" : "WebSocket first frame:failed"
+    }
+
+    /// connect() must throw when the server answers the upgrade with anything but 101, mapping known statuses.
+    func connectRejectsUpgrade() async throws -> String {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        var outcomes: [String] = []
+        for status in ["404 Not Found", "403 Forbidden"] {
+            let server = try await ScriptedUpgrade.serve(on: group) { _ in
+                ScriptedUpgrade(.reject(status: status))
+            }
+            let socket = WebSocketClient("ws://127.0.0.1:\(server.localAddress!.port!)/v1/realtime", tlsEnabled: false)!
+            do {
+                try await socket.connect()
+                outcomes.append("connected")
+            } catch {
+                outcomes.append(String(describing: error))
+            }
+            try await server.close()
+        }
+        return outcomes == ["notFound", "upgradeRejected"]
+            ? "WebSocket upgrade rejection:passed"
+            : "WebSocket upgrade rejection:failed (\(outcomes.joined(separator: ", ")))"
+    }
+
+    /// A subscribe made right after another has returned must reuse that subscribe's socket, even when
+    /// the server is slow to accept the upgrade.
+    func subscribeReusesSocket() async throws -> String {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        let connections = ConnectionCounter()
+        let server = try await ScriptedUpgrade.serve(on: group) { _ in
+            connections.increment()
+            return ScriptedUpgrade(.accept(frames: [ScriptedUpgrade.connected]), after: .milliseconds(300))
+        }
+        let realtime = Realtime(scriptedRealtimeClient(port: server.localAddress!.port!))
+        _ = try await realtime.subscribe(channel: "tests") { _ in }
+        _ = try await realtime.subscribe(channel: "files") { _ in }
+        try await Task.sleep(nanoseconds: 500_000_000)
+        try await realtime.disconnect()
+        try await server.close()
+        let count = connections.count
+        return count == 1 ? "Realtime subscribe reuses socket:passed" : "Realtime subscribe reuses socket:failed (\(count) connections)"
+    }
+
+    /// Realtime must reconnect every time the server drops it, including after a reconnect attempt fails.
+    func realtimeReconnects() async throws -> String {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        let replies: [ScriptedUpgrade.Reply] = [
+            .accept(frames: [ScriptedUpgrade.connected], close: true),
+            .drop,
+            .accept(frames: [ScriptedUpgrade.connected], close: true),
+            .accept(frames: [ScriptedUpgrade.connected]),
+        ]
+        let connections = ConnectionCounter()
+        let server = try await ScriptedUpgrade.serve(on: group) { _ in
+            ScriptedUpgrade(replies[min(connections.increment(), replies.count) - 1])
+        }
+        let realtime = Realtime(scriptedRealtimeClient(port: server.localAddress!.port!))
+        let opened = XCTestExpectation(description: "realtime opened three times")
+        opened.expectedFulfillmentCount = 3
+        realtime.onOpen { opened.fulfill() }
+        _ = try await realtime.subscribe(channel: "tests") { _ in }
+        let result = await XCTWaiter().fulfillment(of: [opened], timeout: 15)
+        try await realtime.disconnect()
+        try await server.close()
+        return result == .completed ? "Realtime reconnect:passed" : "Realtime reconnect:failed (\(connections.count) connections)"
+    }
+
+    func scriptedRealtimeClient(port: Int) -> Client {
+        return Client()
+            .setProject("123456")
+            .setSelfSigned()
+            .setEndpointRealtime("ws://127.0.0.1:\(port)/v1")
     }
 
     func parse(from json: String) -> String? {
@@ -866,29 +943,104 @@ class Tests: XCTestCase {
     }
 }
 
-/// Answers the upgrade request with the 101 response and a text frame in one write.
-final class UpgradeWithFirstFrame: ChannelInboundHandler, @unchecked Sendable {
+/// Answers the WebSocket upgrade request from raw bytes, so a test controls whether and when the upgrade
+/// is accepted, the frames sent with it and whether the server then closes the socket.
+final class ScriptedUpgrade: ChannelInboundHandler, @unchecked Sendable {
     typealias InboundIn = ByteBuffer
     typealias OutboundOut = ByteBuffer
 
-    static let text = "first-frame"
+    enum Reply {
+        case accept(frames: [String], close: Bool = false)
+        case reject(status: String)
+        case drop
+    }
+
+    static let firstFrame = "first-frame"
+    static let connected = #"{"type":"connected","data":{"channels":[],"user":null}}"#
     // Sec-WebSocket-Accept for the fixed Sec-WebSocket-Key WebSocketClient sends.
     private static let accept = "ZXBe/0Qtt2IZI9ybavBlj+XPte8="
 
+    private let reply: Reply
+    private let delay: TimeAmount
     private var request = ""
+    private var answered = false
+
+    init(_ reply: Reply, after delay: TimeAmount = .zero) {
+        self.reply = reply
+        self.delay = delay
+    }
+
+    static func serve(
+        on group: EventLoopGroup,
+        handler: @escaping @Sendable (NIOCore.Channel) -> ScriptedUpgrade
+    ) async throws -> NIOCore.Channel {
+        return try await ServerBootstrap(group: group)
+            .childChannelInitializer { $0.pipeline.addHandler(handler($0)) }
+            .bind(host: "127.0.0.1", port: 0)
+            .get()
+    }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        guard !answered else {
+            return
+        }
         var buffer = unwrapInboundIn(data)
         request += buffer.readString(length: buffer.readableBytes) ?? ""
         guard request.hasSuffix("\r\n\r\n") else {
             return
         }
-        var response = context.channel.allocator.buffer(
-            string: "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: \(Self.accept)\r\n\r\n"
-        )
-        response.writeBytes([0x81, UInt8(Self.text.utf8.count)])
-        response.writeString(Self.text)
-        context.writeAndFlush(wrapOutboundOut(response), promise: nil)
+        answered = true
+        if delay == .zero {
+            answer(context: context)
+        } else {
+            context.eventLoop.scheduleTask(in: delay) { self.answer(context: context) }
+        }
+    }
+
+    private func answer(context: ChannelHandlerContext) {
+        switch reply {
+        case .drop:
+            context.close(promise: nil)
+        case .reject(let status):
+            let response = context.channel.allocator.buffer(string: "HTTP/1.1 \(status)\r\nContent-Length: 0\r\n\r\n")
+            context.writeAndFlush(wrapOutboundOut(response), promise: nil)
+        case .accept(let frames, let close):
+            var response = context.channel.allocator.buffer(
+                string: "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: \(Self.accept)\r\n\r\n"
+            )
+            for frame in frames {
+                precondition(frame.utf8.count < 126, "frames use the single-byte payload length")
+                response.writeBytes([0x81, UInt8(frame.utf8.count)])
+                response.writeString(frame)
+            }
+            context.writeAndFlush(wrapOutboundOut(response), promise: nil)
+            if close {
+                context.eventLoop.scheduleTask(in: .milliseconds(100)) {
+                    let closeFrame = context.channel.allocator.buffer(bytes: [0x88, 0x00])
+                    context.writeAndFlush(self.wrapOutboundOut(closeFrame), promise: nil)
+                }
+            }
+        }
+    }
+}
+
+/// Counts the connections a scripted server accepts; NIO accepts them on its own thread.
+final class ConnectionCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    @discardableResult
+    func increment() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        value += 1
+        return value
+    }
+
+    var count: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
     }
 }
 
