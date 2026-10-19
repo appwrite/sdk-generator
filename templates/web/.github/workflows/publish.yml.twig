@@ -70,7 +70,7 @@ jobs:
       env:
         RCLONE_CONFIG_R2_TYPE: s3
         RCLONE_CONFIG_R2_PROVIDER: Cloudflare
-        RCLONE_CONFIG_R2_ENDPOINT: https://285d5ba7177bab8490e237b619b4b9f6.r2.cloudflarestorage.com
+        RCLONE_CONFIG_R2_ENDPOINT: ${{ '{{' }} vars.R2_ENDPOINT {{ '}}' }}
         RCLONE_CONFIG_R2_REGION: auto
         RCLONE_CONFIG_R2_NO_CHECK_BUCKET: 'true'
         RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ '{{' }} secrets.R2_ACCESS_KEY_ID {{ '}}' }}
