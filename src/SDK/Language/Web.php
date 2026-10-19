@@ -20,9 +20,6 @@ class Web extends JS
         'cdnPath' => '',
     ];
 
-    /**
-     * @return $this
-     */
     public function setCdnPath(string $path): self
     {
         $this->setParam('cdnPath', $path);
