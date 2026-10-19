@@ -341,6 +341,7 @@ class Tests: XCTestCase {
 
         print(try await firstFrameAfterUpgrade())
         print(try await subscribeReusesSocket())
+        print(try await realtimeReconnects())
 
         mock = try await general.setCookie()
         print(mock.result)
@@ -874,6 +875,31 @@ class Tests: XCTestCase {
         try await server.close()
         let count = connections.count
         return count == 1 ? "Realtime subscribe reuses socket:passed" : "Realtime subscribe reuses socket:failed (\(count) connections)"
+    }
+
+    /// Realtime must reconnect every time the server drops it, including after a reconnect attempt fails.
+    func realtimeReconnects() async throws -> String {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        let replies: [ScriptedUpgrade.Reply] = [
+            .accept(frames: [ScriptedUpgrade.connected], close: true),
+            .drop,
+            .accept(frames: [ScriptedUpgrade.connected], close: true),
+            .accept(frames: [ScriptedUpgrade.connected]),
+        ]
+        let connections = ConnectionCounter()
+        let server = try await ScriptedUpgrade.serve(on: group) { _ in
+            ScriptedUpgrade(replies[min(connections.increment(), replies.count) - 1])
+        }
+        let realtime = Realtime(scriptedRealtimeClient(port: server.localAddress!.port!))
+        let opened = XCTestExpectation(description: "realtime opened three times")
+        opened.expectedFulfillmentCount = 3
+        realtime.onOpen { opened.fulfill() }
+        _ = try await realtime.subscribe(channel: "tests") { _ in }
+        let result = await XCTWaiter().fulfillment(of: [opened], timeout: 15)
+        try await realtime.disconnect()
+        try await server.close()
+        return result == .completed ? "Realtime reconnect:passed" : "Realtime reconnect:failed (\(connections.count) connections)"
     }
 
     func scriptedRealtimeClient(port: Int) -> Client {
