@@ -27,6 +27,16 @@ true
 {{ (parameter | schemaExample) }}
 {%- endif -%}
 {%- endmacro %}
+{% macro pathValue(parameter, method) -%}
+{%- if (parameter | configKey(method)) or not parameter.required -%}
+{%- elseif (parameter | enumValues) is not empty -%}
+{{ (parameter | enumValues)[0] | raw }}
+{%- elseif (parameter | schemaType) in ['integer', 'number', 'boolean'] -%}
+1
+{%- else -%}
+{{ ((parameter | schemaExample) is not empty ? (parameter | schemaExample) : parameter.name) | raw }}
+{%- endif -%}
+{%- endmacro %}
 <?php
 
 declare(strict_types=1);
@@ -35,6 +45,7 @@ namespace {{ namespace | caseNamespace }}\Services;
 
 use {{ namespace | caseNamespace }}\Client;
 use Mockery;
+use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 {% set added = [] %}
@@ -57,6 +68,8 @@ use {{ namespace | caseNamespace }}\Enums\{{ (parameter | enumName) | caseUcfirs
 
 final class {{ service.name | caseUcfirst }}Test extends TestCase
 {
+    use MockeryPHPUnitIntegration;
+
     private Client&MockInterface $client;
     private {{ service.name | caseUcfirst }} ${{ service.name | caseCamel }};
 
@@ -108,8 +121,27 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
         $data = '';
 {% endif %}
 
+{% set path = method.path %}
+{% for parameter in (method | parameters('path')) %}
+{% set path = path | replace({('{' ~ parameter.name ~ '}'): helper.pathValue(parameter, method)}) %}
+{% endfor %}
+{% for security in (method | securityQueries) %}
+{% set path = path ~ (loop.first ? '?' : '&') ~ security.name ~ '=' %}
+{% endfor %}
+{% set sentParameters = (method | parameters('all')) | filter((param) => param.required or (param | schemaNullable)) %}
         $this->client
-            ->allows()->call(Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(){% if (method | methodType) == 'webAuth' %}, Mockery::any(){% endif %})
+            ->expects()->call(
+                '{{ method.method.value | caseUpper }}',
+                '{{ path | replace({'\\': '\\\\', "'": "\\'"}) | raw }}',
+                Mockery::any(),
+                Mockery::on(function (array $params): bool {
+                    $this->assertSame([{% for parameter in sentParameters %}'{{ parameter.name }}'{{ loop.last ? '' : ', ' }}{% endfor %}], array_keys($params));
+
+                    return true;
+                }){% if (method | methodType) == 'webAuth' %},
+                'location'{% endif %}
+
+            )
             ->andReturn($data);
         $this->client
             ->allows()->getConfig(Mockery::any())
