@@ -208,7 +208,7 @@ jobs:
 
       - name: Setup Rust
         if: matrix.sdk == 'rust'
-        uses: dtolnay/rust-toolchain@bd41891a8e7f4b8649f6d684415e1a6155fe4e22 # 1.83.0
+        uses: dtolnay/rust-toolchain@cfcaf53ba4c621917ec7f78a66bff7a8848ddad4 # 1.85.0
         with:
           components: rustfmt
 
@@ -325,6 +325,11 @@ jobs:
               gem install rubocop --version "${RUBOCOP_VERSION}"
               rubocop --version
               rubocop
+              warnings=$(find lib -name '*.rb' -exec ruby -wc {} \; 2>&1 >/dev/null)
+              if [ -n "$warnings" ]; then
+                echo "$warnings"
+                exit 1
+              fi
               ;;
             node)
               npm ci
@@ -378,9 +383,9 @@ jobs:
                 cargo +1.85.0 install cargo-audit --version 0.22.1 --locked
               fi
               cargo audit
-              cargo +1.83.0 fmt --check --all
-              cargo +1.83.0 build --release
-              cargo +1.83.0 test --lib
+              cargo +1.85.0 fmt --check --all
+              cargo +1.85.0 build --release
+              cargo +1.85.0 test --lib
               ;;
             zed-extension)
               cargo +1.86.0 fmt --check

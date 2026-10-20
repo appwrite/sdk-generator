@@ -195,7 +195,7 @@ php example.php zed-extension
 | Swift | `swift` | Swift 5.1+; Swift 5.9.2 in CI | [Swift Style Guide] | Swift Package Manager | `examples/swift/` |
 | .NET | `dotnet` | .NET Standard 2.0; .NET Framework 4.6.2 | [C# Coding Conventions] | NuGet | `examples/dotnet/` |
 | Kotlin | `kotlin` | JVM 1.8 target; Java 17 in CI | [Kotlin style guide] | Gradle, Maven | `examples/kotlin/` |
-| Rust | `rust` | Rust >=1.83 | [Rust API Guidelines] | Cargo | `examples/rust/` |
+| Rust | `rust` | Rust >=1.85 | [Rust API Guidelines] | Cargo | `examples/rust/` |
 
 ### Tooling and Documentation
 

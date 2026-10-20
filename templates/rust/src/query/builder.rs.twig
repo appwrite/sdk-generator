@@ -491,6 +491,20 @@ impl Builder {
         self
     }
 
+    pub fn join_on<I, S>(
+        mut self,
+        table: impl Into<String>,
+        alias: impl Into<String>,
+        on: I,
+    ) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.queries.push(Query::join_on(table, alias, on));
+        self
+    }
+
     pub fn left_join(
         mut self,
         table: impl Into<String>,
@@ -531,6 +545,20 @@ impl Builder {
         self
     }
 
+    pub fn right_join_on<I, S>(
+        mut self,
+        table: impl Into<String>,
+        alias: impl Into<String>,
+        on: I,
+    ) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.queries.push(Query::right_join_on(table, alias, on));
+        self
+    }
+
     pub fn full_outer_join(
         mut self,
         table: impl Into<String>,
@@ -541,6 +569,21 @@ impl Builder {
     ) -> Self {
         self.queries
             .push(Query::full_outer_join(table, left, right, operator, alias));
+        self
+    }
+
+    pub fn full_outer_join_on<I, S>(
+        mut self,
+        table: impl Into<String>,
+        alias: impl Into<String>,
+        on: I,
+    ) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        self.queries
+            .push(Query::full_outer_join_on(table, alias, on));
         self
     }
 

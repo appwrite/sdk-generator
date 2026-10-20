@@ -775,6 +775,69 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('"application/json, text/plain".to_string()', $general);
     }
 
+    public function testRustQueryBuilderChainsEveryQuery(): void
+    {
+        $files = $this->generate('rust', 'server');
+        $queries = $this->rustPublicFunctions(strstr($files['src/query/mod.rs'], 'impl query {'));
+        $chained = $this->rustPublicFunctions($files['src/query/builder.rs']);
+
+        $missing = array_values(array_diff($queries, $chained, ['builder', 'on', 'to_value']));
+
+        $this->assertSame([], $missing, 'Query constructors the builder cannot chain: ' . implode(', ', $missing));
+    }
+
+    public function testRubyLoadsOnlyTheCgiEscapeLibrary(): void
+    {
+        $client = $this->generate('ruby', 'server')['lib/appwrite/client.rb'];
+
+        $this->assertMatchesRegularExpression("/^require 'cgi\\/escape'$/m", $client);
+        $this->assertDoesNotMatchRegularExpression("/^require 'cgi'$/m", $client, 'Ruby 4.0 removed the cgi library; only cgi/escape ships with it');
+    }
+
+    #[DataProvider('swiftQueryPlatforms')]
+    public function testSwiftQueriesTakeTheAttributeUnlabelled(string $name, string $platform): void
+    {
+        $files = $this->generate($name, $platform);
+
+        foreach (['sources/appwrite/query.swift', 'sources/appwrite/query/builder.swift'] as $path) {
+            $source = $files[$this->fileKey($files, $path)];
+            preg_match_all('/(@available\([^\n]*deprecated[^\n]*\n\s*)?public (?:static )?func ([a-z]+)\((?!_ |\))[a-z]/i', $source, $matches, PREG_SET_ORDER);
+            $labelled = array_map(fn (array $match): string => $match[2], array_filter($matches, fn (array $match): bool => $match[1] === '' && $match[2] !== 'encode'));
+
+            $this->assertSame([], array_values($labelled), "{$name} {$path} queries that need a first-argument label: " . implode(', ', $labelled));
+        }
+    }
+
+    public static function swiftQueryPlatforms(): Iterator
+    {
+        yield 'swift' => ['swift', 'server'];
+        yield 'apple' => ['apple', 'client'];
+    }
+
+    /**
+     * @param array<string, string> $files
+     */
+    private function fileKey(array $files, string $suffix): string
+    {
+        foreach (array_keys($files) as $key) {
+            if (str_ends_with(strtolower($key), $suffix)) {
+                return $key;
+            }
+        }
+
+        $this->fail("no generated file ending in {$suffix}");
+    }
+
+    /**
+     * @return array<string>
+     */
+    private function rustPublicFunctions(string $source): array
+    {
+        preg_match_all('/^    pub fn ([a-z_]+)\b/m', $source, $matches);
+
+        return array_values(array_unique($matches[1]));
+    }
+
     #[DataProvider('languages')]
     public function testEnumsAreDeclared(string $name): void
     {

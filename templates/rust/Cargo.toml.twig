@@ -2,7 +2,7 @@
 name = "{{ sdk.cratePackage | default('appwrite') }}"
 version = "{{ sdk.version }}"
 edition = "2021"
-rust-version = "1.83"
+rust-version = "1.85"
 {% if sdk.gitUserEmail %}authors = ["{{ sdk.gitUserName }} <{{ sdk.gitUserEmail }}>"]
 {% else %}authors = ["{{ sdk.gitUserName }}"]
 {% endif %}description = "{{ spec.info.title }} SDK for Rust"
