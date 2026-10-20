@@ -802,6 +802,20 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testSdkSkillsInstallTheLatestSdk(): void
+    {
+        $skills = array_filter(
+            $this->generate('skills', 'console'),
+            fn (string $path): bool => basename($path) === 'SKILL.md',
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        $this->assertNotEmpty($skills);
+        foreach ($skills as $path => $skill) {
+            $this->assertDoesNotMatchRegularExpression('/\\bappwrite(?:\\s*=\\s*"|@|==)\\d/i', $skill, "{$path} pins an SDK version that goes stale on the next release");
+        }
+    }
+
     public function testCodexReadmeListsTheGeneratedSkillIds(): void
     {
         $files = $this->generate('codex-plugin', 'console');
