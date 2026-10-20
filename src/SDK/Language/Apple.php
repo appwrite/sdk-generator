@@ -62,6 +62,11 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Tests/{{ spec.info.title | caseUcfirst}}Tests/MessageHandlerTests.swift',
+                'template'      => 'apple/Tests/MessageHandlerTests.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Models/{{ spec.info.title | caseUcfirst}}Error.swift',
                 'template'      => '/swift/Sources/Models/Error.swift.twig',
             ],
