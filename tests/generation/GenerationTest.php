@@ -786,6 +786,35 @@ final class GenerationTest extends TestCase
         $this->assertSame([], $missing, 'Query constructors the builder cannot chain: ' . implode(', ', $missing));
     }
 
+    public function testEverySdkSkillShowsTheQueryFamilies(): void
+    {
+        $skills = array_filter(
+            $this->generate('skills', 'console'),
+            fn (string $path): bool => basename($path) === 'SKILL.md' && !str_contains($path, '-cli/') && !str_contains($path, 'deploy'),
+            ARRAY_FILTER_USE_KEY,
+        );
+        $families = ['aggregation' => '/\bcount\(/', 'grouping' => '/group_?by\(/', 'having' => '/having\(/', 'joins' => '/join\(/', 'builder' => '/(?:query(?:\.|::)builder|newbuilder)\b/'];
+
+        $this->assertNotEmpty($skills);
+        foreach ($skills as $path => $skill) {
+            $missing = array_keys(array_filter($families, fn (string $pattern): bool => preg_match($pattern, $skill) !== 1));
+            $this->assertSame([], $missing, "{$path} has no query example for: " . implode(', ', $missing));
+        }
+    }
+
+    public function testCodexReadmeListsTheGeneratedSkillIds(): void
+    {
+        $files = $this->generate('codex-plugin', 'console');
+        preg_match_all('#^- `([a-z0-9-]+)`$#m', $files['README.md'], $matches);
+        $generated = array_map(
+            fn (string $path): string => basename(dirname($path)),
+            array_filter(array_keys($files), fn (string $path): bool => basename($path) === 'SKILL.md'),
+        );
+
+        $this->assertNotEmpty($matches[1]);
+        $this->assertSame([], array_values(array_diff($matches[1], $generated)), 'README lists skills the plugin does not ship');
+    }
+
     public function testRubyLoadsOnlyTheCgiEscapeLibrary(): void
     {
         $client = $this->generate('ruby', 'server')['lib/appwrite/client.rb'];
