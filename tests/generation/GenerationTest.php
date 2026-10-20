@@ -786,6 +786,14 @@ final class GenerationTest extends TestCase
         $this->assertSame([], $missing, 'Query constructors the builder cannot chain: ' . implode(', ', $missing));
     }
 
+    public function testRubyLoadsOnlyTheCgiEscapeLibrary(): void
+    {
+        $client = $this->generate('ruby', 'server')['lib/appwrite/client.rb'];
+
+        $this->assertMatchesRegularExpression("/^require 'cgi\\/escape'$/m", $client);
+        $this->assertDoesNotMatchRegularExpression("/^require 'cgi'$/m", $client, 'Ruby 4.0 removed the cgi library; only cgi/escape ships with it');
+    }
+
     #[DataProvider('swiftQueryPlatforms')]
     public function testSwiftQueriesTakeTheAttributeUnlabelled(string $name, string $platform): void
     {
