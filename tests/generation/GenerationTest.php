@@ -775,6 +775,27 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('"application/json, text/plain".to_string()', $general);
     }
 
+    public function testRustQueryBuilderChainsEveryQuery(): void
+    {
+        $files = $this->generate('rust', 'server');
+        $queries = $this->rustPublicFunctions(strstr($files['src/query/mod.rs'], 'impl query {'));
+        $chained = $this->rustPublicFunctions($files['src/query/builder.rs']);
+
+        $missing = array_values(array_diff($queries, $chained, ['builder', 'on', 'to_value']));
+
+        $this->assertSame([], $missing, 'Query constructors the builder cannot chain: ' . implode(', ', $missing));
+    }
+
+    /**
+     * @return array<string>
+     */
+    private function rustPublicFunctions(string $source): array
+    {
+        preg_match_all('/^    pub fn ([a-z_]+)\b/m', $source, $matches);
+
+        return array_values(array_unique($matches[1]));
+    }
+
     #[DataProvider('languages')]
     public function testEnumsAreDeclared(string $name): void
     {
