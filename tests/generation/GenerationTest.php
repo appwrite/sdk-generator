@@ -837,6 +837,23 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testAppleRealtimeClosesOnceWhenTheConnectionDropsWithoutACloseFrame(): void
+    {
+        $files = $this->generate('apple', 'client');
+        $handler = $files[$this->fileKey($files, 'sources/appwrite/websockets/messagehandler.swift')];
+
+        $this->assertMatchesRegularExpression(
+            '/func channelInactive\(context: ChannelHandlerContext\) \{\s*if !closeDelivered \{\s*closeDelivered = true\s*notifyClose\(channel: context\.channel, data: Data\(\)\)\s*\}\s*context\.fireChannelInactive\(\)/i',
+            $handler,
+            'a dropped connection without a close frame must reach onClose so Realtime reconnects'
+        );
+        $this->assertMatchesRegularExpression(
+            '/case \.connectionClose:.*?closeDelivered = true.*?notifyClose\(/is',
+            $handler,
+            'a close frame must mark the close delivered so the following channelInactive does not reconnect again'
+        );
+    }
+
     public static function swiftQueryPlatforms(): Iterator
     {
         yield 'swift' => ['swift', 'server'];
