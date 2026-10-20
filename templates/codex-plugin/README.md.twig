@@ -71,10 +71,10 @@ The plugin ships these skills under `plugins/{{ name }}/skills/`:
 - `{{ name }}-rust`
 - `{{ name }}-dotnet`
 - `{{ name }}-cli`
-- `deploy-site`
-- `deploy-function`
+- `{{ name }}-deploy-site`
+- `{{ name }}-deploy-function`
 
-The language skills give Codex language-specific {{ spec.info.title }} context for authentication, database queries, storage, realtime, functions, and server-side administration. The `deploy-site` and `deploy-function` skills walk through deploying {{ spec.info.title }} Sites and Functions with the {{ spec.info.title }} CLI.
+The language skills give Codex language-specific {{ spec.info.title }} context for authentication, database queries, storage, realtime, functions, and server-side administration. The `{{ name }}-deploy-site` and `{{ name }}-deploy-function` skills walk through deploying {{ spec.info.title }} Sites and Functions with the {{ spec.info.title }} CLI.
 
 Codex loads a skill when a task matches its `description`. To invoke one explicitly, type `$` or run `/skills` and pick it.
 

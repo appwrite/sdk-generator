@@ -282,6 +282,50 @@ let related = Query::relationship(
     ],
 )
 .to_string();
+
+// Aggregations (pass "" for no alias)
+let aggregations = vec![
+    Query::count("*", "total").to_string(),
+    Query::sum("amount", "revenue").to_string(),
+    Query::avg("score", "avgScore").to_string(),
+    Query::min("price", "minPrice").to_string(),
+    Query::max("price", "maxPrice").to_string(),
+];
+
+// Grouping
+let grouping = vec![
+    Query::group_by(["status", "year"]).to_string(),
+    Query::having([Query::greater_than("total", 1).to_string()]).to_string(),
+    Query::distinct().to_string(),
+];
+
+// Joins (table id, left key, right key, operator, alias; "" for no alias)
+let joins = vec![
+    Query::join("orders", "$id", "customerId", "=", "").to_string(),
+    Query::left_join("orders", "$id", "customerId", "=", "ord").to_string(),
+    Query::left_join_on(
+        "orders",
+        "ord",
+        [
+            Query::on("$id", "customerId", "=").to_string(),
+            Query::equal("ord.status", "paid").to_string(),
+        ],
+    )
+    .to_string(),
+];
+
+// Fluent builder. Pass build() into list methods.
+let queries = Query::builder()
+    .equal("status", "published")
+    .left_join("orders", "$id", "customerId", "=", "ord")
+    .count("*", "total")
+    .group_by(["status"])
+    .limit(25)
+    .build();
+
+let _rows = tables_db
+    .list_rows("[DATABASE_ID]", "[TABLE_ID]", Some(queries), None, None, None)
+    .await?;
 ```
 
 ### File Storage
