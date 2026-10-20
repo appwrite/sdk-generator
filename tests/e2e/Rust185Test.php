@@ -7,7 +7,7 @@ namespace Tests\E2E;
 use Override;
 use Appwrite\SDK\Language\Rust;
 
-final class Rust183Test extends Base
+final class Rust185Test extends Base
 {
     #[Override]
     protected string $sdkName = "rust";
@@ -25,7 +25,7 @@ final class Rust183Test extends Base
     #[Override]
     protected array $build = ["mkdir -p tests/e2e/tmp/rust", "cp -Rf tests/e2e/sdks/rust/* tests/e2e/tmp/rust/"];
     #[Override]
-    protected string $command = 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app rust:1.83 sh -c "cd tests/e2e/languages/rust/ && ./test.sh"';
+    protected string $command = 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app rust:1.85 sh -c "cd tests/e2e/languages/rust/ && ./test.sh"';
     #[Override]
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,

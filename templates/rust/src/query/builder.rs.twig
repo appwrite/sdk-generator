@@ -582,7 +582,8 @@ impl Builder {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        self.queries.push(Query::full_outer_join_on(table, alias, on));
+        self.queries
+            .push(Query::full_outer_join_on(table, alias, on));
         self
     }
 

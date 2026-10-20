@@ -137,12 +137,12 @@ When you change templates for a language below, regenerate and run that language
   (cd examples/php && composer lint && composer analyse && composer refactor)
   ```
 
-- **Rust** — rustfmt 1.83.0
+- **Rust** — rustfmt 1.85.0
 
   ```bash
   rm -rf examples/rust
   php example.php rust server
-  (cd examples/rust && cargo +1.83.0 fmt --check --all)
+  (cd examples/rust && cargo +1.85.0 fmt --check --all)
   ```
 
 - **C# / Unity** — `dotnet format whitespace` (4-space indent)
