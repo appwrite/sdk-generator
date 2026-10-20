@@ -1170,6 +1170,32 @@ final class GenerationTest extends TestCase
         }
     }
 
+    /**
+     * A generated service test pins the request its method sends: the verb,
+     * the path with the example arguments substituted, and the parameter
+     * names. Asserting only the returned model passes even when the method
+     * calls the wrong endpoint or drops its body.
+     */
+    #[DataProvider('serviceTestRequests')]
+    public function testServiceTestsAssertTheRequest(string $name, string $platform, string $file, string $fragment): void
+    {
+        $this->assertStringContainsString($fragment, $this->generate($name, $platform)[$file] ?? '');
+    }
+
+    /** @return Iterator<string, array{string, string, string, string}> */
+    public static function serviceTestRequests(): Iterator
+    {
+        yield 'php path' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "->expects()->call(\n                'get',\n                '/mock/tests/general/path/grant/special&id',"];
+        yield 'php params' => ['php', 'server', 'tests/Appwrite/Services/FooTest.php', "->expects()->call(\n                'put',\n                '/mock/tests/foo',\n                mockery::any(),\n                mockery::on(function (array \$params): bool {\n                    \$this->assertsame(['x', 'y', 'z'], array_keys(\$params));"];
+        yield 'python path' => ['python', 'server', 'test/services/test_general.py', "response = self.general.get_path(\n            'grant/special&id',\n        )\n        request = m.last_request\n        url = urlsplit(request.url)\n        self.assertequal(\n            unquote(url.path),\n            '/v1/mock/tests/general/path/grant/special&id',\n        )"];
+        yield 'python params' => ['python', 'server', 'test/services/test_foo.py', "m.request(\n            'put',\n            requests_mock.any,"];
+        yield 'python body' => ['python', 'server', 'test/services/test_foo.py', "sent = set(json.loads(request.body or '{}'))\n        self.assertequal(\n            sent,\n            {\n                'x',\n                'y',\n                'z',\n            },\n        )"];
+        foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
+            yield "{$name} path" => [$name, $platform, 'test/services/general_test.dart', "verify(\n        client.call(\n          httpmethod.get,\n          path: \"/mock/tests/general/path/grant/special&id\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),"];
+            yield "{$name} params" => [$name, $platform, 'test/services/foo_test.dart', "client.call(\n          httpmethod.put,\n          path: \"/mock/tests/foo\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),\n          responsetype: anynamed('responsetype'),\n        ),\n      ).captured.single;\n      expect(params.keys, unorderedequals([\"x\", \"y\", \"z\"]));"];
+        }
+    }
+
     public function testWebNestedResponseDefaultsAreApplied(): void
     {
         $dir = self::OUTPUT . '/web/defaults';

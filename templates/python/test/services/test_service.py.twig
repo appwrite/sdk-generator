@@ -1,6 +1,20 @@
+{% macro path_value(parameter, method) -%}
+{%- if (parameter | configKey(method)) or not parameter.required -%}
+{%- elseif (parameter | schemaType) == 'integer' -%}
+1
+{%- elseif (parameter | schemaType) == 'number' -%}
+1.0
+{%- elseif (parameter | schemaType) == 'boolean' -%}
+True
+{%- else -%}
+{{ (parameter | schemaExample) | default(parameter.name) | raw }}
+{%- endif -%}
+{%- endmacro %}
 import json
+import re
 import requests_mock
 import unittest
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from {{ namespace | caseSnake }}.client import Client
 from {{ namespace | caseSnake }}.input_file import InputFile
@@ -24,7 +38,7 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
 {% else %}        data = ''
 {% endif %}        headers = {'Content-Type': {% if (method | methodType) == 'location' %}'application/octet-stream'{% elseif (method | textResponse) %}'text/plain; charset=utf-8'{% else %}'application/json'{% endif %}}
         m.request(
-            requests_mock.ANY,
+            '{{ method.method.value | caseUpper }}',
             requests_mock.ANY,
             {% if (method | methodType) == 'location' %}body=data{% elseif (method | textResponse) %}text=data{% else %}text=json.dumps(data){% endif %},
             headers=headers,
@@ -36,6 +50,42 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
         response = self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}(
 {% for parameter in requiredParameters %}            {% if (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.from_bytes(bytearray(), "example.file"){% elseif (parameter | schemaType) == 'boolean' %}True{% elseif (parameter | schemaType) == 'string' %}'{{ (parameter | schemaExample) | default(parameter.name) | escapeDollarSign }}'{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{(parameter | schemaExample)}}{% endif %},
 {% endfor %}        )
+{% endif %}
+{% set path = method | fullPath %}
+{% for parameter in (method | parameters('path')) %}
+{% set path = path | replace({('{' ~ parameter.name ~ '}'): _self.path_value(parameter, method)}) %}
+{% endfor %}
+{% set isMultipart = 'multipart/form-data' in (method | consumes) %}
+{% set isJson = method.method.value | caseUpper != 'GET' and not isMultipart %}
+{% set sentParameters = ((method | parameters('query')) | merge(method | parameters('body'))) | filter((param) => param.required and (isJson or (param | schemaType) not in ['array', 'object'])) %}
+{% set sentNames = sentParameters | map((param) => param.name) %}
+{% if not isJson and not isMultipart %}
+{% set sentNames = sentNames | merge((method | securityQueries) | map((security) => security.name)) %}
+{% endif %}
+        request = m.last_request
+        url = urlsplit(request.url)
+        self.assertEqual(
+            unquote(url.path),
+            '{{ path | replace({'\\': '\\\\', "'": "\\'"}) | raw }}',
+        )
+{% if isMultipart %}
+        sent = set(re.findall(r'form-data; name="([^"\[]+)', request.body.decode('latin-1')))
+{% elseif isJson %}
+        sent = set(json.loads(request.body or '{}'))
+{% else %}
+        sent = {re.sub(r'\[.*', '', key) for key in parse_qs(url.query, keep_blank_values=True)}
+{% endif %}
+{% if sentNames is empty %}
+        self.assertEqual(sent, set())
+{% else %}
+        self.assertEqual(
+            sent,
+            {
+{% for name in sentNames %}
+                '{{ name }}',
+{% endfor %}
+            },
+        )
 {% endif %}
 {% if (method | methodType) != 'webAuth' and (method | methodType) != 'location' and (method | responseModel) and (method | responseModel) != 'any' %}
 {% set expectations = (method | responseModel) | additionalPropertiesExpectations(spec, 'data') %}
