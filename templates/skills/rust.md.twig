@@ -13,15 +13,6 @@ cargo add tokio --features full
 cargo add serde_json
 ```
 
-Or add dependencies manually:
-
-```toml
-[dependencies]
-{{ spec.info.title | caseLower }} = "0.3.0"
-tokio = { version = "1", features = ["full"] }
-serde_json = "1"
-```
-
 ## Setting Up the Client
 
 The Rust SDK is async. Use it from a Tokio runtime and authenticate server-side with an API key.
