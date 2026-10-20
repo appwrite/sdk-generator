@@ -359,7 +359,7 @@ module {{ spec.info.title | caseUcfirst }}
             if response.content_type == 'application/json'
                 begin
                     result = JSON.parse(response.body)
-                rescue JSON::ParserError => e
+                rescue JSON::ParserError
                     raise {{spec.info.title | caseUcfirst}}::Exception.new(response.body, response.code, nil, response.body)
                 end
 

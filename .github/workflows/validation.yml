@@ -325,6 +325,11 @@ jobs:
               gem install rubocop --version "${RUBOCOP_VERSION}"
               rubocop --version
               rubocop
+              warnings=$(find lib -name '*.rb' -exec ruby -wc {} \; 2>&1 >/dev/null)
+              if [ -n "$warnings" ]; then
+                echo "$warnings"
+                exit 1
+              fi
               ;;
             node)
               npm ci
