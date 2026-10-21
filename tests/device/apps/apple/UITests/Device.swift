@@ -22,14 +22,17 @@ final class Device: XCTestCase {
         let title = ProcessInfo.processInfo.environment["TITLE"] ?? ""
         let top = springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.005))
         top.press(forDuration: 0.1, thenDragTo: springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.7)))
-        let notification = springboard.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch
-        guard notification.waitForExistence(timeout: 15) else {
+        let matches = springboard.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", title))
+        guard matches.firstMatch.waitForExistence(timeout: 15) else {
             XCTFail("no notification \(title):\n\(springboard.debugDescription)")
             return
         }
+        // A notification under others in a stack is in the tree but cannot be tapped: tap the one on top.
         for _ in 0..<3 {
-            notification.tap()
+            guard let notification = matches.allElementsBoundByIndex.first(where: { $0.isHittable }) else {
+                break
+            }
+            notification.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             if app.wait(for: .runningForeground, timeout: 5) {
                 return
             }
