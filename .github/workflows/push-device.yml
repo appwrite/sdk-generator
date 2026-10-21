@@ -122,3 +122,6 @@ jobs:
           cat tests/device/broker.log || true
           xcrun simctl spawn booted log show --last 30m --style compact \
             --predicate 'process == "PushDevice" OR process == "NotificationService"' | tail -n 400
+          xcrun simctl spawn booted pluginkit -m -v -i io.appwrite.pushdevice.apple.service || true
+          xcrun simctl spawn booted log show --last 30m --style compact \
+            --predicate 'process != "PushDevice" AND eventMessage CONTAINS "io.appwrite.pushdevice"' | tail -n 300
