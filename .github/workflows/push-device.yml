@@ -82,3 +82,46 @@ jobs:
           disable-animations: true
           # On a failure, print the end of the device log before the emulator shuts down.
           script: adb install -r tests/device/app.apk && php tests/device/run.php ${{ matrix.sdk }} || (adb logcat -d -v tag | tail -n 400; exit 1)
+
+  # The Apple SDK on an iOS Simulator. No Docker on macOS runners, so the broker runs natively,
+  # started by the driver (one scenario stops it).
+  apple:
+    name: Push device / apple
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'push-device-tests')
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.5'
+          extensions: curl, swoole
+
+      - name: Install
+        run: composer install
+
+      - name: Install the mock broker
+        working-directory: mock-server
+        run: COMPOSER=composer.mqtt.json composer install --ignore-platform-reqs
+
+      - name: Build the test app
+        run: |
+          command -v xcodegen || brew install xcodegen
+          tests/device/build.sh apple
+
+      - name: Run the device scenarios
+        run: php tests/device/run-apple.php
+
+      - name: Print the logs
+        if: failure()
+        run: |
+          cat tests/device/broker.log || true
+          xcrun simctl spawn booted log show --last 30m --style compact \
+            --predicate 'process == "PushDevice" OR process == "NotificationService"' | tail -n 400
+          xcrun simctl spawn booted pluginkit -m -v -i io.appwrite.pushdevice.apple.service || true
+          xcrun simctl spawn booted log show --last 30m --style compact \
+            --predicate 'process != "PushDevice" AND eventMessage CONTAINS "io.appwrite.pushdevice"' | tail -n 300

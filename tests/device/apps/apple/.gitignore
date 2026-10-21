@@ -1,0 +1,5 @@
+PushDevice.xcodeproj/
+build/
+# Written by xcodegen from project.yml.
+*/Info.plist
+*/*.entitlements

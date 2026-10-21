@@ -12,6 +12,7 @@ class InputFile private constructor() {
     lateinit var data: Any
 
     companion object {
+        @JvmStatic
         fun fromFile(file: File) = InputFile().apply {
             path = file.canonicalPath
             filename = file.name
@@ -19,10 +20,13 @@ class InputFile private constructor() {
             sourceType = "file"
         }
 
+        @JvmStatic
         fun fromPath(path: String): InputFile = fromFile(File(path)).apply {
             sourceType = "path"
         }
 
+        @JvmStatic
+        @JvmOverloads
         fun fromBytes(bytes: ByteArray, filename: String = "", mimeType: String = "") = InputFile().apply {
             this.filename = filename
             this.mimeType = mimeType

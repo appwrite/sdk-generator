@@ -18,9 +18,12 @@ class ID {
             return hexTimestamp
         }
 
+        @JvmStatic
         fun custom(id: String): String
             = id
         // Generate a unique ID with padding to have a longer ID
+        @JvmStatic
+        @JvmOverloads
         fun unique(padding: Int = 7): String {
             val baseId = ID.hexTimestamp()
             val randomPadding = (1..padding)

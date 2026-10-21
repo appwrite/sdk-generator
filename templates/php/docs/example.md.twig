@@ -20,15 +20,12 @@ use {{ namespace | caseNamespace }}\Permission;
 use {{ namespace | caseNamespace }}\Role;
 {% endif %}
 
+{% set schemes = method | securitySchemes %}
 $client = (new Client())
-    {%~ if [(method | securitySchemes)]|length > 0 %}
-    ->setEndpoint('{{ endpointDocs | raw }}') // Your API Endpoint
-    {%~ for node in [(method | securitySchemes)] %}
-    {%~ for key,header in node|keys %}
-    ->set{{header}}('{{node[header].extensions['x-appwrite']['demo'] | raw }}'){% if loop.last%};{% endif%} // {{node[header].description}}
+    ->setEndpoint('{{ endpointDocs | raw }}'){% if schemes is empty %};{% endif %} // Your API Endpoint
+    {%~ for header in schemes|keys %}
+    ->set{{header}}('{{schemes[header].extensions['x-appwrite']['demo'] | raw }}'){% if loop.last %};{% endif %} // {{schemes[header].description}}
     {%~ endfor %}
-    {%~ endfor %}
-    {%~ endif %}
 
 ${{ service.name | caseCamel }} = new {{ service.name | caseUcfirst }}($client);
 

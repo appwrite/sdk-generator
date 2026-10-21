@@ -140,6 +140,7 @@ open class Realtime: Service {
             headers.add(name: "x-{{ spec.info.title | caseLower }}-jwt", value: jwt)
         }
 
+        reconnect = true
         socketClient = WebSocketClient(
             url,
             tlsEnabled: !client.selfSigned,
@@ -591,7 +592,7 @@ extension Realtime: WebSocketClientDelegate {
         }
     }
 
-    public func onClose(channel: NIO.Channel, data: Data) async throws {
+    public func onClose(channel: NIO.Channel, data: Data) {
         connectSync.sync { appConnected = false }
         stopHeartbeat()
 
@@ -602,15 +603,29 @@ extension Realtime: WebSocketClientDelegate {
             return
         }
 
+        scheduleReconnect()
+    }
+
+    private func scheduleReconnect() {
         let timeout = getTimeout()
 
         Realtime.logDiagnostic("Realtime disconnected. Re-connecting in \(timeout / 1000) seconds.")
 
-        try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000))
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000))
 
-        self.reconnectAttempts += 1
+            guard let self = self else { return }
+            self.reconnectAttempts += 1
 
-        try await self.createSocket()
+            do {
+                try await self.createSocket()
+            } catch {
+                Realtime.logDiagnostic("Realtime reconnect failed: \(error.localizedDescription)")
+                if !self.isTornDown() {
+                    self.scheduleReconnect()
+                }
+            }
+        }
     }
 
     public func onError(error: Swift.Error?, status: HTTPResponseStatus?) {

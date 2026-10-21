@@ -42,6 +42,8 @@ type Options struct {
 	// ServerSide overrides whether server-only methods are emitted:
 	// "auto", "true" or "false".
 	ServerSide string
+
+	EnumStyle typegen.EnumStyle
 }
 
 // Generator emits a typed SDK for one language.

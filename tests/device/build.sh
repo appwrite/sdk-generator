@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Generate an SDK from the test spec and build its Push device test app into tests/device/app.apk.
+# Generate an SDK from the test spec and build its Push device test app: tests/device/app.apk for
+# Android, tests/device/apps/apple/build for the iOS Simulator.
 #
-#     tests/device/build.sh <android|react-native|flutter>
+#     tests/device/build.sh <android|react-native|flutter|apple>
 set -euo pipefail
 
-sdk="${1:?usage: tests/device/build.sh <android|react-native|flutter>}"
+sdk="${1:?usage: tests/device/build.sh <android|react-native|flutter|apple>}"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"
 export SDK_GEN_SPEC_FILE="$root/tests/resources/spec-openapi3.json"
@@ -28,6 +29,14 @@ case "$sdk" in
     php example.php flutter client
     (cd tests/device/apps/flutter && flutter pub get && flutter build apk --release)
     apk=tests/device/apps/flutter/build/app/outputs/flutter-apk/app-release.apk
+    ;;
+  apple)
+    php example.php apple client
+    (cd tests/device/apps/apple \
+      && xcodegen generate --quiet \
+      && xcodebuild build-for-testing -project PushDevice.xcodeproj -scheme PushDevice \
+        -destination "generic/platform=iOS Simulator" -derivedDataPath build -quiet)
+    exit 0
     ;;
   *)
     echo "unknown SDK: $sdk" >&2

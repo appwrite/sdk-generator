@@ -36,7 +36,6 @@ jobs:
           Go118,
           KotlinJava17,
           Node26,
-          Node18,
           Node20,
           PHP85,
           Python39,
@@ -47,7 +46,8 @@ jobs:
           Ruby27,
           Ruby30,
           Ruby31,
-          Rust183,
+          Ruby40,
+          Rust185,
           AppleSwift61,
           Swift61,
           # TODO: Re-enable Unity2021 after the CI Unity license is restored.

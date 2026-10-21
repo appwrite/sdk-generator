@@ -25,6 +25,7 @@ import io.appwrite.services.Foo
 import io.appwrite.services.General
 import io.appwrite.services.Plaintext
 import io.appwrite.services.Push
+import io.appwrite.services.PushBackgroundStatus
 import io.appwrite.services.Realtime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -276,6 +277,15 @@ class ServiceTest {
             ))
             writeToFile(mock.result)
 
+            val preset = general.getPreset()
+            writeToFile("preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}")
+            general.listPresets().presets.forEach {
+                writeToFile("preset: name=${it.name}, count=${it.count}, enabled=${it.enabled}")
+            }
+            writeToFile("empty presets: ${general.listEmptyPresets().presets.size}")
+            writeToFile("preset verified: ${preset.verified}")
+            writeToFile("preset scopes: ${preset.scopes?.joinToString(",") { it.value } ?: ""}")
+
             try {
                 general.error400()
             } catch (e: AppwriteException) {
@@ -448,6 +458,47 @@ class ServiceTest {
                 Query.equal("name", "Alice"),
                 Query.greaterThan("age", 18)
             )))
+            writeToFile(Query.relationship("comments", listOf(
+                Query.equal("approved", true),
+                Query.limit(2)
+            )))
+            val queryTransport = general.listRows(
+                listOf(
+                    Query.count("*", "total"),
+                    Query.join("orders", "\$id", "customerId"),
+                    Query.groupBy(listOf("status")),
+                    Query.distinct(),
+                    Query.covers("location", listOf(1, 2)),
+                    Query.countDistinct("year", "uniqueYears"),
+                    Query.sum("price", "total"),
+                    Query.avg("price", "avgPrice"),
+                    Query.min("price", "lowest"),
+                    Query.max("price", "highest"),
+                    Query.stddev("price", "sd"),
+                    Query.stddevPop("price", "sdp"),
+                    Query.stddevSamp("price", "sds"),
+                    Query.variance("price", "var"),
+                    Query.varPop("price", "vp"),
+                    Query.varSamp("price", "vs"),
+                    Query.bitAnd("flags", "band"),
+                    Query.bitOr("flags", "bor"),
+                    Query.bitXor("flags", "bxor"),
+                    Query.having(listOf(Query.greaterThan("total", 1))),
+                    Query.leftJoin("orders", "\$id", "customerId", "=", "ord"),
+                    Query.rightJoin("orders", "\$id", "customerId"),
+                    Query.fullOuterJoin("orders", "\$id", "customerId"),
+                    Query.crossJoin("orders", "ord"),
+                    Query.on("\$id", "customerId"),
+                    Query.leftJoin("orders", "ord", listOf(
+                        Query.on("\$id", "customerId"),
+                        Query.equal("ord.status", "paid"),
+                    )),
+                    Query.notCovers("location", listOf(1, 2)),
+                    Query.spatialEquals("location", listOf(1, 2)),
+                    Query.notSpatialEquals("location", listOf(1, 2)),
+                ) + Query.page(2, 10) + Query.builder().limit(1).build()
+            )
+            writeToFile(queryTransport.result)
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
@@ -465,20 +516,19 @@ class ServiceTest {
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
 
+            JavaInterop.run(general, "../../../../resources/file.png").forEach { writeToFile(it) }
+            ChannelInterop.run().forEach { writeToFile(it) }
+
             // Topic helper tests
             writeToFile(Topic.path(listOf("user", "123", "notification")).toString())
             writeToFile(Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString())
-            writeToFile(Topic.path(listOf("user")).any().path(listOf("notification")).toString())
-            writeToFile(Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
-            writeToFile(Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
-            writeToFile(Topic.any().path(listOf("notification")).toString())
-            writeToFile(Topic.all().toString())
             val topicErrorCases = listOf(
                 "empty path" to emptyList<String>(),
                 "empty level" to listOf("user", ""),
                 "slash" to listOf("user/123"),
                 "plus" to listOf("user", "a+b"),
                 "hash" to listOf("user", "#"),
+                "nul" to listOf("user", "a\u0000b"),
             )
             for ((name, levels) in topicErrorCases) {
                 try {
@@ -975,8 +1025,31 @@ class ServiceTest {
             )
             refusedPush.close()
 
+            // Restricted background usage (the app's battery settings) makes delivery best effort. Android
+            // reports it from 9 on; PushBackgroundRestrictedTest covers it there.
+            val shadow = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.ActivityManager::class.java))
+            val unrestrictedStatus = Push.backgroundStatus(context)
+            shadow.setBackgroundRestricted(true)
+            val restrictedStatus = Push.backgroundStatus(context)
+            shadow.setBackgroundRestricted(false)
+            val resetStatus = Push.backgroundStatus(context)
+            val restrictionReported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P
+            writeToFile(
+                if (restrictedStatus == unrestrictedStatus.copy(backgroundRestricted = restrictionReported) &&
+                    !unrestrictedStatus.backgroundRestricted &&
+                    resetStatus == unrestrictedStatus
+                ) {
+                    "Push background restricted:passed"
+                } else {
+                    "Push background restricted:failed (sdk: ${android.os.Build.VERSION.SDK_INT}, restricted: $restrictedStatus, unrestricted: $unrestrictedStatus, reset: $resetStatus)"
+                },
+            )
+
             // A message from createPush: the notification shows the server's title and body, not the
-            // raw JSON, and still posts when its image cannot be fetched.
+            // raw JSON, and still posts when its image cannot be fetched. One with neither a title nor
+            // a body (an empty notification block, a data-only push, a badge or an image alone) posts
+            // nothing, so neither the topic nor the raw JSON is ever shown, yet a data-only push still
+            // reaches a live callback and, with none, the PushReceiver.
             notifications.cancelAll()
             val serverPayload = org.json.JSONObject()
                 .put("messageId", "e2e-message")
@@ -988,18 +1061,58 @@ class ServiceTest {
             val content = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()?.extras
             val contentTitle = content?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
             val contentText = content?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
-            // An empty notification block shows the subscription's title, never the raw JSON.
+            val dataPayload = org.json.JSONObject()
+                .put("messageId", "e2e-data")
+                .put("data", org.json.JSONObject().put("saleId", "42"))
+                .put("priority", "high")
+                .toString()
+            val silentPayloads = listOf(
+                "e2e-push" to "{\"notification\":{}}",
+                "users/e2e-user" to dataPayload,
+                "e2e-push" to "{\"notification\":{\"contentAvailable\":true,\"badge\":3}}",
+                "e2e-push" to "{\"notification\":{\"image\":\"http://127.0.0.1:1/x.png\"}}",
+            )
+            val silentPosted = silentPayloads.flatMap { (topic, payload) ->
+                notifications.cancelAll()
+                io.appwrite.services.PushBackground.notify(context, io.appwrite.services.PushMessage(topic, payload.toByteArray(), 1), "E2E title")
+                org.robolectric.Shadows.shadowOf(notifications).allNotifications.map {
+                    "${it.extras.getCharSequence(android.app.Notification.EXTRA_TITLE)}/${it.extras.getCharSequence(android.app.Notification.EXTRA_TEXT)}"
+                }
+            }
+            val dataMessage = io.appwrite.services.PushMessage("e2e-push", dataPayload.toByteArray(), 1)
+            val callbackMessages = java.util.concurrent.CopyOnWriteArrayList<String>()
+            val dataListener = io.appwrite.services.PushListener(
+                topics = setOf("e2e-push"),
+                callback = { callbackMessages.add(it.data) },
+                background = true,
+                title = "E2E title",
+                retry = false,
+            )
             notifications.cancelAll()
-            val emptyMessage = io.appwrite.services.PushMessage("e2e-push", "{\"notification\":{}}".toByteArray(), 1)
-            io.appwrite.services.PushBackground.notify(context, emptyMessage, "E2E title")
-            val empty = org.robolectric.Shadows.shadowOf(notifications).allNotifications.firstOrNull()?.extras
-            val emptyTitle = empty?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
-            val emptyText = empty?.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString()
+            io.appwrite.services.PushBackground.listeners.add(dataListener)
+            io.appwrite.services.PushBackground.deliverMessage(context, dataMessage) { {} }
+            io.appwrite.services.PushBackground.listeners.remove(dataListener)
+            io.appwrite.services.PushStore.saveState(
+                context,
+                io.appwrite.services.PushConfig("127.0.0.1", 1883, false, false, "e2e-data", 60, "appwrite-jwt", "e2e-jwt", "e2e"),
+                listOf(io.appwrite.services.PushEntry("e2e-push", false, "E2E title")),
+            )
+            io.appwrite.services.PushBackground.dropProcessState(context)
+            E2EPushReceiver.messages.clear()
+            val dataSaved = io.appwrite.services.PushBackground.hasSaved(context)
+            io.appwrite.services.PushBackground.deliverMessage(context, dataMessage) { {} }
+            val receiverMessages = E2EPushReceiver.messages.toList()
+            val dataPosted = org.robolectric.Shadows.shadowOf(notifications).allNotifications.size
+            io.appwrite.services.PushBackground.stop(context)
+            E2EPushReceiver.messages.clear()
+            val dataDelivered = callbackMessages.toList() == listOf(dataPayload) && dataSaved &&
+                receiverMessages == listOf(dataPayload) && dataPosted == 0
             writeToFile(
-                if (contentTitle == "Server title" && contentText == "Server body" && emptyTitle == "E2E title" && emptyText == null) {
+                if (contentTitle == "Server title" && contentText == "Server body" && silentPosted.isEmpty() && dataDelivered) {
                     "Push notification content:passed"
                 } else {
-                    "Push notification content:failed (title: $contentTitle, text: $contentText, empty: $emptyTitle/$emptyText)"
+                    "Push notification content:failed (title: $contentTitle, text: $contentText, without title or body: $silentPosted, " +
+                        "data-only callback: $callbackMessages, receiver: $receiverMessages, posted: $dataPosted)"
                 },
             )
             notifications.cancelAll()
@@ -1149,6 +1262,56 @@ class ServiceTest {
         } catch (exception: Exception) {
             null
         }
+    }
+}
+
+@Config(manifest=Config.NONE, sdk=[android.os.Build.VERSION_CODES.P])
+@RunWith(AndroidJUnit4::class)
+class PushBackgroundRestrictedTest {
+    private val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    private val shadow = org.robolectric.Shadows.shadowOf(context.getSystemService(android.app.ActivityManager::class.java))
+    private val power = org.robolectric.Shadows.shadowOf(context.getSystemService(android.os.PowerManager::class.java))
+
+    @Test
+    fun testRestrictedBackgroundUsageMakesDeliveryBestEffort() {
+        val unrestricted = Push.backgroundStatus(context)
+        shadow.setBackgroundRestricted(true)
+        val restricted = Push.backgroundStatus(context)
+        shadow.setBackgroundRestricted(false)
+        val reset = Push.backgroundStatus(context)
+
+        assertFalse("unrestricted: $unrestricted", unrestricted.backgroundRestricted)
+        assertFalse("unrestricted: $unrestricted", unrestricted.bestEffort)
+        assertTrue("restricted: $restricted", restricted.backgroundRestricted)
+        assertTrue("restricted: $restricted", restricted.bestEffort)
+        assertTrue("reset: $reset, unrestricted: $unrestricted", reset == unrestricted)
+    }
+
+    @Test
+    fun testBatteryOptimisationExemptionLiftsRestrictedBackgroundUsage() {
+        shadow.setBackgroundRestricted(true)
+        power.setIgnoringBatteryOptimizations(context.packageName, true)
+        val exempt = Push.backgroundStatus(context)
+        power.setIgnoringBatteryOptimizations(context.packageName, false)
+        shadow.setBackgroundRestricted(false)
+
+        assertTrue("exempt: $exempt", exempt.exactAlarms)
+        assertTrue("exempt: $exempt", exempt.ignoringBatteryOptimizations)
+        assertTrue("exempt: $exempt", exempt.backgroundRestricted)
+        assertFalse("exempt: $exempt", exempt.bestEffort)
+    }
+
+    @Test
+    fun testForegroundModeDoesNotLiftRestrictedBackgroundUsage() {
+        assertTrue(
+            PushBackgroundStatus(exactAlarms = false, ignoringBatteryOptimizations = true, foregroundService = true, backgroundRestricted = true).bestEffort,
+        )
+        assertTrue(
+            PushBackgroundStatus(exactAlarms = false, ignoringBatteryOptimizations = false, foregroundService = true, backgroundRestricted = true).bestEffort,
+        )
+        assertFalse(
+            PushBackgroundStatus(exactAlarms = true, ignoringBatteryOptimizations = true, foregroundService = true, backgroundRestricted = true).bestEffort,
+        )
     }
 }
 

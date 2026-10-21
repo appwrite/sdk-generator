@@ -45,7 +45,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     )
     {%~ endif %}
     {%~ endif %}
-    {%~ if (method | parameters('all')) | reduce((carry, param) => carry or not param.required) %}
+    {%~ if (method | parameters('all')) | reduce((carry, param) => carry or not param.required) or 'multipart/form-data' in (method | consumes) %}
     @JvmOverloads
     {%~ endif %}
     @Throws({{ spec.info.title | caseUcfirst }}Exception::class)
@@ -159,7 +159,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     )
     {%~ endif %}
     {%~ endif %}
-    {%~ if (method | parameters('all')) | reduce((carry, param) => carry or not param.required) %}
+    {%~ if (method | parameters('all')) | reduce((carry, param) => carry or not param.required) or 'multipart/form-data' in (method | consumes) %}
     @JvmOverloads
     {%~ endif %}
     @Throws({{ spec.info.title | caseUcfirst }}Exception::class)

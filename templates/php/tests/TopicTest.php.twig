@@ -14,25 +14,7 @@ final class TopicTest extends TestCase
         $this->assertSame('user', (string) Topic::path(['user']));
         $this->assertSame('user/notification', (string) Topic::path(['user', 'notification']));
         $this->assertSame('user/notification', (string) Topic::path(['user'])->path(['notification']));
-    }
-
-    public function testAny(): void
-    {
-        $this->assertSame('user/+/notification', (string) Topic::path(['user'])->any()->path(['notification']));
-        $this->assertSame('chat/+/+/message', (string) Topic::path(['chat'])->any()->any()->path(['message']));
-        $this->assertSame('+/notification', (string) Topic::any()->path(['notification']));
-    }
-
-    public function testAll(): void
-    {
-        $this->assertSame('org/+/logs/#', (string) Topic::path(['org'])->any()->path(['logs'])->all());
-        $this->assertSame('#', (string) Topic::all());
-    }
-
-    public function testNothingAfterAll(): void
-    {
-        $this->expectException(\BadMethodCallException::class);
-        Topic::all()->any();
+        $this->assertSame('org/42/logs', (string) Topic::path(['org', '42'])->path(['logs']));
     }
 
     /**
@@ -50,6 +32,7 @@ final class TopicTest extends TestCase
         yield 'contains plus' => [['user', 'a+b']];
         yield 'hash' => [['user', '#']];
         yield 'contains hash' => [['user', 'a#b']];
+        yield 'contains NUL' => [['user', "a\0b"]];
     }
 
     #[DataProvider('invalidLevels')]

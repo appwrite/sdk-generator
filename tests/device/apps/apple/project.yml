@@ -1,0 +1,78 @@
+name: PushDevice
+options:
+  bundleIdPrefix: io.appwrite.pushdevice
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  Appwrite:
+    # The Apple SDK generated from the test spec by tests/device/build.sh.
+    path: ../../../../examples/apple
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    # Signed to run locally: the Simulator needs the App Group entitlement embedded, not a team.
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+targets:
+  PushDevice:
+    type: application
+    platform: iOS
+    sources: [PushDevice]
+    dependencies:
+      - package: Appwrite
+      - target: NotificationService
+    info:
+      path: PushDevice/Info.plist
+      properties:
+        CFBundleDisplayName: Push Device
+        AppwritePushAppGroup: group.io.appwrite.pushdevice
+        UILaunchScreen: {}
+        UIBackgroundModes: [remote-notification]
+    entitlements:
+      path: PushDevice/PushDevice.entitlements
+      properties:
+        aps-environment: development
+        com.apple.security.application-groups: [group.io.appwrite.pushdevice]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.appwrite.pushdevice.apple
+  NotificationService:
+    type: app-extension
+    platform: iOS
+    sources: [NotificationService]
+    dependencies:
+      - package: Appwrite
+    info:
+      path: NotificationService/Info.plist
+      properties:
+        CFBundleDisplayName: Push Device Service
+        AppwritePushAppGroup: group.io.appwrite.pushdevice
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.usernotifications.service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationService
+    entitlements:
+      path: NotificationService/NotificationService.entitlements
+      properties:
+        com.apple.security.application-groups: [group.io.appwrite.pushdevice]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.appwrite.pushdevice.apple.service
+  # Taps what the driver cannot reach from the command line: the permission alert and the
+  # notifications in Notification Center. No target application, so a run leaves the app as it is.
+  UITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.appwrite.pushdevice.apple.uitests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  PushDevice:
+    build:
+      targets:
+        PushDevice: all
+        UITests: [test]
+    test:
+      targets: [UITests]

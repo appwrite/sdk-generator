@@ -14,7 +14,6 @@ import androidx.core.content.ContextCompat
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import {{ sdk.namespace | caseDot }}.Client
-import {{ sdk.namespace | caseDot }}.ResolvedTopic
 import {{ sdk.namespace | caseDot }}.Service
 import {{ sdk.namespace | caseDot }}.Topic
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
@@ -338,7 +337,7 @@ class Push(
 
     /**
      * Subscribe to a single topic built with [{{ sdk.namespace | caseDot }}.Topic], e.g.
-     * `push.subscribe(Topic.path(listOf("user", userId)).any()) { message -> ... }`.
+     * `push.subscribe(Topic.path(listOf("user", userId))) { message -> ... }`.
      * Returns a [PushSubscription] handle; see the `List<String>` overload for the options.
      */
     @JvmOverloads
@@ -353,27 +352,11 @@ class Push(
         subscribe(listOf(topic.toString()), background, title, retry, notifyInForeground, callback)
 
     /**
-     * Subscribe to a single topic ended with `all()`, e.g.
-     * `push.subscribe(Topic.path(listOf("user", userId)).all()) { message -> ... }`.
-     * Returns a [PushSubscription] handle; see the `List<String>` overload for the options.
-     */
-    @JvmOverloads
-    fun subscribe(
-        topic: ResolvedTopic,
-        background: Boolean = false,
-        title: String? = null,
-        retry: Boolean = true,
-        notifyInForeground: Boolean = false,
-        callback: (PushMessage) -> Unit,
-    ): PushSubscription =
-        subscribe(listOf(topic.toString()), background, title, retry, notifyInForeground, callback)
-
-    /**
      * Subscribe to a list mixing raw strings and topics built with [{{ sdk.namespace | caseDot }}.Topic], e.g.
-     * `push.subscribe(listOf("news", Topic.path(listOf("chat")).any())) { message -> ... }`.
-     * Each element must be a `String`, `Topic` or `ResolvedTopic` (Kotlin has no common type for
-     * them, so this is checked at runtime). Returns a [PushSubscription] handle; see the
-     * `List<String>` overload for the options.
+     * `push.subscribe(listOf("news", Topic.path(listOf("chat", chatId)))) { message -> ... }`.
+     * Each element must be a `String` or `Topic` (Kotlin has no common type for them, so this is
+     * checked at runtime). Returns a [PushSubscription] handle; see the `List<String>` overload
+     * for the options.
      */
     @JvmOverloads
     @JvmName("subscribeTopics")
@@ -386,8 +369,8 @@ class Push(
         callback: (PushMessage) -> Unit,
     ): PushSubscription {
         val filters = topics.mapIndexed { index, topic ->
-            require(topic is String || topic is Topic || topic is ResolvedTopic) {
-                "topics[$index] must be a String, Topic or ResolvedTopic, got ${topic::class.simpleName}"
+            require(topic is String || topic is Topic) {
+                "topics[$index] must be a String or Topic, got ${topic::class.simpleName}"
             }
             topic.toString()
         }
@@ -397,8 +380,8 @@ class Push(
     /**
      * Subscribe to one or more topics. Returns a [PushSubscription] handle.
      *
-     * Topics are MQTT filters: pass raw strings, or build them with [{{ sdk.namespace | caseDot }}.Topic]
-     * through the `Topic` overloads, e.g. `push.subscribe(Topic.path(listOf("user")).any()) { ... }`.
+     * Pass raw strings, or build them with [{{ sdk.namespace | caseDot }}.Topic]
+     * through the `Topic` overloads, e.g. `push.subscribe(Topic.path(listOf("user", userId))) { ... }`.
      *
      * For a foreground subscription this blocks until the broker has acknowledged every
      * SUBSCRIBE (SUBACK): the broker only starts routing a topic once its subscription is
@@ -828,10 +811,14 @@ class Push(
         const val EXTRA_PAYLOAD = PushBackground.EXTRA_PAYLOAD
 
         /**
-         * What background delivery can rely on: exact alarms, battery-optimisation exemption and
-         * foreground mode. When [PushBackgroundStatus.bestEffort] is true, wake-ups are inexact and
-         * messages can arrive late while the app is closed; explain why before asking with
-         * [requestExactAlarms] or [requestIgnoreBatteryOptimizations].
+         * What background delivery can rely on: exact alarms, battery-optimisation exemption,
+         * foreground mode and restricted background usage. When [PushBackgroundStatus.bestEffort]
+         * is true, messages can arrive late while the app is closed; explain why before asking with
+         * [requestExactAlarms] or [requestIgnoreBatteryOptimizations]. When
+         * [PushBackgroundStatus.backgroundRestricted] is true, neither exact alarms nor foreground
+         * mode lift it: ask the user to choose Unrestricted in the app's battery settings
+         * (Settings > Apps > your app > Battery), or for the battery-optimisation exemption, which
+         * also lets the SDK's alarms and jobs run.
          */
         @JvmStatic
         fun backgroundStatus(context: Context): PushBackgroundStatus = PushBackground.backgroundStatus(context)

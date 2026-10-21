@@ -1,18 +1,85 @@
+{% set name = spec.info.title | caseLower %}
 # {{ spec.info.title }} Claude Code Plugin
 
-![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
-![Version](https://img.shields.io/badge/api%20version-{{ sdk.version }}-blue.svg?style=flat-square)
-[![Twitter Account](https://img.shields.io/twitter/follow/appwrite?color=00acee&label=twitter&style=flat-square)](https://twitter.com/appwrite)
-[![Discord](https://img.shields.io/discord/564160730845151244?label=discord&style=flat-square)](https://appwrite.io/discord)
+![License](https://img.shields.io/badge/license-{{ spec.info.license.name|replace({'-': '--', '_': '__'})|url_encode }}-blue.svg?style=flat-square)
+![Version](https://img.shields.io/badge/version-{{ sdk.version|url_encode }}-blue.svg?style=flat-square)
+{% if sdk.twitterHandle %}
+[![X Account](https://img.shields.io/badge/follow-%40{{ sdk.twitterHandle|replace({'-': '--', '_': '__'})|url_encode }}-000000?logo=x&style=flat-square)](https://x.com/{{ sdk.twitterHandle }})
+{% endif %}
+{% if sdk.discordChannel %}
+[![Discord](https://img.shields.io/discord/{{ sdk.discordChannel }}?label=discord&style=flat-square)]({{ sdk.discordUrl }})
+{% endif %}
 
-Appwrite tools for Claude Code. This plugin packages Appwrite SDK skills, the hosted Appwrite MCP server, and deployment commands in Claude Code's native plugin format.
+{{ spec.info.title }} tools for Claude Code. This plugin packages {{ spec.info.title }} SDK skills, the hosted {{ spec.info.title }} MCP server, and deployment commands in Claude Code's native plugin format.
+
+## Installation
+
+The plugin is listed in Anthropic's official marketplace, which Claude Code adds automatically. Install it from your shell:
+
+```sh
+claude plugin install {{ name }}@claude-plugins-official
+```
+
+Or from a Claude Code session:
+
+```text
+/plugin install {{ name }}@claude-plugins-official
+```
+
+To install from this repository instead, add it as a marketplace first:
+
+```text
+/plugin marketplace add {{ sdk.gitUserName }}/{{ sdk.gitRepoName }}
+/plugin install {{ name }}@{{ name }}
+```
+
+Run `/reload-plugins` to load the plugin in a session that is already open.
+
+## Included skills
+
+- `/{{ name }}:typescript`
+- `/{{ name }}:dart`
+- `/{{ name }}:kotlin`
+- `/{{ name }}:swift`
+- `/{{ name }}:php`
+- `/{{ name }}:python`
+- `/{{ name }}:ruby`
+- `/{{ name }}:go`
+- `/{{ name }}:rust`
+- `/{{ name }}:dotnet`
+- `/{{ name }}:cli`
+
+These skills give Claude Code language-specific {{ spec.info.title }} context for authentication, database queries, storage, realtime, functions, and server-side administration. Claude loads them automatically when a task matches, or you can invoke one directly.
+
+## Included commands
+
+- `/{{ name }}:deploy-site`
+- `/{{ name }}:deploy-function`
+
+These commands are manual-only, so Claude does not start a deployment on its own.
+
+## Hosted MCP server
+
+The plugin configures one `{{ name }}` server at `https://mcp.appwrite.io/`. It provides tools for working with your {{ spec.info.title }} organizations and projects, and for searching the latest {{ spec.info.title }} documentation.
+
+The hosted server uses browser-based OAuth, so the plugin does not require an API key, project ID, endpoint, or other manually configured secret. In a Claude Code session, open `/mcp`, select the `{{ name }}` server, and choose **Authenticate**. From your shell, run:
+
+```sh
+claude mcp login plugin:{{ name }}:{{ name }}
+```
+
+After authentication, try:
+
+> Use {{ spec.info.title }} to show my workspace context and list my projects.
+
+If authentication expires, choose **Re-authenticate** from `/mcp` or run the login command again. If the browser does not open, use the URL printed by Claude Code. Run `claude mcp get plugin:{{ name }}:{{ name }}` to check the server's authentication and connection status.
 
 ## Structure
 
 ```text
 .claude-plugin/
 ├── plugin.json              # Plugin manifest
-└── marketplace.json         # Marketplace manifest for install-by-name flows
+└── marketplace.json         # Marketplace manifest
 skills/                      # Claude Code skills (per language)
 ├── typescript/
 │   └── SKILL.md
@@ -34,85 +101,46 @@ skills/                      # Claude Code skills (per language)
 │   └── SKILL.md
 ├── dotnet/
 │   └── SKILL.md
-├── cli/
-│   └── SKILL.md
+└── cli/
+    └── SKILL.md
 commands/                    # Manual commands with side effects
 ├── deploy-site.md
 └── deploy-function.md
-.mcp.json                    # Hosted Appwrite MCP server
+.mcp.json                    # Hosted {{ spec.info.title }} MCP server
 ```
 
-## Included Skills
+## Local development
 
-- `/{{ spec.info.title | caseLower }}:typescript`
-- `/{{ spec.info.title | caseLower }}:dart`
-- `/{{ spec.info.title | caseLower }}:kotlin`
-- `/{{ spec.info.title | caseLower }}:swift`
-- `/{{ spec.info.title | caseLower }}:php`
-- `/{{ spec.info.title | caseLower }}:python`
-- `/{{ spec.info.title | caseLower }}:ruby`
-- `/{{ spec.info.title | caseLower }}:go`
-- `/{{ spec.info.title | caseLower }}:rust`
-- `/{{ spec.info.title | caseLower }}:dotnet`
-- `/{{ spec.info.title | caseLower }}:cli`
-
-These skills give Claude Code language-specific Appwrite context for authentication, database queries, storage, realtime, functions, and server-side administration.
-
-## Included Commands
-
-- `/{{ spec.info.title | caseLower }}:deploy-site`
-- `/{{ spec.info.title | caseLower }}:deploy-function`
-
-These commands are marked as manual-only so Claude will not invoke deployment workflows automatically.
-
-## Hosted MCP Server
-
-The plugin configures one `{{ spec.info.title | caseLower }}` server at `https://mcp.appwrite.io/`. It provides tools for working with your {{ spec.info.title }} workspace and projects and for searching the latest {{ spec.info.title }} documentation.
-
-The hosted server uses browser-based OAuth, so the plugin does not require an API key, project ID, endpoint, or other manually configured secret. In an interactive Claude Code session, open `/mcp` and authenticate the `{{ spec.info.title | caseLower }}` plugin server, or run:
+From a clone of this repository, validate the plugin and marketplace:
 
 ```sh
-claude mcp login plugin:{{ spec.info.title | caseLower }}:{{ spec.info.title | caseLower }}
-```
-
-After authentication, try:
-
-> Use {{ spec.info.title }} to show my workspace context and list my projects.
-
-If authentication expires, run `claude mcp login plugin:{{ spec.info.title | caseLower }}:{{ spec.info.title | caseLower }}` again or choose **Re-authenticate** from `/mcp`. If the browser does not open, use the URL printed by Claude Code. Use `claude mcp get plugin:{{ spec.info.title | caseLower }}:{{ spec.info.title | caseLower }}` and `/mcp` to inspect approval, authentication, and connection status.
-
-## Local Development
-
-Validate the generated plugin and marketplace:
-
-```sh
-cd examples/claude-plugin
 claude plugin validate .
 ```
 
-Load the plugin directly for a dev session:
+Load the plugin directly for a development session:
 
 ```sh
-claude --plugin-dir ./examples/claude-plugin
+claude --plugin-dir .
 ```
 
-Then verify:
+Then check that `/help` lists the `{{ name }}` namespace and that `/{{ name }}:typescript` loads the TypeScript skill.
 
-- `/help` shows the `{{ spec.info.title | caseLower }}` namespace
-- `/{{ spec.info.title | caseLower }}:typescript` loads the TypeScript skill
-
-Install it end to end through the bundled marketplace:
+To test the install-by-name flow, add the clone as a local marketplace:
 
 ```sh
-claude plugin marketplace add ./examples/claude-plugin --scope local
-claude plugin install {{ spec.info.title | caseLower }}@{{ spec.info.title | caseLower }} --scope local
+claude plugin marketplace add ./ --scope local
+claude plugin install {{ name }}@{{ name }} --scope local
 ```
 
-Use `--plugin-dir` for fast iteration on skills and commands. Use the bundled marketplace when you want install-by-name flows such as `appwrite@appwrite`.
+## Learn more
+
+- [{{ spec.info.title }} in Claude Code](https://appwrite.io/docs/tooling/ai/agents/claude-code)
+- [{{ spec.info.title }} MCP server](https://appwrite.io/docs/tooling/ai/mcp-servers)
+- [Claude Code plugins documentation](https://code.claude.com/docs/en/discover-plugins)
 
 ## Contribution
 
-This library is auto-generated by Appwrite custom [SDK Generator](https://github.com/appwrite/sdk-generator). To learn more about how you can help us improve this SDK, please check the [contribution guide](https://github.com/appwrite/sdk-generator/blob/master/CONTRIBUTING.md) before sending a pull-request.
+This library is auto-generated by Appwrite custom [SDK Generator](https://github.com/appwrite/sdk-generator). To learn more about how you can help us improve this SDK, please check the [contribution guide](https://github.com/appwrite/sdk-generator/blob/main/CONTRIBUTING.md) before sending a pull-request.
 
 ## License
 

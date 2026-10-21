@@ -1,19 +1,37 @@
 # Appwrite MCP Server for Zed
 
-Use Appwrite's hosted MCP server from Zed to manage projects and resources with the Agent Panel. Authentication uses Appwrite's browser-based OAuth flow, so the extension does not require API keys or manually entered secrets.
+Use Appwrite's hosted MCP server from Zed to manage projects and resources with the Agent Panel. Authentication uses Appwrite's browser-based OAuth flow, so no API keys or manually entered secrets are required.
 
 ![Appwrite MCP successfully running in Zed](docs/appwrite-mcp-working.png)
 
 ## Installation
 
-1. Open the Zed Extension Gallery with `zed: extensions` or from **Zed > Extensions**.
-2. Search for **Appwrite MCP Server** and select **Install**.
-3. Open **Settings > AI > MCP Servers** and enable **Appwrite MCP Server**.
-4. Complete the Appwrite authentication flow in your browser.
+This extension is not published in the Zed extension gallery. Zed connects to remote MCP servers natively, so the recommended setup needs no extension at all.
+
+### Add the remote server (recommended)
+
+1. Open **Settings > AI > MCP Servers**, select **Add Server**, then **Add Remote Server**.
+2. Use this configuration:
+
+   ```json
+   {
+     "appwrite": {
+       "url": "https://mcp.appwrite.io/"
+     }
+   }
+   ```
+
+3. Complete the Appwrite authentication flow in your browser.
+
+The same entry can be added under `context_servers` in your settings file (`zed: open settings file`).
+
+### Install this extension as a dev extension
+
+The extension wraps the same server with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote). To use it, [install Rust with rustup](https://www.rust-lang.org/tools/install), clone this repository, run `zed: install dev extension` from the Command Palette, and select the cloned folder. Then enable **Appwrite MCP Server** in **Settings > AI > MCP Servers** and complete the authentication flow in your browser.
 
 ## Enable Appwrite tools
 
-Open the Agent Panel, select the active Agent profile, and enable the Appwrite MCP tools for that profile. You can then test the connection with:
+Open the Agent Panel, select the active agent profile, and enable the Appwrite MCP tools for that profile. You can then test the connection with:
 
 > Use Appwrite to show my workspace context and list my projects.
 
@@ -25,11 +43,11 @@ Zed asks for confirmation before tool calls by default. Review and approve write
 
 ### The browser did not open
 
-Restart **Appwrite MCP Server** from **Settings > AI > MCP Servers**. If the browser still does not open, copy the authentication URL from the server output and open it manually.
+Restart the Appwrite server from **Settings > AI > MCP Servers**. If the browser still does not open, copy the authentication URL from the server output and open it manually.
 
 ### The server status is not green
 
-Open **Settings > AI > MCP Servers** and check the status next to **Appwrite MCP Server**. Restart the server and confirm that the extension is allowed to install the `mcp-remote` npm package.
+Open **Settings > AI > MCP Servers** and check the indicator next to the Appwrite server. Restart the server. With the dev extension, also confirm that Zed was able to install the `mcp-remote` npm package.
 
 ### The OAuth session needs to be refreshed
 
@@ -37,4 +55,10 @@ Sign out or clear the saved Appwrite MCP authorization from the server controls,
 
 ### Inspect logs
 
-Run `zed: open log` from the Command Palette and search for `appwrite-mcp` or `mcp-remote`.
+Run `zed: open log` from the Command Palette and search for `appwrite` or `mcp-remote`.
+
+## Learn more
+
+- [Appwrite in Zed](https://appwrite.io/docs/tooling/ai/agents/zed)
+- [Appwrite MCP server](https://appwrite.io/docs/tooling/ai/mcp-servers)
+- [MCP servers in Zed](https://zed.dev/docs/ai/mcp)

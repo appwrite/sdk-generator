@@ -378,6 +378,11 @@ class DotNet extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '{{ spec.info.title | caseUcfirst }}/Query/Builder.cs',
+                'template'      => 'dotnet/Package/Query/Builder.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '{{ spec.info.title | caseUcfirst }}/Operator.cs',
                 'template'      => 'dotnet/Package/Operator.cs.twig',
             ],
@@ -456,6 +461,7 @@ class DotNet extends Language
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter('overrideProperty', fn(string $property, string $class) => $this->getPropertyOverrides()[$class][$property] ?? $property),
             new TwigFilter('propertyType', fn(Schema $property, ?Specification $spec = null): string => $this->getPropertyType($property, $spec)),
+            new TwigFilter('csharpDefault', fn(Schema $property): string => $this->formatCSharpDefault($property), ['is_safe' => ['html']]),
             new TwigFilter('toMapValue', fn(Schema $property, string $resolvedName, Specification $spec): string => $this->getToMapExpression($property, $resolvedName, $spec), ['is_safe' => ['html']]),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
@@ -553,7 +559,7 @@ class DotNet extends Language
         }
 
         if (\in_array($name, $this->getKeywords())) {
-            $name = '@' . $name;
+            return '@' . $name;
         }
         return $name;
     }
@@ -597,6 +603,56 @@ class DotNet extends Language
         return $resolvedName;
     }
 
+    protected function formatCSharpDefault(Schema $property): string
+    {
+        $value = $this->getModelDefault($this->getSchema($property), true);
+
+        if (is_array($value) && $this->getSchemaType($property) === self::TYPE_OBJECT) {
+            return $this->formatCSharpDictionary($value);
+        }
+
+        return $this->formatCSharpLiteral($value);
+    }
+
+    protected function formatCSharpLiteral(mixed $value): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if ($value === []) {
+            return 'new List<object>()';
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            return 'new List<object> { ' . implode(', ', array_map($this->formatCSharpLiteral(...), $value)) . ' }';
+        }
+
+        if (is_array($value)) {
+            return $this->formatCSharpDictionary($value);
+        }
+
+        return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+    }
+
+    protected function formatCSharpDictionary(array $value): string
+    {
+        if ($value === []) {
+            return 'new Dictionary<string, object>()';
+        }
+
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $pairs[] = '{ ' . $this->formatCSharpLiteral((string) $key) . ', ' . $this->formatCSharpLiteral($item) . ' }';
+        }
+
+        return 'new Dictionary<string, object> { ' . implode(', ', $pairs) . ' }';
+    }
+
     /**
      * Format a PHP array as a C# anonymous object
      */
@@ -625,19 +681,20 @@ class DotNet extends Language
     {
         if (is_string($value)) {
             return '"' . $value . '"';
-        } elseif (is_bool($value)) {
+        }
+        if (is_bool($value)) {
             return $value ? 'true' : 'false';
-        } elseif (is_numeric($value)) {
+        }
+        if (is_numeric($value)) {
             return (string) $value;
-        } elseif (is_array($value)) {
+        }
+        if (is_array($value)) {
             if (array_keys($value) !== range(0, count($value) - 1)) {
                 return $this->formatCSharpAnonymousObject($value, $indentLevel);
-            } else {
-                $items = array_map(fn($item): string => $this->formatCSharpValue($item, $indentLevel), $value);
-                return 'new[] { ' . implode(', ', $items) . ' }';
             }
-        } else {
-            return 'null';
+            $items = array_map(fn($item): string => $this->formatCSharpValue($item, $indentLevel), $value);
+            return 'new[] { ' . implode(', ', $items) . ' }';
         }
+        return 'null';
     }
 }

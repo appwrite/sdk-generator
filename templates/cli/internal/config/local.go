@@ -50,6 +50,7 @@ var configKeyOrder = []string{
 	"webhooks",
 	"topics",
 	"messages",
+	"analytics",
 }
 
 // resourceKeys are the top-level arrays that can be split into their own files
@@ -66,6 +67,7 @@ var resourceKeys = []string{
 	"teams",
 	"webhooks",
 	"collections",
+	"analytics",
 }
 
 func isResourceKey(key string) bool {

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using {{ spec.info.title | caseUcfirst }}.Enums;
 
 namespace {{ spec.info.title | caseUcfirst }}.Extensions
 {
@@ -57,6 +58,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Extensions
                     null => default!,
                     T typedItem => typedItem,
                     JsonElement jsonItem => jsonItem.Deserialize<T>(Client.DeserializerOptions)!,
+                    string text when typeof(IEnum).IsAssignableFrom(typeof(T)) => (T)Activator.CreateInstance(typeof(T), text)!,
                     _ => (T)Convert.ChangeType(item, typeof(T))
                 })
                 .ToList();
@@ -75,16 +77,16 @@ namespace {{ spec.info.title | caseUcfirst }}.Extensions
                     case IList list:
                         foreach (var item in list)
                         {
-                            query.Add($"{kvp.Key}[]={item}");
+                            query.Add($"{Uri.EscapeDataString(kvp.Key)}[]={Uri.EscapeDataString(item?.ToString() ?? string.Empty)}");
                         }
                         break;
                     default:
-                        query.Add($"{kvp.Key}={kvp.Value.ToString()}");
+                        query.Add($"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value.ToString() ?? string.Empty)}");
                         break;
                 }
             }
 
-            return Uri.EscapeUriString(string.Join("&", query));
+            return string.Join("&", query);
         }
 
         public static Dictionary<string, string> FromQueryString(this string queryString)
