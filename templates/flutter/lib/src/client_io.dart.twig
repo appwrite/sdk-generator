@@ -476,7 +476,7 @@ class ClientIO extends ClientBase with ClientMixin {
         queryParameters: {
           ...url.queryParametersAll,
           'success': [callback],
-          'failure': url.queryParametersAll['failure'] ?? [callback],
+          'failure': [callback],
         },
       ),
       callback,
