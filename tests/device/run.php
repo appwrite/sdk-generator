@@ -234,6 +234,21 @@ function home(): void
     sleep(2);
 }
 
+// Starts the app again and sends it to the background once it has subscribed.
+function restartInBackground(string $package): array
+{
+    $pid = trim(adb("shell pidof {$package}"));
+    home();
+    adb("shell am kill {$package}");
+    clearEvents();
+    launch($package);
+    $subscribed = waitFor(fn (): bool => hasEvent('subscribed'), 60);
+    home();
+    clearEvents();
+
+    return [$subscribed, $pid];
+}
+
 function removeFromRecents(string $package): void
 {
     foreach (explode("\n", adb('shell dumpsys activity recents')) as $line) {
@@ -358,20 +373,18 @@ $scenarios = [
 
     // A title with double quotes, which uiautomator writes in a single-quoted attribute, can be tapped.
     'quoted title' => function () use ($package): array {
-        home();
-        clearEvents();
+        [$subscribed, $pid] = restartInBackground($package);
         publish('Device "quoted"', 'quoted');
         $posted = waitFor(fn (): bool => in_array('Device "quoted"', notifications($package), true), 30);
         $tapped = $posted && tapNotification('Device "quoted"');
         $opened = waitFor(fn (): bool => hasEvent('opened: quoted'), 20);
 
-        return [$posted && $tapped && $opened, json_encode(['posted' => $posted, 'tapped' => $tapped, 'events' => events(), ...seen()])];
+        return [$subscribed && $posted && $tapped && $opened, json_encode([...seen(), 'subscribed' => $subscribed, 'pidBefore' => $pid, 'posted' => $posted, 'tapped' => $tapped, 'events' => events()])];
     },
 
     // Several notifications are bundled into a group: the oldest one can still be opened.
     'grouped tap' => function () use ($package): array {
-        home();
-        clearEvents();
+        [$subscribed, $pid] = restartInBackground($package);
         foreach (['1', '2', '3'] as $n) {
             publish("Device pick {$n}", "pick-{$n}");
             sleep(2);
@@ -380,7 +393,7 @@ $scenarios = [
         $tapped = $posted && tapNotification('Device pick 1');
         $opened = waitFor(fn (): bool => hasEvent('opened: pick-1'), 20);
 
-        return [$posted && $tapped && $opened, json_encode(['posted' => $posted, 'tapped' => $tapped, 'events' => events(), ...seen()])];
+        return [$subscribed && $posted && $tapped && $opened, json_encode([...seen(), 'subscribed' => $subscribed, 'pidBefore' => $pid, 'posted' => $posted, 'tapped' => $tapped, 'events' => events()])];
     },
 
     // Killed but still in recents: a scheduled wake-up posts the message, and the tap that starts
