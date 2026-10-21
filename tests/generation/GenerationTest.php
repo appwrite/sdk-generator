@@ -837,6 +837,14 @@ final class GenerationTest extends TestCase
         $this->assertDoesNotMatchRegularExpression("/^require 'cgi'$/m", $client, 'Ruby 4.0 removed the cgi library; only cgi/escape ships with it');
     }
 
+    public function testDotNetKeepsDateTimeStringsAsStrings(): void
+    {
+        $converter = $this->generate('dotnet', 'server')['Appwrite/Converters/ObjectToInferredTypesConverter.cs'];
+
+        $this->assertMatchesRegularExpression('/case jsonvaluekind\.string:\s+return element\.getstring\(\);/', $converter);
+        $this->assertStringNotContainsString('trygetdatetime', $converter, 'Inferring DateTime from strings rewrites server datetimes in the current culture');
+    }
+
     #[DataProvider('swiftQueryPlatforms')]
     public function testSwiftQueriesTakeTheAttributeUnlabelled(string $name, string $platform): void
     {
