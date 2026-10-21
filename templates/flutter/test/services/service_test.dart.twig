@@ -59,9 +59,53 @@
     {%- endfor -%}
     {{ path | raw }}
 {%- endmacro %}
-{% macro sent_parameters(method) -%}
-    {%- set names = ((method | parameters('query')) | merge(method | parameters('body'))) | filter((param) => param.required) | map((param) => param.name | dartString) -%}
-    {{ (names is empty ? 'isEmpty' : 'unorderedEquals([' ~ (names | join(', ')) ~ '])') | raw }}
+{% macro argument_value(requestModels, definitions, parameter) -%}
+    {%- if (parameter | enumValues) | length > 0 -%}
+        {{ parameter | enumExample }}
+    {%- elseif (parameter | typeName) starts with 'models.' -%}
+        {{ _self.request_model(requestModels, definitions, parameter | schemaModel, '        ') }}
+    {%- elseif (parameter | schemaType) == 'object' -%}
+        {}
+    {%- elseif (parameter | schemaType) == 'array' -%}
+        []
+    {%- elseif (parameter | schemaType) == 'file' -%}
+        InputFile.fromPath(path: './image.png')
+    {%- elseif (parameter | schemaType) == 'boolean' -%}
+        {{ parameter.location.value == 'path' ? 'true' : 'false' }}
+    {%- elseif (parameter | schemaType) == 'string' -%}
+        {{ ((parameter | schemaExample) | default(parameter.name)) | dartString }}
+    {%- elseif (parameter | schemaType) == 'integer' -%}
+        1
+    {%- elseif (parameter | schemaType) == 'number' -%}
+        1.0
+    {%- else -%}
+        {{ parameter | schemaExample }}
+    {%- endif -%}
+{%- endmacro %}
+{% macro sent_value(requestModels, definitions, parameter) -%}
+    {%- if (parameter | schemaType) == 'file' -%}
+        isA<InputFile>()
+    {%- elseif (parameter | schemaType) == 'array' -%}
+        isA<List>()
+    {%- elseif (parameter | schemaType) == 'object' -%}
+        isA<Map>()
+    {%- elseif (parameter | enumValues) | length > 0 -%}
+        {{ parameter | enumExample }}.value
+    {%- else -%}
+        {{ _self.argument_value(requestModels, definitions, parameter) }}
+    {%- endif -%}
+{%- endmacro %}
+{% macro sent_parameters(requestModels, definitions, method) -%}
+    {%- set parameters = (method | parameters('query')) | merge(method | parameters('body')) -%}
+    {%- if parameters is empty -%}
+        isEmpty
+    {%- else -%}
+        {{ '{' }}
+        {%- for parameter in parameters -%}
+            {{ ("\n        " ~ (parameter.name | dartString) ~ ': ' ~ _self.sent_value(requestModels, definitions, parameter) ~ ',') | raw }}
+        {%- endfor -%}
+        {{ "\n      }" }}
+    {%- endif -%}
 {%- endmacro %}
 {% if language.name == 'Dart' %}
 import 'package:test/test.dart';
@@ -194,19 +238,22 @@ void main() {
       ).thenAnswer((_) async => Response(data: data));
 {% endif %}
 
-{% set requiredParams = (method | parameters('all')) | filter((param) => param.required) %}
-{% if requiredParams|length == 0 %}
+{% set parameters = method | parameters('all') %}
+{% if parameters|length == 0 %}
       final response = await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel | overrideIdentifier }}();
 {% else %}
       final response = await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel | overrideIdentifier }}(
-{% for parameter in requiredParams %}
-        {{ parameter.name | escapeKeyword | caseCamel }}: {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% elseif (parameter | typeName) starts with 'models.' %}{{ _self.request_model(requestModels, definitions, parameter | schemaModel, '        ') }}{% elseif (parameter | schemaType) == 'object' %}{}{% elseif (parameter | schemaType) == 'array' %}[]{% elseif (parameter | schemaType) == 'file' %}InputFile.fromPath(path: './image.png'){% elseif (parameter | schemaType) == 'boolean' %}true{% elseif (parameter | schemaType) == 'string' %}{{ ((parameter | schemaExample) | default(parameter.name)) | dartString }}{% elseif (parameter | schemaType) == 'integer' %}1{% elseif (parameter | schemaType) == 'number' %}1.0{% else %}{{ (parameter | schemaExample) }}{% endif %},
+{% for parameter in parameters %}
+        {{ parameter.name | caseCamel | overrideIdentifier }}: {{ _self.argument_value(requestModels, definitions, parameter) }},
 {% endfor %}
       );
 {% endif %}
 {% if (method | methodType) == 'webAuth' %}
       final Uri url = verify(client.webAuth(captureAny)).captured.single;
       expect(Uri.decodeFull(url.path), {{ ('/v1' ~ _self.expected_path(method)) | dartString }});
+{% for parameter in ((method | parameters('query')) | merge(method | parameters('body'))) | filter((param) => (param | schemaType) not in ['array', 'object', 'file']) %}
+      expect(url.queryParameters[{{ parameter.name | dartString }}], {% if (parameter | schemaType) == 'string' %}{{ _self.sent_value(requestModels, definitions, parameter) }}{% else %}'{{ _self.argument_value(requestModels, definitions, parameter) }}'{% endif %});
+{% endfor %}
 {% elseif 'multipart/form-data' in (method | consumes) %}
       final Map<String, dynamic> params = verify(
         client.chunkedUpload(
@@ -218,7 +265,7 @@ void main() {
           method: HttpMethod.{{ method.method.value | caseLower }},
         ),
       ).captured.single;
-      expect(params.keys, {{ _self.sent_parameters(method) }});
+      expect(params, {{ _self.sent_parameters(requestModels, definitions, method) }});
 {% else %}
       final Map<String, dynamic> params = verify(
         client.call(
@@ -229,7 +276,7 @@ void main() {
           responseType: anyNamed('responseType'),
         ),
       ).captured.single;
-      expect(params.keys, {{ _self.sent_parameters(method) }});
+      expect(params, {{ _self.sent_parameters(requestModels, definitions, method) }});
 {% endif %}
 {% if (method | methodType) == 'location' %}
       expect(response, isA<Uint8List>());
