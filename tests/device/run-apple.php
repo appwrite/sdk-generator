@@ -83,9 +83,19 @@ $broker = null;
 function startBroker(): bool
 {
     global $broker, $root;
-    $broker = proc_open(['php', "{$root}/mock-server/app/mqtt.php"], [0 => ['file', '/dev/null', 'r'], 1 => ['file', "{$root}/tests/device/broker.log", 'a'], 2 => ['file', "{$root}/tests/device/broker.log", 'a']], $pipes);
+    for ($attempt = 1; $attempt <= 3; $attempt++) {
+        file_put_contents("{$root}/tests/device/broker.log", "start attempt {$attempt}\n", FILE_APPEND);
+        $broker = proc_open(['php', "{$root}/mock-server/app/mqtt.php"], [0 => ['file', '/dev/null', 'r'], 1 => ['file', "{$root}/tests/device/broker.log", 'a'], 2 => ['file', "{$root}/tests/device/broker.log", 'a']], $pipes);
+        if (waitFor(fn (): bool => brokerUp(), 30)) {
+            return true;
+        }
+        proc_terminate($broker, 9);
+        shell('pkill -9 -f mock-server/app/mqtt.php');
+        proc_close($broker);
+        sleep(2);
+    }
 
-    return waitFor(fn (): bool => brokerUp(), 30);
+    return false;
 }
 
 function stopBroker(): bool
