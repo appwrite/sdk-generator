@@ -36,3 +36,27 @@ php tests/device/run.php android              # prints one ":passed" or ":failed
 ```
 
 `run.php` publishes through the broker with `docker exec mqtt php app/publish.php <topic> <payload>`.
+
+## Apple
+
+The Apple SDK runs on an iOS Simulator, driven by `run-apple.php`:
+
+| Scenario | Checks |
+|---|---|
+| launch | a fresh install connects and subscribes, and the SDK asks for the notification permission |
+| on screen | a message reaches the callback and posts no notification |
+| placeholder while open | the placeholder APNs sends next to the MQTT message changes nothing: one callback, no banner, no placeholder left |
+| background | with the app suspended, the Notification Service Extension fetches the message over MQTT and shows it in place of the placeholder |
+| background tap | tapping that notification reaches `onNotificationOpened` |
+| killed | with the app killed, the extension shows the message; the tap that starts the app reaches it, and the callback gets the message once |
+| unfilled placeholder | with the broker down, the placeholder stays; the app removes it once it has subscribed again |
+
+APNs is simulated with `simctl push`, carrying the placeholder the server sends (`New message`,
+`mutable-content`). Taps go through a UI test target (`apps/apple/UITests`), one step at a
+time. The driver runs the mock broker itself, without Docker, so it needs PHP with Swoole.
+
+```bash
+tests/device/build.sh apple                                     # needs xcodegen
+(cd mock-server && COMPOSER=composer.mqtt.json composer install)  # the broker's dependencies
+php tests/device/run-apple.php                                  # boots a Simulator if none is
+```
