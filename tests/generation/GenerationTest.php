@@ -775,6 +775,13 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('"application/json, text/plain".to_string()', $general);
     }
 
+    public function testRustParsesFloatsExactly(): void
+    {
+        $files = $this->generate('rust', 'server');
+
+        $this->assertStringContainsString('serde_json = { version = "1.0.149", features = ["float_roundtrip"] }', $files['Cargo.toml']);
+    }
+
     public function testRustQueryBuilderChainsEveryQuery(): void
     {
         $files = $this->generate('rust', 'server');
