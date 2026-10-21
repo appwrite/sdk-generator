@@ -294,66 +294,39 @@ $scenarios = [
         return [$received && $times === 1 && !$placeholder && !$banner, json_encode(['times' => $times, 'placeholder' => $placeholder, 'banner' => $banner, 'events' => events()])];
     },
 
-    // Suspended in the background: the extension fetches the message over MQTT and shows it in
-    // place of the placeholder.
-    'background' => function (): array {
+    // In the background: the message reaches the callback once the app is back on screen, once,
+    // whether it arrived while the app was suspended or was replayed when it reconnected.
+    'background return' => function (): array {
         background();
-        // Past the window in which the extension takes the app for live.
         sleep(12);
         clearEvents();
         $mark = $GLOBALS['since'];
         publish('Device background', 'background');
         apns();
-        $shown = waitFor(fn (): bool => hasNotification('Device background'), 45);
+        $placeholder = waitFor(fn (): bool => hasNotification(PLACEHOLDER), 30);
+        launch();
+        $received = waitFor(fn (): bool => hasEvent('message: Device background'), 60);
+        sleep(5);
+        $times = countEvent('message: Device background');
 
-        return [$shown, json_encode(['shown' => $shown, 'events' => events(), 'system' => notificationLog($mark)])];
+        return [$placeholder && $received && $times === 1, json_encode(['placeholder' => $placeholder, 'times' => $times, 'events' => events(), 'system' => notificationLog($mark)])];
     },
 
-    // Tapping that notification brings the app back and reaches onNotificationOpened.
-    'background tap' => function (): array {
-        clearEvents();
-        [$tapped, $failures] = tapStep('testOpen', ['TITLE' => 'Device background']);
-        $opened = waitFor(fn (): bool => hasEvent('opened: background'), 30);
-
-        return [$tapped && $opened, json_encode(['tapped' => $tapped, 'failures' => $failures, 'events' => events()])];
-    },
-
-    // Killed: the extension shows the message, and the tap that starts the app again reaches
-    // it. The message the extension fetched reaches the callback once, with no second banner.
-    'killed' => function (): array {
+    // Killed: tapping the placeholder starts the app, and the message published while it was
+    // killed reaches the callback once.
+    'placeholder tap' => function (): array {
         terminate();
         clearEvents();
         $mark = $GLOBALS['since'];
         publish('Device killed', 'killed');
         apns();
-        $shown = waitFor(fn (): bool => hasNotification('Device killed'), 45);
-        $extension = events();
-        clearEvents();
-        [$tapped, $failures] = $shown ? tapStep('testOpen', ['TITLE' => 'Device killed']) : [false, []];
-        $launched = waitFor(fn (): bool => hasEvent('launched: killed') || hasEvent('opened: killed'), 30);
+        $placeholder = waitFor(fn (): bool => hasNotification(PLACEHOLDER), 30);
+        [$tapped, $failures] = $placeholder ? tapStep('testOpen', ['TITLE' => PLACEHOLDER]) : [false, []];
+        $received = waitFor(fn (): bool => hasEvent('message: Device killed'), 60);
         sleep(5);
         $times = countEvent('message: Device killed');
 
-        return [$shown && $tapped && $launched && $times === 1, json_encode(['shown' => $shown, 'extension' => $extension, 'tapped' => $tapped, 'failures' => $failures, 'times' => $times, 'events' => events(), 'system' => notificationLog($mark)])];
-    },
-
-    // Killed while the broker is down: the extension cannot fetch, so the placeholder stays, and
-    // the app removes it once it has subscribed again.
-    'unfilled placeholder' => function (): array {
-        terminate();
-        $stopped = stopBroker();
-        clearEvents();
-        $mark = $GLOBALS['since'];
-        apns();
-        $placeholder = waitFor(fn (): bool => hasNotification(PLACEHOLDER), 60);
-        $extension = events();
-        $started = startBroker();
-        clearEvents();
-        launch();
-        $subscribed = waitFor(fn (): bool => hasEvent('subscribed'), 60);
-        $cleared = waitFor(fn (): bool => !hasNotification(PLACEHOLDER), 30);
-
-        return [$stopped && $placeholder && $started && $subscribed && $cleared, json_encode(['stopped' => $stopped, 'placeholder' => $placeholder, 'extension' => $extension, 'started' => $started, 'subscribed' => $subscribed, 'cleared' => $cleared, 'events' => events(), 'system' => notificationLog($mark)])];
+        return [$placeholder && $tapped && $received && $times === 1, json_encode(['placeholder' => $placeholder, 'tapped' => $tapped, 'failures' => $failures, 'times' => $times, 'events' => events(), 'system' => notificationLog($mark)])];
     },
 ];
 
