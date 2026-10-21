@@ -1038,6 +1038,38 @@ final class GenerationTest extends TestCase
         );
     }
 
+    /**
+     * A repeatable flag given only `[]` has to reach the SDK as an empty array,
+     * so every array flag is routed through the CLI's slice helpers.
+     */
+    public function testCliArrayFlagsCanSendAnEmptyArray(): void
+    {
+        $dir = self::OUTPUT . '/cli-module/arrays';
+        $this->removeDirectory($dir);
+
+        new SDK(new CLI(), Parser::parse((string) \file_get_contents(self::FIXTURE)))
+            ->setTest('')
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->generate($dir);
+
+        $unrouted = [];
+        foreach (\glob($dir . '/internal/cmd/services/*.go') ?: [] as $path) {
+            $source = (string) \preg_replace('/app\.(?:StringSlice|DecodeSlice\[[^\]]+\])\(\w+\)/', '', (string) \file_get_contents($path));
+            \preg_match_all('/StringArrayVar\(&(\w+), "(?!filter"|where"|sort-asc"|sort-desc"|select"|queries")/', $source, $flags);
+            foreach (\array_unique($flags[1]) as $variable) {
+                if (\preg_match('/[(,]\s*' . $variable . '\s*[),]/', $source) === 1) {
+                    $unrouted[] = \basename($path) . ': ' . $variable;
+                }
+            }
+        }
+
+        $this->assertNotEmpty(\glob($dir . '/internal/cmd/services/*.go'));
+        $this->assertSame([], $unrouted, 'array flags passed to the SDK without app.StringSlice or app.DecodeSlice');
+    }
+
     private function generateCliModule(CLI $language, string $key): string
     {
         $dir = self::OUTPUT . '/cli-module/' . $key;
