@@ -46,6 +46,7 @@ jobs:
           Ruby27,
           Ruby30,
           Ruby31,
+          Ruby40,
           Rust185,
           AppleSwift61,
           Swift61,

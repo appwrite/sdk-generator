@@ -134,7 +134,10 @@ final class GenerationTest extends TestCase
      */
     private const array PACKAGE_METADATA = [
         'ruby' => [
-            'appwrite.gemspec' => ["spec.required_ruby_version = '>= 2.7'"],
+            'appwrite.gemspec' => [
+                "spec.required_ruby_version = '>= 2.7'",
+                "spec.add_dependency 'mime-types', '~> 3.6'",
+            ],
         ],
         'node' => [
             'package.json' => ['"engines": {', '"node": ">=20.0.0"'],
