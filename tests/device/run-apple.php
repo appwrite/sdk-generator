@@ -221,9 +221,13 @@ function tapStep(string $test, array $environment = []): array
         $variables .= 'TEST_RUNNER_' . $name . '=' . escapeshellarg($value) . ' ';
     }
     exec("{$variables}xcodebuild test-without-building -xctestrun " . escapeshellarg($xctestrun) . " -destination id={$udid} -only-testing:UITests/Device/{$test} 2>&1", $output, $status);
-    $failures = array_values(preg_grep('/error:|XCTAssert|XCTFail|failed/i', $output));
+    $failures = array_slice(array_values(preg_grep('/error:|XCTAssert|XCTFail|failed/i', $output)), 0, 5);
+    // The Springboard elements a failing step printed that carry its argument, to see what it could tap.
+    foreach ($environment as $value) {
+        $failures = [...$failures, ...array_slice(array_values(preg_grep('/' . preg_quote((string) $value, '/') . '/', $output)), 0, 15)];
+    }
 
-    return [$status === 0, array_slice($failures, 0, 5)];
+    return [$status === 0, $status === 0 ? [] : $failures];
 }
 
 function launch(): void
