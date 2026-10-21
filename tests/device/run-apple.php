@@ -60,7 +60,7 @@ function simulator(): string
             }
         }
     }
-    uksort($iphones, 'strnatcmp');
+    uksort($iphones, strnatcmp(...));
     $udid = (string) end($iphones);
     shell("xcrun simctl boot {$udid}");
     shell("xcrun simctl bootstatus {$udid} -b");
