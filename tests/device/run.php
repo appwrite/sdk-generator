@@ -152,8 +152,9 @@ function screen(): array
         if (!preg_match('/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/', $node, $bounds)) {
             continue;
         }
-        preg_match_all('/(?:text|content-desc)="([^"]*)"/', $node, $labels);
-        foreach ($labels[1] as $label) {
+        // uiautomator quotes an attribute with single quotes when its value holds a double quote.
+        preg_match_all('/(?:text|content-desc)=(?:"([^"]*)"|\'([^\']*)\')/', $node, $labels);
+        foreach (array_map(fn (string $double, string $single): string => $double . $single, $labels[1], $labels[2]) as $label) {
             if ($label !== '') {
                 $nodes[] = [html_entity_decode($label), intdiv($bounds[1] + $bounds[3], 2), intdiv($bounds[2] + $bounds[4], 2)];
             }
@@ -189,11 +190,25 @@ function tap(string $pattern): bool
     return false;
 }
 
+function shadeOpen(): bool
+{
+    return str_contains(adb('shell dumpsys window | grep mCurrentFocus'), 'NotificationShade');
+}
+
 function tapNotification(string $title): bool
 {
     adb('shell cmd statusbar expand-notifications');
     sleep(2);
-    $tapped = tap('/^' . preg_quote($title, '/') . '$/');
+    $pattern = '/^' . preg_quote($title, '/') . '$/';
+    $tapped = tap($pattern);
+    // Inside a collapsed group the tap only expands the group: tap it again once the animation ends.
+    for ($attempt = 0; $tapped && $attempt < 2; $attempt++) {
+        sleep(1);
+        if (!shadeOpen()) {
+            break;
+        }
+        $tapped = tap($pattern);
+    }
     if (!$tapped) {
         adb('shell cmd statusbar collapse');
     }
@@ -219,6 +234,21 @@ function home(): void
     sleep(2);
 }
 
+// Starts the app again and sends it to the background once it has subscribed.
+function restartInBackground(string $package): array
+{
+    $pid = trim(adb("shell pidof {$package}"));
+    home();
+    adb("shell am kill {$package}");
+    clearEvents();
+    launch($package);
+    $subscribed = waitFor(fn (): bool => hasEvent('subscribed'), 60);
+    home();
+    clearEvents();
+
+    return [$subscribed, $pid];
+}
+
 function removeFromRecents(string $package): void
 {
     foreach (explode("\n", adb('shell dumpsys activity recents')) as $line) {
@@ -230,7 +260,7 @@ function removeFromRecents(string $package): void
 
 function inRecents(string $package): bool
 {
-    return array_any(explode("\n", adb('shell dumpsys activity recents')), fn($line): bool => str_contains((string) $line, 'Recent #') && str_contains((string) $line, $package));
+    return array_any(explode("\n", adb('shell dumpsys activity recents')), fn($line): bool => str_contains($line, 'Recent #') && str_contains($line, $package));
 }
 
 function network(bool $on): void
@@ -339,6 +369,31 @@ $scenarios = [
         $opened = waitFor(fn (): bool => hasEvent('opened: background'), 20);
 
         return [$posted && $text === 'Sale background' && $tapped && $opened, json_encode(['posted' => $posted, 'text' => $text, 'tapped' => $tapped, 'events' => events()])];
+    },
+
+    // A title with double quotes, which uiautomator writes in a single-quoted attribute, can be tapped.
+    'quoted title' => function () use ($package): array {
+        [$subscribed, $pid] = restartInBackground($package);
+        publish('Device "quoted"', 'quoted');
+        $posted = waitFor(fn (): bool => in_array('Device "quoted"', notifications($package), true), 30);
+        $tapped = $posted && tapNotification('Device "quoted"');
+        $opened = waitFor(fn (): bool => hasEvent('opened: quoted'), 20);
+
+        return [$subscribed && $posted && $tapped && $opened, json_encode([...seen(), 'subscribed' => $subscribed, 'pidBefore' => $pid, 'posted' => $posted, 'tapped' => $tapped, 'events' => events()])];
+    },
+
+    // Several notifications are bundled into a group: the oldest one can still be opened.
+    'grouped tap' => function () use ($package): array {
+        [$subscribed, $pid] = restartInBackground($package);
+        foreach (['1', '2', '3'] as $n) {
+            publish("Device pick {$n}", "pick-{$n}");
+            sleep(2);
+        }
+        $posted = waitFor(fn (): bool => array_diff(['Device pick 1', 'Device pick 2', 'Device pick 3'], notifications($package)) === [], 30);
+        $tapped = $posted && tapNotification('Device pick 1');
+        $opened = waitFor(fn (): bool => hasEvent('opened: pick-1'), 20);
+
+        return [$subscribed && $posted && $tapped && $opened, json_encode([...seen(), 'subscribed' => $subscribed, 'pidBefore' => $pid, 'posted' => $posted, 'tapped' => $tapped, 'events' => events()])];
     },
 
     // Killed but still in recents: a scheduled wake-up posts the message, and the tap that starts
