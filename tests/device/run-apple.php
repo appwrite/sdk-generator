@@ -159,6 +159,16 @@ function clearEvents(): void
     $since = trim(shell('date "+%Y-%m-%d %H:%M:%S"'));
 }
 
+/** What iOS logged about the app's notifications and its extension since $start. */
+function notificationLog(string $start): array
+{
+    $predicate = '(subsystem == "com.apple.UserNotifications" AND eventMessage CONTAINS "io.appwrite.pushdevice" AND NOT eventMessage CONTAINS "Getting delivered") OR process == "NotificationService" OR eventMessage CONTAINS "io.appwrite.pushdevice.apple.service"';
+    $log = simctl('spawn log show --style compact --start ' . escapeshellarg($start) . ' --predicate ' . escapeshellarg($predicate));
+    $lines = array_values(array_filter(explode("\n", $log), fn (string $line): bool => preg_match('/^\d{4}-/', $line) === 1));
+
+    return array_map(fn (string $line): string => substr($line, 11, 260), array_slice($lines, -60));
+}
+
 /** The app's and its extension's event lines since the last clearEvents(). */
 function events(): array
 {
@@ -291,11 +301,12 @@ $scenarios = [
         // Past the window in which the extension takes the app for live.
         sleep(12);
         clearEvents();
+        $mark = $GLOBALS['since'];
         publish('Device background', 'background');
         apns();
         $shown = waitFor(fn (): bool => hasNotification('Device background'), 45);
 
-        return [$shown, json_encode(['shown' => $shown, 'events' => events(), 'delivered' => substr(delivered(), 0, 2000)])];
+        return [$shown, json_encode(['shown' => $shown, 'events' => events(), 'system' => notificationLog($mark)])];
     },
 
     // Tapping that notification brings the app back and reaches onNotificationOpened.
@@ -312,6 +323,7 @@ $scenarios = [
     'killed' => function (): array {
         terminate();
         clearEvents();
+        $mark = $GLOBALS['since'];
         publish('Device killed', 'killed');
         apns();
         $shown = waitFor(fn (): bool => hasNotification('Device killed'), 45);
@@ -322,7 +334,7 @@ $scenarios = [
         sleep(5);
         $times = countEvent('message: Device killed');
 
-        return [$shown && $tapped && $launched && $times === 1, json_encode(['shown' => $shown, 'extension' => $extension, 'tapped' => $tapped, 'failures' => $failures, 'times' => $times, 'events' => events()])];
+        return [$shown && $tapped && $launched && $times === 1, json_encode(['shown' => $shown, 'extension' => $extension, 'tapped' => $tapped, 'failures' => $failures, 'times' => $times, 'events' => events(), 'system' => notificationLog($mark)])];
     },
 
     // Killed while the broker is down: the extension cannot fetch, so the placeholder stays, and
@@ -331,6 +343,7 @@ $scenarios = [
         terminate();
         $stopped = stopBroker();
         clearEvents();
+        $mark = $GLOBALS['since'];
         apns();
         $placeholder = waitFor(fn (): bool => hasNotification(PLACEHOLDER), 60);
         $extension = events();
@@ -340,7 +353,7 @@ $scenarios = [
         $subscribed = waitFor(fn (): bool => hasEvent('subscribed'), 60);
         $cleared = waitFor(fn (): bool => !hasNotification(PLACEHOLDER), 30);
 
-        return [$stopped && $placeholder && $started && $subscribed && $cleared, json_encode(['stopped' => $stopped, 'placeholder' => $placeholder, 'extension' => $extension, 'started' => $started, 'subscribed' => $subscribed, 'cleared' => $cleared, 'events' => events()])];
+        return [$stopped && $placeholder && $started && $subscribed && $cleared, json_encode(['stopped' => $stopped, 'placeholder' => $placeholder, 'extension' => $extension, 'started' => $started, 'subscribed' => $subscribed, 'cleared' => $cleared, 'events' => events(), 'system' => notificationLog($mark)])];
     },
 ];
 
