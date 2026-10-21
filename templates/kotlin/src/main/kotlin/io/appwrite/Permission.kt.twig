@@ -2,18 +2,23 @@ package {{ sdk.namespace | caseDot }}
 
 class Permission {
     companion object {
+        @JvmStatic
         fun read(role: String): String {
             return "read(\"${role}\")"
         }
+        @JvmStatic
         fun write(role: String): String {
             return "write(\"${role}\")"
         }
+        @JvmStatic
         fun create(role: String): String {
             return "create(\"${role}\")"
         }
+        @JvmStatic
         fun update(role: String): String {
             return "update(\"${role}\")"
         }
+        @JvmStatic
         fun delete(role: String): String {
             return "delete(\"${role}\")"
         }

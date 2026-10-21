@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// `pull bucket|team|topic|webhook` each list a resource, shape it to the config
+// `pull bucket|team|topic|webhook|analytics` each list a resource, shape it to the config
 // schema, and REPLACE the local array. Replace, not merge: the remote is the
 // source of truth, so a resource deleted remotely has to disappear locally --
 // which is why a removal is confirmed before the write.
@@ -31,6 +31,10 @@ type flatResource struct {
 	// Keys is the schema order the entry is written in, or nil to store the
 	// API response unfiltered.
 	Keys []string
+	// Optional resources belong to a service not every server runs. A 404 on
+	// the list skips the pull, so `pull all` against a server without the
+	// service still pulls everything else.
+	Optional bool
 }
 
 var flatResources = []flatResource{
@@ -46,6 +50,7 @@ var flatResources = []flatResource{
 	},
 	{resourceIdentity: topicIdentity, Keys: config.TopicKeys},
 	{resourceIdentity: webhookIdentity, Keys: config.WebhookKeys},
+	{resourceIdentity: analyticsIdentity, Keys: config.AnalyticsKeys, Optional: true},
 }
 
 func newPullCommand() *cobra.Command {
@@ -104,6 +109,11 @@ func runPullResource(command *cobra.Command, resource flatResource) error {
 	output.Log(out, "Fetching %s ...", resource.Label)
 
 	entries, err := context.list(resource)
+	if resource.Optional && isNotFound(err) {
+		output.Log(out, "This server does not offer %s. Skipping.", resource.Label)
+
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -133,8 +143,7 @@ func runPullResource(command *cobra.Command, resource flatResource) error {
 	}
 
 	for _, entry := range entries {
-		output.Log(out, "Pulling %s %s ...", strings.TrimSuffix(resource.Label, "s"),
-			entry.GetString("name"))
+		output.Log(out, "Pulling %s %s ...", resource.Singular, entry.GetString("name"))
 	}
 
 	context.local.ReplaceResource(resource.ConfigKey, entries)
@@ -262,7 +271,7 @@ func (p *projectPull) probeEmpty(path, wrapper string) (bool, error) {
 
 // list pages a resource and shapes each entry to the config schema.
 func (p *projectPull) list(resource flatResource) ([]*jsonx.Object, error) {
-	empty, err := p.probeEmpty(resource.Path, resource.ConfigKey)
+	empty, err := p.probeEmpty(resource.Path, resource.listKey())
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +279,7 @@ func (p *projectPull) list(resource flatResource) ([]*jsonx.Object, error) {
 		return nil, nil
 	}
 
-	rows, err := p.page(resource.Path, resource.ConfigKey, nil)
+	rows, err := p.page(resource.Path, resource.listKey(), nil)
 	if err != nil {
 		return nil, err
 	}

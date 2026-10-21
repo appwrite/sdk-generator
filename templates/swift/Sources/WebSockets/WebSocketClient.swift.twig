@@ -243,7 +243,7 @@ public class WebSocketClient {
 
     // MARK: - Open connection
 
-    /// Open a connection to the configured host and attempt to upgrade the connection to a WebSocket. If successful the `onOpen` callback will fire, otherwise a connection error will be thrown from here.
+    /// Open a connection to the configured host and upgrade it to a WebSocket. Returns once the upgrade has completed and the `onOpen` callback has fired; a failed connection or upgrade is thrown from here.
     public func connect() async throws {
         let socketOptions = ChannelOptions.socket(
             SocketOptionLevel(SOL_SOCKET),
@@ -254,25 +254,43 @@ public class WebSocketClient {
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
 
+        let upgraded = threadGroup!.next().makePromise(of: Void.self)
+
         let bootstrap = ClientBootstrap(group: threadGroup!)
             .channelOption(socketOptions, value: 1)
             .channelInitializer {
-                self.openChannel(channel: $0)
+                self.openChannel(channel: $0, upgraded: upgraded)
             }
 
-        _ =
-            try await bootstrap
-            .connect(host: self.host, port: self.port)
-            .get()
+        let channel: NIOCore.Channel
+        do {
+            channel =
+                try await bootstrap
+                .connect(host: self.host, port: self.port)
+                .get()
+        } catch {
+            upgraded.fail(error)
+            throw error
+        }
+
+        do {
+            try await upgraded.futureResult.get()
+        } catch {
+            channel.close(promise: nil)
+            throw error
+        }
     }
 
-    private func openChannel(channel: NIOCore.Channel) -> EventLoopFuture<Void> {
-        let httpHandler = HTTPHandler(client: self, headers: headers)
+    private func openChannel(
+        channel: NIOCore.Channel,
+        upgraded: EventLoopPromise<Void>
+    ) -> EventLoopFuture<Void> {
+        let httpHandler = HTTPHandler(client: self, headers: headers, upgraded: upgraded)
 
         let basicUpgrader = NIOWebSocketClientUpgrader(
             requestKey: self.frameKey,
             upgradePipelineHandler: { channel, response in
-                self.upgradePipelineHandler(channel: channel, response: response)
+                self.upgradePipelineHandler(channel: channel, response: response, upgraded: upgraded)
             }
         )
 
@@ -283,7 +301,7 @@ public class WebSocketClient {
             }
         )
 
-        return channel.pipeline.addHTTPClientHandlers(withClientUpgrade: config).flatMap { _ in
+        return channel.pipeline.addHTTPClientHandlers(leftOverBytesStrategy: .forwardBytes, withClientUpgrade: config).flatMap { _ in
             return channel.pipeline.addHandler(httpHandler).flatMap { _ in
                 if self.tlsEnabled {
                     let tlsConfig = TLSConfiguration.makeClientConfiguration()
@@ -298,22 +316,26 @@ public class WebSocketClient {
         }
     }
 
-    private func upgradePipelineHandler(channel: NIOCore.Channel, response: HTTPResponseHead)
-        -> EventLoopFuture<Void>
-    {
+    private func upgradePipelineHandler(
+        channel: NIOCore.Channel,
+        response: HTTPResponseHead,
+        upgraded: EventLoopPromise<Void>
+    ) -> EventLoopFuture<Void> {
         let handler = MessageHandler(client: self)
 
         if response.status == .switchingProtocols {
             self.channel = channel
         }
 
-        return channel.pipeline.addHandler(handler).map {
+        let opened = channel.pipeline.addHandler(handler).map {
             if let delegate = self.delegate {
                 delegate.onOpen(channel: channel)
             } else {
                 self.onOpen(channel)
             }
         }
+        opened.cascade(to: upgraded)
+        return opened
     }
 
     // MARK: - Close connection
@@ -425,7 +447,7 @@ public class WebSocketClient {
                 promise: promise
             )
         } catch let error {
-            print(error)
+            FileHandle.standardError.write(Data("\(error)\n".utf8))
         }
     }
 

@@ -6,6 +6,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.MultipartBody
 import okio.Buffer
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -56,6 +57,25 @@ class JsonRequestBodyTest {
     }
 
     @Test
+    fun jsonBodySendsBuiltQueries() = runBlocking {
+        val request = Client().prepareRequest(
+            method = "POST",
+            path = "/v1/tablesdb/db/tables/tbl/rows",
+            headers = mapOf("content-type" to "application/json"),
+            params = mapOf(
+                "queries" to Query.builder().equal("title", "Spiderman").limit(1),
+                "permissions" to null,
+            ),
+        )
+
+        val body = requestBodyUtf8(request.body!!)
+        assertFalse(body.contains("\"queries\":{"))
+        assertTrue(body.contains("\"queries\":[\"{\\\"method\\\":\\\"equal\\\""))
+        assertTrue(body.contains("\\\"method\\\":\\\"limit\\\""))
+        assertFalse(body.contains("permissions"))
+    }
+
+    @Test
     fun getOmitsNullQueryParams() = runBlocking {
         val request = Client().prepareRequest(
             method = "GET",
@@ -91,6 +111,30 @@ class JsonRequestBodyTest {
         assertTrue(dispositions.any { it.contains("fileId") })
         assertFalse(dispositions.any { it.contains("permissions") })
         assertFalse(requestBodyUtf8(body).contains("null"))
+    }
+
+    @Test
+    fun multipartEncodesMapParamsAsJson() = runBlocking {
+        val request = Client().prepareRequest(
+            method = "POST",
+            path = "/v1/storage/files",
+            headers = mapOf("content-type" to MultipartBody.FORM.toString()),
+            params = mapOf(
+                "fileId" to "abc",
+                "data" to mapOf("count" to 1, "nested" to mapOf("value" to null)),
+            ),
+        )
+
+        val body = request.body as MultipartBody
+        val part = body.parts.single {
+            it.headers?.get("Content-Disposition").orEmpty().contains("name=\"data\"")
+        }
+        assertEquals("""{"count":1,"nested":{"value":null}}""", requestBodyUtf8(part.body))
+    }
+
+    @Test
+    fun flattenTurnsArraysIntoLists() {
+        assertEquals(listOf("a", "b"), Client().flatten(arrayOf("a", "b")))
     }
 
     private fun requestBodyUtf8(body: okhttp3.RequestBody): String {

@@ -13,6 +13,7 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/generator"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/typegen"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +27,7 @@ func newGenerateCommand() *cobra.Command {
 		serverSide      string
 		importSource    string
 		importExtension string
+		enumStyle       string
 	)
 
 	command := &cobra.Command{
@@ -39,7 +41,7 @@ func newGenerateCommand() *cobra.Command {
 				extension = &importExtension
 			}
 
-			return runGenerate(command, outputDirectory, language, serverSide, importSource, extension)
+			return runGenerate(command, outputDirectory, language, serverSide, importSource, extension, enumStyle)
 		},
 	}
 
@@ -60,6 +62,8 @@ func newGenerateCommand() *cobra.Command {
 	command.Flags().StringVar(&importExtension, "import-extension", "",
 		`Override import file extension in generated files (.js for ESM, empty string for CJS). `+
 			`Auto-detected from package.json "type" field if not provided.`)
+	command.Flags().StringVar(&enumStyle, "enum-style", string(typegen.EnumStyleEnum),
+		"How enums are declared in types.ts ("+typegen.EnumStyleChoices()+"); const emits an `as const` object and a union type")
 
 	return command
 }
@@ -121,6 +125,7 @@ func runGenerate(
 	command *cobra.Command,
 	outputDirectory, language, serverSide, importSource string,
 	importExtension *string,
+	rawEnumStyle string,
 ) error {
 	working, err := os.Getwd()
 	if err != nil {
@@ -142,6 +147,11 @@ func runGenerate(
 		return fmt.Errorf("invalid --server value: %s", serverSide)
 	}
 
+	enumStyle, err := typegen.ParseEnumStyle(rawEnumStyle)
+	if err != nil {
+		return err
+	}
+
 	created, name, err := resolveGenerator(command, language, working)
 	if err != nil {
 		return err
@@ -158,6 +168,7 @@ func runGenerate(
 		ImportSource:    importSource,
 		ImportExtension: importExtension,
 		ServerSide:      serverSide,
+		EnumStyle:       enumStyle,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to generate SDK: %w", err)

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Appwrite module</title>
+</head>
+
+<body>
+    <script type="module">
+        import { Client } from './dist/cdn/client.js';
+        import { Foo } from './dist/cdn/foo.js';
+        import { ID } from './dist/cdn/id.js';
+
+        try {
+            const client = new Client();
+            const foo = new Foo(client);
+
+            client.setProject('123456');
+            console.log((await client.ping()).result);
+
+            console.log((await foo.get('string', 123, ['string in array'])).result);
+            console.log((await foo.post('string', 123, ['string in array'])).result);
+            console.log((await foo.put('string', 123, ['string in array'])).result);
+            console.log((await foo.patch('string', 123, ['string in array'])).result);
+            console.log((await foo.delete('string', 123, ['string in array'])).result);
+
+            console.log(ID.unique());
+            console.log(ID.custom('custom_id'));
+        } catch (error) {
+            console.log(`Module failed: ${error}`);
+        } finally {
+            window.moduleDone = true;
+        }
+    </script>
+</body>
+
+</html>

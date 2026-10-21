@@ -42,6 +42,7 @@ class CLI extends Go
         // silently break every installer if they did not.
         'npmPackage' => 'appwrite-cli',
         'sdkImportPath' => self::SDK_MODULE,
+        'sdkPath' => '',
         // ASCII art above the main help screen. Templates escape it for their
         // target syntax rather than sharing one encoded representation.
         'logo' => '',
@@ -94,6 +95,16 @@ class CLI extends Go
     public function setNPMPackage(string $name): self
     {
         $this->setParam('npmPackage', $name);
+
+        return $this;
+    }
+
+    /**
+     * Local directory go.mod replaces the published Go SDK with. Empty keeps the published module.
+     */
+    public function setSdkPath(string $path): self
+    {
+        $this->setParam('sdkPath', $path);
 
         return $this;
     }
@@ -268,6 +279,8 @@ class CLI extends Go
                     'source' => $variable,
                     'helper' => 'GraphQLRequest',
                 ];
+            } elseif ($flagType === '[]string' && $sdkType === '[]string') {
+                $expression = 'app.StringSlice(' . $variable . ')';
             } elseif ($flagType !== $sdkType) {
                 [$expression, $decode] = $this->convertToSdkType(
                     $variable,
@@ -717,6 +730,11 @@ class CLI extends Go
                 'template'      => 'cli/internal/app/convert.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/convert_test.go',
+                'template'      => 'cli/internal/app/convert_test.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/app/fallback.go',
                 'template'      => 'cli/internal/app/fallback.go.twig',
@@ -850,6 +868,11 @@ class CLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushselect_test.go',
                 'template'      => 'cli/internal/cmd/pushselect_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/analytics_test.go',
+                'template'      => 'cli/internal/cmd/analytics_test.go',
             ],
             [
                 'scope'         => 'copy',
@@ -1107,6 +1130,11 @@ class CLI extends Go
                 'template'      => 'cli/internal/cmd/initscaffold_test.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initsite_test.go',
+                'template'      => 'cli/internal/cmd/initsite_test.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/initfunction.go',
                 'template'      => 'cli/internal/cmd/initfunction.go',
@@ -1125,6 +1153,126 @@ class CLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/initskill.go',
                 'template'      => 'cli/internal/cmd/initskill.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/initpush.go',
+                'template'      => 'cli/internal/cmd/initpush.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/initpushdetect.go',
+                'template'      => 'cli/internal/cmd/initpushdetect.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/initpush_test.go',
+                'template'      => 'cli/internal/cmd/initpush_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/apns.go',
+                'template'      => 'cli/internal/apns/apns.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/apns_test.go',
+                'template'      => 'cli/internal/apns/apns_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/apnstest/apnstest.go',
+                'template'      => 'cli/internal/apns/apnstest/apnstest.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/adapter.go',
+                'template'      => 'cli/internal/apns/appwrite/adapter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/adapter_test.go',
+                'template'      => 'cli/internal/apns/appwrite/adapter_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/appid.go',
+                'template'      => 'cli/internal/apns/appwrite/appid.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/auth.go',
+                'template'      => 'cli/internal/apns/appwrite/auth.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/appwrite/jar.go',
+                'template'      => 'cli/internal/apns/appwrite/jar.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/appwrite/portal.go',
+                'template'      => 'cli/internal/apns/appwrite/portal.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/appwrite/srp.go',
+                'template'      => 'cli/internal/apns/appwrite/srp.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/appwrite/srp_test.go',
+                'template'      => 'cli/internal/apns/appwrite/srp_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/expo/adapter.go',
+                'template'      => 'cli/internal/apns/expo/adapter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/expo/adapter_test.go',
+                'template'      => 'cli/internal/apns/expo/adapter_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/helper/helper.js',
+                'template'      => 'cli/internal/apns/expo/helper/helper.js',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/helper/package.json',
+                'template'      => 'cli/internal/apns/expo/helper/package.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/helper/package-lock.json',
+                'template'      => 'cli/internal/apns/expo/helper/package-lock.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/expo/runtime.go',
+                'template'      => 'cli/internal/apns/expo/runtime.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/expo/runtime_test.go',
+                'template'      => 'cli/internal/apns/expo/runtime_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/fastlane/adapter.go',
+                'template'      => 'cli/internal/apns/fastlane/adapter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/apns/fastlane/adapter_test.go',
+                'template'      => 'cli/internal/apns/fastlane/adapter_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/apns/fastlane/helper/Fastfile',
+                'template'      => 'cli/internal/apns/fastlane/helper/Fastfile',
             ],
             [
                 'scope'         => 'default',
@@ -1455,6 +1603,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/typegen/enum_style.go',
+                'template'      => 'cli/internal/typegen/enum_style.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/typegen/language.go',
                 'template'      => 'cli/internal/typegen/language.go',
             ],
@@ -1490,6 +1643,16 @@ class CLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/typegen/testdata/ts.strict.appwrite.d.ts',
                 'template'      => 'cli/internal/typegen/testdata/ts.strict.appwrite.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/ts.const.appwrite.d.ts',
+                'template'      => 'cli/internal/typegen/testdata/ts.const.appwrite.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/ts.const.appwrite.ts',
+                'template'      => 'cli/internal/typegen/testdata/ts.const.appwrite.ts',
             ],
             [
                 'scope'         => 'copy',
@@ -1652,6 +1815,36 @@ class CLI extends Go
                 'template'      => 'cli/internal/typegen/testdata/cs.strict.BooksZines.cs',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/python.go',
+                'template'      => 'cli/internal/typegen/python.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.collections.json',
+                'template'      => 'cli/internal/typegen/testdata/python.collections.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.loose.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.loose.appwrite_types.py',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.strict.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.strict.appwrite_types.py',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.coverage.loose.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.coverage.loose.appwrite_types.py',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.coverage.strict.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.coverage.strict.appwrite_types.py',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/generator/generator.go',
                 'template'      => 'cli/internal/generator/generator.go',
@@ -1685,6 +1878,11 @@ class CLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/generator/testdata/server.types.ts',
                 'template'      => 'cli/internal/generator/testdata/server.types.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.const.types.ts',
+                'template'      => 'cli/internal/generator/testdata/server.const.types.ts',
             ],
             [
                 'scope'         => 'copy',

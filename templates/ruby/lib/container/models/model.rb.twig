@@ -13,7 +13,7 @@ module {{ spec.info.title | caseUcfirst }}
 
             def initialize(
 {% for property in definition.properties %}
-                {{ (property | schemaName) | caseSnake | escapeKeyword }}:{% if not (property | schemaRequired) and property.default is not null and property.default != '' %} {{ property.default }}{% endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
+                {{ (property | schemaName) | caseSnake | escapeKeyword }}:{% if not (property | schemaRequired) %} {% if property.default is not null and property.default is not same as('') %}{{ property | rubyDefault }}{% else %}nil{% endif %}{% endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
 
 {% endfor %}
 {% if definition.additionalProperties %}
@@ -37,6 +37,10 @@ module {{ spec.info.title | caseUcfirst }}
             end
 
             def self.from(map:)
+{% set defaults = definition.properties | filter(p => (p | modelDefault) is not null) %}
+{% if defaults | length > 0 %}
+                map = { {% for property in defaults %}"{{ property | schemaName }}" => {{ property | rubyDefault }}{% if not loop.last %}, {% endif %}{% endfor %} }.merge(map)
+{% endif %}
                 {{ definitionName | caseUcfirst }}.new(
 {% for property in definition.properties %}
                     {{ (property | schemaName) | caseSnake | escapeKeyword | removeDollarSign }}: {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}map["{{ (property | schemaName) }}"]{% if not (property | schemaRequired) %}&.{% else %}.{% endif %}map { |it| {{ (property | schemaModel) | caseUcfirst }}.from(map: it) }{% else %}{% if not (property | schemaRequired) %}map["{{(property | schemaName) }}"].nil? ? nil : {% endif %}{{(property | schemaModel) | caseUcfirst}}.from(map: map["{{(property | schemaName) }}"]){% endif %}{% else %}map["{{ (property | schemaName) }}"]{% endif %}{% if not loop.last or definition.additionalProperties %},{% endif %}
@@ -90,9 +94,17 @@ module {{ spec.info.title | caseUcfirst }}
 {% endfor %}
                 ]
 
+{% if (property | schemaType) == 'array' %}
+                ({{ (property | schemaName) | caseSnake | escapeKeyword }} || []).each do |value|
+                    unless valid_{{ (property | schemaName) | caseSnake }}.include?(value)
+                        raise ArgumentError, "Invalid " + value.to_s + ". Must be one of: " + valid_{{ (property | schemaName) | caseSnake }}.join(', ')
+                    end
+                end
+{% else %}
                 unless valid_{{ (property | schemaName) | caseSnake }}.include?({{ (property | schemaName) | caseSnake | escapeKeyword }})
                     raise ArgumentError, "Invalid " + {{ (property | schemaName) | caseSnake | escapeKeyword }} + ". Must be one of: " + valid_{{ (property | schemaName) | caseSnake }}.join(', ')
                 end
+{% endif %}
 
                 {{ (property | schemaName) | caseSnake | escapeKeyword }}
             end

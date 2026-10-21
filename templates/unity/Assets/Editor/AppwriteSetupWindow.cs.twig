@@ -209,8 +209,10 @@ namespace {{ spec.info.title | caseUcfirst }}.Editor
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.BeginHorizontal();
             var buttonStyle = new GUIStyle(GUI.skin.button) { padding = new RectOffset(15, 15, 8, 8), margin = new RectOffset(5, 5, 5, 5), fontSize = 11 };
-            if (GUILayout.Button(new GUIContent(" 📖 Documentation", "Open {{ spec.info.title | caseUcfirst }} documentation"), buttonStyle)) { Application.OpenURL("{{ sdk.url }}"); }
-            if (GUILayout.Button(new GUIContent(" 💬 Discord Community", "Join our Discord community"), buttonStyle)) { Application.OpenURL("https://discord.gg/dJ9xrMr9hq"); }
+            if (GUILayout.Button(new GUIContent(" 📖 Documentation", "Open the {{ spec.info.title | caseUcfirst }} SDK for Unity documentation"), buttonStyle)) { Application.OpenURL("https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}#readme"); }
+{% if sdk.discordUrl %}
+            if (GUILayout.Button(new GUIContent(" 💬 Discord Community", "Join our Discord community"), buttonStyle)) { Application.OpenURL("{{ sdk.discordUrl }}"); }
+{% endif %}
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.EndVertical();
         }

@@ -8,18 +8,12 @@ namespace {{ namespace | caseNamespace }};
  * Helper to build MQTT topics for `Push`, level by level.
  *
  *     Topic::path(['user', $userId, 'notification']); // "user/123/notification"
- *     Topic::path(['user'])->any()->path(['notification']); // "user/+/notification"
- *     Topic::path(['org'])->any()->path(['logs'])->all(); // "org/+/logs/#"
+ *     Topic::path(['org', $orgId])->path(['logs']); // "org/42/logs"
  *
- * `any()` matches exactly one level and `all()` everything below, at any depth (including the
- * parent itself). `all()` ends the topic, so it returns a ResolvedTopic.
- *
- * The same names start a topic (`Topic::path()`) and extend one (`$topic->path()`); both are
- * routed through `__callStatic()` and `__call()` to the protected implementations below.
+ * The same name starts a topic (`Topic::path()`) and extends one (`$topic->path()`); both are
+ * routed through `__callStatic()` and `__call()` to the protected implementation below.
  *
  * @method static Topic path(array<mixed> $levels) Start a topic with the given levels, or append them.
- * @method static Topic any() Start a topic with a single-level wildcard (`+`), or append one.
- * @method static ResolvedTopic all() The multi-level wildcard (`#`) alone, or appended to end the topic.
  */
 final readonly class Topic implements \Stringable
 {
@@ -33,7 +27,7 @@ final readonly class Topic implements \Stringable
     /**
      * @param array<mixed> $arguments
      */
-    public static function __callStatic(string $name, array $arguments): self|ResolvedTopic
+    public static function __callStatic(string $name, array $arguments): self
     {
         return new self([])->dispatch($name, $arguments);
     }
@@ -41,7 +35,7 @@ final readonly class Topic implements \Stringable
     /**
      * @param array<mixed> $arguments
      */
-    public function __call(string $name, array $arguments): self|ResolvedTopic
+    public function __call(string $name, array $arguments): self
     {
         return $this->dispatch($name, $arguments);
     }
@@ -54,22 +48,6 @@ final readonly class Topic implements \Stringable
         return new self([...$this->levels, ...$this->levelsOf($levels)]);
     }
 
-    /**
-     * Append a single-level wildcard (`+`): matches exactly one level.
-     */
-    protected function appendAny(): self
-    {
-        return new self([...$this->levels, '+']);
-    }
-
-    /**
-     * Append the multi-level wildcard (`#`) and end the topic.
-     */
-    protected function appendAll(): ResolvedTopic
-    {
-        return new ResolvedTopic([...$this->levels, '#']);
-    }
-
     public function __toString(): string
     {
         return \implode('/', $this->levels);
@@ -78,19 +56,17 @@ final readonly class Topic implements \Stringable
     /**
      * @param array<mixed> $arguments
      */
-    private function dispatch(string $name, array $arguments): self|ResolvedTopic
+    private function dispatch(string $name, array $arguments): self
     {
         return match ($name) {
             'path' => $this->appendPath($arguments[0] ?? null),
-            'any' => $this->appendAny(),
-            'all' => $this->appendAll(),
             default => throw new \BadMethodCallException('Call to undefined method ' . self::class . '::' . $name . '()'),
         };
     }
 
     /**
      * Validate the levels passed to `path()`: a non-empty array of non-empty strings, none holding
-     * the level separator `/` or the wildcards `+` and `#` (use `any()` and `all()` for those).
+     * the level separator `/` or the MQTT wildcards `+` and `#`.
      *
      * @return list<string>
      */
@@ -120,20 +96,15 @@ final readonly class Topic implements \Stringable
                 throw new \InvalidArgumentException(\sprintf('"%s" contains "/", split it: path([%s])', $level, $parts));
             }
 
-            if ($level === '+') {
-                throw new \InvalidArgumentException('"+" is reserved, use any()');
-            }
-
             if (\str_contains($level, '+')) {
-                throw new \InvalidArgumentException(\sprintf('"%s" contains "+", use any() for wildcards', $level));
-            }
-
-            if ($level === '#') {
-                throw new \InvalidArgumentException('"#" is reserved, use all()');
+                throw new \InvalidArgumentException(\sprintf('"%s" contains "+", not allowed in a topic', $level));
             }
 
             if (\str_contains($level, '#')) {
-                throw new \InvalidArgumentException(\sprintf('"%s" contains "#", use all() for wildcards', $level));
+                throw new \InvalidArgumentException(\sprintf('"%s" contains "#", not allowed in a topic', $level));
+            }
+            if (\str_contains($level, "\0")) {
+                throw new \InvalidArgumentException(\sprintf('level at index %d contains a NUL character', $index));
             }
 
             $result[] = $level;

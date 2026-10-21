@@ -13,14 +13,26 @@ type resourceIdentity struct {
 	Name    string
 	Aliases []string
 	Path    string
-	// ConfigKey is the config array, and also the array key in a list response:
-	// the API and the config agree on the plural for every resource here.
+	// ConfigKey is the config array, and also the array key in a list response
+	// unless ListKey says otherwise.
 	ConfigKey string
-	Label     string
-	Singular  string
+	// ListKey is the array key in a list response, when the config names the
+	// array differently. Analytics properties are listed as `properties`, a
+	// key that would read as settings at the top of a config.
+	ListKey  string
+	Label    string
+	Singular string
 }
 
 func (r resourceIdentity) itemPath(id string) string { return r.Path + "/" + id }
+
+func (r resourceIdentity) listKey() string {
+	if r.ListKey != "" {
+		return r.ListKey
+	}
+
+	return r.ConfigKey
+}
 
 // syncHint is the line shown when a push finds nothing configured. Webhooks
 // word it differently because `init webhook` does not exist. The wording is
@@ -55,6 +67,12 @@ var (
 		Name: "topic", Aliases: []string{"topics"},
 		Path: "/messaging/topics", ConfigKey: "topics",
 		Label: "topics", Singular: "topic",
+	}
+
+	analyticsIdentity = resourceIdentity{
+		Name: "analytics",
+		Path: "/analytics/properties", ConfigKey: "analytics", ListKey: "properties",
+		Label: "analytics properties", Singular: "analytics property",
 	}
 
 	tableIdentity = resourceIdentity{
