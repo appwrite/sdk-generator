@@ -12,6 +12,8 @@ Scenarios that need a real Android system, run on an emulator in CI
 | battery exemption | `requestIgnoreBatteryOptimizations()` shows the dialog; once allowed, the status reports it |
 | reconnect while running | a lost network reports `onClose`, the SDK reconnects on its own (`onOpen`, no refused credential), and messages arrive again |
 | background tap | a notification with the push's title and body (not the raw payload) is posted, and its tap reaches `onNotificationOpened` |
+| quoted title | a notification whose title holds double quotes can be found and tapped |
+| grouped tap | with three notifications bundled into a group, tapping the oldest still reaches `onNotificationOpened` |
 | killed in recents | a scheduled wake-up posts the message; the tap that restarts the app reaches `getInitialNotification` |
 | removed from recents | the same with no task left |
 | repeated wake-ups | with the app closed, a second message a minute later arrives from a later wake-up |
