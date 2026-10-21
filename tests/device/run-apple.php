@@ -154,7 +154,7 @@ function events(): array
 {
     global $since;
     $lines = [];
-    $log = simctl('spawn log show --style compact --start ' . escapeshellarg($since) . ' --predicate ' . escapeshellarg('eventMessage CONTAINS "push-e2e: "'));
+    $log = simctl('spawn log show --style compact --start ' . escapeshellarg($since) . ' --predicate ' . escapeshellarg('(process == "PushDevice" OR process == "NotificationService") AND eventMessage CONTAINS "push-e2e: "'));
     foreach (explode("\n", $log) as $line) {
         if (preg_match('/push-e2e: (.*)$/', $line, $match)) {
             $lines[] = $match[1];
