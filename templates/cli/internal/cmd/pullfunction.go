@@ -47,7 +47,7 @@ var codeResources = []codeResource{
 		Keys: []string{
 			"$id", "name", "runtime", "path", "previewDomainTarget",
 			"previewDomainLabel", "entrypoint", "execute", "enabled", "logging",
-			"events", "schedule", "timeout", "commands", "scopes",
+			"events", "schedule", "interval", "timeout", "commands", "scopes",
 			"installationId", "providerRepositoryId", "providerBranch",
 			"providerSilentMode", "providerRootDirectory", "providerBranches",
 			"providerPaths", "buildSpecification", "runtimeSpecification",

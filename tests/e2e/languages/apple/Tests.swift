@@ -149,6 +149,7 @@ class Tests: XCTestCase {
         }
         print(try await general.validatePath(plain: "0", id: "0").result)
         print(try await general.validatePath(plain: "0", id: nil).result)
+        print(try await general.getQuery(value: "a&b+c#d=e%f", values: ["a&b", "c+d#e"]).result)
 
         let zone: String = try await Plaintext(client).getZone()
         print(zone)
@@ -243,6 +244,15 @@ class Tests: XCTestCase {
         ])
         print(mock.result)
 
+        let preset = try await general.getPreset()
+        print("preset: name=\(preset.name), count=\(preset.count), enabled=\(preset.enabled)")
+        for item in try await general.listPresets().presets {
+            print("preset: name=\(item.name), count=\(item.count), enabled=\(item.enabled)")
+        }
+        print("empty presets: \(try await general.listEmptyPresets().presets.count)")
+        print("preset verified: \(preset.verified.map { String($0) } ?? "null")")
+        print("preset scopes: \((preset.scopes ?? []).map { $0.rawValue }.joined(separator: ","))")
+
         do {
             try await general.error400()
         } catch let error as AppwriteError {
@@ -328,6 +338,11 @@ class Tests: XCTestCase {
         } catch {
             print("Realtime disconnect:failed")
         }
+
+        print(try await firstFrameAfterUpgrade())
+        print(try await connectRejectsUpgrade())
+        print(try await subscribeReusesSocket())
+        print(try await realtimeReconnects())
 
         mock = try await general.setCookie()
         print(mock.result)
@@ -421,6 +436,48 @@ class Tests: XCTestCase {
             Query.equal("name", value: "Alice"),
             Query.greaterThan("age", value: 18)
         ]))
+        print(Query.relationship("comments", queries: [
+            Query.equal("approved", value: true),
+            Query.limit(2)
+        ]))
+        let transportQueries: [String] = [
+            Query.count("*", alias: "total"),
+            Query.join("orders", left: "$id", right: "customerId"),
+            Query.groupBy(["status"]),
+            Query.distinct(),
+            Query.covers("location", values: [1, 2]),
+            Query.countDistinct("year", alias: "uniqueYears"),
+            Query.sum("price", alias: "total"),
+            Query.avg("price", alias: "avgPrice"),
+            Query.min("price", alias: "lowest"),
+            Query.max("price", alias: "highest"),
+            Query.stddev("price", alias: "sd"),
+            Query.stddevPop("price", alias: "sdp"),
+            Query.stddevSamp("price", alias: "sds"),
+            Query.variance("price", alias: "var"),
+            Query.varPop("price", alias: "vp"),
+            Query.varSamp("price", alias: "vs"),
+            Query.bitAnd("flags", alias: "band"),
+            Query.bitOr("flags", alias: "bor"),
+            Query.bitXor("flags", alias: "bxor"),
+            Query.having([Query.greaterThan("total", value: 1)]),
+            Query.leftJoin("orders", left: "$id", right: "customerId", operator: "=", alias: "ord"),
+            Query.rightJoin("orders", left: "$id", right: "customerId"),
+            Query.fullOuterJoin("orders", left: "$id", right: "customerId"),
+            Query.crossJoin("orders", alias: "ord"),
+            Query.on("$id", "customerId"),
+            Query.leftJoin("orders", alias: "ord", on: [
+                Query.on("$id", "customerId"),
+                Query.equal("ord.status", value: "paid"),
+            ]),
+            Query.notCovers("location", values: [1, 2]),
+            Query.spatialEquals("location", values: [1, 2]),
+            Query.notSpatialEquals("location", values: [1, 2]),
+        ]
+        let queryTransport = try await general.listRows(
+            queries: transportQueries + Query.page(2, perPage: 10) + Query.builder().limit(1).build()
+        )
+        print(queryTransport.result)
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()))
@@ -441,17 +498,13 @@ class Tests: XCTestCase {
         // Topic helper tests
         print(try Topic.path(["user", "123", "notification"]).toString())
         print(try Topic.path(["org", "42", "user", "123"]).path(["notification"]).toString())
-        print(try Topic.path(["user"]).any().path(["notification"]).toString())
-        print(try Topic.path(["chat"]).any().any().path(["message"]).toString())
-        print(try Topic.path(["org"]).any().path(["logs"]).all().toString())
-        print(try Topic.any().path(["notification"]).toString())
-        print(Topic.all().toString())
         let topicCases: [(String, [String])] = [
             ("empty path", []),
             ("empty level", ["user", ""]),
             ("slash", ["user/123"]),
             ("plus", ["user", "a+b"]),
             ("hash", ["user", "#"]),
+            ("nul", ["user", "a\u{0}b"]),
         ]
         for (name, levels) in topicCases {
             do {
@@ -654,6 +707,16 @@ class Tests: XCTestCase {
         let kickedError = await firstError(Push(client), subscribingTo: "e2e-disconnect/kicked-by-test")
         print(!kickedError.isEmpty ? "Push disconnect error:passed" : "Push disconnect error:failed")
 
+        // With no onError, the broker's DISCONNECT is logged to stderr, which must stay out of
+        // the stdout this harness compares.
+        let unhandledPush = Push(client)
+        let unhandledClosed = XCTestExpectation(description: "push closed without onError")
+        _ = unhandledPush.onClose { unhandledClosed.fulfill() }
+        _ = try? await unhandledPush.subscribe("e2e-disconnect/unhandled") { _ in }
+        let unhandledResult = await XCTWaiter().fulfillment(of: [unhandledClosed], timeout: 10)
+        unhandledPush.close()
+        print(unhandledResult == .completed ? "Push disconnect without onError:passed" : "Push disconnect without onError:failed")
+
         func outcome(_ subscribing: () async throws -> Void) async -> String {
             do {
                 try await subscribing()
@@ -744,22 +807,130 @@ class Tests: XCTestCase {
                 .setPushEndpoint("mqtt://mqtt:1883")
                 .setSession(e2eSession)
         )
+        // Dropping the last subscription closes the connection while its UNSUBSCRIBE is in flight,
+        // and reopening at once clears `closing` before that UNSUBSCRIBE fails. The failure is the
+        // closed connection's teardown, so it must not reach onError (or stderr without one).
+        let callbackErrors = ErrorCollector()
+        _ = callbackPush.onError { error in
+            callbackErrors.record((error as? AppwriteError)?.message ?? "\(error)")
+        }
         let handle = SubscriptionBox()
         let closedFromCallback = ErrorCollector()
+        let reopenedFromCallback = ErrorCollector()
         handle.subscription = try? await callbackPush.subscribe("e2e-push") { _ in
             handle.subscription?.unsubscribe()
             closedFromCallback.record("closed")
+            Task {
+                reopenedFromCallback.record(await outcome { _ = try await callbackPush.subscribe("e2e-switch") { _ in } })
+            }
         }
-        for _ in 0..<50 where closedFromCallback.message == nil {
+        for _ in 0..<50 where reopenedFromCallback.message == nil {
             try? await Task.sleep(nanoseconds: 100_000_000)
         }
-        let reopened = await outcome { _ = try await callbackPush.subscribe("e2e-switch") { _ in } }
+        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        let reopened = reopenedFromCallback.message ?? "timeout"
         callbackPush.close()
         print(
-            closedFromCallback.message == "closed" && reopened.isEmpty
+            closedFromCallback.message == "closed" && reopened.isEmpty && callbackErrors.message == nil
                 ? "Push close from callback:passed"
-                : "Push close from callback:failed (callback: \(closedFromCallback.message ?? "none"), reopened: \(reopened))"
+                : "Push close from callback:failed (callback: \(closedFromCallback.message ?? "none"), reopened: \(reopened), error: \(callbackErrors.message ?? "none"))"
         )
+    }
+
+    /// A server may write its first frame in the same packet as the 101 response.
+    func firstFrameAfterUpgrade() async throws -> String {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        let server = try await ScriptedUpgrade.serve(on: group) { _ in
+            ScriptedUpgrade(.accept(frames: [ScriptedUpgrade.firstFrame]))
+        }
+        let received = XCTestExpectation(description: "first frame")
+        let socket = WebSocketClient("ws://127.0.0.1:\(server.localAddress!.port!)/v1/realtime", tlsEnabled: false)!
+        socket.onMessage { (text: String) in
+            if text == ScriptedUpgrade.firstFrame {
+                received.fulfill()
+            }
+        }
+        try await socket.connect()
+        let result = await XCTWaiter().fulfillment(of: [received], timeout: 5)
+        socket.close()
+        try await server.close()
+        return result == .completed ? "WebSocket first frame:passed" : "WebSocket first frame:failed"
+    }
+
+    /// connect() must throw when the server answers the upgrade with anything but 101, mapping known statuses.
+    func connectRejectsUpgrade() async throws -> String {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        var outcomes: [String] = []
+        for status in ["404 Not Found", "403 Forbidden"] {
+            let server = try await ScriptedUpgrade.serve(on: group) { _ in
+                ScriptedUpgrade(.reject(status: status))
+            }
+            let socket = WebSocketClient("ws://127.0.0.1:\(server.localAddress!.port!)/v1/realtime", tlsEnabled: false)!
+            do {
+                try await socket.connect()
+                outcomes.append("connected")
+            } catch {
+                outcomes.append(String(describing: error))
+            }
+            try await server.close()
+        }
+        return outcomes == ["notFound", "upgradeRejected"]
+            ? "WebSocket upgrade rejection:passed"
+            : "WebSocket upgrade rejection:failed (\(outcomes.joined(separator: ", ")))"
+    }
+
+    /// A subscribe made right after another has returned must reuse that subscribe's socket, even when
+    /// the server is slow to accept the upgrade.
+    func subscribeReusesSocket() async throws -> String {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        let connections = ConnectionCounter()
+        let server = try await ScriptedUpgrade.serve(on: group) { _ in
+            connections.increment()
+            return ScriptedUpgrade(.accept(frames: [ScriptedUpgrade.connected]), after: .milliseconds(300))
+        }
+        let realtime = Realtime(scriptedRealtimeClient(port: server.localAddress!.port!))
+        _ = try await realtime.subscribe(channel: "tests") { _ in }
+        _ = try await realtime.subscribe(channel: "files") { _ in }
+        try await Task.sleep(nanoseconds: 500_000_000)
+        try await realtime.disconnect()
+        try await server.close()
+        let count = connections.count
+        return count == 1 ? "Realtime subscribe reuses socket:passed" : "Realtime subscribe reuses socket:failed (\(count) connections)"
+    }
+
+    /// Realtime must reconnect every time the server drops it, including after a reconnect attempt fails.
+    func realtimeReconnects() async throws -> String {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        let replies: [ScriptedUpgrade.Reply] = [
+            .accept(frames: [ScriptedUpgrade.connected], close: true),
+            .drop,
+            .accept(frames: [ScriptedUpgrade.connected], close: true),
+            .accept(frames: [ScriptedUpgrade.connected]),
+        ]
+        let connections = ConnectionCounter()
+        let server = try await ScriptedUpgrade.serve(on: group) { _ in
+            ScriptedUpgrade(replies[min(connections.increment(), replies.count) - 1])
+        }
+        let realtime = Realtime(scriptedRealtimeClient(port: server.localAddress!.port!))
+        let opened = XCTestExpectation(description: "realtime opened three times")
+        opened.expectedFulfillmentCount = 3
+        realtime.onOpen { opened.fulfill() }
+        _ = try await realtime.subscribe(channel: "tests") { _ in }
+        let result = await XCTWaiter().fulfillment(of: [opened], timeout: 15)
+        try await realtime.disconnect()
+        try await server.close()
+        return result == .completed ? "Realtime reconnect:passed" : "Realtime reconnect:failed (\(connections.count) connections)"
+    }
+
+    func scriptedRealtimeClient(port: Int) -> Client {
+        return Client()
+            .setProject("123456")
+            .setSelfSigned()
+            .setEndpointRealtime("ws://127.0.0.1:\(port)/v1")
     }
 
     func parse(from json: String) -> String? {
@@ -769,6 +940,107 @@ class Tests: XCTestCase {
             return result
         }
         return nil
+    }
+}
+
+/// Answers the WebSocket upgrade request from raw bytes, so a test controls whether and when the upgrade
+/// is accepted, the frames sent with it and whether the server then closes the socket.
+final class ScriptedUpgrade: ChannelInboundHandler, @unchecked Sendable {
+    typealias InboundIn = ByteBuffer
+    typealias OutboundOut = ByteBuffer
+
+    enum Reply {
+        case accept(frames: [String], close: Bool = false)
+        case reject(status: String)
+        case drop
+    }
+
+    static let firstFrame = "first-frame"
+    static let connected = #"{"type":"connected","data":{"channels":[],"user":null}}"#
+    // Sec-WebSocket-Accept for the fixed Sec-WebSocket-Key WebSocketClient sends.
+    private static let accept = "ZXBe/0Qtt2IZI9ybavBlj+XPte8="
+
+    private let reply: Reply
+    private let delay: TimeAmount
+    private var request = ""
+    private var answered = false
+
+    init(_ reply: Reply, after delay: TimeAmount = .zero) {
+        self.reply = reply
+        self.delay = delay
+    }
+
+    static func serve(
+        on group: EventLoopGroup,
+        handler: @escaping @Sendable (NIOCore.Channel) -> ScriptedUpgrade
+    ) async throws -> NIOCore.Channel {
+        return try await ServerBootstrap(group: group)
+            .childChannelInitializer { $0.pipeline.addHandler(handler($0)) }
+            .bind(host: "127.0.0.1", port: 0)
+            .get()
+    }
+
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        guard !answered else {
+            return
+        }
+        var buffer = unwrapInboundIn(data)
+        request += buffer.readString(length: buffer.readableBytes) ?? ""
+        guard request.hasSuffix("\r\n\r\n") else {
+            return
+        }
+        answered = true
+        if delay == .zero {
+            answer(context: context)
+        } else {
+            context.eventLoop.scheduleTask(in: delay) { self.answer(context: context) }
+        }
+    }
+
+    private func answer(context: ChannelHandlerContext) {
+        switch reply {
+        case .drop:
+            context.close(promise: nil)
+        case .reject(let status):
+            let response = context.channel.allocator.buffer(string: "HTTP/1.1 \(status)\r\nContent-Length: 0\r\n\r\n")
+            context.writeAndFlush(wrapOutboundOut(response), promise: nil)
+        case .accept(let frames, let close):
+            var response = context.channel.allocator.buffer(
+                string: "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: \(Self.accept)\r\n\r\n"
+            )
+            for frame in frames {
+                precondition(frame.utf8.count < 126, "frames use the single-byte payload length")
+                response.writeBytes([0x81, UInt8(frame.utf8.count)])
+                response.writeString(frame)
+            }
+            context.writeAndFlush(wrapOutboundOut(response), promise: nil)
+            if close {
+                context.eventLoop.scheduleTask(in: .milliseconds(100)) {
+                    let closeFrame = context.channel.allocator.buffer(bytes: [0x88, 0x00])
+                    context.writeAndFlush(self.wrapOutboundOut(closeFrame), promise: nil)
+                }
+            }
+        }
+    }
+}
+
+/// Counts the connections a scripted server accepts; NIO accepts them on its own thread.
+final class ConnectionCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    @discardableResult
+    func increment() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        value += 1
+        return value
+    }
+
+    var count: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
     }
 }
 

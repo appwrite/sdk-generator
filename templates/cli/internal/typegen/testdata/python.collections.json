@@ -1,0 +1,158 @@
+[
+  {
+    "$id": "items",
+    "databaseId": "main",
+    "name": "Inventory Items",
+    "attributes": [
+      { "key": "sku", "type": "varchar", "required": true, "size": 32 },
+      { "key": "summary", "type": "mediumtext", "required": false },
+      { "key": "body", "type": "longtext", "required": false, "default": null },
+      { "key": "contact", "type": "string", "format": "email", "required": true, "size": 254 },
+      { "key": "homepage", "type": "string", "format": "url", "required": false, "size": 2000 },
+      { "key": "origin", "type": "string", "format": "ip", "required": false, "size": 39 },
+      { "key": "stock", "type": "bigint", "required": true },
+      { "key": "counts", "type": "integer", "required": true, "array": true },
+      { "key": "prices", "type": "double", "required": false, "array": true },
+      { "key": "flags", "type": "boolean", "required": false, "array": true },
+      { "key": "class", "type": "string", "required": true, "size": 8 },
+      { "key": "json", "type": "string", "required": false, "size": 8 },
+      { "key": "model_config", "type": "string", "required": false, "size": 8 },
+      { "key": "str", "type": "string", "required": false, "size": 8 },
+      { "key": "_hidden", "type": "string", "required": false, "size": 8 },
+      { "key": "fullName", "type": "string", "required": true, "size": 64 },
+      { "key": "full_name", "type": "string", "required": false, "size": 64 },
+      { "key": "9lives", "type": "integer", "required": false },
+      { "key": "!!!", "type": "string", "required": false, "size": 8 },
+      {
+        "key": "a rather long column key that needs wrapping too",
+        "type": "double",
+        "required": false,
+        "array": true
+      },
+      {
+        "key": "a_very_long_polygon_column_name_that_overflows_the_line_limit",
+        "type": "polygon",
+        "required": false
+      },
+      {
+        "key": "status",
+        "type": "string",
+        "format": "enum",
+        "required": false,
+        "size": 64,
+        "elements": [
+          "in stock",
+          "out of \"stock\"",
+          "back\\slash",
+          "it's",
+          "line\nbreak",
+          "an enum element long enough that its member no longer fits on a line"
+        ]
+      },
+      {
+        "key": "tiers",
+        "type": "string",
+        "format": "enum",
+        "required": true,
+        "array": true,
+        "size": 8,
+        "elements": ["gold", "silver"]
+      },
+      {
+        "key": "warehouses",
+        "type": "relationship",
+        "required": false,
+        "relatedTable": "warehouses",
+        "relationType": "manyToMany",
+        "side": "parent"
+      },
+      {
+        "key": "primary warehouse",
+        "type": "relationship",
+        "required": false,
+        "relatedTable": "warehouses",
+        "relationType": "manyToOne",
+        "side": "parent"
+      }
+    ]
+  },
+  {
+    "$id": "warehouses",
+    "databaseId": "main",
+    "name": "Warehouses",
+    "attributes": [
+      { "key": "name", "type": "string", "required": true, "size": 64 },
+      { "key": "location", "type": "point", "required": true },
+      { "key": "route", "type": "linestring", "required": false },
+      { "key": "opened.at", "type": "datetime", "required": false },
+      {
+        "key": "status",
+        "type": "string",
+        "format": "enum",
+        "required": true,
+        "size": 8,
+        "elements": ["open", "closed"]
+      },
+      {
+        "key": "items",
+        "type": "relationship",
+        "required": false,
+        "relatedTable": "items",
+        "relationType": "manyToMany",
+        "side": "child"
+      }
+    ]
+  },
+  {
+    "$id": "warehouse-status",
+    "databaseId": "main",
+    "name": "Warehouses Status",
+    "attributes": [
+      {
+        "key": "warehouse",
+        "type": "relationship",
+        "required": true,
+        "relatedTable": "warehouses",
+        "relationType": "oneToOne",
+        "side": "parent"
+      }
+    ]
+  },
+  {
+    "$id": "empty",
+    "databaseId": "main",
+    "name": "Empty",
+    "attributes": []
+  },
+  {
+    "$id": "long",
+    "databaseId": "main",
+    "name": "A table whose name is long enough that the class statement for its model cannot fit on one line",
+    "attributes": [
+      { "key": "value", "type": "string", "required": true, "size": 8 }
+    ]
+  },
+  {
+    "$id": "warehouses",
+    "databaseId": "archive",
+    "name": "Archived Warehouses",
+    "attributes": [
+      {
+        "key": "status",
+        "type": "string",
+        "format": "enum",
+        "required": true,
+        "size": 8,
+        "elements": ["sealed"]
+      },
+      {
+        "key": "successor",
+        "type": "relationship",
+        "required": false,
+        "relatedTable": "warehouses",
+        "relationType": "oneToOne",
+        "side": "parent"
+      }
+    ]
+  }
+]

@@ -1,5 +1,209 @@
+import {{ spec.info.title | caseUcfirst }}
+import Foundation
 import XCTest
 
 class Tests: XCTestCase {
+    func method(_ raw: String) -> String {
+        let object = try! JSONSerialization.jsonObject(with: Data(raw.utf8)) as! [String: Any]
+        return object["method"] as! String
+    }
 
+    func testCountDistinct() {
+        XCTAssertEqual(method(Query.countDistinct("year", alias: "uniqueYears")), "countDistinct")
+    }
+
+    func testSum() {
+        XCTAssertEqual(method(Query.sum("price", alias: "total")), "sum")
+    }
+
+    func testAvg() {
+        XCTAssertEqual(method(Query.avg("price", alias: "avgPrice")), "avg")
+    }
+
+    func testMin() {
+        XCTAssertEqual(method(Query.min("price", alias: "lowest")), "min")
+    }
+
+    func testMax() {
+        XCTAssertEqual(method(Query.max("price", alias: "highest")), "max")
+    }
+
+    func testStddev() {
+        XCTAssertEqual(method(Query.stddev("price", alias: "sd")), "stddev")
+    }
+
+    func testStddevPop() {
+        XCTAssertEqual(method(Query.stddevPop("price", alias: "sdp")), "stddevPop")
+    }
+
+    func testStddevSamp() {
+        XCTAssertEqual(method(Query.stddevSamp("price", alias: "sds")), "stddevSamp")
+    }
+
+    func testVariance() {
+        XCTAssertEqual(method(Query.variance("price", alias: "var")), "variance")
+    }
+
+    func testVarPop() {
+        XCTAssertEqual(method(Query.varPop("price", alias: "vp")), "varPop")
+    }
+
+    func testVarSamp() {
+        XCTAssertEqual(method(Query.varSamp("price", alias: "vs")), "varSamp")
+    }
+
+    func testBitAnd() {
+        XCTAssertEqual(method(Query.bitAnd("flags", alias: "band")), "bitAnd")
+    }
+
+    func testBitOr() {
+        XCTAssertEqual(method(Query.bitOr("flags", alias: "bor")), "bitOr")
+    }
+
+    func testBitXor() {
+        XCTAssertEqual(method(Query.bitXor("flags", alias: "bxor")), "bitXor")
+    }
+
+    func testHaving() {
+        XCTAssertEqual(method(Query.having([Query.greaterThan("total", value: 1)])), "having")
+    }
+
+    func testLeftJoin() {
+        XCTAssertEqual(method(Query.leftJoin("orders", left: "$id", right: "customerId", operator: "=", alias: "ord")), "leftJoin")
+    }
+
+    func testRightJoin() {
+        XCTAssertEqual(method(Query.rightJoin("orders", left: "$id", right: "customerId")), "rightJoin")
+    }
+
+    func testFullOuterJoin() {
+        XCTAssertEqual(method(Query.fullOuterJoin("orders", left: "$id", right: "customerId")), "fullOuterJoin")
+    }
+
+    func testCrossJoin() {
+        XCTAssertEqual(method(Query.crossJoin("orders", alias: "ord")), "crossJoin")
+    }
+
+    func testNestedJoinWithoutAliasLeavesTheAliasToTheServer() {
+        let raw = Query.join("orders", on: [Query.on("$id", "customerId")])
+        let object = try! JSONSerialization.jsonObject(with: Data(raw.utf8)) as! [String: Any]
+        XCTAssertEqual(object["method"] as? String, "join")
+        XCTAssertEqual(object["attribute"] as? String, "orders")
+        let values = object["values"] as! [Any]
+        XCTAssertEqual(values.count, 1)
+        XCTAssertEqual((values[0] as! [String: Any])["method"] as? String, "on")
+    }
+
+    func testCrossJoinWithoutAliasLeavesTheAliasToTheServer() {
+        let raw = Query.crossJoin("orders")
+        let object = try! JSONSerialization.jsonObject(with: Data(raw.utf8)) as! [String: Any]
+        XCTAssertEqual(object["method"] as? String, "crossJoin")
+        XCTAssertEqual(object["attribute"] as? String, "orders")
+        XCTAssertEqual((object["values"] as? [Any])?.count ?? 0, 0)
+    }
+
+    func testOn() {
+        XCTAssertEqual(method(Query.on("$id", "customerId")), "on")
+    }
+
+    func testNestedLeftJoin() {
+        let raw = Query.leftJoin(
+            "orders", alias: "ord",
+            on: [
+                Query.on("$id", "customerId"),
+                Query.equal("ord.status", value: "paid"),
+            ])
+        let object = try! JSONSerialization.jsonObject(with: Data(raw.utf8)) as! [String: Any]
+        XCTAssertEqual(object["method"] as? String, "leftJoin")
+        let values = object["values"] as! [Any]
+        XCTAssertEqual(values[0] as? String, "ord")
+        XCTAssertEqual((values[1] as! [String: Any])["method"] as? String, "on")
+        XCTAssertEqual((values[2] as! [String: Any])["method"] as? String, "equal")
+    }
+
+    func testNotCovers() {
+        XCTAssertEqual(method(Query.notCovers("location", values: [1, 2])), "notCovers")
+    }
+
+    func testSpatialEquals() {
+        XCTAssertEqual(method(Query.spatialEquals("location", values: [1, 2])), "spatialEquals")
+    }
+
+    func testNotSpatialEquals() {
+        XCTAssertEqual(method(Query.notSpatialEquals("location", values: [1, 2])), "notSpatialEquals")
+    }
+
+    func testPage() {
+        let queries = Query.page(2, perPage: 10)
+        XCTAssertEqual(queries.count, 2)
+        XCTAssertEqual(method(queries[0]), "limit")
+        XCTAssertEqual(method(queries[1]), "offset")
+    }
+
+    func testLessThanEqual() {
+        let raw = Query.lessThanEqual("price", value: 10)
+        XCTAssertEqual(method(raw), "lessThanEqual")
+        XCTAssertEqual(queries([raw])?.first?["attribute"] as? String, "price")
+        XCTAssertEqual(queries([raw])?.first?["values"] as? [Int], [10])
+        XCTAssertEqual(queries(Query.builder().lessThanEqual("price", value: 10).build()), queries([raw]))
+    }
+
+    func queries(_ value: Any?) -> [NSDictionary]? {
+        guard let list = value as? [Any] else {
+            return nil
+        }
+        return list.compactMap { item in
+            guard let raw = item as? String else {
+                return nil
+            }
+            return try? JSONSerialization.jsonObject(with: Data(raw.utf8)) as? NSDictionary
+        }
+    }
+
+    func testFlattenSpreadsWrappedBuilder() {
+        let client = Client()
+        XCTAssertEqual(queries(client.flatten([Query.builder().limit(1)] as [Any])), queries([Query.limit(1)]))
+    }
+
+    func testFlattenKeepsNestedNumericArrays() {
+        let client = Client()
+        let geometry = [[1, 2], [3, 4]]
+        XCTAssertEqual(client.flatten(geometry) as? [[Int]], geometry)
+    }
+
+    func testFlattenKeepsQueryStringList() {
+        let client = Client()
+        XCTAssertEqual(queries(client.flatten([Query.limit(1)] as [Any])), queries([Query.limit(1)]))
+    }
+
+    func testFlattenKeepsNestedStringArrays() {
+        let client = Client()
+        let nested = [["a", "b"]]
+        XCTAssertEqual(client.flatten(nested) as? [[String]], nested)
+        let untyped: [Any] = [["a", "b"]]
+        XCTAssertEqual((client.flatten(untyped) as? [Any])?.first as? [String], ["a", "b"])
+        XCTAssertEqual((client.flatten(["x", ["a", "b"]] as [Any]) as? [Any])?.count, 2)
+    }
+
+    func testFlattenBuildsBuilder() {
+        let client = Client()
+        let builder = Query.builder().equal("status", value: "active").limit(1)
+        XCTAssertEqual(queries(client.flatten(builder)), queries(builder.build()))
+    }
+
+    func testFlattenSpreadsBuildersBesideStrings() {
+        let client = Client()
+        let builder = Query.builder().limit(1)
+        XCTAssertEqual(
+            queries(client.flatten([Query.offset(2), builder] as [Any])),
+            queries([Query.offset(2), Query.limit(1)])
+        )
+    }
+
+    func testFlattenSpreadsBuildersInsideNestedList() {
+        let client = Client()
+        let builder = Query.builder().limit(1)
+        let flat = client.flatten([[builder]] as [Any]) as? [Any]
+        XCTAssertEqual(queries(flat?.first), queries([Query.limit(1)]))
+    }
 }

@@ -236,7 +236,7 @@ class Kotlin extends Language
                     if ($this->isPermissionString($example)) {
                         $output .= $this->getPermissionExample($example, $lang);
                     } else {
-                        $output .= $this->getArrayExample($example, $lang);
+                        $output .= $this->getArrayExample($example, $lang, $this->getArrayLeafType($param));
                     }
                     break;
                 case self::TYPE_BOOLEAN:
@@ -286,9 +286,8 @@ class Kotlin extends Language
         if (count($mapEntries) > 0) {
             $closeIndent = str_repeat('    ', $indentLevel + 1);
             return "mapOf(\n" . implode(",\n", $mapEntries) . "\n" . $closeIndent . ")";
-        } else {
-            return 'mapOf( "a" to "b" )';
         }
+        return 'mapOf( "a" to "b" )';
     }
 
     /**
@@ -326,9 +325,8 @@ class Kotlin extends Language
         if (count($mapEntries) > 0) {
             $closeIndent = str_repeat('    ', $indentLevel + 1);
             return "Map.of(\n" . implode(",\n", $mapEntries) . "\n" . $closeIndent . ")";
-        } else {
-            return 'Map.of("a", "b")';
         }
+        return 'Map.of("a", "b")';
     }
 
     /**
@@ -337,7 +335,7 @@ class Kotlin extends Language
      * @param string $example Array example like '[1, 2, 3]' or '[{"key": "value"}]'
      * @param string $lang Language variant: 'kotlin' or 'java'
      */
-    protected function getArrayExample(string $example, string $lang = 'kotlin'): string
+    protected function getArrayExample(string $example, string $lang = 'kotlin', ?string $leafType = null): string
     {
         // Try to decode as JSON to handle arrays of objects
         $decoded = json_decode($example, true);
@@ -352,7 +350,7 @@ class Kotlin extends Language
                         $arrayItems[] = $lang === 'java' ? $this->getJavaMapExample($item) : $this->getKotlinMapExample($item);
                     } else {
                         // It's a nested array, recursively convert it
-                        $arrayItems[] = $this->getArrayExample(json_encode($item), $lang);
+                        $arrayItems[] = $this->getArrayExample(json_encode($item), $lang, $leafType);
                     }
                 } elseif (is_string($item)) {
                     // Primitive value
@@ -361,6 +359,8 @@ class Kotlin extends Language
                     $arrayItems[] = $item ? 'true' : 'false';
                 } elseif (is_null($item)) {
                     $arrayItems[] = 'null';
+                } elseif ((is_int($item) || is_float($item)) && ($leafType === self::TYPE_INTEGER || $leafType === self::TYPE_NUMBER)) {
+                    $arrayItems[] = $this->getNumberLiteral($item, $leafType, $lang);
                 } else {
                     $arrayItems[] = (string)$item;
                 }
@@ -380,6 +380,16 @@ class Kotlin extends Language
         return $lang === 'java'
             ? 'List.of(' . $example . ')'
             : 'listOf(' . $example . ')';
+    }
+
+    protected function getArrayLeafType(Schema|Parameter $param): ?string
+    {
+        $items = $this->getArraySchema($param);
+        while ($items instanceof ArraySchema) {
+            $items = $items->items;
+        }
+
+        return $items instanceof Schema ? $this->getSchemaType($items) : null;
     }
 
     /**
@@ -534,6 +544,11 @@ class Kotlin extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/QueryTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/QueryTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/src/main/kotlin/{{ sdk.namespace | caseSlash }}/Operator.kt',
                 'template'      => '/kotlin/src/main/kotlin/io/appwrite/Operator.kt.twig',
             ],
@@ -556,6 +571,11 @@ class Kotlin extends Language
                 'scope'         => 'default',
                 'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
                 'template'      => '/kotlin/src/test/kotlin/io/appwrite/JsonRequestBodyTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/src/test/kotlin/{{ sdk.namespace | caseSlash }}/JsonCastTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/JsonCastTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -624,6 +644,11 @@ class Kotlin extends Language
         }
 
         $mapKey = 'map["' . \str_replace('$', '\\$', $propertyName) . '"]';
+        $default = $this->getModelDefault($property, $required);
+        if ($default !== null) {
+            $mapKey = '(if (map.containsKey(' . $this->getStringLiteral($propertyName, 'kotlin') . ')) ' . $mapKey
+                . ' else ' . $this->getValueLiteral($default, $property, $spec) . ')';
+        }
         $model = $this->getSchemaModel($property);
         if ($model !== null) {
             $class = $this->toPascalCase($model);
@@ -641,10 +666,16 @@ class Kotlin extends Language
             return $class . '.from(map = ' . $mapKey . ' as Map<String, Any>' . $nestedType . ')';
         }
 
-        // Only a scalar enum property is decoded through its enum class; a
-        // list of enums is cast straight across, which is how the published
-        // SDKs read it.
-        if (!($property instanceof ArraySchema) && $this->usesEnumType($property)) {
+        // Responses carry enum values as strings, so each element of an enum
+        // list goes through the enum class too; values this SDK doesn't know
+        // yet are skipped rather than failing the whole model.
+        if ($property instanceof ArraySchema && $this->usesEnumType($property)) {
+            $enumClass = 'io.appwrite.enums.' . $this->toPascalCase($this->getSchemaEnumName($property, $spec));
+            return '(' . $mapKey . ' ' . ($required ? 'as' : 'as?') . ' List<*>)' . ($required ? '' : '?')
+                . '.mapNotNull { value -> ' . $enumClass . '.values().find { it.value == value } }';
+        }
+
+        if ($this->usesEnumType($property)) {
             $enumClass = $this->toPascalCase($this->getSchemaEnumName($property, $spec));
             return $enumClass . '.values().find { it.value == '
                 . ($required ? $mapKey . ' as String' : '(' . $mapKey . ' as? String)') . ' }'
@@ -657,6 +688,52 @@ class Kotlin extends Language
             self::TYPE_NUMBER => '(' . $mapKey . ' as' . $nullable . ' Number)' . ($required ? '' : '?') . '.toDouble()',
             default => $mapKey . ' as' . $nullable . ' ' . $this->getTypeName($property, $spec),
         };
+    }
+
+    protected function getValueLiteral(mixed $value, ?Schema $schema, Specification $spec): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (\is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (\is_int($value) || \is_float($value)) {
+            $type = $schema instanceof Schema ? $this->getSchemaType($schema) : '';
+            $numberType = $type === self::TYPE_NUMBER || ($type !== self::TYPE_INTEGER && \is_float($value))
+                ? self::TYPE_NUMBER
+                : self::TYPE_INTEGER;
+
+            return $this->getNumberLiteral($value, $numberType, 'kotlin');
+        }
+
+        if (\is_string($value)) {
+            return $this->getStringLiteral($value, 'kotlin');
+        }
+
+        $value = (array) $value;
+        if (!$schema instanceof ArraySchema) {
+            $model = $schema instanceof Schema ? $this->getSchemaModel($schema) : null;
+            $schema = $model === null ? $schema : ($spec->schemas[$model] ?? null);
+        }
+
+        if ($schema instanceof ArraySchema || (!$schema instanceof ObjectSchema && \array_is_list($value))) {
+            $items = $schema instanceof ArraySchema ? $schema->items : null;
+
+            return 'listOf<Any?>(' . \implode(', ', \array_map(fn(mixed $item): string => $this->getValueLiteral($item, $items, $spec), $value)) . ')';
+        }
+
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $itemSchema = $schema instanceof ObjectSchema
+                ? ($schema->properties[$key] ?? ($schema->additionalProperties instanceof Schema ? $schema->additionalProperties : null))
+                : null;
+            $pairs[] = $this->getStringLiteral((string) $key, 'kotlin') . ' to ' . $this->getValueLiteral($item, $itemSchema, $spec);
+        }
+
+        return 'mapOf<String, Any?>(' . \implode(', ', $pairs) . ')';
     }
 
     #[Override]

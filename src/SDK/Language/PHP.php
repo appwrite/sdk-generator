@@ -2,6 +2,7 @@
 
 namespace Appwrite\SDK\Language;
 
+use stdClass;
 use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\ObjectSchema;
 use Utopia\OpenAPI\Model\Operation;
@@ -26,9 +27,6 @@ class PHP extends Language
         'composerPackage' => 'package-name',
     ];
 
-    /**
-     * @return $this
-     */
     public function setComposerVendor(string $name): self
     {
         $this->setParam('composerVendor', $name);
@@ -36,9 +34,6 @@ class PHP extends Language
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     public function setComposerPackage(string $name): self
     {
         $this->setParam('composerPackage', $name);
@@ -259,11 +254,6 @@ class PHP extends Language
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/{{ namespace | caseNamespacePath }}/ResolvedTopic.php',
-                'template'      => 'php/src/ResolvedTopic.php.twig',
-            ],
-            [
-                'scope'         => 'default',
                 'destination'   => 'tests/{{ namespace | caseNamespacePath }}/TopicTest.php',
                 'template'      => 'php/tests/TopicTest.php.twig',
             ],
@@ -271,6 +261,11 @@ class PHP extends Language
                 'scope'         => 'default',
                 'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query.php',
                 'template'      => 'php/src/Query.php.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/{{ namespace | caseNamespacePath }}/Query/Builder.php',
+                'template'      => 'php/src/Query/Builder.php.twig',
             ],
             [
                 'scope'         => 'default',
@@ -423,7 +418,8 @@ class PHP extends Language
                     if ($this->isPermissionString($example)) {
                         $output .= $this->getPermissionExample($example);
                     } else {
-                        $output .= \is_array($example) ? $this->jsonToAssoc($example) : (string) $example;
+                        $decoded = \is_array($example) ? $example : json_decode((string) $example, true);
+                        $output .= \is_array($decoded) ? $this->jsonToAssoc($decoded) : (string) $example;
                     }
                     break;
                 case self::TYPE_OBJECT:
@@ -467,7 +463,7 @@ class PHP extends Language
             if (is_array($node)) {
                 $value = $this->jsonToAssoc($node, $indent + 1);
             } elseif (is_string($node)) {
-                $value = '\'' . $node . '\'';
+                $value = '\'' . \addcslashes($node, '\'\\') . '\'';
             } elseif (is_bool($node)) {
                 $value = $node ? 'true' : 'false';
             } elseif (is_null($node)) {
@@ -477,7 +473,8 @@ class PHP extends Language
             }
 
             $comma = ($index < count($keys) - 1) ? ',' : '';
-            $output .= '    ' . $itemIndent . '\'' . $key . '\' => ' . $value . $comma . "\n";
+            $prefix = \array_is_list($data) ? '' : '\'' . \addcslashes((string) $key, '\'\\') . '\' => ';
+            $output .= '    ' . $itemIndent . $prefix . $value . $comma . "\n";
         }
 
         return $output . ($baseIndent . '    ]');
@@ -568,6 +565,27 @@ class PHP extends Language
         return (string)$value;
     }
 
+    /**
+     * A spec default as a PHP literal, with arrays in short syntax as the SDK's Pint config requires.
+     */
+    protected function formatPhpDefault(mixed $value): string
+    {
+        if ($value instanceof stdClass) {
+            $value = get_object_vars($value);
+        }
+
+        if (!is_array($value)) {
+            return $this->formatPhpLiteral($value);
+        }
+
+        $items = [];
+        foreach ($value as $key => $item) {
+            $items[] = (array_is_list($value) ? '' : $this->formatPhpLiteral((string) $key) . ' => ') . $this->formatPhpDefault($item);
+        }
+
+        return '[' . implode(', ', $items) . ']';
+    }
+
     protected function escapePhpString(string $value): string
     {
         $value = str_replace('\\', '\\\\', $value);
@@ -627,6 +645,7 @@ class PHP extends Language
             new TwigFilter('getResponseModels', fn(Operation $value, ?Specification $spec = null): array => $this->getResponseModels($value, $spec)),
             new TwigFilter('mockDefinitionPayload', fn(string $definitionName, Specification $spec, int $indentLevel = 2): string => $this->getMockDefinitionPayload($definitionName, $spec, $indentLevel), ['is_safe' => ['html']]),
             new TwigFilter('methodParameters', fn(Operation $value): string => $this->getMethodParameters($value)),
+            new TwigFilter('phpLiteral', fn(mixed $value): string => $this->formatPhpDefault($value), ['is_safe' => ['html']]),
             new TwigFilter('deviceInfo', fn($value): string => php_uname('s') . '; ' . php_uname('v') . '; ' . php_uname('m')),
             new TwigFilter('caseEnumKey', function (string $value): string {
                 if (isset($this->getIdentifierOverrides()[$value])) {

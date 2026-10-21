@@ -18,9 +18,6 @@ class Ruby extends Language
         'gemPackage' => 'gemName',
     ];
 
-    /**
-     * @return $this
-     */
     public function setGemPackage(string $name): self
     {
         $this->setParam('gemPackage', $name);
@@ -169,6 +166,11 @@ class Ruby extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'lib/{{ spec.info.title | caseDash }}/query/builder.rb',
+                'template'      => 'ruby/lib/container/query/builder.rb.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'lib/{{ spec.info.title | caseDash }}/operator.rb',
                 'template'      => 'ruby/lib/container/operator.rb.twig',
             ],
@@ -258,7 +260,7 @@ class Ruby extends Language
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
                 case self::TYPE_BOOLEAN:
-                    $output .= 'null';
+                    $output .= 'nil';
                     break;
                 case self::TYPE_STRING:
                     $output .= "''";
@@ -283,13 +285,14 @@ class Ruby extends Language
                     $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
                     break;
                 case self::TYPE_OBJECT:
-                    $output .= $this->jsonToHash(json_decode((string) $example, true));
+                    $decoded = \is_array($example) ? $example : json_decode((string) $example, true);
+                    $output .= $this->jsonToHash(\is_array($decoded) ? $decoded : []);
                     break;
                 case self::TYPE_BOOLEAN:
                     $output .= ($example) ? 'true' : 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "'{$example}'";
+                    $output .= "'" . \addcslashes((string) $example, "'\\") . "'";
                     break;
                 case self::TYPE_FILE:
                     $output .= "InputFile.from_path('dir/file.png')";
@@ -321,7 +324,9 @@ class Ruby extends Language
             } elseif (is_bool($node)) {
                 $value = $node ? 'true' : 'false';
             } elseif (is_string($node)) {
-                $value = '"' . $node . '"';
+                $value = "'" . \addcslashes($node, "'\\") . "'";
+            } elseif (is_null($node)) {
+                $value = 'nil';
             } else {
                 $value = $node;
             }
@@ -339,11 +344,69 @@ class Ruby extends Language
         return $output . (str_repeat('  ', $indent + 2) . '}');
     }
 
+    protected function formatRubyDefault(Schema|Parameter $property): string
+    {
+        $default = $this->getModelDefault($this->getSchema($property), true);
+
+        if (is_array($default) && $this->getSchemaType($property) === self::TYPE_OBJECT) {
+            return $this->formatRubyHash($default);
+        }
+
+        return $this->formatRubyLiteral($default);
+    }
+
+    protected function formatRubyLiteral(mixed $value): string
+    {
+        if ($value === null) {
+            return 'nil';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_string($value)) {
+            return str_replace('#', '\\#', json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        }
+
+        if (is_object($value)) {
+            return $this->formatRubyHash(get_object_vars($value));
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            return '[' . implode(', ', array_map($this->formatRubyLiteral(...), $value)) . ']';
+        }
+
+        if (is_array($value)) {
+            return $this->formatRubyHash($value);
+        }
+
+        return json_encode($value, JSON_THROW_ON_ERROR);
+    }
+
+    /**
+     * @param array<mixed> $value
+     */
+    protected function formatRubyHash(array $value): string
+    {
+        if ($value === []) {
+            return '{}';
+        }
+
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $pairs[] = $this->formatRubyLiteral((string) $key) . ' => ' . $this->formatRubyLiteral($item);
+        }
+
+        return '{ ' . implode(', ', $pairs) . ' }';
+    }
+
     #[Override]
     public function getFilters(): array
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
+            new TwigFilter('rubyDefault', fn(Schema|Parameter $property): string => $this->formatRubyDefault($property), ['is_safe' => ['html']]),
             new TwigFilter('rtrimLines', function (mixed $value): string {
                 $lines = explode("\n", str_replace("\r\n", "\n", (string) $value));
                 foreach ($lines as $index => $line) {

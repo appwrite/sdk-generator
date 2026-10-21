@@ -61,39 +61,55 @@ class Channel<out T> private constructor(
     override fun toString(): String = segments.joinToString(".")
 
     companion object {
+        @JvmStatic
         fun database(id: String): Channel<_Database> =
             Channel(listOf("databases", normalize(id)))
 
+        @JvmStatic
         fun tablesdb(id: String): Channel<_TablesDB> =
             Channel(listOf("tablesdb", normalize(id)))
 
+        @JvmStatic
         fun bucket(id: String): Channel<_Bucket> =
             Channel(listOf("buckets", normalize(id)))
 
+        @JvmStatic
         fun execution(id: String): Channel<_Execution> =
             Channel(listOf("executions", normalize(id)))
 
+        @JvmStatic
         fun function(id: String): Channel<_Func> =
             Channel(listOf("functions", normalize(id)))
 
+        @JvmStatic
         fun team(id: String): Channel<_Team> =
             Channel(listOf("teams", normalize(id)))
 
+        @JvmStatic
         fun membership(id: String): Channel<_Membership> =
             Channel(listOf("memberships", normalize(id)))
 
+        @JvmStatic
         fun presence(id: String): Channel<_Presence> =
             Channel(listOf("presences", normalize(id)))
 
+        @JvmStatic
         fun account(): String = "account"
 
         // Global events
+        @JvmStatic
         fun documents(): String = "documents"
+        @JvmStatic
         fun rows(): String = "rows"
+        @JvmStatic
         fun files(): String = "files"
+        @JvmStatic
         fun executions(): String = "executions"
+        @JvmStatic
         fun teams(): String = "teams"
+        @JvmStatic
         fun memberships(): String = "memberships"
+        @JvmStatic
         fun presences(): String = "presences"
     }
 }

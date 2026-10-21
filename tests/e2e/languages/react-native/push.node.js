@@ -197,7 +197,7 @@ async function main() {
             NativeModules.AppwritePush.resumed.push(args);
         },
         backgroundStatus: async () =>
-            JSON.stringify({ exactAlarms: false, ignoringBatteryOptimizations: false, foregroundService: false, bestEffort: true }),
+            JSON.stringify({ exactAlarms: false, ignoringBatteryOptimizations: false, foregroundService: false, bestEffort: true, backgroundRestricted: true }),
         requestExactAlarms: async () => true,
         requestIgnoreBatteryOptimizations: async () => false,
         setErrorCallback: async () => null,
@@ -260,7 +260,7 @@ async function main() {
     const askedBattery = await firstUser.requestIgnoreBatteryOptimizations();
     const resumed = NativeModules.AppwritePush.resumed.find((args) => args[0] === 'appwrite-session');
     console.log(nativeConnection);
-    console.log(status?.bestEffort === true && askedExact === true && askedBattery === false && resumed?.[1] === e2eSession && resumed?.[2] === false ? 'Push background status JS:passed' : 'Push background status JS:failed');
+    console.log(status?.bestEffort === true && status?.backgroundRestricted === true && askedExact === true && askedBattery === false && resumed?.[1] === e2eSession && resumed?.[2] === false ? 'Push background status JS:passed' : 'Push background status JS:failed');
     console.log(launched?.topic === 'news' && launched.data.saleId === '42' && tapped.length === 1 && tapped[0].data.saleId === '7' && NativeModules.AppwritePush.listening.join() === 'true,false' ? 'Push notification opened JS:passed' : 'Push notification opened JS:failed');
 
     // The same taps outside Android, where expo-notifications posted the notification: the launching
@@ -284,6 +284,30 @@ async function main() {
     iosPush.close();
     Platform.OS = 'android';
     console.log(iosLaunched?.data.saleId === '1' && iosCleared && iosForeign === null && iosTapped.length === 1 && iosTapped[0].data.saleId === '2' ? 'Push notification opened expo:passed' : 'Push notification opened expo:failed');
+
+    // What a background notification shows: a raw payload falls back to the subscription title and
+    // the payload, a server title and body replace them, and an envelope with neither (data-only,
+    // an empty notification block, image-only or contentAvailable/badge-only) posts nothing.
+    const contentMessage = (topic, data) => ({ topic, data, payload: Buffer.from(data), qos: 1 });
+    expoNotifications.scheduled = [];
+    await firstUser.notify(contentMessage('e2e-push', 'push-payload'), 'E2E title');
+    await firstUser.notify(
+        contentMessage('users/e2e-user', JSON.stringify({ notification: { title: 'Server title', body: 'Server body' }, data: { saleId: '42' } })),
+        'E2E title',
+    );
+    await firstUser.notify(
+        contentMessage('users/e2e-user', JSON.stringify({ messageId: 'e2e-data', data: { saleId: '42' }, priority: 'high' })),
+        'E2E title',
+    );
+    await firstUser.notify(contentMessage('users/e2e-user', JSON.stringify({ notification: {} })), 'E2E title');
+    await firstUser.notify(contentMessage('users/e2e-user', JSON.stringify({ notification: { image: 'http://127.0.0.1:1/x.png' } })), 'E2E title');
+    await firstUser.notify(contentMessage('users/e2e-user', JSON.stringify({ notification: { contentAvailable: true, badge: 3 } })), 'E2E title');
+    const posted = expoNotifications.scheduled.map(({ content }) => `${content.title}/${content.body}`);
+    console.log(
+        posted.join() === 'E2E title/push-payload,Server title/Server body'
+            ? 'Push notification content JS:passed'
+            : `Push notification content JS:failed (${JSON.stringify(posted)})`,
+    );
     firstUser.close();
     secondUser.close();
     delete NativeModules.AppwritePush;

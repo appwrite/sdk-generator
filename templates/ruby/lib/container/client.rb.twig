@@ -3,7 +3,7 @@
 require 'net/http'
 require 'uri'
 require 'json'
-require 'cgi'
+require 'cgi/escape'
 
 module {{ spec.info.title | caseUcfirst }}
     class Client
@@ -110,6 +110,8 @@ module {{ spec.info.title | caseUcfirst }}
             params: {},
             response_type: nil
         )
+            params = params.transform_values { |value| Query._flatten(value) }
+
             separator = path.include?('?') ? '&' : '?'
             uri = URI.parse(@endpoint + path + ((method == "GET" && params.length) ? separator + encode(params) : ''))
 
@@ -357,7 +359,7 @@ module {{ spec.info.title | caseUcfirst }}
             if response.content_type == 'application/json'
                 begin
                     result = JSON.parse(response.body)
-                rescue JSON::ParserError => e
+                rescue JSON::ParserError
                     raise {{spec.info.title | caseUcfirst}}::Exception.new(response.body, response.code, nil, response.body)
                 end
 

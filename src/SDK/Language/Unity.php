@@ -8,6 +8,8 @@ use RecursiveDirectoryIterator;
 use FilesystemIterator;
 use RuntimeException;
 use SplFileInfo;
+use Twig\TwigFilter;
+use Utopia\OpenAPI\Model\Tag;
 
 class Unity extends DotNet
 {
@@ -15,6 +17,37 @@ class Unity extends DotNet
     protected $params = [
         'packageName' => 'package-name',
     ];
+
+    /**
+     * Bit positions of the service flags, in the order they were released.
+     * Projects save the selected services as the flags' integer value, so a
+     * released service keeps its bit; a new service is appended here when it ships.
+     */
+    private const array SERVICE_FLAGS = [
+        'account',
+        'avatars',
+        'databases',
+        'documentsdb',
+        'functions',
+        'graphql',
+        'locale',
+        'messaging',
+        'organization',
+        'presences',
+        'storage',
+        'tablesdb',
+        'teams',
+        'vectorsdb',
+        'analytics',
+        'apps',
+        'oauth2',
+    ];
+
+    /**
+     * Configs saved before the config recorded which services it knew about
+     * (0.9.0 and earlier) knew the first 15 flags.
+     */
+    private const int UNTRACKED_SERVICE_FLAGS = 15;
 
     public function setPackageName(string $name): self
     {
@@ -171,6 +204,11 @@ class Unity extends DotNet
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'Assets/Runtime/Core/Query/Builder.cs',
+                'template'      => 'dotnet/Package/Query/Builder.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'Assets/Runtime/Core/Role.cs',
                 'template'      => 'dotnet/Package/Role.cs.twig',
             ],
@@ -291,11 +329,6 @@ class Unity extends DotNet
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Encodings.Web.dll.meta',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Core/Plugins/Android/AndroidManifest.xml',
-                'template'      => 'unity/Assets/Runtime/Core/Plugins/Android/AndroidManifest.xml.twig',
-            ],
-            [
                 'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/WebGLCookies.jslib',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/WebGLCookies.jslib',
@@ -350,6 +383,11 @@ class Unity extends DotNet
                 'scope'         => 'default',
                 'destination'   => 'Assets/Editor/{{ spec.info.title | caseUcfirst }}SetupWindow.cs',
                 'template'      => 'unity/Assets/Editor/AppwriteSetupWindow.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Editor/{{ spec.info.title | caseUcfirst }}AndroidManifestProcessor.cs',
+                'template'      => 'unity/Assets/Editor/AppwriteAndroidManifestProcessor.cs.twig',
             ],
             // Samples
             [
@@ -512,6 +550,7 @@ class Unity extends DotNet
                 'Assets/Editor/{{ spec.info.title | caseUcfirst }}.Editor.asmdef',
                 'Assets/Editor/{{ spec.info.title | caseUcfirst }}SetupAssistant.cs',
                 'Assets/Editor/{{ spec.info.title | caseUcfirst }}SetupWindow.cs',
+                'Assets/Editor/{{ spec.info.title | caseUcfirst }}AndroidManifestProcessor.cs',
             ];
 
             $files = array_filter($files, fn(array $file): bool => !in_array($file['destination'], $excludeInTest));
@@ -552,7 +591,7 @@ class Unity extends DotNet
             if ($relative === '') {
                 continue;
             }
-            $skip = array_any(explode('/', $relative), fn($segment): bool => $segment === '' || $segment[0] === '.' || str_ends_with((string) $segment, '~'));
+            $skip = array_any(explode('/', $relative), fn($segment): bool => $segment === '' || $segment[0] === '.' || str_ends_with($segment, '~'));
             if ($skip) {
                 continue;
             }
@@ -598,13 +637,6 @@ class Unity extends DotNet
             return implode("\n", $lines) . "\n";
         }
 
-        // Plugins/Android/AndroidManifest.xml must import as an Android
-        // plugin so Unity merges it into the build manifest; a plain
-        // DefaultImporter would import it as an inert text asset.
-        if (str_ends_with($relativePath, 'Plugins/Android/AndroidManifest.xml')) {
-            return implode("\n", $this->pluginImporterMeta($guid, 'Android')) . "\n";
-        }
-
         $extension = strtolower(pathinfo($relativePath, PATHINFO_EXTENSION));
 
         $lines = match ($extension) {
@@ -642,7 +674,7 @@ class Unity extends DotNet
      * Build PluginImporter meta lines enabling a single target platform
      * (and the editor stub), with every other platform disabled.
      *
-     * @param string $platform Unity platform key (e.g. 'WebGL', 'Android').
+     * @param string $platform Unity platform key (e.g. 'WebGL').
      * @return array<string>
      */
     private function pluginImporterMeta(string $guid, string $platform): array
@@ -681,5 +713,52 @@ class Unity extends DotNet
             '  assetBundleName:',
             '  assetBundleVariant:',
         ];
+    }
+
+    #[Override]
+    public function getFilters(): array
+    {
+        return [
+            ...parent::getFilters(),
+            new TwigFilter('serviceFlags', $this->getServiceFlags(...)),
+            new TwigFilter('untrackedServiceMask', $this->getUntrackedServiceMask(...)),
+        ];
+    }
+
+    /**
+     * Each service paired with its flag bit: released services keep their
+     * position in SERVICE_FLAGS, others take the next free bits in spec order.
+     *
+     * @param array<Tag> $services
+     * @return array<array{service: Tag, bit: int}>
+     */
+    private function getServiceFlags(array $services): array
+    {
+        $flags = [];
+        $next = \count(self::SERVICE_FLAGS);
+        foreach ($services as $service) {
+            $bit = \array_search(\strtolower($service->name), self::SERVICE_FLAGS, true);
+            $flags[] = ['service' => $service, 'bit' => $bit === false ? $next++ : $bit];
+        }
+        \usort($flags, fn(array $left, array $right): int => $left['bit'] <=> $right['bit']);
+
+        return $flags;
+    }
+
+    /**
+     * The flags a config saved before 0.10.0 could hold, as one mask.
+     *
+     * @param array<Tag> $services
+     */
+    private function getUntrackedServiceMask(array $services): int
+    {
+        $mask = 0;
+        foreach ($this->getServiceFlags($services) as $flag) {
+            if ($flag['bit'] < self::UNTRACKED_SERVICE_FLAGS) {
+                $mask |= 1 << $flag['bit'];
+            }
+        }
+
+        return $mask;
     }
 }

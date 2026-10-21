@@ -41,10 +41,10 @@ inline fun <reified T> String.fromJson(): T =
     gson.fromJson(this, T::class.java)
 
 fun <T> Any.jsonCast(to: Class<T>): T =
-    toJson().fromJson(to)
+    toJsonWithNulls().fromJson(to)
 
 inline fun <reified T> Any.jsonCast(): T =
-    toJson().fromJson(T::class.java)
+    toJsonWithNulls().fromJson(T::class.java)
 
 fun <T> Any.tryJsonCast(to: Class<T>): T? = try {
     toJson().fromJson(to)

@@ -1,0 +1,489 @@
+// Package fastlane is the APNs key setup built on fastlane's spaceship, the
+// open-source Apple Developer portal client.
+//
+// It runs a lane from a Fastfile embedded in the binary with the fastlane the
+// person already has installed and brings no Ruby of its own: the project's
+// Bundler fastlane when its Gemfile lists one, otherwise fastlane from PATH
+// (a gem or Homebrew installation). It needs fastlane 2.225.0 or
+// later, the first release whose spaceship signs in with SRP.
+package fastlane
+
+import (
+	"bytes"
+	"context"
+	_ "embed"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"runtime"
+	"strconv"
+	"strings"
+
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/apns"
+)
+
+//go:embed helper/Fastfile
+var fastfile []byte
+
+// fastlane 2.225.0 (October 2024) is the first that signs in with SRP, which
+// Apple has required since then; earlier versions get "503 Service
+// Temporarily Unavailable" when signing in.
+var minimumVersion = [3]int{2, 225, 0}
+
+// Adapter creates APNs keys, and prepares App IDs, with an installed fastlane.
+type Adapter struct {
+	// Fastlane is the command to run. Empty means the project's Bundler
+	// fastlane when there is one, otherwise "fastlane" from PATH.
+	Fastlane string
+	// Bundle is Bundler's command. Empty means "bundle" from PATH.
+	Bundle string
+	// Brew is Homebrew's command, offered to install a missing fastlane.
+	// Empty means "brew" from PATH.
+	Brew string
+	// WorkDir is the project folder whose Gemfile may list fastlane. Empty
+	// means the current directory.
+	WorkDir string
+	// spaceship prompts for the two-factor code, and for a team when the
+	// account has several, on the terminal. Nil means the process's own.
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+// New returns the adapter using fastlane from PATH and the terminal.
+func New() *Adapter {
+	return &Adapter{}
+}
+
+// Name is how people pick this setup.
+func (a *Adapter) Name() string {
+	return "fastlane"
+}
+
+type result struct {
+	KeyID   string `json:"keyId"`
+	TeamID  string `json:"teamId"`
+	P8      string `json:"p8"`
+	Error   string `json:"error"`
+	Message string `json:"message"`
+	Keys    []struct {
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		CanRevoke bool   `json:"canRevoke"`
+	} `json:"keys"`
+	// The prepare_app_id lane's result.
+	Registered   bool `json:"registered"`
+	Push         bool `json:"push"`
+	Created      bool `json:"created"`
+	PushTurnedOn bool `json:"pushTurnedOn"`
+}
+
+// CreateKey runs the embedded create_apns_key lane.
+func (a *Adapter) CreateKey(ctx context.Context, request apns.Request) (apns.Key, error) {
+	arguments := []string{"name:" + request.Name, "environment:" + string(request.Environment)}
+	contents, appleID, err := a.runLane(ctx, request, "create_apns_key", arguments...)
+	if err != nil {
+		return apns.Key{}, err
+	}
+	key, err := decodeResult(contents)
+	key.AppleID = appleID
+
+	return key, err
+}
+
+// PrepareAppID runs the embedded prepare_app_id lane: it checks the App ID,
+// and after the question, or straight away without one, registers it and
+// turns on Push Notifications.
+func (a *Adapter) PrepareAppID(ctx context.Context, request apns.Request, appID apns.AppIDRequest) (apns.AppIDResult, error) {
+	// spaceship keeps its saved sign-in per Apple ID, so without one there is
+	// nothing to restore.
+	if request.SavedSignInOnly && strings.TrimSpace(request.AppleID) == "" {
+		return apns.AppIDResult{}, apns.ErrSignInNeeded
+	}
+	run := func(mode string) (apns.AppIDResult, error) {
+		arguments := []string{"mode:" + mode, "bundle_id:" + appID.BundleID, "name:" + apns.AppIDName(appID.BundleID)}
+		if request.SavedSignInOnly {
+			arguments = append(arguments, "saved_only:true")
+		}
+		contents, appleID, err := a.runLane(ctx, request, "prepare_app_id", arguments...)
+		if err != nil {
+			return apns.AppIDResult{}, err
+		}
+		// The apply run reuses the check's sign-in instead of asking again.
+		request.AppleID = appleID
+
+		return decodeAppIDResult(contents)
+	}
+	if !appID.Ask {
+		return run("apply")
+	}
+	found, err := run("check")
+	if err != nil || (found.Registered && found.Push) {
+		return found, err
+	}
+	change, err := apns.ConfirmAppIDChange(request.Asker, appID.BundleID, found.TeamID, found.Registered)
+	if err != nil || !change {
+		return found, err
+	}
+	// The check signed in (again, for a reset) and saved the session, so the
+	// change reuses it instead of asking again.
+	request.Reset = false
+	request.TeamID = found.TeamID
+	request.SavedSignInOnly = true
+
+	return run("apply")
+}
+
+// runLane runs a lane of the embedded Fastfile and returns the result it
+// wrote, with the Apple ID it ran as. The Apple ID and password are asked here when the request has none,
+// and handed to fastlane as FASTLANE_USER and FASTLANE_PASSWORD, so fastlane
+// never offers to keep them in the Keychain. With SavedSignInOnly nothing is
+// asked: the lane uses spaceship's saved session for the Apple ID or reports
+// that there is none.
+func (a *Adapter) runLane(ctx context.Context, request apns.Request, lane string, arguments ...string) ([]byte, string, error) {
+	runner, err := a.runner()
+	if err != nil {
+		return nil, "", err
+	}
+	err = runner.check(ctx)
+	// Installing is only offered for fastlane from PATH, never replacing a
+	// configured command, and never during a check that must not ask.
+	if errors.Is(err, errNotInstalled) && a.Fastlane == "" && !request.SavedSignInOnly {
+		if err = a.offerInstall(ctx, request); err == nil {
+			err = runner.check(ctx)
+		}
+	}
+	if err != nil {
+		return nil, "", err
+	}
+	if runner.gemfile != "" && request.Log != nil {
+		request.Log("Using fastlane from %s with bundle exec.", runner.gemfile)
+	}
+
+	appleID := strings.TrimSpace(request.AppleID)
+	if appleID == "" {
+		answer, err := request.Asker.Ask("Apple ID (email)", false)
+		if err != nil {
+			return nil, "", err
+		}
+		appleID = strings.TrimSpace(answer)
+	}
+	password := request.Password
+	if password == "" && !request.SavedSignInOnly {
+		answer, err := request.Asker.Ask("Password for "+appleID, true)
+		if err != nil {
+			return nil, "", err
+		}
+		password = answer
+	}
+
+	// fastlane runs the Fastfile in ./fastlane of its working directory.
+	scratch, err := os.MkdirTemp("", "appwrite-apns-fastlane-")
+	if err != nil {
+		return nil, "", err
+	}
+	defer os.RemoveAll(scratch)
+	if err := os.MkdirAll(filepath.Join(scratch, "fastlane"), 0o700); err != nil {
+		return nil, "", err
+	}
+	if err := os.WriteFile(filepath.Join(scratch, "fastlane", "Fastfile"), fastfile, 0o600); err != nil {
+		return nil, "", err
+	}
+	out := filepath.Join(scratch, "result.json")
+
+	arguments = append([]string{lane, "out:" + out}, arguments...)
+	if request.TeamID != "" {
+		arguments = append(arguments, "team_id:"+request.TeamID)
+	}
+	if request.Reset {
+		arguments = append(arguments, "reset:true")
+	}
+	command := runner.command(ctx, arguments...)
+	command.Dir = scratch
+	stdin, stdout, stderr := a.terminal()
+	// A saved sign-in asks nothing, so fastlane's log is shown only if the lane fails.
+	var log bytes.Buffer
+	if request.SavedSignInOnly {
+		stdout, stderr = &log, &log
+	}
+	command.Stdin, command.Stdout, command.Stderr = stdin, stdout, stderr
+	command.Env = append(command.Env,
+		"FASTLANE_USER="+appleID,
+		"FASTLANE_SKIP_UPDATE_CHECK=1",
+		"FASTLANE_OPT_OUT_USAGE=1",
+		"FASTLANE_HIDE_CHANGELOG=1",
+	)
+	if password != "" {
+		command.Env = append(command.Env, "FASTLANE_PASSWORD="+password)
+	}
+	runErr := command.Run()
+	if runErr != nil && log.Len() > 0 {
+		_, _, terminalErr := a.terminal()
+		_, _ = log.WriteTo(terminalErr)
+	}
+
+	contents, err := os.ReadFile(out)
+	if err != nil {
+		if runErr != nil {
+			return nil, "", fmt.Errorf("the fastlane lane failed: %w", runErr)
+		}
+
+		return nil, "", fmt.Errorf("the fastlane lane returned no result: %w", err)
+	}
+
+	return contents, appleID, nil
+}
+
+func decodeAppIDResult(contents []byte) (apns.AppIDResult, error) {
+	var decoded result
+	if err := json.Unmarshal(contents, &decoded); err != nil {
+		return apns.AppIDResult{}, fmt.Errorf("the fastlane lane returned an unreadable result: %w", err)
+	}
+	if err := decoded.err(); err != nil {
+		return apns.AppIDResult{}, err
+	}
+
+	return apns.AppIDResult{
+		TeamID:       decoded.TeamID,
+		Registered:   decoded.Registered,
+		Push:         decoded.Push,
+		Created:      decoded.Created,
+		PushTurnedOn: decoded.PushTurnedOn,
+	}, nil
+}
+
+// err is the error the lane reported, other than a full team.
+func (r result) err() error {
+	switch r.Error {
+	case "":
+		return nil
+	case "sign-in-needed":
+		return apns.ErrSignInNeeded
+	case "invalid-credentials":
+		return fmt.Errorf("%w: %s", apns.ErrInvalidCredentials, r.Message)
+	default:
+		if r.Message == "" {
+			return errors.New(r.Error)
+		}
+
+		return errors.New(r.Message)
+	}
+}
+
+func decodeResult(contents []byte) (apns.Key, error) {
+	var decoded result
+	if err := json.Unmarshal(contents, &decoded); err != nil {
+		return apns.Key{}, fmt.Errorf("the fastlane lane returned an unreadable result: %w", err)
+	}
+	switch decoded.Error {
+	case "":
+	case "max-keys":
+		keys := make([]apns.ExistingKey, len(decoded.Keys))
+		for index, key := range decoded.Keys {
+			keys[index] = apns.ExistingKey{ID: key.ID, Name: key.Name, CanRevoke: key.CanRevoke}
+		}
+
+		return apns.Key{}, &apns.MaxKeysError{Keys: keys}
+	default:
+		return apns.Key{}, decoded.err()
+	}
+	if decoded.KeyID == "" || decoded.P8 == "" {
+		return apns.Key{}, errors.New("the fastlane lane returned no key")
+	}
+
+	return apns.Key{KeyID: decoded.KeyID, TeamID: decoded.TeamID, P8: decoded.P8}, nil
+}
+
+func (a *Adapter) terminal() (io.Reader, io.Writer, io.Writer) {
+	stdin, stdout, stderr := a.Stdin, a.Stdout, a.Stderr
+	if stdin == nil {
+		stdin = os.Stdin
+	}
+	if stdout == nil {
+		stdout = os.Stdout
+	}
+	if stderr == nil {
+		stderr = os.Stderr
+	}
+
+	return stdin, stdout, stderr
+}
+
+// runner is how fastlane is started: a command, the arguments before the
+// lane's, and the environment it needs.
+type runner struct {
+	name    string
+	prefix  []string
+	env     []string
+	gemfile string
+}
+
+var gemfileFastlane = regexp.MustCompile(`(?m)^\s*gem\s+['"]fastlane['"]`)
+
+// runner picks the configured command, then the project's Bundler fastlane,
+// then fastlane from PATH. A Bundler fastlane must run with bundle exec and
+// the project's Gemfile, since the lane runs in a temporary folder. When the
+// project pins fastlane but Bundler is missing, it stops rather than run a
+// fastlane other than the pinned one.
+func (a *Adapter) runner() (runner, error) {
+	base := append(os.Environ(), "FASTLANE_SKIP_UPDATE_CHECK=1", "FASTLANE_OPT_OUT_USAGE=1")
+	if a.Fastlane != "" {
+		return runner{name: a.Fastlane, env: base}, nil
+	}
+	bundle := a.Bundle
+	if bundle == "" {
+		bundle = "bundle"
+	}
+	if gemfile := projectGemfile(a.WorkDir); gemfile != "" {
+		if _, err := exec.LookPath(bundle); err != nil {
+			return runner{}, fmt.Errorf("%w: %s pins fastlane, but Bundler is not installed. Install it with gem install bundler, then run bundle install there", apns.ErrUnavailable, gemfile)
+		}
+
+		return runner{name: bundle, prefix: []string{"exec", "fastlane"}, env: append(base, "BUNDLE_GEMFILE="+gemfile), gemfile: gemfile}, nil
+	}
+
+	return runner{name: "fastlane", env: base}, nil
+}
+
+// projectGemfile returns the Gemfile in dir, or in dir/ios as Flutter and
+// React Native projects keep it, when it lists fastlane.
+func projectGemfile(dir string) string {
+	if dir == "" {
+		dir, _ = os.Getwd()
+	}
+	for _, candidate := range []string{filepath.Join(dir, "Gemfile"), filepath.Join(dir, "ios", "Gemfile")} {
+		contents, err := os.ReadFile(candidate)
+		if err != nil || !gemfileFastlane.Match(contents) {
+			continue
+		}
+		if absolute, err := filepath.Abs(candidate); err == nil {
+			return absolute
+		}
+	}
+
+	return ""
+}
+
+func (r runner) command(ctx context.Context, arguments ...string) *exec.Cmd {
+	command := exec.CommandContext(ctx, r.name, append(append([]string{}, r.prefix...), arguments...)...)
+	command.Env = append([]string{}, r.env...)
+
+	return command
+}
+
+// errNotInstalled means there is no fastlane on PATH, which installing one
+// can fix.
+var errNotInstalled = errors.New("fastlane is not installed")
+
+func (r runner) check(ctx context.Context) error {
+	if r.gemfile == "" && r.name == "fastlane" {
+		if _, err := exec.LookPath(r.name); err != nil {
+			return fmt.Errorf("%w: %w. %s", apns.ErrUnavailable, errNotInstalled, installHint)
+		}
+	}
+	output, err := r.command(ctx, "--version").Output()
+	if err != nil {
+		if r.gemfile != "" {
+			return fmt.Errorf("%w: bundle exec fastlane failed with %s. Run bundle install there first", apns.ErrUnavailable, r.gemfile)
+		}
+
+		return fmt.Errorf("%w: %s --version failed: %v", apns.ErrUnavailable, r.name, err)
+	}
+	upgrade := "brew upgrade fastlane, or gem update fastlane, depending on how it was installed"
+	if r.gemfile != "" {
+		upgrade = bundlerUpgrade(filepath.Dir(r.gemfile), runtime.GOOS)
+	}
+
+	return supportedVersion(string(output), upgrade)
+}
+
+// bundlerUpgrade says how to upgrade a project's Bundler fastlane. On Unix
+// it is one command to paste, with the folder quoted for a POSIX shell. On
+// Windows no quoting is safe in every shell (PowerShell expands $ inside
+// double quotes, cmd expands %, and Windows PowerShell has no &&), so the
+// folder is named rather than put in a command.
+func bundlerUpgrade(folder, goos string) string {
+	if goos == "windows" {
+		return "bundle update fastlane, run from the folder " + folder
+	}
+
+	return "cd " + shellQuote(folder) + " && bundle update fastlane"
+}
+
+// shellQuote quotes path for a POSIX shell: in single quotes, with any single
+// quote closed, escaped and reopened. A path of only safe characters is left
+// as it is.
+func shellQuote(path string) string {
+	if path != "" && strings.Trim(path, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/._-") == "" {
+		return path
+	}
+
+	return "'" + strings.ReplaceAll(path, "'", `'\''`) + "'"
+}
+
+const installHint = "Install it with brew install fastlane (Homebrew) or gem install fastlane, " +
+	"or add gem \"fastlane\" to your project's Gemfile and run bundle install. " +
+	"Or use --provider appwrite, which needs nothing installed"
+
+// offerInstall asks to install fastlane with Homebrew, when there is one, and
+// runs it on the terminal. Without Homebrew, a terminal or a yes, it returns
+// how to install fastlane instead.
+func (a *Adapter) offerInstall(ctx context.Context, request apns.Request) error {
+	notInstalled := fmt.Errorf("%w: %w. %s", apns.ErrUnavailable, errNotInstalled, installHint)
+	brew := a.Brew
+	if brew == "" {
+		brew = "brew"
+	}
+	if _, err := exec.LookPath(brew); err != nil || request.Asker == nil {
+		return notInstalled
+	}
+	choice, err := request.Asker.Choose("fastlane is not installed. Install it with Homebrew now?",
+		[]string{"Yes, run brew install fastlane", "No"})
+	if err != nil || choice != 0 {
+		return notInstalled
+	}
+
+	if request.Log != nil {
+		request.Log("Running brew install fastlane ...")
+	}
+	command := exec.CommandContext(ctx, brew, "install", "fastlane")
+	command.Stdin, command.Stdout, command.Stderr = a.terminal()
+	if err := command.Run(); err != nil {
+		return fmt.Errorf("%w: brew install fastlane failed: %v. %s", apns.ErrUnavailable, err, installHint)
+	}
+
+	return nil
+}
+
+var versionPattern = regexp.MustCompile(`fastlane (\d+)\.(\d+)\.(\d+)`)
+
+func supportedVersion(output, upgrade string) error {
+	match := versionPattern.FindStringSubmatch(output)
+	if match == nil {
+		return fmt.Errorf("%w: could not read the fastlane version", apns.ErrUnavailable)
+	}
+	var version [3]int
+	for index := range version {
+		version[index], _ = strconv.Atoi(match[index+1])
+	}
+	for index := range version {
+		if version[index] != minimumVersion[index] {
+			if version[index] < minimumVersion[index] {
+				return fmt.Errorf("%w: the fastlane setup needs fastlane %s or later, found %s. Upgrade it with %s", apns.ErrUnavailable, versionString(minimumVersion), versionString(version), upgrade)
+			}
+
+			break
+		}
+	}
+
+	return nil
+}
+
+func versionString(version [3]int) string {
+	return fmt.Sprintf("%d.%d.%d", version[0], version[1], version[2])
+}

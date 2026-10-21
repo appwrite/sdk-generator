@@ -14,10 +14,11 @@ use serde::{Deserialize, Serialize};
 {% if enum.description %}/// {{ enum.description }}
 {% endif %}#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum {{ enum.title | caseUcfirst | overrideIdentifier }} {
+{% set defaultValue = enum.default in enum.enum ? enum.default : enum.enum | first %}
 {% for value in enum.enum %}
 {% set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
     #[serde(rename = "{{ value }}")]
-{% if loop.first %}
+{% if value == defaultValue %}
     #[default]
 {% endif %}
     {{ key | caseEnumKey | overrideIdentifier }},
