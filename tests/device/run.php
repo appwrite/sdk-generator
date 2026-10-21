@@ -260,7 +260,7 @@ function removeFromRecents(string $package): void
 
 function inRecents(string $package): bool
 {
-    return array_any(explode("\n", adb('shell dumpsys activity recents')), fn($line): bool => str_contains($line, 'Recent #') && str_contains($line, $package));
+    return array_any(explode("\n", adb('shell dumpsys activity recents')), fn (string $line): bool => str_contains($line, 'Recent #') && str_contains($line, $package));
 }
 
 function network(bool $on): void
