@@ -48,13 +48,13 @@ The Apple SDK runs on an iOS Simulator, driven by `run-apple.php`:
 | launch | a fresh install connects and subscribes, and the SDK asks for the notification permission |
 | on screen | a message reaches the callback and posts no notification |
 | placeholder while open | the placeholder APNs sends next to the MQTT message changes nothing: one callback, no banner, no placeholder left |
-| background | with the app suspended, the Notification Service Extension fetches the message over MQTT and shows it in place of the placeholder |
-| background tap | tapping that notification reaches `onNotificationOpened` |
-| killed | with the app killed, the extension shows the message; the tap that starts the app reaches it, and the callback gets the message once |
-| unfilled placeholder | with the broker down, the placeholder stays; the app removes it once it has subscribed again |
+| background return | with the app in the background, the message reaches the callback once the app is back on screen, once |
+| placeholder tap | with the app killed, tapping the placeholder starts it, and the message reaches the callback once |
 
 APNs is simulated with `simctl push`, carrying the placeholder the server sends (`New message`,
-`mutable-content`). Taps go through a UI test target (`apps/apple/UITests`), one step at a
+`mutable-content`). The Simulator adds a pushed payload as a local notification, so the
+Notification Service Extension never runs: what it does is not covered here and needs a device
+with real APNs. Taps go through a UI test target (`apps/apple/UITests`), one step at a
 time. The driver runs the mock broker itself, without Docker, so it needs PHP with Swoole.
 
 ```bash
