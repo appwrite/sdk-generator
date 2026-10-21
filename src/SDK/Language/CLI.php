@@ -279,6 +279,8 @@ class CLI extends Go
                     'source' => $variable,
                     'helper' => 'GraphQLRequest',
                 ];
+            } elseif ($flagType === '[]string' && $sdkType === '[]string') {
+                $expression = 'app.StringSlice(' . $variable . ')';
             } elseif ($flagType !== $sdkType) {
                 [$expression, $decode] = $this->convertToSdkType(
                     $variable,
@@ -726,6 +728,11 @@ class CLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/app/convert.go',
                 'template'      => 'cli/internal/app/convert.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/convert_test.go',
+                'template'      => 'cli/internal/app/convert_test.go',
             ],
             [
                 'scope'         => 'default',
