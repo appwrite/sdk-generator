@@ -1220,10 +1220,40 @@ final class GenerationTest extends TestCase
         yield 'php params' => ['php', 'server', 'tests/Appwrite/Services/FooTest.php', "->expects()->call(\n                'put',\n                '/mock/tests/foo',\n                mockery::any(),\n                mockery::on(function (array \$params): bool {\n                    \$this->assertsame(['x', 'y', 'z'], array_keys(\$params));"];
         yield 'python path' => ['python', 'server', 'test/services/test_general.py', "response = self.general.get_path(\n            'grant/special&id',\n        )\n        request = m.last_request\n        url = urlsplit(request.url)\n        self.assertequal(\n            unquote(url.path),\n            '/v1/mock/tests/general/path/grant/special&id',\n        )"];
         yield 'python params' => ['python', 'server', 'test/services/test_foo.py', "m.request(\n            'put',\n            requests_mock.any,"];
-        yield 'python body' => ['python', 'server', 'test/services/test_foo.py', "sent = set(json.loads(request.body or '{}'))\n        self.assertequal(\n            sent,\n            {\n                'x',\n                'y',\n                'z',\n            },\n        )"];
+        yield 'python body' => ['python', 'server', 'test/services/test_foo.py', "sent = json.loads(request.body or '{}')\n        self.assertequal(\n            sent,\n            {\n                'x': '[]',\n                'y': 1,\n                'z': [],\n            },\n        )"];
         foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
             yield "{$name} path" => [$name, $platform, 'test/services/general_test.dart', "verify(\n        client.call(\n          httpmethod.get,\n          path: \"/mock/tests/general/path/grant/special&id\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),"];
-            yield "{$name} params" => [$name, $platform, 'test/services/foo_test.dart', "client.call(\n          httpmethod.put,\n          path: \"/mock/tests/foo\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),\n          responsetype: anynamed('responsetype'),\n        ),\n      ).captured.single;\n      expect(params.keys, unorderedequals([\"x\", \"y\", \"z\"]));"];
+            yield "{$name} params" => [$name, $platform, 'test/services/foo_test.dart', "client.call(\n          httpmethod.put,\n          path: \"/mock/tests/foo\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),\n          responsetype: anynamed('responsetype'),\n        ),\n      ).captured.single;\n      expect(params, {\n        \"x\": \"[]\",\n        \"y\": 1,\n        \"z\": isa<list>(),\n      });"];
+        }
+    }
+
+    /**
+     * A generated service test passes every optional parameter and pins the
+     * value sent for it. Calling with the required parameters only passes
+     * even when the method drops an optional parameter, or drops a boolean
+     * one when it is false.
+     */
+    #[DataProvider('serviceTestOptionalParameters')]
+    public function testServiceTestsPassOptionalParameters(string $name, string $platform, string $file, string $fragment): void
+    {
+        $this->assertStringContainsString($fragment, $this->generate($name, $platform)[$file] ?? '');
+    }
+
+    /** @return Iterator<string, array{string, string, string, string}> */
+    public static function serviceTestOptionalParameters(): Iterator
+    {
+        yield 'php arguments' => ['php', 'server', 'tests/Appwrite/Services/FunctionsTest.php', "\$response = \$this->functions->createexecution(\n            \"functionid\",\n            body: \"body\",\n            async: false,"];
+        yield 'php body' => ['php', 'server', 'tests/Appwrite/Services/FunctionsTest.php', "\$expected = [\n                        'functionid' => \"functionid\",\n                        'body' => \"body\",\n                        'async' => false,"];
+        yield 'php query' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "\$expected = [\n                        'width' => 1,\n                        'height' => 1,\n                        'name' => \"name\",\n                    ];\n                    \$this->assertsame(\$expected, array_intersect_key(\$params, \$expected));"];
+        yield 'python arguments' => ['python', 'server', 'test/services/test_functions.py', "response = self.functions.create_execution(\n            'functionid',\n            body='body',\n            xasync=false,"];
+        yield 'python body' => ['python', 'server', 'test/services/test_functions.py', "sent = json.loads(request.body or '{}')\n        self.assertequal(\n            sent,\n            {\n                'body': 'body',\n                'async': false,"];
+        yield 'python query' => ['python', 'server', 'test/services/test_general.py', "sent = parse_qs(url.query, keep_blank_values=true)\n        self.assertequal(\n            sent,\n            {\n                'width': ['1'],\n                'height': ['1'],\n                'name': ['name'],\n            },\n        )"];
+        yield 'python multipart' => ['python', 'server', 'test/services/test_general.py', "self.assertequal(\n            sent,\n            {\n                'message': 'message',\n                'attachment': '',\n            },\n        )"];
+        yield 'dart arguments' => ['dart', 'server', 'test/services/functions_test.dart', "functions.createexecution(\n        functionid: \"functionid\",\n        body: \"body\",\n        xasync: false,"];
+        yield 'dart body' => ['dart', 'server', 'test/services/functions_test.dart', "expect(params, {\n        \"body\": \"body\",\n        \"async\": false,"];
+        foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
+            yield "{$name} query arguments" => [$name, $platform, 'test/services/general_test.dart', "general.getoptional(\n        width: 1,\n        height: 1,\n        name: \"name\",\n      );"];
+            yield "{$name} query" => [$name, $platform, 'test/services/general_test.dart', "expect(params, {\n        \"width\": 1,\n        \"height\": 1,\n        \"name\": \"name\",\n      });"];
         }
     }
 
