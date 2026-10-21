@@ -6,6 +6,8 @@ namespace {{ namespace | caseNamespace }}\Models;
 
 {% set requiredProperties = definition.properties | filter((property) => (property | schemaRequired)) %}
 {% set optionalProperties = definition.properties | filter((property) => not (property | schemaRequired)) %}
+{% set defaultedProperties = requiredProperties | filter((property) => (property | modelDefault) is not null) %}
+{% set checkedProperties = requiredProperties | filter((property) => (property | modelDefault) is null) %}
 {% set enumImports = [] %}
 {% for property in definition.properties %}
 {% if (property | enumValues) is not empty %}
@@ -78,7 +80,17 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
 {% if requiredProperties is empty and optionalProperties is empty and not definition.additionalProperties %}
         return new static();
 {% else %}
-{% for property in requiredProperties %}
+{% if defaultedProperties is not empty %}
+        $data += [
+{% for property in defaultedProperties %}
+            '{{ (property | schemaName) }}' => {{ property | modelDefault | phpLiteral }},
+{% endfor %}
+        ];
+{% if checkedProperties is not empty %}
+
+{% endif %}
+{% endif %}
+{% for property in checkedProperties %}
         if (!array_key_exists('{{ (property | schemaName) }}', $data)) {
             throw new \InvalidArgumentException('Missing required field "{{ (property | schemaName) }}" for ' . static::class . '.');
         }
@@ -107,7 +119,7 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
                     static fn (mixed $item): mixed => static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $item),
                     $data['{{ (property | schemaName) }}']
                 )
-                : $data['{{ (property | schemaName) }}']{% elseif (property | enumValues) is not empty %}static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% else %}$data['{{ (property | schemaName) }}']{% endif %}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
+                : [static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'])]{% elseif (property | enumValues) is not empty %}static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}']){% else %}$data['{{ (property | schemaName) }}']{% endif %}{{ (not loop.last or optionalProperties is not empty or definition.additionalProperties) ? ',' : '' }}
 {% endfor %}
 {% for property in optionalProperties %}
 {% if (property | schemaType) == 'array' and (property | schemaModel) %}
@@ -128,7 +140,7 @@ readonly class {{ definitionName | caseUcfirst | overrideIdentifier }}
                             static fn (mixed $item): mixed => static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $item),
                             $data['{{ (property | schemaName) }}']
                         )
-                        : $data['{{ (property | schemaName) }}']
+                        : [static::hydrateTypedValue({{ ((property | enumName)) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'])]
                 )
 {% elseif (property | schemaModel) %}
             {{ (property | schemaName) | caseCamel }}: array_key_exists('{{ (property | schemaName) }}', $data) ? static::hydrateTypedValue({{ (property | schemaModel) | caseUcfirst | overrideIdentifier }}::class, $data['{{ (property | schemaName) }}'], true) : null{{ (not loop.last or definition.additionalProperties) ? ',' : '' }}

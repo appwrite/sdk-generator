@@ -7,7 +7,6 @@ use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Model\Tag;
-use Utopia\OpenAPI\Specification;
 use Override;
 use Twig\TwigFunction;
 
@@ -426,7 +425,7 @@ trait CliCommandSurface
         $collides = fn (string $group): bool => array_intersect(self::QUERY_FLAG_PARAMS[$group], $parameterNames) !== [];
         $hasOnlyLimitOffsetQueries = $hasQueries
             && str_contains(strtolower((string) $queries->description), 'only supported methods are limit and offset');
-        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow'], true) && !$collides('select');
+        $hasSelectQueries = $hasQueries && in_array($methodName, ['listDocuments', 'getDocument', 'listRows', 'getRow', 'createQuery'], true) && !$collides('select');
         $hasSelectionOnlyQueries = $hasQueries && in_array($methodName, ['getDocument', 'getRow'], true);
         $hasFilteringQueries = $hasQueries && !$hasOnlyLimitOffsetQueries && !$hasSelectionOnlyQueries && !$collides('filtering');
         $hasPaginationQueries = $hasQueries && !$hasSelectionOnlyQueries && !$collides('pagination');

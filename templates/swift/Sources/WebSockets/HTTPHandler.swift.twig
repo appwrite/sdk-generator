@@ -11,9 +11,12 @@ class HTTPHandler {
 
     let headers: HTTPHeaders
 
-    init(client: WebSocketClient, headers: HTTPHeaders) {
+    let upgraded: EventLoopPromise<Void>
+
+    init(client: WebSocketClient, headers: HTTPHeaders, upgraded: EventLoopPromise<Void>) {
         self.client = client
         self.headers = headers
+        self.upgraded = upgraded
     }
 
     func upgradeFailure(status: HTTPResponseStatus) {
@@ -66,18 +69,23 @@ extension HTTPHandler: ChannelInboundHandler, RemovableChannelHandler {
 
         switch response {
         case .head(let header):
-            print(String(describing: response))
+            FileHandle.standardError.write(Data("\(String(describing: response))\n".utf8))
             upgradeFailure(status: header.status)
-            break
+            upgraded.fail(WebSocketClientError(rawValue: UInt(header.status.code)) ?? .upgradeRejected)
         case .body(var body):
-            print(body.readString(length: body.readableBytes)!)
-            break
+            FileHandle.standardError.write(Data("\(body.readString(length: body.readableBytes) ?? "")\n".utf8))
         case .end(_):
             break
         }
     }
 
+    func channelInactive(context: ChannelHandlerContext) {
+        upgraded.fail(ChannelError.ioOnClosedChannel)
+        context.fireChannelInactive()
+    }
+
     func errorCaught(context: ChannelHandlerContext, error: Swift.Error) {
+        upgraded.fail(error)
         if client.delegate != nil {
             try! client.delegate?.onError(error: error, status: nil)
         } else {

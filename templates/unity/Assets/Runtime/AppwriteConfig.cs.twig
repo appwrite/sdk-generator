@@ -8,8 +8,8 @@ namespace {{ spec.info.title | caseUcfirst }}
     public enum {{ spec.info.title | caseUcfirst }}Service
     {
         None = 0,
-{% for service in services %}
-        {{ service.name | caseUcfirst }} = 1 << {{ loop.index0 }},
+{% for flag in services | serviceFlags %}
+        {{ flag.service.name | caseUcfirst }} = 1 << {{ flag.bit }},
 {% endfor %}
 
         [Tooltip("Selects all available services.")]
@@ -21,7 +21,7 @@ namespace {{ spec.info.title | caseUcfirst }}
     /// ScriptableObject configuration for {{ spec.info.title | caseUcfirst }} client settings
     /// </summary>
     [CreateAssetMenu(fileName = "{{ spec.info.title | caseUcfirst }}Config", menuName = "{{ spec.info.title | caseUcfirst }}/Configuration")]
-    public class {{ spec.info.title | caseUcfirst }}Config : ScriptableObject
+    public class {{ spec.info.title | caseUcfirst }}Config : ScriptableObject, ISerializationCallbackReceiver
     {
         [Header("Connection Settings")]
         [Tooltip("Endpoint URL for {{ spec.info.title | caseUcfirst }} API (e.g., https://cloud.{{ spec.info.title | lower }}.io/v1)")]
@@ -41,6 +41,9 @@ namespace {{ spec.info.title | caseUcfirst }}
         [Tooltip("Select which {{ spec.info.title | caseUcfirst }} services to initialize.")]
         [SerializeField] private {{ spec.info.title | caseUcfirst }}Service servicesToInitialize = {{ spec.info.title | caseUcfirst }}Service.All;
 
+        // The services this SDK knew when the asset was saved; 0 on assets saved before it was recorded
+        [SerializeField, HideInInspector] private int knownServices;
+
         [Header("Advanced Settings")]
         [Tooltip("Automatically connect to {{ spec.info.title | caseUcfirst }} on start")]
         [SerializeField] private bool autoConnect;
@@ -51,6 +54,21 @@ namespace {{ spec.info.title | caseUcfirst }}
         public string ProjectId => projectId;
         public bool AutoConnect => autoConnect;
         public {{ spec.info.title | caseUcfirst }}Service ServicesToInitialize => servicesToInitialize;
+
+        public void OnBeforeSerialize()
+        {
+            knownServices = (int){{ spec.info.title | caseUcfirst }}Service.All;
+        }
+
+        /// <summary>
+        /// A config that selected every service it knew about also selects the services added since.
+        /// </summary>
+        public void OnAfterDeserialize()
+        {
+            var known = knownServices == 0 ? {{ services | untrackedServiceMask }} : knownServices;
+            if (known != 0 && ((int)servicesToInitialize & known) == known)
+                servicesToInitialize |= {{ spec.info.title | caseUcfirst }}Service.All;
+        }
 
         /// <summary>
         /// Validate configuration settings

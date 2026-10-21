@@ -203,7 +203,7 @@ var languageMarkers = []struct {
 	{"ts", []string{"tsconfig.json", "deno.json"}},
 	{"js", []string{"package.json"}},
 	{"php", []string{"composer.json"}},
-	{"python", []string{"requirements.txt", "Pipfile", "pyproject.toml"}},
+	{"python", []string{"requirements.txt", "Pipfile", "pyproject.toml", "setup.py"}},
 	{"ruby", []string{"Gemfile", "Rakefile"}},
 	{"kotlin", []string{"build.gradle.kts"}},
 	{"java", []string{"build.gradle", "pom.xml"}},

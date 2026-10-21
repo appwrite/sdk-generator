@@ -6,7 +6,6 @@ use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
-use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -23,9 +22,6 @@ class Rust extends Language
         "cratePackage" => "packageName",
     ];
 
-    /**
-     * @return $this
-     */
     public function setCratePackage(string $name): self
     {
         $this->setParam("cratePackage", $name);
@@ -194,8 +190,13 @@ class Rust extends Language
             ],
             [
                 "scope" => "default",
-                "destination" => "src/query.rs",
-                "template" => "rust/src/query.rs.twig",
+                "destination" => "src/query/mod.rs",
+                "template" => "rust/src/query/mod.rs.twig",
+            ],
+            [
+                "scope" => "default",
+                "destination" => "src/query/builder.rs",
+                "template" => "rust/src/query/builder.rs.twig",
             ],
             [
                 "scope" => "default",
@@ -590,6 +591,7 @@ class Rust extends Language
             }, ["is_safe" => ["html"]]),
             new TwigFilter("inputType", fn(Schema|Parameter $property, ?Specification $spec = null, string $generic = "serde_json::Value"): string => $this->getInputType($property, $spec)),
             new TwigFilter("paramValue", fn(Schema|Parameter $property, string $paramName, ?Specification $spec = null): string => $this->getParamValue($property, $paramName, $spec), ["is_safe" => ["html"]]),
+            new TwigFilter("rustDefault", fn(Schema $property, ?Specification $spec = null): string => $this->getRustDefault($property, $spec), ["is_safe" => ["html"]]),
             new TwigFilter("rustType", fn($value): string|array => str_replace(['&lt;', '&gt;'], ['<', '>'], $value), ["is_safe" => ["html"]]),
             new TwigFilter("rustCrateName", fn($value): string|array => str_replace('-', '_', $value)),
             new TwigFilter("stripProtocol", fn($value): string|array => str_replace(['https://', 'http://'], '', $value)),
@@ -597,7 +599,7 @@ class Rust extends Language
     }
 
     /**
-     * Layout a function signature the way rustfmt 1.83 does at max_width 100.
+     * Layout a function signature the way rustfmt 1.85 does at max_width 100.
      *
      * @param list<string> $params
      */
@@ -621,7 +623,7 @@ class Rust extends Language
     }
 
     /**
-     * Layout a function call the way rustfmt 1.83 does (fn_call_width 60, max_width 100).
+     * Layout a function call the way rustfmt 1.85 does (fn_call_width 60, max_width 100).
      *
      * @param list<string> $args
      */
@@ -696,7 +698,7 @@ class Rust extends Language
     }
 
     /**
-     * Layout `let path = "...".to_string().replace(...)` the way rustfmt 1.83 does.
+     * Layout `let path = "...".to_string().replace(...)` the way rustfmt 1.85 does.
      *
      * @param list<string> $replaces Each entry starts with `.replace(...)`
      */
@@ -863,6 +865,61 @@ class Rust extends Language
         return $this->rustfmtCall($indent, 'next.config.headers.insert', $args);
     }
 
+    protected function getRustDefault(Schema $property, ?Specification $spec = null): string
+    {
+        $value = $this->getModelDefault($this->getSchema($property), true);
+        $json = is_array($value) && $this->getSchemaType($property) === self::TYPE_OBJECT
+            ? $this->getRustJsonMap($value)
+            : $this->getRustJson($value);
+
+        return match ($this->getTypeName($property, $spec)) {
+            'String' => $json . '.to_string()',
+            'i64', 'bool' => $json,
+            'f64' => is_float($value) ? $json : $json . '.0',
+            'serde_json::Value' => 'serde_json::json!(' . $json . ')',
+            default => 'serde_json::from_value(serde_json::json!(' . $json . ')).unwrap()',
+        };
+    }
+
+    protected function getRustJson(mixed $value): string
+    {
+        return match (true) {
+            is_string($value) => $this->getRustString($value),
+            is_array($value) && array_is_list($value) => '[' . implode(', ', array_map($this->getRustJson(...), $value)) . ']',
+            is_array($value) => $this->getRustJsonMap($value),
+            default => json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR),
+        };
+    }
+
+    protected function getRustJsonMap(array $value): string
+    {
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $pairs[] = $this->getRustString((string) $key) . ': ' . $this->getRustJson($item);
+        }
+
+        return '{' . implode(', ', $pairs) . '}';
+    }
+
+    protected function getRustString(string $value): string
+    {
+        $escaped = preg_replace_callback(
+            '/[\\\\"\x00-\x1f\x7f]/',
+            static fn(array $match): string => match ($match[0]) {
+                '\\' => '\\\\',
+                '"' => '\\"',
+                "\n" => '\\n',
+                "\r" => '\\r',
+                "\t" => '\\t',
+                "\0" => '\\0',
+                default => sprintf('\\u{%02x}', ord($match[0])),
+            },
+            $value,
+        );
+
+        return '"' . $escaped . '"';
+    }
+
     /**
      * Snake-case using the same algorithm as the caseSnake Twig filter (SDK.php),
      * so PHP-generated variable references match template-generated declarations.
@@ -898,5 +955,14 @@ class Rust extends Language
                 default => "serde_json::Value::Null",
             },
         };
+    }
+
+    #[Override]
+    public function postGenerate(string $target): void
+    {
+        $legacy = $target . '/src/query.rs';
+        if (\is_file($legacy) && \is_dir($target . '/src/query')) {
+            \unlink($legacy);
+        }
     }
 }

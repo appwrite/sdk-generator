@@ -219,6 +219,18 @@ void main() async {
   ]);
   print(response.result);
 
+  final preset = await general.getPreset();
+  print('preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}');
+  final presets = await general.listPresets();
+  for (final item in presets.presets) {
+    print('preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}');
+  }
+  print('empty presets: ${(await general.listEmptyPresets()).presets.length}');
+  print('preset verified: ${preset.verified}');
+  print('preset scopes: ${(preset.scopes ?? []).map((scope) => scope.value).join(',')}');
+  print('preset settings: options=${(await general.getPresetSettings()).options.length}');
+  print('preset profile: prefs=${(await general.getPresetProfile()).prefs.data.length}');
+
   try {
     await general.error400();
   } on AppwriteException catch (e) {
@@ -417,6 +429,47 @@ void main() async {
     Query.equal("name", "Alice"),
     Query.greaterThan("age", 18)
   ]));
+  print(Query.relationship("comments", [
+    Query.equal("approved", true),
+    Query.limit(2)
+  ]));
+  final queryTransport = await general.listRows(queries: [
+    Query.count('*', 'total'),
+    Query.join('orders', '\$id', 'customerId'),
+    Query.groupBy(['status']),
+    Query.distinct(),
+    Query.covers('location', [1, 2]),
+    Query.countDistinct('year', 'uniqueYears'),
+    Query.sum('price', 'total'),
+    Query.avg('price', 'avgPrice'),
+    Query.min('price', 'lowest'),
+    Query.max('price', 'highest'),
+    Query.stddev('price', 'sd'),
+    Query.stddevPop('price', 'sdp'),
+    Query.stddevSamp('price', 'sds'),
+    Query.variance('price', 'var'),
+    Query.varPop('price', 'vp'),
+    Query.varSamp('price', 'vs'),
+    Query.bitAnd('flags', 'band'),
+    Query.bitOr('flags', 'bor'),
+    Query.bitXor('flags', 'bxor'),
+    Query.having([Query.greaterThan('total', 1)]),
+    Query.leftJoin('orders', '\$id', 'customerId', '=', 'ord'),
+    Query.rightJoin('orders', '\$id', 'customerId'),
+    Query.fullOuterJoin('orders', '\$id', 'customerId'),
+    Query.crossJoin('orders', 'ord'),
+    Query.on('\$id', 'customerId'),
+    Query.leftJoin('orders', 'ord', [
+      Query.on('\$id', 'customerId'),
+      Query.equal('ord.status', 'paid'),
+    ]),
+    Query.notCovers('location', [1, 2]),
+    Query.spatialEquals('location', [1, 2]),
+    Query.notSpatialEquals('location', [1, 2]),
+    ...Query.page(2, 10),
+    ...Query.builder().limit(1).build(),
+  ]);
+  print(queryTransport.result);
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
@@ -437,17 +490,13 @@ void main() async {
   // Topic helper tests
   print(Topic.path(['user', '123', 'notification']).toString());
   print(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
-  print(Topic.path(['user']).any().path(['notification']).toString());
-  print(Topic.path(['chat']).any().any().path(['message']).toString());
-  print(Topic.path(['org']).any().path(['logs']).all().toString());
-  print(Topic.any().path(['notification']).toString());
-  print(Topic.all().toString());
   final topicCases = <String, List<String>>{
     'empty path': [],
     'empty level': ['user', ''],
     'slash': ['user/123'],
     'plus': ['user', 'a+b'],
     'hash': ['user', '#'],
+    'nul': ['user', 'a\u0000b'],
   };
   topicCases.forEach((name, levels) {
     try {

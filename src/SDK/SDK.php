@@ -38,9 +38,7 @@ use Twig\Extension\DebugExtension;
 use Twig\Loader\FilesystemLoader;
 use Twig\TemplateWrapper;
 use Twig\TwigFilter;
-use MatthiasMullie\Minify;
 use Twig_Error_Loader;
-use Twig_Error_Runtime;
 use Twig_Error_Syntax;
 
 class SDK
@@ -124,21 +122,21 @@ class SDK
 
         $this->twig->addExtension(new DebugExtension());
 
-        $this->twig->addFilter(new TwigFilter('caseLower', fn($value) => strtolower((string)$value)));
-        $this->twig->addFilter(new TwigFilter('caseUpper', fn($value) => strtoupper((string)$value)));
+        $this->twig->addFilter(new TwigFilter('caseLower', fn($value): string => strtolower((string)$value)));
+        $this->twig->addFilter(new TwigFilter('caseUpper', fn($value): string => strtoupper((string)$value)));
         $this->twig->addFilter(new TwigFilter('caseUcfirst', fn(?string $value): string => ucfirst($this->helperCamelCase($value))));
         $this->twig->addFilter(new TwigFilter('caseUcwords', fn($value): string => ucwords((string) $value, " -_")));
         $this->twig->addFilter(new TwigFilter('caseLcfirst', fn($value): string => lcfirst((string)$value)));
         $this->twig->addFilter(new TwigFilter('caseCamel', fn(?string $value): string => $this->helperCamelCase($value)));
         $this->twig->addFilter(new TwigFilter('removeDash', fn($value): string|array => str_replace('-', '', $value)));
-        $this->twig->addFilter(new TwigFilter('caseDash', fn($value) => str_replace([' ', '_'], '-', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', (string) $value)))));
+        $this->twig->addFilter(new TwigFilter('caseDash', fn($value): string => str_replace([' ', '_'], '-', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', (string) $value)))));
         $this->twig->addFilter(new TwigFilter('caseKebab', function ($value): string {
             $value = preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s_]|(?<=[A-Z])\d)/', '-$1', (string) $value);
             $value = str_replace(['_', ' '], '-', strtolower((string) $value));
             return trim((string) preg_replace('/-+/', '-', $value), '-');
         }));
-        $this->twig->addFilter(new TwigFilter('caseSlash', fn($value) => str_replace([' ', '_', '.'], '/', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', (string) $value)))));
-        $this->twig->addFilter(new TwigFilter('caseDot', fn($value) => str_replace([' ', '_'], '.', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', (string) $value)))));
+        $this->twig->addFilter(new TwigFilter('caseSlash', fn($value): string => str_replace([' ', '_', '.'], '/', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', (string) $value)))));
+        $this->twig->addFilter(new TwigFilter('caseDot', fn($value): string => str_replace([' ', '_'], '.', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', (string) $value)))));
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value): string {
             preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', (string) $value, $matches);
             $ret = $matches[0];
@@ -168,6 +166,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('schemaRequired', fn(Schema|Parameter $value): bool => $value instanceof Parameter ? $value->required : isset($this->requiredSchemas[\spl_object_id($value)])));
         $this->twig->addFilter(new TwigFilter('schemaExample', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->example));
         $this->twig->addFilter(new TwigFilter('schemaDefault', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->default));
+        $this->twig->addFilter(new TwigFilter('modelDefault', fn(Schema $value): mixed => $this->language->getModelDefault($value, isset($this->requiredSchemas[\spl_object_id($value)]))));
         $this->twig->addFilter(new TwigFilter('enumName', fn(Schema|Parameter $value): string => $this->getEnumName($value)));
         $this->twig->addFilter(new TwigFilter('enumKeys', fn(Schema|Parameter $value): array => $this->language->resolveEnumKeys($value)));
         $this->twig->addFilter(new TwigFilter('operations', fn(Tag $tag): array => $this->getFilteredMethods($this->getMethods($tag->name), $tag->name)));
@@ -782,6 +781,7 @@ class SDK
                     if ($enumSchema->enum !== []) {
                         $schemas[] = new StringSchema(
                             title: $this->getEnumName($parameter),
+                            default: $this->enumDefault($parameter, $enumSchema->enum),
                             enum: $enumSchema->enum,
                             enumKeys: $this->language->resolveEnumKeys($parameter),
                             open: $this->language->isOpenStringEnum($parameter),
@@ -831,6 +831,7 @@ class SDK
                 if ($enumSchema->enum !== []) {
                     $enums[] = new StringSchema(
                         title: $this->getEnumName($property),
+                        default: $this->enumDefault($property, $enumSchema->enum),
                         enum: $enumSchema->enum,
                         enumKeys: $this->language->resolveEnumKeys($property),
                         open: $this->language->isOpenStringEnum($property),
@@ -841,18 +842,38 @@ class SDK
         return $this->mergeEnums($enums);
     }
 
+    /**
+     * The spec default of an enum param or property, when it is one of the enum's values.
+     *
+     * @param list<mixed> $values
+     */
+    protected function enumDefault(Schema|Parameter $value, array $values): ?string
+    {
+        $schema = $value instanceof Parameter ? $value->schema : $value;
+        $default = $schema?->default;
+
+        return \is_string($default) && \in_array($default, $values, true) ? $default : null;
+    }
+
     /** @param list<Schema> $schemas @return list<StringSchema> */
     protected function mergeEnums(array $schemas): array
     {
         $values = [];
         $keys = [];
         $open = [];
+        $defaults = [];
         foreach ($schemas as $schema) {
             $name = $this->getEnumName($schema);
             if ($name === '') {
                 continue;
             }
             $open[$name] = ($open[$name] ?? true) && $this->language->isOpenStringEnum($schema);
+            // An enum shared by several params keeps a default only when they all agree on it.
+            if (!\array_key_exists($name, $defaults)) {
+                $defaults[$name] = $schema->default;
+            } elseif ($defaults[$name] !== $schema->default) {
+                $defaults[$name] = null;
+            }
             foreach ($schema->enum as $index => $value) {
                 if (!\in_array($value, $values[$name] ?? [], true)) {
                     $values[$name][] = $value;
@@ -871,6 +892,7 @@ class SDK
             );
             $enums[] = new StringSchema(
                 title: $name,
+                default: $defaults[$name] ?? null,
                 enum: $enumValues,
                 enumKeys: $this->language->resolveEnumKeys($merged),
                 open: $open[$name],
@@ -1673,6 +1695,7 @@ class SDK
 
     protected function getEnumName(Schema|Parameter $value): string
     {
+        $original = $this->getSchema($value);
         $enumSchema = $this->language->getEnumSchema($value);
         if ($enumSchema->enum === []) {
             return '';
@@ -1680,6 +1703,7 @@ class SDK
         return (string) (($enumSchema instanceof StringSchema ? $enumSchema->enumName : null)
             ?? $enumSchema->title
             ?? $this->schemaEnumNames[\spl_object_id($enumSchema)]
+            ?? $this->schemaEnumNames[\spl_object_id($original)]
             ?? ($value instanceof Parameter ? $value->name : ''));
     }
 
@@ -1789,7 +1813,7 @@ class SDK
             }
         }
         if ($produces === []) {
-            $produces = ['application/json'];
+            return ['application/json'];
         }
         return $produces;
     }
@@ -1924,7 +1948,7 @@ class SDK
                 if (\count($existing) !== \count($conditions)) {
                     continue;
                 }
-                $disjoint = array_any($conditions, fn($value, $property): bool => \array_key_exists((string) $property, $existing) && $existing[$property] !== $value);
+                $disjoint = array_any($conditions, fn(string $value, $property): bool => \array_key_exists((string) $property, $existing) && $existing[$property] !== $value);
                 if (!$disjoint) {
                     throw new UnexpectedValueException('Conditional response cases overlap at equal specificity.');
                 }

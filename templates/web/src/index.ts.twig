@@ -7,14 +7,20 @@
  * [previous releases](https://github.com/{{sdk.gitUserName}}/{{sdk.gitRepoName}}/releases)
  * when APIs differ.
  */
-export { Client, Query, {{spec.info.title | caseUcfirst}}Exception } from './client';
+export {
+    Client,
+    Query,
+    QueryBuilder,
+    flattenParam,
+    {{spec.info.title | caseUcfirst}}Exception,
+} from './client';
 {% for service in services %}
 export { {{service.name | caseUcfirst}} } from './services/{{service.name | caseKebab}}';
 {% endfor %}
 export { Realtime } from './services/realtime';
 export { Push } from './services/push';
 {% if services['analytics'] is defined %}
-export { AnalyticsTracking } from './services/analytics-tracking';
+export { Tracking } from './services/analytics-tracking';
 {% endif %}
 export type {
     Models,
@@ -32,18 +38,17 @@ export type {
 } from './services/push';
 {% if services['analytics'] is defined %}
 export type {
-    AnalyticsEventEmitter,
-    AnalyticsEventOptions,
-    AnalyticsTrackingOptions,
     DownloadTrackingOptions,
     OutboundTrackingOptions,
+    TrackingEventOptions,
+    TrackingOptions,
 } from './services/analytics-tracking';
 {% endif %}
-export type { QueryTypes, QueryTypesList } from './query';
+export type { QueryTypes, QueryTypesList, QueryInput } from './query';
 export { Permission } from './permission';
 export { Role } from './role';
 export { ID } from './id';
-export { Topic, ResolvedTopic } from './topic';
+export { Topic } from './topic';
 export { Channel } from './channel';
 export { Operator, Condition } from './operator';
 {% for enum in allEnums %}
