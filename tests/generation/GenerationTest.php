@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Generation;
 
 use Exception;
+use Closure;
 use Iterator;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\Language\Android;
@@ -41,6 +42,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
+use UnexpectedValueException;
 
 /**
  * What the generator emits, for every language and platform, from the shared
@@ -318,36 +320,87 @@ final class GenerationTest extends TestCase
     }
 
     /**
-     * Output paths interpolate names from the spec, and `caseKebab` keeps `.`
-     * and `/`. A service named after parent directories fails generation
-     * instead of writing beside the SDK.
+     * Output paths interpolate spec names and generator settings, and some
+     * filters keep `.` and `/`. A package name made of parent directories
+     * fails generation instead of writing beside the SDK.
      */
-    public function testSpecNamesStayInsideTheSdk(): void
+    public function testDestinationsStayInsideTheSdk(): void
     {
-        $tag = '../../../zzescape';
-        $document = [
-            'openapi' => '3.0.0',
-            'info' => ['title' => 'test', 'version' => '1.0.0'],
-            'tags' => [['name' => $tag]],
-            'paths' => ['/tests/escape' => ['get' => [
-                'operationId' => 'escapeGet',
-                'tags' => [$tag],
-                'summary' => 'Escape',
-                'description' => 'Escape.',
-                'responses' => ['204' => ['description' => 'ok']],
-            ]]],
-        ];
-        $escaped = self::OUTPUT . '/node/zzescape.ts';
+        $language = new Dart();
+        $language->setPackageName('../../../zzescape');
+        $escaped = self::OUTPUT . '/zzescape.dart';
         @\unlink($escaped);
 
         try {
-            $this->generateDocument($document, 'node', 'escape');
-            $this->fail('A service named ' . $tag . ' generated an SDK');
+            $this->generate('dart', 'server', language: $language, variant: '-escape');
+            $this->fail('A package named ../../../zzescape generated an SDK');
         } catch (Exception $exception) {
             $this->assertStringContainsString('outside the SDK directory', $exception->getMessage());
         }
 
         $this->assertFileDoesNotExist($escaped);
+    }
+
+    /**
+     * Templates print spec names as identifiers and spec values between
+     * quotes without escaping them, so a name or value that could end the
+     * identifier or the string is refused before anything is generated.
+     */
+    #[DataProvider('unsafeSpecs')]
+    public function testUnsafeNamesAndValuesAreRefused(Closure $mutate): void
+    {
+        $document = $mutate(\json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR));
+
+        $this->expectException(UnexpectedValueException::class);
+        $this->expectExceptionMessage('is not safe to generate');
+        new SDK($this->language('web'), Parser::parse($document));
+    }
+
+    /** @return iterable<string, array{Closure(array): array}> */
+    public static function unsafeSpecs(): iterable
+    {
+        $property = static function (array $document, string $name, array $schema = ['type' => 'string']): array {
+            $model = \array_key_first($document['components']['schemas']);
+            $document['components']['schemas'][$model]['properties'][$name] = $schema;
+
+            return $document;
+        };
+        $operation = static function (array $document, callable $change): array {
+            $path = \array_key_first($document['paths']);
+            $method = \array_key_first($document['paths'][$path]);
+            $document['paths'][$path][$method] = $change($document['paths'][$path][$method]);
+
+            return $document;
+        };
+
+        yield 'title' => [static fn(array $document): array => ['info' => ['title' => 'App"write'] + $document['info']] + $document];
+        yield 'server URL with a quote' => [static fn(array $document): array => ['servers' => [['url' => 'https://example.com/v1"']]] + $document];
+        yield 'server URL with interpolation' => [static fn(array $document): array => ['servers' => [['url' => 'https://example.com/${x}']]] + $document];
+        yield 'tag' => [static fn(array $document): array => ['tags' => [['name' => '../zz']]] + $document];
+        yield 'header name' => [static function (array $document): array {
+            $document['components']['securitySchemes']['Project']['name'] = 'X-Appwrite-"Project';
+
+            return $document;
+        }];
+        yield 'schema name' => [static function (array $document): array {
+            $document['components']['schemas']['zz"model'] = ['type' => 'object', 'properties' => []];
+
+            return $document;
+        }];
+        yield 'property name' => [static fn(array $document): array => $property($document, 'zz"; evil(); "')];
+        yield 'enum value with a quote' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ["a'b"]])];
+        yield 'enum value with interpolation' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a${b}']])];
+        yield 'enum value with a backslash' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a\(b)']])];
+        yield 'enum value with a line break' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ["a\u{2028}b"]])];
+        yield 'path' => [static function (array $document): array {
+            $document['paths']["/zz'" . 'path'] = \reset($document['paths']);
+
+            return $document;
+        }];
+        yield 'operation ID' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['operationId' => 'zz get'] + $method)];
+        yield 'parameter name' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['parameters' => [
+            ['name' => 'zz\\x', 'in' => 'query', 'schema' => ['type' => 'string']],
+        ]] + $method)];
     }
 
     /**
