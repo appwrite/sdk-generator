@@ -331,6 +331,12 @@
       "minimumReleaseAge": "3 days"
     },
     {
+      "description": "Keep the Swift 6.1-compatible tracing range until newer toolchains are validated.",
+      "matchManagers": ["swift", "custom.regex"],
+      "matchDepNames": ["apple/swift-distributed-tracing"],
+      "allowedVersions": "<1.6.0"
+    },
+    {
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
     }
