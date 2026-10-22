@@ -6,6 +6,7 @@ import sys
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
+from urllib.parse import quote
 from .input_file import InputFile
 from .exception import {{spec.info.title | caseUcfirst}}Exception
 from .encoders.value_class_encoder import ValueClassEncoder
@@ -184,7 +185,7 @@ class Client:
 
         if upload_id:
             try:
-                result = self.call('get', path + '/' + upload_id, headers)
+                result = self.call('get', path + '/' + quote(upload_id, safe="!*'()"), headers)
                 counter = result['chunksUploaded']
             except:
                 pass

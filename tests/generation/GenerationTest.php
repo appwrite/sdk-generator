@@ -1456,6 +1456,25 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A path parameter fills exactly one segment: a `/`, `?`, `#` or `..` in
+     * an ID must not reach another endpoint. The fragment is the encoding at
+     * the substitution site (getPath) or where a chunked upload resumes.
+     */
+    #[DataProvider('pathSegmentEncoders')]
+    public function testPathParametersFillOneSegment(string $name, string $platform, string $file, string $fragment): void
+    {
+        $this->assertStringContainsString($fragment, $this->generate($name, $platform)[$file] ?? '');
+    }
+
+    /** @return Iterator<string, array{string, string, string, string}> */
+    public static function pathSegmentEncoders(): Iterator
+    {
+        yield 'python path' => ['python', 'server', 'appwrite/services/general.py', "api_path = api_path.replace('{pathid}', self._encode_path(path_id))"];
+        yield 'python encoder' => ['python', 'server', 'appwrite/service.py', "return quote(str(self._normalize_value(value)), safe=\"!*'()\")"];
+        yield 'python resume' => ['python', 'server', 'appwrite/client.py', "self.call('get', path + '/' + quote(upload_id, safe=\"!*'()\"), headers)"];
+    }
+
+    /**
      * An upload whose only parameter is the file still takes the progress
      * callback as its second positional argument.
      */

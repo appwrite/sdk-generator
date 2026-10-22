@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Any, Optional, Type, TypeVar
+from urllib.parse import quote
 
 from pydantic import ValidationError
 
@@ -28,6 +29,11 @@ class Service:
             return {key: self._normalize_value(item) for key, item in value.items()}
 
         return value
+
+    def _encode_path(self, value: Any) -> str:
+        # Everything but letters, digits and -_.!~*'() is escaped, as encodeURIComponent does,
+        # so a value fills exactly the one path segment it replaces.
+        return quote(str(self._normalize_value(value)), safe="!*'()")
 
     def _parse_response(self, response: Any, model: Optional[Type[ModelType]] = None) -> Any:
         if model is None:
