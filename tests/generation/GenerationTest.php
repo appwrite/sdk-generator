@@ -407,6 +407,39 @@ final class GenerationTest extends TestCase
         return $files;
     }
 
+    /**
+     * Output paths interpolate names from the spec, and `caseKebab` keeps `.`
+     * and `/`. A service named after parent directories fails generation
+     * instead of writing beside the SDK.
+     */
+    public function testSpecNamesStayInsideTheSdk(): void
+    {
+        $tag = '../../../zzescape';
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => $tag]],
+            'paths' => ['/tests/escape' => ['get' => [
+                'operationId' => 'escapeGet',
+                'tags' => [$tag],
+                'summary' => 'Escape',
+                'description' => 'Escape.',
+                'responses' => ['204' => ['description' => 'ok']],
+            ]]],
+        ];
+        $escaped = self::OUTPUT . '/node/zzescape.ts';
+        @\unlink($escaped);
+
+        try {
+            $this->generateDocument($document, 'node', 'escape');
+            $this->fail('A service named ' . $tag . ' generated an SDK');
+        } catch (Exception $exception) {
+            $this->assertStringContainsString('outside the SDK directory', $exception->getMessage());
+        }
+
+        $this->assertFileDoesNotExist($escaped);
+    }
+
     private function removeDirectory(string $dir): void
     {
         if (!\is_dir($dir)) {
