@@ -83,7 +83,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ endfor %}
         val apiPath = {% if pathParameters is empty and securityQueries is empty %}"{{ method.path }}"{% else %}("{{ method.path }}"
         {%~ for parameter in pathParameters %}
-            .replace("{{ '{' ~ parameter.name ~ '}' }}", {% if (parameter | configKey(method)) %}client.config["{{ (parameter | configKey(method)) | caseCamel }}"].orEmpty(){% else %}{{ parameter.name | caseCamel }}{% if (parameter | enumValues) is not empty %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %}.toString(){% endif %}{% endif %})
+            .replace("{{ '{' ~ parameter.name ~ '}' }}", Client.encodePath({% if (parameter | configKey(method)) %}client.config["{{ (parameter | configKey(method)) | caseCamel }}"].orEmpty(){% else %}{{ parameter.name | caseCamel }}{% if (parameter | enumValues) is not empty %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %}.toString(){% endif %}{% endif %}))
         {%~ endfor %}
             {%~ for security in securityQueries %}
             + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${java.net.URLEncoder.encode(client.config.get("{{ security.name | caseCamel }}").orEmpty(), "UTF-8")}"

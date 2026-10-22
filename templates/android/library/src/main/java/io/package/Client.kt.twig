@@ -33,6 +33,7 @@ import java.io.RandomAccessFile
 import java.lang.IllegalArgumentException
 import java.net.CookieManager
 import java.net.CookiePolicy
+import java.net.URLEncoder
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.atomic.AtomicInteger
@@ -66,6 +67,21 @@ class Client @JvmOverloads constructor(
         internal const val MAX_CONCURRENT_UPLOADS = 8
         internal const val GLOBAL_PREFS = "{{ sdk.namespace | caseDot }}"
         internal const val COOKIE_PREFS = "myCookie"
+
+        /**
+         * Encodes [value] as one path segment. Everything but letters, digits
+         * and -_.!~*'() is escaped, as encodeURIComponent does, so a value
+         * fills exactly the segment it replaces.
+         */
+        internal fun encodePath(value: String): String =
+            URLEncoder
+                .encode(value, "UTF-8")
+                .replace("+", "%20")
+                .replace("%21", "!")
+                .replace("%27", "'")
+                .replace("%28", "(")
+                .replace("%29", ")")
+                .replace("%7E", "~")
     }
 
     override val coroutineContext: CoroutineContext
@@ -512,7 +528,7 @@ class Client @JvmOverloads constructor(
             // Make a request to check if a file already exists
             val current = call(
                 method = "GET",
-                path = "$path/$providedUploadId",
+                path = "$path/${encodePath(providedUploadId)}",
                 headers = headers,
                 params = emptyMap(),
                 responseType = Map::class.java,
