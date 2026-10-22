@@ -366,6 +366,12 @@ final class GenerationTest extends TestCase
                     $this->assertStringNotContainsString('*/ zzbreak', $contents, "{$name} {$platform}: prose closes a comment in {$path}");
                     $this->assertStringNotContainsString('/* zzprose', $contents, "{$name} {$platform}: prose opens a comment in {$path}");
                 }
+                if ($extension === 'py') {
+                    // Docstrings are string literals: `"""` ends one, and a
+                    // backslash escapes whatever follows it.
+                    $this->assertStringNotContainsString('""" zzbreak', $contents, "{$name} {$platform}: prose closes a docstring in {$path}");
+                    $this->assertStringNotContainsString("zzbreak() \\\n", $contents, "{$name} {$platform}: prose escapes a docstring line break in {$path}");
+                }
                 if (\in_array($extension, self::LINE_COMMENT_SOURCES, true)) {
                     // C# also ends a line at U+0085, U+2028 and U+2029.
                     $breaks = $extension === 'cs' ? '/\r\n|\r|\n|\x{85}|\x{2028}|\x{2029}/u' : '/\r\n|\r|\n/';

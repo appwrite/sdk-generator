@@ -54,7 +54,7 @@ class Client:
 
     def set_{{headerKey | caseSnake}}(self, value):
 {% if header.description %}
-        """{{header.description}}"""
+        """{{ header.description | formatDocstring(8) }}"""
 
 {% endif %}
         {%~ if (headerKey != 'Project') %}
