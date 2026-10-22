@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
-    kotlin("jvm") version "2.4.20"
+    kotlin("jvm") version "2.4.21"
     `java-library`
     `maven-publish`
     signing
@@ -31,7 +31,7 @@ repositories {
 dependencies {
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
-    api(platform("com.squareup.okhttp3:okhttp-bom:5.5.0"))
+    api(platform("com.squareup.okhttp3:okhttp-bom:5.5.1"))
     api("com.squareup.okhttp3:okhttp")
 
     implementation("com.squareup.okhttp3:okhttp-urlconnection")
