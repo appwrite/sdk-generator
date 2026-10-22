@@ -140,6 +140,14 @@ class Tests: XCTestCase {
         XCTAssertEqual(method(queries[1]), "offset")
     }
 
+    func testLessThanEqual() {
+        let raw = Query.lessThanEqual("price", value: 10)
+        XCTAssertEqual(method(raw), "lessThanEqual")
+        XCTAssertEqual(queries([raw])?.first?["attribute"] as? String, "price")
+        XCTAssertEqual(queries([raw])?.first?["values"] as? [Int], [10])
+        XCTAssertEqual(queries(Query.builder().lessThanEqual("price", value: 10).build()), queries([raw]))
+    }
+
     func queries(_ value: Any?) -> [NSDictionary]? {
         guard let list = value as? [Any] else {
             return nil

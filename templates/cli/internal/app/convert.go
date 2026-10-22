@@ -87,6 +87,25 @@ func WriteFile(destination string, content *[]byte) error {
 	return os.WriteFile(destination, *content, 0o644)
 }
 
+// EmptyArray is the value a repeatable flag takes on its own to send an empty
+// array, which clears a list; omitting the flag sends nothing and keeps it.
+const EmptyArray = "[]"
+
+// StringSlice hands a repeatable flag's values to the SDK, turning a lone
+// EmptyArray into a non-nil empty slice so the API receives [] rather than a
+// one-entry list or null.
+func StringSlice(raws []string) []string {
+	if isEmptyArray(raws) {
+		return []string{}
+	}
+
+	return raws
+}
+
+func isEmptyArray(raws []string) bool {
+	return len(raws) == 1 && strings.TrimSpace(raws[0]) == EmptyArray
+}
+
 // DecodeSlice parses each value of a repeatable flag into T.
 //
 // Needed where the SDK declares a slice such as []interface{}, []float64, or
@@ -97,6 +116,9 @@ func WriteFile(destination string, content *[]byte) error {
 func DecodeSlice[T any](raws []string) ([]T, error) {
 	if len(raws) == 0 {
 		return nil, nil
+	}
+	if isEmptyArray(raws) {
+		return []T{}, nil
 	}
 
 	decoded := make([]T, 0, len(raws))

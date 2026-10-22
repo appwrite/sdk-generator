@@ -134,6 +134,11 @@ abstract class Base extends TestCase
         'preset tier: PresetTier.FREE',
     ];
 
+    protected const DOTNET_DATETIME_STRING_RESPONSES = [
+        'datetime property: 2026-10-16T22:10:08.123+00:00',
+        'datetime data: 2026-10-16T22:10:08.123+00:00',
+    ];
+
     protected const MAP_MODEL_DEFAULT_RESPONSES = [
         'preset settings: options=0',
     ];

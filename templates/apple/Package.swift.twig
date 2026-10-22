@@ -72,7 +72,10 @@ let package = Package(
         .testTarget(
             name: "{{spec.info.title | caseUcfirst}}Tests",
             dependencies: [
-                "{{ spec.info.title | caseUcfirst }}"
+                "{{ spec.info.title | caseUcfirst }}",
+                .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "NIOEmbedded", package: "swift-nio"),
+                .product(name: "NIOWebSocket", package: "swift-nio"),
             ]
         ),
     ],

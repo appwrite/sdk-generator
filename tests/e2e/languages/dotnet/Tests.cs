@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 using Appwrite;
@@ -410,6 +412,15 @@ namespace AppwriteTests
 
             mock = await general.Headers();
             TestContext.WriteLine(mock.Result);
+
+            var culture = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+            var row = JsonSerializer.Deserialize<Dictionary<string, object>>(
+                "{\"result\":\"2026-10-16T22:10:08.123+00:00\",\"$createdAt\":\"2026-10-16T22:10:08.123+00:00\"}",
+                Client.DeserializerOptions)!;
+            TestContext.WriteLine($"datetime property: {Mock.From(row).Result}");
+            TestContext.WriteLine($"datetime data: {Preferences.From(row).Data["$createdAt"]}");
+            CultureInfo.CurrentCulture = culture;
         }
     }
 }
