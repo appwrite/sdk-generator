@@ -15,21 +15,19 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "utopia-php/framework": "^0.33",
-        "utopia-php/database": "^5.3",
+        "utopia-php/framework": "2.0.0-rc33",
         "utopia-php/cli": "^0.24",
-        "utopia-php/console": "^0.2",
-        "utopia-php/swoole": "^1.0.2",
+        "utopia-php/console": "^0.3",
         "utopia-php/websocket": "^1.0",
         "utopia-php/query": "^0.7.0"
     },
     "require-dev": {
         "swoole/ide-helper": "6.2.3"
     },
-    "platform": {
-        "php": "8.4"
-    },
     "config": {
+        "platform": {
+            "php": "8.5.0"
+        },
         "allow-plugins": {
             "php-http/discovery": true,
             "tbachert/spi": true

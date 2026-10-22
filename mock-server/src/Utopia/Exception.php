@@ -2,8 +2,6 @@
 
 namespace Utopia\MockServer\Utopia;
 
-use Utopia\Config\Config;
-
 // Taken from app/config/errors.php
 const errorConfig = [
     /** General Errors */
@@ -150,7 +148,7 @@ class Exception extends \Exception
     protected $type = '';
     protected $errors = [];
 
-    public function __construct(string $type = Exception::GENERAL_UNKNOWN, string $message = null, int $code = null, \Throwable $previous = null)
+    public function __construct(string $type = Exception::GENERAL_UNKNOWN, ?string $message = null, ?int $code = null, ?\Throwable $previous = null)
     {
         $this->errors = errorConfig;
         $this->type = $type;

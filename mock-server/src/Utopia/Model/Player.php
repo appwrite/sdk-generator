@@ -2,9 +2,7 @@
 
 namespace Utopia\MockServer\Utopia\Model;
 
-use Utopia\Model;
-
-readonly class Player implements Model
+final readonly class Player
 {
     public function __construct(
         public string $id,

@@ -9,12 +9,22 @@ class Player extends Validator
 {
     public function getDescription(): string
     {
-        return 'Value must be a valid Player instance';
+        return 'Value must be a valid Player object';
     }
 
     public function isValid($value): bool
     {
-        return $value instanceof PlayerModel;
+        if (!\is_array($value) || \array_diff(['id', 'name', 'score'], \array_keys($value)) !== []) {
+            return false;
+        }
+
+        try {
+            PlayerModel::fromArray($value);
+        } catch (\TypeError) {
+            return false;
+        }
+
+        return true;
     }
 
     public function isArray(): bool
