@@ -131,6 +131,10 @@ func runPull(command *cobra.Command, actions []pullAction, everything bool) erro
 				continue
 			}
 			if err := action.Run(command); err != nil {
+				if skipsConsoleOnly(command, action.Value, "pull", err) {
+					continue
+				}
+
 				return err
 			}
 		}

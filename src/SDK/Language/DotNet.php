@@ -559,7 +559,7 @@ class DotNet extends Language
         }
 
         if (\in_array($name, $this->getKeywords())) {
-            $name = '@' . $name;
+            return '@' . $name;
         }
         return $name;
     }
@@ -681,19 +681,20 @@ class DotNet extends Language
     {
         if (is_string($value)) {
             return '"' . $value . '"';
-        } elseif (is_bool($value)) {
+        }
+        if (is_bool($value)) {
             return $value ? 'true' : 'false';
-        } elseif (is_numeric($value)) {
+        }
+        if (is_numeric($value)) {
             return (string) $value;
-        } elseif (is_array($value)) {
+        }
+        if (is_array($value)) {
             if (array_keys($value) !== range(0, count($value) - 1)) {
                 return $this->formatCSharpAnonymousObject($value, $indentLevel);
-            } else {
-                $items = array_map(fn($item): string => $this->formatCSharpValue($item, $indentLevel), $value);
-                return 'new[] { ' . implode(', ', $items) . ' }';
             }
-        } else {
-            return 'null';
+            $items = array_map(fn($item): string => $this->formatCSharpValue($item, $indentLevel), $value);
+            return 'new[] { ' . implode(', ', $items) . ' }';
         }
+        return 'null';
     }
 }

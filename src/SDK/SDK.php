@@ -38,9 +38,7 @@ use Twig\Extension\DebugExtension;
 use Twig\Loader\FilesystemLoader;
 use Twig\TemplateWrapper;
 use Twig\TwigFilter;
-use MatthiasMullie\Minify;
 use Twig_Error_Loader;
-use Twig_Error_Runtime;
 use Twig_Error_Syntax;
 
 class SDK
@@ -124,21 +122,21 @@ class SDK
 
         $this->twig->addExtension(new DebugExtension());
 
-        $this->twig->addFilter(new TwigFilter('caseLower', fn($value) => strtolower((string)$value)));
-        $this->twig->addFilter(new TwigFilter('caseUpper', fn($value) => strtoupper((string)$value)));
+        $this->twig->addFilter(new TwigFilter('caseLower', fn($value): string => strtolower((string)$value)));
+        $this->twig->addFilter(new TwigFilter('caseUpper', fn($value): string => strtoupper((string)$value)));
         $this->twig->addFilter(new TwigFilter('caseUcfirst', fn(?string $value): string => ucfirst($this->helperCamelCase($value))));
         $this->twig->addFilter(new TwigFilter('caseUcwords', fn($value): string => ucwords((string) $value, " -_")));
         $this->twig->addFilter(new TwigFilter('caseLcfirst', fn($value): string => lcfirst((string)$value)));
         $this->twig->addFilter(new TwigFilter('caseCamel', fn(?string $value): string => $this->helperCamelCase($value)));
         $this->twig->addFilter(new TwigFilter('removeDash', fn($value): string|array => str_replace('-', '', $value)));
-        $this->twig->addFilter(new TwigFilter('caseDash', fn($value) => str_replace([' ', '_'], '-', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', (string) $value)))));
+        $this->twig->addFilter(new TwigFilter('caseDash', fn($value): string => str_replace([' ', '_'], '-', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', (string) $value)))));
         $this->twig->addFilter(new TwigFilter('caseKebab', function ($value): string {
             $value = preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s_]|(?<=[A-Z])\d)/', '-$1', (string) $value);
             $value = str_replace(['_', ' '], '-', strtolower((string) $value));
             return trim((string) preg_replace('/-+/', '-', $value), '-');
         }));
-        $this->twig->addFilter(new TwigFilter('caseSlash', fn($value) => str_replace([' ', '_', '.'], '/', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', (string) $value)))));
-        $this->twig->addFilter(new TwigFilter('caseDot', fn($value) => str_replace([' ', '_'], '.', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', (string) $value)))));
+        $this->twig->addFilter(new TwigFilter('caseSlash', fn($value): string => str_replace([' ', '_', '.'], '/', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1/', (string) $value)))));
+        $this->twig->addFilter(new TwigFilter('caseDot', fn($value): string => str_replace([' ', '_'], '.', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1.', (string) $value)))));
         $this->twig->addFilter(new TwigFilter('caseSnake', function ($value): string {
             preg_match_all('!([A-Za-z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', (string) $value, $matches);
             $ret = $matches[0];
@@ -1815,7 +1813,7 @@ class SDK
             }
         }
         if ($produces === []) {
-            $produces = ['application/json'];
+            return ['application/json'];
         }
         return $produces;
     }
@@ -1950,7 +1948,7 @@ class SDK
                 if (\count($existing) !== \count($conditions)) {
                     continue;
                 }
-                $disjoint = array_any($conditions, fn($value, $property): bool => \array_key_exists((string) $property, $existing) && $existing[$property] !== $value);
+                $disjoint = array_any($conditions, fn(string $value, $property): bool => \array_key_exists((string) $property, $existing) && $existing[$property] !== $value);
                 if (!$disjoint) {
                     throw new UnexpectedValueException('Conditional response cases overlap at equal specificity.');
                 }

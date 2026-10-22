@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/update"
 )
 
@@ -165,7 +166,7 @@ func UpdateChecker() *update.Checker {
 		return nil
 	}
 
-	home, err := os.UserHomeDir()
+	directory, err := config.GlobalDirectory(ExecutableName)
 	if err != nil {
 		return nil
 	}
@@ -174,7 +175,7 @@ func UpdateChecker() *update.Checker {
 		RegistryURL:           NPMRegistryURL,
 		PrereleaseRegistryURL: NPMPrereleaseRegistryURL,
 		// Beside the preferences, which is already the directory this CLI owns.
-		CachePath: filepath.Join(home, "."+ExecutableName, "update-check.json"),
+		CachePath: filepath.Join(directory, "update-check.json"),
 		Current:   Version,
 	}
 }

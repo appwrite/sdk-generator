@@ -1,0 +1,43 @@
+import Foundation
+import NIOCore
+import NIOEmbedded
+import NIOWebSocket
+import Testing
+
+@testable import {{ spec.info.title | caseUcfirst }}
+
+final class MessageHandlerTests {
+    private final class Recorder: WebSocketClientDelegate {
+        var closes = 0
+
+        func onClose(channel: NIOCore.Channel, data: Data) {
+            closes += 1
+        }
+    }
+
+    private let recorder = Recorder()
+
+    private func connectedChannel() throws -> EmbeddedChannel {
+        let client = WebSocketClient("ws://localhost", tlsEnabled: false, delegate: recorder)!
+        let channel = EmbeddedChannel(handler: MessageHandler(client: client))
+        try channel.connect(to: SocketAddress(ipAddress: "127.0.0.1", port: 80)).wait()
+        return channel
+    }
+
+    @Test func closeWithoutCloseFrameDeliversOnClose() throws {
+        let channel = try connectedChannel()
+
+        try channel.close().wait()
+
+        #expect(recorder.closes == 1)
+    }
+
+    @Test func closeAfterCloseFrameDeliversOnCloseOnce() throws {
+        let channel = try connectedChannel()
+
+        try channel.writeInbound(WebSocketFrame(fin: true, opcode: .connectionClose, data: channel.allocator.buffer(capacity: 0)))
+        try channel.close().wait()
+
+        #expect(recorder.closes == 1)
+    }
+}

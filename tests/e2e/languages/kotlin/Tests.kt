@@ -361,6 +361,8 @@ class ServiceTest {
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
 
+            JavaInterop.run(general, "../../../resources/file.png").forEach { writeToFile(it) }
+
             // Topic helper tests
             writeToFile(Topic.path(listOf("user", "123", "notification")).toString())
             writeToFile(Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString())

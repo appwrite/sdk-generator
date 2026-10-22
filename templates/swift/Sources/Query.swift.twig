@@ -191,12 +191,17 @@ public struct Query: Codable, CustomStringConvertible {
         ).description
     }
 
-    public static func lessThanEqual(attribute: String, value: Any) -> String {
+    public static func lessThanEqual(_ attribute: String, value: Any) -> String {
         return Query(
             method: "lessThanEqual",
             attribute: attribute,
             values: Query.parseValue(value)
         ).description
+    }
+
+    @available(*, deprecated, renamed: "lessThanEqual(_:value:)")
+    public static func lessThanEqual(attribute: String, value: Any) -> String {
+        return lessThanEqual(attribute, value: value)
     }
 
     public static func greaterThan(_ attribute: String, value: Any) -> String {

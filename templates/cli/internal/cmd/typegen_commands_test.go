@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -58,6 +60,7 @@ func assertFlags(t *testing.T, got, want []string) {
 
 func TestTypesCommandFlagSurface(t *testing.T) {
 	assertFlags(t, flagSurface(t, "types"), []string{
+		"--enum-style",
 		"--language/-l",
 		"--strict/-s",
 	})
@@ -66,6 +69,7 @@ func TestTypesCommandFlagSurface(t *testing.T) {
 func TestGenerateCommandFlagSurface(t *testing.T) {
 	assertFlags(t, flagSurface(t, "generate"), []string{
 		"--appwrite-import-source",
+		"--enum-style",
 		"--import-extension",
 		"--language/-l",
 		"--output/-o",
@@ -92,8 +96,8 @@ func TestTypesRequiresAnOutputDirectory(t *testing.T) {
 
 // A rejected `-l` value has to say what the accepted ones are: they are short
 // names, several of which are not the language's usual spelling, and the reject
-// is also where DETECTION lands -- a Python or Ruby project has no emitter at
-// all, so no spelling of it would have worked.
+// is also where DETECTION lands -- a Ruby project has no emitter at all, so no
+// spelling of it would have worked.
 func TestUnsupportedLanguageListsTheSupportedOnes(t *testing.T) {
 	message := unsupportedLanguage("typescript").Error()
 
@@ -119,23 +123,41 @@ func TestUnsupportedLanguageListsTheSupportedOnes(t *testing.T) {
 // directory holding a .csproj, so `appwrite types .` in a C# project is rejected
 // by a value the CLI chose itself.
 func TestDetectedLanguagesWithoutAnEmitterAreExplained(t *testing.T) {
-	for requested, want := range map[string]string{"dotnet": "cs", "javascript": "js"} {
+	for requested, want := range map[string]string{"dotnet": "cs", "javascript": "js", "py": "python"} {
 		message := unsupportedLanguage(requested).Error()
 		if !strings.Contains(message, "did you mean `"+want+"`") {
 			t.Errorf("%q was not pointed at %q:\n  %s", requested, want, message)
 		}
 	}
 
-	// Python and Ruby are detectable and genuinely unsupported, so there is
-	// nothing to suggest -- only the list.
-	for _, requested := range []string{"python", "ruby"} {
-		message := unsupportedLanguage(requested).Error()
-		if strings.Contains(message, "did you mean") {
-			t.Errorf("invented a spelling for %q, which has no emitter:\n  %s", requested, message)
-		}
-		if !strings.Contains(message, "The supported languages are") {
-			t.Errorf("left %q with no way forward:\n  %s", requested, message)
-		}
+	// Ruby is detectable and genuinely unsupported, so there is nothing to
+	// suggest -- only the list.
+	message := unsupportedLanguage("ruby").Error()
+	if strings.Contains(message, "did you mean") {
+		t.Errorf("invented a spelling for ruby, which has no emitter:\n  %s", message)
+	}
+	if !strings.Contains(message, "The supported languages are") {
+		t.Errorf("left ruby with no way forward:\n  %s", message)
+	}
+}
+
+func TestTypesDetectsPythonProjects(t *testing.T) {
+	for _, marker := range []string{"pyproject.toml", "requirements.txt", "Pipfile", "setup.py"} {
+		t.Run(marker, func(t *testing.T) {
+			directory := t.TempDir()
+			if err := os.WriteFile(filepath.Join(directory, marker), nil, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			t.Chdir(directory)
+
+			name, emitter, err := resolveTypeLanguage(NewRootCommand(), "auto")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if name != "python" || emitter.FileName(nil) != "appwrite_types.py" {
+				t.Errorf("resolved %q writing %q, want python writing appwrite_types.py", name, emitter.FileName(nil))
+			}
+		})
 	}
 }
 
@@ -148,7 +170,7 @@ func TestGenerateDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for name, want := range map[string]string{"output": "generated", "server": "auto"} {
+	for name, want := range map[string]string{"output": "generated", "server": "auto", "enum-style": "enum"} {
 		flag := command.Flags().Lookup(name)
 		if flag == nil {
 			t.Fatalf("--%s is missing", name)
@@ -156,5 +178,35 @@ func TestGenerateDefaults(t *testing.T) {
 		if flag.DefValue != want {
 			t.Errorf("--%s default = %q, want %q", name, flag.DefValue, want)
 		}
+	}
+}
+
+func TestTypesEnumStyleDefaultsToEnum(t *testing.T) {
+	root := NewRootCommand()
+	command, _, err := root.Find([]string{"types"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	flag := command.Flags().Lookup("enum-style")
+	if flag == nil {
+		t.Fatal("--enum-style is missing")
+	}
+	if flag.DefValue != "enum" {
+		t.Errorf("--enum-style default = %q, want enum", flag.DefValue)
+	}
+}
+
+func TestTypesRejectsUnknownEnumStyle(t *testing.T) {
+	err := runTypes(NewRootCommand(), t.TempDir(), "ts", false, "union")
+	if err == nil || !strings.Contains(err.Error(), "enum|const") {
+		t.Errorf("err = %v, want the supported styles listed", err)
+	}
+}
+
+func TestTypesRejectsConstEnumStyleOutsideTypeScript(t *testing.T) {
+	err := runTypes(NewRootCommand(), t.TempDir(), "php", false, "const")
+	if err == nil || !strings.Contains(err.Error(), "only supported for ts") {
+		t.Errorf("err = %v, want a ts-only rejection", err)
 	}
 }

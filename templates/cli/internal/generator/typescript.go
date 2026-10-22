@@ -41,6 +41,8 @@ func queryCallbackInline(typeName string) string {
 type TypeScript struct {
 	// ServerSide overrides bulk-method emission: "auto", "true" or "false".
 	ServerSide string
+
+	EnumStyle typegen.EnumStyle
 }
 
 // Language implements Generator.
@@ -171,8 +173,8 @@ func buildAttributes(entity Entity, scope []typegen.Collection, indent string, f
 }
 
 // generateEnums renders every enum declared across the entities.
-func generateEnums(entities []Entity) string {
-	meta := typegen.TypeScript{}
+func (g *TypeScript) generateEnums(entities []Entity) (string, error) {
+	meta := typegen.TypeScript{EnumStyle: g.EnumStyle}
 	var declarations []string
 
 	for _, entity := range entities {
@@ -181,23 +183,15 @@ func generateEnums(entities []Entity) string {
 				continue
 			}
 
-			definition := meta.Enum(entity.Name, field.Key, field.Elements)
-			values := make([]string, 0, len(definition.Members))
-			for index, member := range definition.Members {
-				separator := ","
-				if index == len(definition.Members)-1 {
-					separator = ""
-				}
-				values = append(values,
-					fmt.Sprintf("    %s = %s%s", member.Key, quote(member.Value), separator))
+			declaration, err := meta.DeclareEnum(meta.Enum(entity.Name, field.Key, field.Elements))
+			if err != nil {
+				return "", err
 			}
-
-			declarations = append(declarations,
-				fmt.Sprintf("export enum %s {\n%s\n}", definition.Name, strings.Join(values, "\n")))
+			declarations = append(declarations, declaration)
 		}
 	}
 
-	return strings.Join(declarations, "\n\n")
+	return strings.Join(declarations, "\n\n"), nil
 }
 
 // generateEntityType renders the Create and Row types for one entity.
@@ -342,7 +336,10 @@ func (g *TypeScript) generateTypesFile(config Config, dependency string) (string
 		return "", err
 	}
 
-	enums := generateEnums(entities)
+	enums, err := g.generateEnums(entities)
+	if err != nil {
+		return "", err
+	}
 	if enums != "" {
 		enums += "\n"
 	}
@@ -497,6 +494,9 @@ func (g *TypeScript) Generate(config Config, options Options) (Result, error) {
 
 	if options.ServerSide != "" {
 		g.ServerSide = options.ServerSide
+	}
+	if options.EnumStyle != "" {
+		g.EnumStyle = options.EnumStyle
 	}
 
 	dependency := options.ImportSource

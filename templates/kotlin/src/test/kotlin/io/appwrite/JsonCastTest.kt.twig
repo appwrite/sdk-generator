@@ -1,0 +1,33 @@
+package {{ sdk.namespace | caseDot }}
+
+import {{ sdk.namespace | caseDot }}.extensions.jsonCast
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+class JsonCastTest {
+    @Test
+    fun jsonCastKeepsKeysWhoseValueIsNull() {
+        val cast = mapOf("note" to null, "c.name" to null, "price" to 15L).jsonCast(Map::class.java)
+
+        assertTrue(cast.containsKey("note"))
+        assertNull(cast["note"])
+        assertTrue(cast.containsKey("c.name"))
+        assertEquals(15L, cast["price"])
+    }
+
+    @Test
+    fun jsonCastKeepsNullsInsideNestedData() {
+        val response = mapOf(
+            "\$id" to "o8",
+            "data" to mapOf("note" to null, "joined" to mapOf("c.name" to null), "customerId" to "c9"),
+        )
+
+        val data = response["data"]!!.jsonCast(Map::class.java)
+
+        assertTrue(data.containsKey("note"), "A null column must stay in the row, not read as unselected")
+        assertTrue((data["joined"] as Map<*, *>).containsKey("c.name"), "An unmatched left join must keep its joined columns as null")
+        assertEquals("c9", data["customerId"])
+    }
+}

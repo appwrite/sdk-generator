@@ -101,7 +101,7 @@ open class Client {
         do {
             try http.syncShutdown()
         } catch {
-            print(error)
+            FileHandle.standardError.write(Data("\(error)\n".utf8))
         }
     }
 

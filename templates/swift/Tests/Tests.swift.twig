@@ -84,6 +84,24 @@ class Tests: XCTestCase {
         XCTAssertEqual(method(Query.crossJoin("orders", alias: "ord")), "crossJoin")
     }
 
+    func testNestedJoinWithoutAliasLeavesTheAliasToTheServer() {
+        let raw = Query.join("orders", on: [Query.on("$id", "customerId")])
+        let object = try! JSONSerialization.jsonObject(with: Data(raw.utf8)) as! [String: Any]
+        XCTAssertEqual(object["method"] as? String, "join")
+        XCTAssertEqual(object["attribute"] as? String, "orders")
+        let values = object["values"] as! [Any]
+        XCTAssertEqual(values.count, 1)
+        XCTAssertEqual((values[0] as! [String: Any])["method"] as? String, "on")
+    }
+
+    func testCrossJoinWithoutAliasLeavesTheAliasToTheServer() {
+        let raw = Query.crossJoin("orders")
+        let object = try! JSONSerialization.jsonObject(with: Data(raw.utf8)) as! [String: Any]
+        XCTAssertEqual(object["method"] as? String, "crossJoin")
+        XCTAssertEqual(object["attribute"] as? String, "orders")
+        XCTAssertEqual((object["values"] as? [Any])?.count ?? 0, 0)
+    }
+
     func testOn() {
         XCTAssertEqual(method(Query.on("$id", "customerId")), "on")
     }
@@ -120,6 +138,14 @@ class Tests: XCTestCase {
         XCTAssertEqual(queries.count, 2)
         XCTAssertEqual(method(queries[0]), "limit")
         XCTAssertEqual(method(queries[1]), "offset")
+    }
+
+    func testLessThanEqual() {
+        let raw = Query.lessThanEqual("price", value: 10)
+        XCTAssertEqual(method(raw), "lessThanEqual")
+        XCTAssertEqual(queries([raw])?.first?["attribute"] as? String, "price")
+        XCTAssertEqual(queries([raw])?.first?["values"] as? [Int], [10])
+        XCTAssertEqual(queries(Query.builder().lessThanEqual("price", value: 10).build()), queries([raw]))
     }
 
     func queries(_ value: Any?) -> [NSDictionary]? {

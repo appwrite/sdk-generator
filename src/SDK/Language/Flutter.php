@@ -440,6 +440,11 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/src/client_io_test.dart',
+                'template'      => 'flutter/test/src/client_io_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/cookie_manager_test.dart',
                 'template'      => 'flutter/test/src/cookie_manager_test.dart.twig',
             ],

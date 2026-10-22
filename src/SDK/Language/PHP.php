@@ -27,9 +27,6 @@ class PHP extends Language
         'composerPackage' => 'package-name',
     ];
 
-    /**
-     * @return $this
-     */
     public function setComposerVendor(string $name): self
     {
         $this->setParam('composerVendor', $name);
@@ -37,9 +34,6 @@ class PHP extends Language
         return $this;
     }
 
-    /**
-     * @return $this
-     */
     public function setComposerPackage(string $name): self
     {
         $this->setParam('composerPackage', $name);

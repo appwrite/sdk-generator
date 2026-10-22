@@ -186,7 +186,7 @@ jobs:
         if: matrix.sdk == 'go' || matrix.sdk == 'cli'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.9'
+          go-version: '1.26.10'
 
       - name: Install OSV Scanner
         if: matrix.sdk == 'dart' || matrix.sdk == 'flutter'
@@ -208,7 +208,7 @@ jobs:
 
       - name: Setup Rust
         if: matrix.sdk == 'rust'
-        uses: dtolnay/rust-toolchain@bd41891a8e7f4b8649f6d684415e1a6155fe4e22 # 1.83.0
+        uses: dtolnay/rust-toolchain@cfcaf53ba4c621917ec7f78a66bff7a8848ddad4 # 1.85.0
         with:
           components: rustfmt
 
@@ -241,6 +241,7 @@ jobs:
               npm run lint
               npm run analyse
               npm run build
+              npm run build:cdn
               ;;
             cli)
               go mod tidy
@@ -268,6 +269,7 @@ jobs:
               osv-scanner scan source --lockfile=pubspec.lock
               dart analyze --no-fatal-warnings
               flutter test
+              ../../scripts/validate-dart-examples.sh .
               ;;
             apple|swift)
               if [ ! -f .swift-format ]; then
@@ -323,6 +325,11 @@ jobs:
               gem install rubocop --version "${RUBOCOP_VERSION}"
               rubocop --version
               rubocop
+              warnings=$(find lib -name '*.rb' -exec ruby -wc {} \; 2>&1 >/dev/null)
+              if [ -n "$warnings" ]; then
+                echo "$warnings"
+                exit 1
+              fi
               ;;
             node)
               npm ci
@@ -337,6 +344,7 @@ jobs:
               dart pub get
               osv-scanner scan source --lockfile=pubspec.lock
               dart analyze --no-fatal-warnings
+              ../../scripts/validate-dart-examples.sh .
               ;;
             go)
               go mod tidy || true
@@ -375,9 +383,9 @@ jobs:
                 cargo +1.85.0 install cargo-audit --version 0.22.1 --locked
               fi
               cargo audit
-              cargo +1.83.0 fmt --check --all
-              cargo +1.83.0 build --release
-              cargo +1.83.0 test --lib
+              cargo +1.85.0 fmt --check --all
+              cargo +1.85.0 build --release
+              cargo +1.85.0 test --lib
               ;;
             zed-extension)
               cargo +1.86.0 fmt --check
@@ -397,6 +405,21 @@ jobs:
           ./appwrite --help | grep -q "USAGE"
           ./appwrite --help | grep -q "GET STARTED"
           SHELL=bash ./appwrite completion bash >/dev/null
+
+      - name: Check generated Python types
+        if: matrix.sdk == 'cli'
+        working-directory: examples/cli/internal/typegen/testdata
+        run: |
+          environment="$RUNNER_TEMP/typegen-python"
+          python3 -m venv "$environment"
+          "$environment/bin/pip" install --quiet black==26.10.1 mypy==2.4.0 pydantic==2.14.1
+          "$environment/bin/black" --check python.*.py
+          for baseline in python.*.py; do
+            directory="$environment/baselines/$baseline"
+            mkdir -p "$directory"
+            cp "$baseline" "$directory/appwrite_types.py"
+            (cd "$directory" && "$environment/bin/mypy" --strict appwrite_types.py && "$environment/bin/python" -W error -c 'import appwrite_types')
+          done
 
       # The CLI ships as a native binary behind an npm launcher, so it has no
       # dist/ entry points to check -- what can break is the launcher itself

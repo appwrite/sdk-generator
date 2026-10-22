@@ -101,6 +101,21 @@ func TestGenerateMatchesBaseline(t *testing.T) {
 	})
 }
 
+func TestGenerateConstEnumStyleMatchesBaseline(t *testing.T) {
+	extension := ".js"
+	result, err := (&TypeScript{}).Generate(loadConfig(t), Options{
+		ImportSource:    "node-appwrite",
+		ImportExtension: &extension,
+		ServerSide:      "true",
+		EnumStyle:       "const",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assertMatchesBaseline(t, "server.const.types.ts", result.Types)
+}
+
 func TestGenerateRequiresProjectID(t *testing.T) {
 	if _, err := (&TypeScript{}).Generate(Config{}, Options{}); err == nil {
 		t.Fatal("expected an error for a config with no projectId")

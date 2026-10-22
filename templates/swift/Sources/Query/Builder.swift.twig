@@ -27,8 +27,13 @@ extension Query {
         }
 
         @discardableResult
+        public func lessThanEqual(_ attribute: String, value: Any) -> Builder {
+            return push(Query.lessThanEqual(attribute, value: value))
+        }
+
+        @available(*, deprecated, renamed: "lessThanEqual(_:value:)")
         public func lessThanEqual(attribute: String, value: Any) -> Builder {
-            return push(Query.lessThanEqual(attribute: attribute, value: value))
+            return lessThanEqual(attribute, value: value)
         }
 
         @discardableResult

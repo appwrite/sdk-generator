@@ -60,6 +60,7 @@ final class DotNet90Test extends Base
         ...Base::ID_HELPER_RESPONSES,
         ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::QUERY_PAGE_OVERFLOW_RESPONSES,
-        ...Base::OPERATOR_HELPER_RESPONSES
+        ...Base::OPERATOR_HELPER_RESPONSES,
+        ...Base::DOTNET_DATETIME_STRING_RESPONSES
     ];
 }

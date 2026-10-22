@@ -161,3 +161,13 @@ func TestParseSkillFrontmatterWithoutABlock(t *testing.T) {
 		t.Errorf("got (%q, %q), want two empty strings", name, description)
 	}
 }
+
+func TestRunGitCommandSuggestsInstallingGitWhenItIsMissing(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+
+	err := runGitCommand(t.TempDir(), "--version")
+
+	if err == nil || !strings.Contains(err.Error(), "git is not installed") {
+		t.Errorf("err = %v, want the missing-git suggestion", err)
+	}
+}

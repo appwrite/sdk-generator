@@ -560,7 +560,7 @@ class Query implements \JsonSerializable, \Stringable
     }
 
     /**
-     * Standard deviation of $attribute, optionally aliased.
+     * Population standard deviation of $attribute (the same as stddevPop), optionally aliased.
      */
     public static function stddev(string $attribute, string $alias = ''): string
     {
@@ -584,7 +584,7 @@ class Query implements \JsonSerializable, \Stringable
     }
 
     /**
-     * Variance of $attribute, optionally aliased.
+     * Population variance of $attribute (the same as varPop), optionally aliased.
      */
     public static function variance(string $attribute, string $alias = ''): string
     {
@@ -674,7 +674,7 @@ class Query implements \JsonSerializable, \Stringable
     }
 
     /**
-     * Inner join. $table is the joined collection/table ID.
+     * Inner join. $table is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
      */
     public static function join(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -682,7 +682,7 @@ class Query implements \JsonSerializable, \Stringable
     }
 
     /**
-     * Left join. $table is the joined collection/table ID.
+     * Left join. $table is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
      */
     public static function leftJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -690,7 +690,7 @@ class Query implements \JsonSerializable, \Stringable
     }
 
     /**
-     * Right join. $table is the joined collection/table ID.
+     * Right join. $table is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
      */
     public static function rightJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -698,7 +698,7 @@ class Query implements \JsonSerializable, \Stringable
     }
 
     /**
-     * Full outer join. $table is the joined collection/table ID.
+     * Full outer join. $table is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
      */
     public static function fullOuterJoin(string $table, string|array $leftOrAliasOrOn, string|array $rightOrOn = '', string $operator = '=', string $alias = ''): string
     {
@@ -706,7 +706,7 @@ class Query implements \JsonSerializable, \Stringable
     }
 
     /**
-     * Cross join. $table is the joined collection/table ID.
+     * Cross join. $table is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
      */
     public static function crossJoin(string $table, string $alias = ''): string
     {

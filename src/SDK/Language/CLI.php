@@ -279,6 +279,8 @@ class CLI extends Go
                     'source' => $variable,
                     'helper' => 'GraphQLRequest',
                 ];
+            } elseif ($flagType === '[]string' && $sdkType === '[]string') {
+                $expression = 'app.StringSlice(' . $variable . ')';
             } elseif ($flagType !== $sdkType) {
                 [$expression, $decode] = $this->convertToSdkType(
                     $variable,
@@ -728,6 +730,11 @@ class CLI extends Go
                 'template'      => 'cli/internal/app/convert.go',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/app/convert_test.go',
+                'template'      => 'cli/internal/app/convert_test.go',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/app/fallback.go',
                 'template'      => 'cli/internal/app/fallback.go.twig',
@@ -1121,6 +1128,11 @@ class CLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/initscaffold_test.go',
                 'template'      => 'cli/internal/cmd/initscaffold_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/cmd/initsite_test.go',
+                'template'      => 'cli/internal/cmd/initsite_test.go',
             ],
             [
                 'scope'         => 'default',
@@ -1591,6 +1603,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/typegen/enum_style.go',
+                'template'      => 'cli/internal/typegen/enum_style.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/typegen/language.go',
                 'template'      => 'cli/internal/typegen/language.go',
             ],
@@ -1626,6 +1643,16 @@ class CLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/typegen/testdata/ts.strict.appwrite.d.ts',
                 'template'      => 'cli/internal/typegen/testdata/ts.strict.appwrite.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/ts.const.appwrite.d.ts',
+                'template'      => 'cli/internal/typegen/testdata/ts.const.appwrite.d.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/ts.const.appwrite.ts',
+                'template'      => 'cli/internal/typegen/testdata/ts.const.appwrite.ts',
             ],
             [
                 'scope'         => 'copy',
@@ -1788,6 +1815,36 @@ class CLI extends Go
                 'template'      => 'cli/internal/typegen/testdata/cs.strict.BooksZines.cs',
             ],
             [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/python.go',
+                'template'      => 'cli/internal/typegen/python.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.collections.json',
+                'template'      => 'cli/internal/typegen/testdata/python.collections.json',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.loose.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.loose.appwrite_types.py',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.strict.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.strict.appwrite_types.py',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.coverage.loose.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.coverage.loose.appwrite_types.py',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/typegen/testdata/python.coverage.strict.appwrite_types.py',
+                'template'      => 'cli/internal/typegen/testdata/python.coverage.strict.appwrite_types.py',
+            ],
+            [
                 'scope'         => 'default',
                 'destination'   => 'internal/generator/generator.go',
                 'template'      => 'cli/internal/generator/generator.go',
@@ -1821,6 +1878,11 @@ class CLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/generator/testdata/server.types.ts',
                 'template'      => 'cli/internal/generator/testdata/server.types.ts',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/generator/testdata/server.const.types.ts',
+                'template'      => 'cli/internal/generator/testdata/server.const.types.ts',
             ],
             [
                 'scope'         => 'copy',

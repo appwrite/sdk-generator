@@ -540,6 +540,23 @@ final class QueryTest extends TestCase
         $this->assertSame(['ord'], $query['values']);
     }
 
+    public function testNestedJoinWithoutAliasLeavesTheAliasToTheServer(): void
+    {
+        $query = json_decode(Query::join('orders', [Query::on('$id', 'customerId')]), true);
+        $this->assertSame('join', $query['method']);
+        $this->assertSame('orders', $query['attribute']);
+        $this->assertCount(1, $query['values']);
+        $this->assertSame('on', $query['values'][0]['method']);
+    }
+
+    public function testCrossJoinWithoutAliasLeavesTheAliasToTheServer(): void
+    {
+        $query = json_decode(Query::crossJoin('orders'), true);
+        $this->assertSame('crossJoin', $query['method']);
+        $this->assertSame('orders', $query['attribute']);
+        $this->assertSame([], $query['values'] ?? []);
+    }
+
     public function testNotCovers(): void
     {
         $query = json_decode(Query::notCovers('location', [1, 2]), true);

@@ -9,7 +9,6 @@ use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Specification;
 use Override;
-use Twig\TwigFilter;
 
 class ReactNative extends Web
 {
@@ -161,6 +160,11 @@ class ReactNative extends Web
                 'scope'         => 'default',
                 'destination'   => 'src/lib/tcp-stream.ts',
                 'template'      => 'react-native/src/lib/tcp-stream.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'src/lib/file-system.ts',
+                'template'      => 'react-native/src/lib/file-system.ts.twig',
             ],
             [
                 'scope'         => 'default',

@@ -13,7 +13,6 @@ use Utopia\OpenAPI\Specification;
 use stdClass;
 use Override;
 use Appwrite\SDK\Language;
-use Exception;
 use Twig\TwigFilter;
 
 class Python extends Language
@@ -29,9 +28,6 @@ class Python extends Language
         'pipPackage' => 'packageName',
     ];
 
-    /**
-     * @return $this
-     */
     public function setPipPackage(string $name): self
     {
         $this->setParam('pipPackage', $name);

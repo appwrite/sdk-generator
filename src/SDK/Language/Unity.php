@@ -329,11 +329,6 @@ class Unity extends DotNet
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/System.Text.Encodings.Web.dll.meta',
             ],
             [
-                'scope'         => 'default',
-                'destination'   => 'Assets/Runtime/Core/Plugins/Android/AndroidManifest.xml',
-                'template'      => 'unity/Assets/Runtime/Core/Plugins/Android/AndroidManifest.xml.twig',
-            ],
-            [
                 'scope'         => 'copy',
                 'destination'   => 'Assets/Runtime/Core/Plugins/WebGLCookies.jslib',
                 'template'      => 'unity/Assets/Runtime/Core/Plugins/WebGLCookies.jslib',
@@ -388,6 +383,11 @@ class Unity extends DotNet
                 'scope'         => 'default',
                 'destination'   => 'Assets/Editor/{{ spec.info.title | caseUcfirst }}SetupWindow.cs',
                 'template'      => 'unity/Assets/Editor/AppwriteSetupWindow.cs.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'Assets/Editor/{{ spec.info.title | caseUcfirst }}AndroidManifestProcessor.cs',
+                'template'      => 'unity/Assets/Editor/AppwriteAndroidManifestProcessor.cs.twig',
             ],
             // Samples
             [
@@ -550,6 +550,7 @@ class Unity extends DotNet
                 'Assets/Editor/{{ spec.info.title | caseUcfirst }}.Editor.asmdef',
                 'Assets/Editor/{{ spec.info.title | caseUcfirst }}SetupAssistant.cs',
                 'Assets/Editor/{{ spec.info.title | caseUcfirst }}SetupWindow.cs',
+                'Assets/Editor/{{ spec.info.title | caseUcfirst }}AndroidManifestProcessor.cs',
             ];
 
             $files = array_filter($files, fn(array $file): bool => !in_array($file['destination'], $excludeInTest));
@@ -590,7 +591,7 @@ class Unity extends DotNet
             if ($relative === '') {
                 continue;
             }
-            $skip = array_any(explode('/', $relative), fn($segment): bool => $segment === '' || $segment[0] === '.' || str_ends_with((string) $segment, '~'));
+            $skip = array_any(explode('/', $relative), fn($segment): bool => $segment === '' || $segment[0] === '.' || str_ends_with($segment, '~'));
             if ($skip) {
                 continue;
             }
@@ -636,13 +637,6 @@ class Unity extends DotNet
             return implode("\n", $lines) . "\n";
         }
 
-        // Plugins/Android/AndroidManifest.xml must import as an Android
-        // plugin so Unity merges it into the build manifest; a plain
-        // DefaultImporter would import it as an inert text asset.
-        if (str_ends_with($relativePath, 'Plugins/Android/AndroidManifest.xml')) {
-            return implode("\n", $this->pluginImporterMeta($guid, 'Android')) . "\n";
-        }
-
         $extension = strtolower(pathinfo($relativePath, PATHINFO_EXTENSION));
 
         $lines = match ($extension) {
@@ -680,7 +674,7 @@ class Unity extends DotNet
      * Build PluginImporter meta lines enabling a single target platform
      * (and the editor stub), with every other platform disabled.
      *
-     * @param string $platform Unity platform key (e.g. 'WebGL', 'Android').
+     * @param string $platform Unity platform key (e.g. 'WebGL').
      * @return array<string>
      */
     private function pluginImporterMeta(string $guid, string $platform): array

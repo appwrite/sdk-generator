@@ -90,7 +90,7 @@ open class Client {
             try http.syncShutdown()
             try httpForRedirect.syncShutdown()
         } catch {
-            print(error)
+            FileHandle.standardError.write(Data("\(error)\n".utf8))
         }
     }
 

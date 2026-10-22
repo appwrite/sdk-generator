@@ -27,7 +27,7 @@ import type { Models } from '../models';
 {% set typeImports = typeImports | merge(['Payload']) %}
 import type { {{ typeImports | join(', ') }} } from '../client';
 {% if usesUpload %}
-import * as FileSystem from 'expo-file-system';
+import { fileSystem } from '../lib/file-system';
 {% endif %}
 {% if usesChunkedUpload %}
 import { Platform as RNPlatform } from 'react-native';
@@ -209,6 +209,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
             return{{ 'this.client.call' | jsArgs(uploadArgs, 12, ';', 7) | raw }}
         }
 {% endif %}
+
+        const FileSystem = fileSystem();
 {% if (method | textResponse) %}
 
         apiPayload['{{ parameter.name }}'] = Service.filePart(
@@ -310,12 +312,20 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 async () => firstChunk,
             );
 
-            response = await this.client.call(
-                '{{ method.method.value | caseLower }}',
-                uri,
-                firstChunkHeaders,
-                apiPayload,
-            );
+            try {
+                response = await this.client.call(
+                    '{{ method.method.value | caseLower }}',
+                    uri,
+                    firstChunkHeaders,
+                    apiPayload,
+                );
+            } finally {
+                if (RNPlatform.OS.toLowerCase() === 'android') {
+                    await FileSystem.deleteAsync(firstPath, {
+                        idempotent: true,
+                    }).catch(() => undefined);
+                }
+            }
             offset = firstChunkEnd;
 
             if (onProgress) {
@@ -405,12 +415,21 @@ export class {{ service.name | caseUcfirst }} extends Service {
                 async () => chunkData,
             );
 
-            const chunkResponse = await this.client.call(
-                '{{ method.method.value | caseLower }}',
-                uri,
-                chunkHeaders,
-                chunkPayload,
-            );
+            let chunkResponse;
+            try {
+                chunkResponse = await this.client.call(
+                    '{{ method.method.value | caseLower }}',
+                    uri,
+                    chunkHeaders,
+                    chunkPayload,
+                );
+            } finally {
+                if (RNPlatform.OS.toLowerCase() === 'android') {
+                    await FileSystem.deleteAsync(chunkPath, {
+                        idempotent: true,
+                    }).catch(() => undefined);
+                }
+            }
 
             if (failed) {
                 return chunkResponse;

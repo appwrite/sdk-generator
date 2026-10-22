@@ -9,9 +9,11 @@ use Iterator;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\Language\Android;
 use Appwrite\SDK\Language\Apple;
+use Appwrite\SDK\Language\ClaudePlugin;
 use Appwrite\SDK\Language\CLI;
+use Appwrite\SDK\Language\CodexPlugin;
+use Appwrite\SDK\Language\CursorPlugin;
 use Appwrite\SDK\Language\Dart;
-use Appwrite\SDK\Language\Deno;
 use Appwrite\SDK\Language\DotNet;
 use Appwrite\SDK\Language\Flutter;
 use Appwrite\SDK\Language\Go;
@@ -25,6 +27,7 @@ use Appwrite\SDK\Language\ReactNative;
 use Appwrite\SDK\Language\REST;
 use Appwrite\SDK\Language\Ruby;
 use Appwrite\SDK\Language\Rust;
+use Appwrite\SDK\Language\Skills;
 use Appwrite\SDK\Language\Swift;
 use Appwrite\SDK\Language\Unity;
 use Appwrite\SDK\Language\Web;
@@ -95,7 +98,6 @@ final class GenerationTest extends TestCase
         'web' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'node' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'react-native' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
-        'deno' => ['src/enums/webhook-event.ts', 'UserCreated', 'src/enums/localized-status.ts', 'Value1', 'src/enums/province-type.ts', 'Capital'],
         'php' => ['src/Appwrite/Enums/WebhookEvent.php', 'USERCREATED', 'src/Appwrite/Enums/LocalizedStatus.php', 'public static function VALUE1', 'src/Appwrite/Enums/ProvinceType.php', 'public static function CAPITAL'],
         'python' => ['appwrite/enums/webhook_event.py', 'USERCREATED = "user.created"', 'appwrite/enums/localized_status.py', 'VALUE1 = "រាជធានី"', 'appwrite/enums/province_type.py', 'CAPITAL = "រាជធានី"'],
         'ruby' => ['lib/appwrite/enums/webhook_event.rb', "USERCREATED = 'user.created'", 'lib/appwrite/enums/localized_status.rb', "VALUE1 = 'រាជធានី'", 'lib/appwrite/enums/province_type.rb', "CAPITAL = 'រាជធានី'"],
@@ -109,6 +111,74 @@ final class GenerationTest extends TestCase
         'unity' => ['Runtime/Core/Enums/WebhookEvent.cs', 'public const string UserCreated', 'Runtime/Core/Enums/LocalizedStatus.cs', 'public static LocalizedStatus Value1', 'Runtime/Core/Enums/ProvinceType.cs', 'public static ProvinceType Capital'],
         'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated', 'src/enums/localized_status.rs', 'Value1,', 'src/enums/province_type.rs', 'Capital,'],
     ];
+
+    /**
+     * Targets that ship Agent Skills, whose `SKILL.md` frontmatter name must
+     * match the directory holding it.
+     *
+     * @var array<string, class-string<Language>>
+     */
+    private const array SKILL_LANGUAGES = [
+        'skills' => Skills::class,
+        'claude-plugin' => ClaudePlugin::class,
+        'cursor-plugin' => CursorPlugin::class,
+        'codex-plugin' => CodexPlugin::class,
+    ];
+
+    /**
+     * Package metadata each language must declare, by generated path: the
+     * runtime floor its code and dependencies need, and every interpreter
+     * version the e2e suite runs it on.
+     *
+     * @var array<string, array<string, list<string>>>
+     */
+    private const array PACKAGE_METADATA = [
+        'ruby' => [
+            'appwrite.gemspec' => [
+                "spec.required_ruby_version = '>= 2.7'",
+                "spec.add_dependency 'mime-types', '~> 3.6'",
+            ],
+        ],
+        'node' => [
+            'package.json' => ['"engines": {', '"node": ">=20.0.0"'],
+            'package-lock.json' => ['"engines": {', '"node": ">=20.0.0"'],
+        ],
+        'python' => [
+            'setup.py' => [
+                "'Programming Language :: Python :: 3.9'",
+                "'Programming Language :: Python :: 3.10'",
+                "'Programming Language :: Python :: 3.11'",
+                "'Programming Language :: Python :: 3.12'",
+                "'Programming Language :: Python :: 3.13'",
+            ],
+            'pyproject.toml' => [
+                '"Programming Language :: Python :: 3.9"',
+                '"Programming Language :: Python :: 3.10"',
+                '"Programming Language :: Python :: 3.11"',
+                '"Programming Language :: Python :: 3.12"',
+                '"Programming Language :: Python :: 3.13"',
+            ],
+        ],
+    ];
+
+    /** @var array<string, array<string, string>> */
+    private const array PEER_DEPENDENCIES = [
+        'react-native' => [
+            'expo' => '>=52.0.0',
+            'expo-file-system' => '>=18.0.0',
+        ],
+    ];
+
+    /** @var array<string, list<string>> */
+    private const array CDN_ARTIFACTS = [
+        '.github/workflows/publish.yml' => ['npm run build:cdn', 'environment: cdn', 'r2:appwrite-sdk/zzcdn/', '--immutable'],
+        'package.json' => ['"build:cdn"', '"!dist/cdn"'],
+        'README.md' => ['https://sdk.appwrite.io/zzcdn/'],
+        'rollup.config.mjs' => ['dist/cdn', "entries('src/enums', 'enums/')"],
+    ];
+
+    /** @var list<string> */
+    private const array CDN_TOKENS = ['sdk.appwrite.io', 'r2:appwrite-sdk', 'build:cdn', 'dist/cdn', 'environment: cdn'];
 
     /** @var array<string, array<string, string>> generated tree per language and platform */
     private static array $generated = [];
@@ -128,7 +198,6 @@ final class GenerationTest extends TestCase
             'php' => PHP::class,
             'web' => Web::class,
             'node' => Node::class,
-            'deno' => Deno::class,
             'cli' => CLI::class,
             'ruby' => Ruby::class,
             'python' => Python::class,
@@ -150,7 +219,7 @@ final class GenerationTest extends TestCase
 
     private function language(string $name): Language
     {
-        $language = new (self::languageClasses()[$name])();
+        $language = new ((self::languageClasses() + self::SKILL_LANGUAGES)[$name])();
         if ($language instanceof CLI) {
             $language->setExecutableName('appwrite');
         }
@@ -164,9 +233,9 @@ final class GenerationTest extends TestCase
      *
      * @return array<string, string>
      */
-    private function generate(string $name, string $platform, string $unionVariant = ''): array
+    private function generate(string $name, string $platform, string $unionVariant = '', ?Language $language = null, string $variant = ''): array
     {
-        $key = $platform . $unionVariant;
+        $key = $platform . $unionVariant . $variant;
         if (isset(self::$generated[$name][$key])) {
             return self::$generated[$name][$key];
         }
@@ -184,7 +253,7 @@ final class GenerationTest extends TestCase
                 ];
             }
         }
-        $sdk = new SDK($this->language($name), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
+        $sdk = new SDK($language ?? $this->language($name), Parser::parse(\json_encode($document, JSON_THROW_ON_ERROR)));
         $sdk
             ->setName('test')
             ->setVersion('0.0.1')
@@ -343,6 +412,44 @@ final class GenerationTest extends TestCase
             }
         }
         $this->assertStringContainsString("var known = knownservices == 0 ? {$mask} : knownservices;", $config);
+    }
+
+    /**
+     * A package installed from a git URL is read-only, so a manifest shipped in
+     * it keeps a placeholder OAuth scheme that the app can never fill in. The
+     * scheme the runtime waits for is registered at build time instead.
+     */
+    public function testUnityRegistersTheOAuthCallbackWithoutAPackageManifest(): void
+    {
+        $files = $this->generate('unity', 'client');
+
+        $manifests = \array_filter(\array_keys($files), fn(string $path): bool => \str_contains(\strtolower($path), 'androidmanifest.xml'));
+        $this->assertSame([], \array_values($manifests));
+
+        foreach ($files as $path => $contents) {
+            if (!\str_starts_with($path, 'docs~/')) {
+                $this->assertStringNotContainsString('<your_project_id>', $contents, "{$path} ships a project ID placeholder");
+            }
+        }
+
+        $this->assertStringContainsString('$"appwrite-callback-{projectid}"', $files['Runtime/Core/WebAuthComponent.cs']);
+        $processor = $files['Editor/AppwriteAndroidManifestProcessor.cs'] ?? '';
+        $this->assertStringContainsString(': ipostgenerategradleandroidproject', $processor);
+        $this->assertStringContainsString('callbackschemeprefix = "appwrite-callback-"', $processor);
+        $this->assertStringContainsString('"android.intent.category.browsable"', $processor);
+    }
+
+    /**
+     * The setup window links to this SDK's documentation and the configured
+     * community, not the generator's homepage URL or a fixed invite.
+     */
+    public function testUnitySetupWindowLinksToTheSdkDocumentation(): void
+    {
+        $window = $this->generate('unity', 'client')['Editor/AppwriteSetupWindow.cs'];
+
+        $this->assertStringContainsString('application.openurl("https://github.com/', $window);
+        $this->assertStringContainsString('#readme")', $window);
+        $this->assertStringNotContainsString('discord.gg', $window);
     }
 
     /**
@@ -520,7 +627,7 @@ final class GenerationTest extends TestCase
     {
         $defaults = [];
         $examples = [];
-        foreach (['web', 'node', 'react-native', 'deno'] as $name) {
+        foreach (['web', 'node', 'react-native'] as $name) {
             foreach (self::PLATFORMS as $platform) {
                 $files = $this->generate($name, $platform);
                 $general = $files['src/services/general.ts'] ?? '';
@@ -671,6 +778,144 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('"application/json, text/plain".to_string()', $general);
     }
 
+    public function testRustParsesFloatsExactly(): void
+    {
+        $files = $this->generate('rust', 'server');
+
+        $this->assertStringContainsString('serde_json = { version = "1.0.149", features = ["float_roundtrip"] }', $files['Cargo.toml']);
+    }
+
+    public function testRustQueryBuilderChainsEveryQuery(): void
+    {
+        $files = $this->generate('rust', 'server');
+        $queries = $this->rustPublicFunctions(strstr($files['src/query/mod.rs'], 'impl query {'));
+        $chained = $this->rustPublicFunctions($files['src/query/builder.rs']);
+
+        $missing = array_values(array_diff($queries, $chained, ['builder', 'on', 'to_value']));
+
+        $this->assertSame([], $missing, 'Query constructors the builder cannot chain: ' . implode(', ', $missing));
+    }
+
+    public function testEverySdkSkillShowsTheQueryFamilies(): void
+    {
+        $skills = array_filter(
+            $this->generate('skills', 'console'),
+            fn (string $path): bool => basename($path) === 'SKILL.md' && !str_contains($path, '-cli/') && !str_contains($path, 'deploy'),
+            ARRAY_FILTER_USE_KEY,
+        );
+        $families = ['aggregation' => '/\bcount\(/', 'grouping' => '/group_?by\(/', 'having' => '/having\(/', 'joins' => '/join\(/', 'builder' => '/(?:query(?:\.|::)builder|newbuilder)\b/'];
+
+        $this->assertNotEmpty($skills);
+        foreach ($skills as $path => $skill) {
+            $missing = array_keys(array_filter($families, fn (string $pattern): bool => preg_match($pattern, $skill) !== 1));
+            $this->assertSame([], $missing, "{$path} has no query example for: " . implode(', ', $missing));
+        }
+    }
+
+    public function testSdkSkillsInstallTheLatestSdk(): void
+    {
+        $skills = array_filter(
+            $this->generate('skills', 'console'),
+            fn (string $path): bool => basename($path) === 'SKILL.md',
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        $this->assertNotEmpty($skills);
+        foreach ($skills as $path => $skill) {
+            $this->assertDoesNotMatchRegularExpression('/\\bappwrite(?:\\s*=\\s*"|@|==)\\d/i', $skill, "{$path} pins an SDK version that goes stale on the next release");
+        }
+    }
+
+    public function testCodexReadmeListsTheGeneratedSkillIds(): void
+    {
+        $files = $this->generate('codex-plugin', 'console');
+        preg_match_all('#^- `([a-z0-9-]+)`$#m', $files['README.md'], $matches);
+        $generated = array_map(
+            fn (string $path): string => basename(dirname($path)),
+            array_filter(array_keys($files), fn (string $path): bool => basename($path) === 'SKILL.md'),
+        );
+
+        $this->assertNotEmpty($matches[1]);
+        $this->assertSame([], array_values(array_diff($matches[1], $generated)), 'README lists skills the plugin does not ship');
+    }
+
+    public function testRubyLoadsOnlyTheCgiEscapeLibrary(): void
+    {
+        $client = $this->generate('ruby', 'server')['lib/appwrite/client.rb'];
+
+        $this->assertMatchesRegularExpression("/^require 'cgi\\/escape'$/m", $client);
+        $this->assertDoesNotMatchRegularExpression("/^require 'cgi'$/m", $client, 'Ruby 4.0 removed the cgi library; only cgi/escape ships with it');
+    }
+
+    public function testDotNetKeepsDateTimeStringsAsStrings(): void
+    {
+        $converter = $this->generate('dotnet', 'server')['Appwrite/Converters/ObjectToInferredTypesConverter.cs'];
+
+        $this->assertMatchesRegularExpression('/case jsonvaluekind\.string:\s+return element\.getstring\(\);/', $converter);
+        $this->assertStringNotContainsString('trygetdatetime', $converter, 'Inferring DateTime from strings rewrites server datetimes in the current culture');
+    }
+
+    #[DataProvider('swiftQueryPlatforms')]
+    public function testSwiftQueriesTakeTheAttributeUnlabelled(string $name, string $platform): void
+    {
+        $files = $this->generate($name, $platform);
+
+        foreach (['sources/appwrite/query.swift', 'sources/appwrite/query/builder.swift'] as $path) {
+            $source = $files[$this->fileKey($files, $path)];
+            preg_match_all('/(@available\([^\n]*deprecated[^\n]*\n\s*)?public (?:static )?func ([a-z]+)\((?!_ |\))[a-z]/i', $source, $matches, PREG_SET_ORDER);
+            $labelled = array_map(fn (array $match): string => $match[2], array_filter($matches, fn (array $match): bool => $match[1] === '' && $match[2] !== 'encode'));
+
+            $this->assertSame([], array_values($labelled), "{$name} {$path} queries that need a first-argument label: " . implode(', ', $labelled));
+        }
+    }
+
+    public function testAppleRealtimeClosesOnceWhenTheConnectionDropsWithoutACloseFrame(): void
+    {
+        $files = $this->generate('apple', 'client');
+        $handler = $files[$this->fileKey($files, 'sources/appwrite/websockets/messagehandler.swift')];
+
+        $this->assertMatchesRegularExpression(
+            '/func channelInactive\(context: ChannelHandlerContext\) \{\s*if !closeDelivered \{\s*closeDelivered = true\s*notifyClose\(channel: context\.channel, data: Data\(\)\)\s*\}\s*context\.fireChannelInactive\(\)/i',
+            $handler,
+            'a dropped connection without a close frame must reach onClose so Realtime reconnects'
+        );
+        $this->assertMatchesRegularExpression(
+            '/case \.connectionClose:.*?closeDelivered = true.*?notifyClose\(/is',
+            $handler,
+            'a close frame must mark the close delivered so the following channelInactive does not reconnect again'
+        );
+    }
+
+    public static function swiftQueryPlatforms(): Iterator
+    {
+        yield 'swift' => ['swift', 'server'];
+        yield 'apple' => ['apple', 'client'];
+    }
+
+    /**
+     * @param array<string, string> $files
+     */
+    private function fileKey(array $files, string $suffix): string
+    {
+        foreach (array_keys($files) as $key) {
+            if (str_ends_with(strtolower($key), $suffix)) {
+                return $key;
+            }
+        }
+
+        $this->fail("no generated file ending in {$suffix}");
+    }
+
+    /**
+     * @return array<string>
+     */
+    private function rustPublicFunctions(string $source): array
+    {
+        preg_match_all('/^    pub fn ([a-z_]+)\b/m', $source, $matches);
+
+        return array_values(array_unique($matches[1]));
+    }
+
     #[DataProvider('languages')]
     public function testEnumsAreDeclared(string $name): void
     {
@@ -684,6 +929,88 @@ final class GenerationTest extends TestCase
         foreach ([[$knownPath, $knownDeclaration], [$knownPath, 'user.updated'], [$localizedPath, $localizedDeclaration], [$annotatedPath, $annotatedDeclaration]] as [$path, $declaration]) {
             $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
             $this->assertStringContainsString(\strtolower($declaration), $files[$path], "{$name}: {$path} lacks `{$declaration}`");
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function packageLanguages(): iterable
+    {
+        foreach (\array_keys(self::PACKAGE_METADATA) as $name) {
+            yield $name => [$name];
+        }
+    }
+
+    #[DataProvider('packageLanguages')]
+    public function testPackageMetadataIsDeclared(string $name): void
+    {
+        $files = $this->generate($name, 'server');
+
+        foreach (self::PACKAGE_METADATA[$name] as $path => $declarations) {
+            $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
+            foreach ($declarations as $declaration) {
+                $this->assertStringContainsString(\strtolower($declaration), $files[$path], "{$name}: {$path} lacks `{$declaration}`");
+            }
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function guideLanguages(): iterable
+    {
+        foreach (\array_keys(self::languageClasses()) as $name) {
+            if (!\in_array($name, ['rest', 'graphql'], true)) {
+                yield $name => [$name];
+            }
+        }
+    }
+
+    #[DataProvider('guideLanguages')]
+    public function testReadmeRendersTheGuideVerbatim(string $name): void
+    {
+        $guide = "```\nclient.set('<REGION>', \"a & b\") => ok\n```";
+        $dir = self::OUTPUT . '/' . $name . '/guide';
+        $this->removeDirectory($dir);
+
+        new SDK($this->language($name), Parser::parse((string) \file_get_contents(self::FIXTURE)))
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace(\in_array($name, ['android', 'kotlin'], true) ? 'io.appwrite' : 'appwrite')
+            ->setGettingStarted($guide)
+            ->setExamples($guide)
+            ->setTest('true')
+            ->generate($dir);
+
+        $readme = (string) \file_get_contents($dir . '/README.md');
+        $this->assertStringContainsString($guide, $readme, "{$name}: README.md escapes the getting started guide");
+        if (\is_file($dir . '/example/README.md')) {
+            $this->assertStringContainsString($guide, (string) \file_get_contents($dir . '/example/README.md'), "{$name}: example/README.md escapes the examples");
+        }
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function peerLanguages(): iterable
+    {
+        foreach (\array_keys(self::PEER_DEPENDENCIES) as $name) {
+            yield $name => [$name];
+        }
+    }
+
+    #[DataProvider('peerLanguages')]
+    public function testNativeModulesArePeerDependencies(string $name): void
+    {
+        $files = $this->generate($name, 'client');
+
+        foreach (['package.json' => null, 'package-lock.json' => ''] as $path => $root) {
+            $this->assertArrayHasKey($path, $files, "{$name} did not generate {$path}");
+            $package = \json_decode($files[$path], true, flags: JSON_THROW_ON_ERROR);
+            if ($root !== null) {
+                $package = $package['packages'][$root];
+            }
+
+            foreach (self::PEER_DEPENDENCIES[$name] as $dependency => $range) {
+                $this->assertSame($range, $package['peerdependencies'][$dependency] ?? null, "{$name}: {$path} does not declare {$dependency} as a {$range} peer");
+                $this->assertArrayNotHasKey($dependency, $package['dependencies'] ?? [], "{$name}: {$path} bundles {$dependency} as a dependency");
+            }
         }
     }
 
@@ -729,6 +1056,38 @@ final class GenerationTest extends TestCase
         );
     }
 
+    /**
+     * A repeatable flag given only `[]` has to reach the SDK as an empty array,
+     * so every array flag is routed through the CLI's slice helpers.
+     */
+    public function testCliArrayFlagsCanSendAnEmptyArray(): void
+    {
+        $dir = self::OUTPUT . '/cli-module/arrays';
+        $this->removeDirectory($dir);
+
+        new SDK(new CLI(), Parser::parse((string) \file_get_contents(self::FIXTURE)))
+            ->setTest('')
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform('server')
+            ->setNamespace('appwrite')
+            ->generate($dir);
+
+        $unrouted = [];
+        foreach (\glob($dir . '/internal/cmd/services/*.go') ?: [] as $path) {
+            $source = (string) \preg_replace('/app\.(?:StringSlice|DecodeSlice\[[^\]]+\])\(\w+\)/', '', (string) \file_get_contents($path));
+            \preg_match_all('/StringArrayVar\(&(\w+), "(?!filter"|where"|sort-asc"|sort-desc"|select"|queries")/', $source, $flags);
+            foreach (\array_unique($flags[1]) as $variable) {
+                if (\preg_match('/[(,]\s*' . $variable . '\s*[),]/', $source) === 1) {
+                    $unrouted[] = \basename($path) . ': ' . $variable;
+                }
+            }
+        }
+
+        $this->assertNotEmpty(\glob($dir . '/internal/cmd/services/*.go'));
+        $this->assertSame([], $unrouted, 'array flags passed to the SDK without app.StringSlice or app.DecodeSlice');
+    }
+
     private function generateCliModule(CLI $language, string $key): string
     {
         $dir = self::OUTPUT . '/cli-module/' . $key;
@@ -742,6 +1101,37 @@ final class GenerationTest extends TestCase
             ->generate($dir);
 
         return (string) \file_get_contents($dir . '/go.mod');
+    }
+
+    public function testWebPublishesToTheCdnOnlyWhenPathIsSet(): void
+    {
+        $cdn = $this->generate('web', 'client', language: new Web()->setCdnPath('zzcdn'), variant: '-cdn');
+        $npm = $this->generate('web', 'client');
+        $missing = [];
+        foreach (self::CDN_ARTIFACTS as $path => $tokens) {
+            foreach ($tokens as $token) {
+                if (!\str_contains($cdn[$path] ?? '', $token)) {
+                    $missing[] = "{$path}: {$token}";
+                }
+            }
+        }
+
+        $this->assertSame([], $missing, 'web with a CDN path lacks CDN artifacts');
+
+        $leaked = [];
+        foreach (['web' => $npm, 'node' => $this->generate('node', 'server'), 'react-native' => $this->generate('react-native', 'client')] as $name => $files) {
+            foreach (self::CDN_TOKENS as $token) {
+                foreach ($this->filesContaining($files, $token) as $match) {
+                    $leaked[] = "{$name}: {$match}: {$token}";
+                }
+            }
+        }
+
+        $this->assertSame([], $leaked, 'a JavaScript SDK without a CDN path renders CDN artifacts');
+
+        foreach (['cdn' => $cdn, 'npm' => $npm] as $mode => $files) {
+            $this->assertStringContainsString('terser(', $files['rollup.config.mjs'], "web ({$mode}): rollup.config.mjs does not minify");
+        }
     }
 
     /**
@@ -858,6 +1248,62 @@ final class GenerationTest extends TestCase
             $service = $this->generate($name, 'client')['src/services/general.ts'];
 
             $this->assertMatchesRegularExpression('/uploadfileonly\(\s*file: [^,]+,\s*onprogress\?: \(progress: uploadprogress\) => void,\s*\): promise/', $service, "{$name} uploadFileOnly lacks a positional onProgress");
+        }
+    }
+
+    /**
+     * A generated service test pins the request its method sends: the verb,
+     * the path with the example arguments substituted, and the parameter
+     * names. Asserting only the returned model passes even when the method
+     * calls the wrong endpoint or drops its body.
+     */
+    #[DataProvider('serviceTestRequests')]
+    public function testServiceTestsAssertTheRequest(string $name, string $platform, string $file, string $fragment): void
+    {
+        $this->assertStringContainsString($fragment, $this->generate($name, $platform)[$file] ?? '');
+    }
+
+    /** @return Iterator<string, array{string, string, string, string}> */
+    public static function serviceTestRequests(): Iterator
+    {
+        yield 'php path' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "->expects()->call(\n                'get',\n                '/mock/tests/general/path/grant/special&id',"];
+        yield 'php params' => ['php', 'server', 'tests/Appwrite/Services/FooTest.php', "->expects()->call(\n                'put',\n                '/mock/tests/foo',\n                mockery::any(),\n                mockery::on(function (array \$params): bool {\n                    \$this->assertsame(['x', 'y', 'z'], array_keys(\$params));"];
+        yield 'python path' => ['python', 'server', 'test/services/test_general.py', "response = self.general.get_path(\n            'grant/special&id',\n        )\n        request = m.last_request\n        url = urlsplit(request.url)\n        self.assertequal(\n            unquote(url.path),\n            '/v1/mock/tests/general/path/grant/special&id',\n        )"];
+        yield 'python params' => ['python', 'server', 'test/services/test_foo.py', "m.request(\n            'put',\n            requests_mock.any,"];
+        yield 'python body' => ['python', 'server', 'test/services/test_foo.py', "sent = json.loads(request.body or '{}')\n        self.assertequal(\n            sent,\n            {\n                'x': '[]',\n                'y': 1,\n                'z': [],\n            },\n        )"];
+        foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
+            yield "{$name} path" => [$name, $platform, 'test/services/general_test.dart', "verify(\n        client.call(\n          httpmethod.get,\n          path: \"/mock/tests/general/path/grant/special&id\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),"];
+            yield "{$name} params" => [$name, $platform, 'test/services/foo_test.dart', "client.call(\n          httpmethod.put,\n          path: \"/mock/tests/foo\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),\n          responsetype: anynamed('responsetype'),\n        ),\n      ).captured.single;\n      expect(params, {\n        \"x\": \"[]\",\n        \"y\": 1,\n        \"z\": isa<list>(),\n      });"];
+        }
+    }
+
+    /**
+     * A generated service test passes every optional parameter and pins the
+     * value sent for it. Calling with the required parameters only passes
+     * even when the method drops an optional parameter, or drops a boolean
+     * one when it is false.
+     */
+    #[DataProvider('serviceTestOptionalParameters')]
+    public function testServiceTestsPassOptionalParameters(string $name, string $platform, string $file, string $fragment): void
+    {
+        $this->assertStringContainsString($fragment, $this->generate($name, $platform)[$file] ?? '');
+    }
+
+    /** @return Iterator<string, array{string, string, string, string}> */
+    public static function serviceTestOptionalParameters(): Iterator
+    {
+        yield 'php arguments' => ['php', 'server', 'tests/Appwrite/Services/FunctionsTest.php', "\$response = \$this->functions->createexecution(\n            \"functionid\",\n            body: \"body\",\n            async: false,"];
+        yield 'php body' => ['php', 'server', 'tests/Appwrite/Services/FunctionsTest.php', "\$expected = [\n                        'functionid' => \"functionid\",\n                        'body' => \"body\",\n                        'async' => false,"];
+        yield 'php query' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "\$expected = [\n                        'width' => 1,\n                        'height' => 1,\n                        'name' => \"name\",\n                    ];\n                    \$this->assertsame(\$expected, array_intersect_key(\$params, \$expected));"];
+        yield 'python arguments' => ['python', 'server', 'test/services/test_functions.py', "response = self.functions.create_execution(\n            'functionid',\n            body='body',\n            xasync=false,"];
+        yield 'python body' => ['python', 'server', 'test/services/test_functions.py', "sent = json.loads(request.body or '{}')\n        self.assertequal(\n            sent,\n            {\n                'body': 'body',\n                'async': false,"];
+        yield 'python query' => ['python', 'server', 'test/services/test_general.py', "sent = parse_qs(url.query, keep_blank_values=true)\n        self.assertequal(\n            sent,\n            {\n                'width': ['1'],\n                'height': ['1'],\n                'name': ['name'],\n            },\n        )"];
+        yield 'python multipart' => ['python', 'server', 'test/services/test_general.py', "self.assertequal(\n            sent,\n            {\n                'message': 'message',\n                'attachment': '',\n            },\n        )"];
+        yield 'dart arguments' => ['dart', 'server', 'test/services/functions_test.dart', "functions.createexecution(\n        functionid: \"functionid\",\n        body: \"body\",\n        xasync: false,"];
+        yield 'dart body' => ['dart', 'server', 'test/services/functions_test.dart', "expect(params, {\n        \"body\": \"body\",\n        \"async\": false,"];
+        foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
+            yield "{$name} query arguments" => [$name, $platform, 'test/services/general_test.dart', "general.getoptional(\n        width: 1,\n        height: 1,\n        name: \"name\",\n      );"];
+            yield "{$name} query" => [$name, $platform, 'test/services/general_test.dart', "expect(params, {\n        \"width\": 1,\n        \"height\": 1,\n        \"name\": \"name\",\n      });"];
         }
     }
 
@@ -1163,6 +1609,26 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('self.metadataList = try container.contains(.metadataList) ? container.decode([AnyCodable].self, forKey: .metadataList) : ([["enabled": NSNull(), "label": "x", "ratio": 1.0] as [String: Any], [Any]()] as [Any]).map { AnyCodable($0) }', $model);
         $this->assertStringContainsString('self.zzmocks = try container.contains(.zzmocks) ? container.decode([UnionMock].self, forKey: .zzmocks) : ([["type": "mock", "result": "ok"] as [String: Any]] as [Any]).map { UnionMock.from(map: $0 as! [String: Any]) }', $model);
         $this->assertStringContainsString('self.zzsettings = try container.contains(.zzsettings) ? container.decode([String: AnyCodable].self, forKey: .zzsettings) : ([String: Any]()).mapValues { AnyCodable($0) }', $model);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function skillLanguages(): iterable
+    {
+        foreach (\array_keys(self::SKILL_LANGUAGES) as $name) {
+            yield $name => [$name];
+        }
+    }
+
+    #[DataProvider('skillLanguages')]
+    public function testSkillNamesMatchTheirDirectories(string $name): void
+    {
+        $skills = \array_filter($this->generate($name, 'console'), static fn(string $path): bool => \basename($path) === 'SKILL.md', ARRAY_FILTER_USE_KEY);
+        $this->assertNotEmpty($skills);
+
+        foreach ($skills as $path => $contents) {
+            $this->assertSame(1, \preg_match('/\\A---\\nname: (\\S+)\\n/', $contents, $match), "{$name}: {$path} has no frontmatter name");
+            $this->assertSame(\basename(\dirname($path)), $match[1], "{$name}: {$path}");
+        }
     }
 
     public function testGoModelCommentsAreNotHtmlEscaped(): void

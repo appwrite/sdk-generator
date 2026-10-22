@@ -376,6 +376,23 @@ describe('Query', () => {
             values: ['ord'],
         }));
 
+    test('nested join without alias leaves the alias to the server', () => {
+        const query = JSON.parse(
+            Query.join('orders', [Query.on('$id', 'customerId')]),
+        );
+        expect(query.method).toEqual('join');
+        expect(query.attribute).toEqual('orders');
+        expect(query.values).toHaveLength(1);
+        expect(query.values[0].method).toEqual('on');
+    });
+
+    test('crossJoin without alias leaves the alias to the server', () => {
+        const query = JSON.parse(Query.crossJoin('orders'));
+        expect(query.method).toEqual('crossJoin');
+        expect(query.attribute).toEqual('orders');
+        expect(query.values ?? []).toEqual([]);
+    });
+
     test('vectorDot', () =>
         expectQuery(Query.vectorDot('embedding', [0.1, 0.2])).toEqual({
             method: 'vectorDot',

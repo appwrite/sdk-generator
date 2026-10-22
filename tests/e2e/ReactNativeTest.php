@@ -58,6 +58,10 @@ final class ReactNativeTest extends Base
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::UPLOAD_RESPONSE, // Object params
         ...Base::LARGE_FILE_RESPONSES,
+        ...Base::LARGE_FILE_RESPONSES,
+        'expo-file-system 58 chunk files left: 0',
+        ...Base::LARGE_FILE_RESPONSES,
+        'expo-file-system 18 chunk files left: 0',
         ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
