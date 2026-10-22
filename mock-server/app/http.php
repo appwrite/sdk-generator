@@ -616,6 +616,22 @@ App::get('/v1/mock/tests/general/path/grant%2Fspecial%26id')
     ->action(function () {
     });
 
+// Further getPath values, registered as the segment that must arrive. A `..`, `/`, `?` or `#`
+// left raw would reach another route; `unique()` stays literal because the API reads path
+// values without decoding them.
+foreach (['..%2Fgrant%3Fspecial%3Did%23x%20y%25', 'unique()'] as $segment) {
+    App::get('/v1/mock/tests/general/path/' . $segment)
+        ->desc('Path Param')
+        ->groups(['mock'])
+        ->label('scope', 'public')
+        ->label('sdk.response.code', Response::STATUS_CODE_OK)
+        ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+        ->label('sdk.response.model', Response::MODEL_MOCK)
+        ->label('sdk.mock', true)
+        ->action(function () {
+        });
+}
+
 // Query values must arrive intact: a raw `&`, `+` or `#` splits, decodes to a space or truncates them.
 App::get('/v1/mock/tests/general/query')
     ->desc('Query Param')
