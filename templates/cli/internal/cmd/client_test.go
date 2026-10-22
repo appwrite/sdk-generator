@@ -272,6 +272,26 @@ func TestEndpointChangeReusesAnEndpointOnlyStub(t *testing.T) {
 	}
 }
 
+// A session holding only an API key is not a stub. Repointing it sent one
+// server's key, and its self-signed trust, to another.
+func TestEndpointChangeLeavesAnAPIKeyBehind(t *testing.T) {
+	global := preferencesWith(t, `{"current": "default", "default": {"endpoint": "https://one/v1", "key": "zzkey", "selfSigned": true}}`)
+
+	command, _ := captureCommand()
+	selectSessionForEndpoint(command, global, "default", "https://two/v1")
+
+	if got := global.CurrentSessionID(); got == "default" {
+		t.Fatal("repointed the session holding the key")
+	}
+	if got := sessionEndpoint(global, "default"); got != "https://one/v1" {
+		t.Errorf("key session endpoint = %q, want it left on https://one/v1", got)
+	}
+	current := global.SessionData(global.CurrentSessionID())
+	if current.GetString(config.PreferenceKey) != "" || current.GetBool(config.PreferenceSelfSigned) {
+		t.Error("the session for the new endpoint inherited the old key or self-signed trust")
+	}
+}
+
 func captureCommand() (*cobra.Command, *bytes.Buffer) {
 	out := &bytes.Buffer{}
 	command := &cobra.Command{Use: "client"}
