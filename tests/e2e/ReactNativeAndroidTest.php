@@ -68,6 +68,7 @@ final class ReactNativeAndroidTest extends Base
         ...Base::PUSH_RESPONSES,
         ...Base::PUSH_SESSION_COOKIE_RESPONSES,
         ...Base::PUSH_SESSION_REPLAY_RESPONSES,
+        'Push refused reconnect:passed',
         ...Base::PUSH_ERROR_RESPONSES,
         ...Base::PUSH_NATIVE_DISPLACED_RESPONSES,
         ...Base::PUSH_NOTIFICATION_PERMISSION_RESPONSES,
