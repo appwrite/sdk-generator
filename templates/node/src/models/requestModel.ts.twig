@@ -17,12 +17,12 @@ import { {{ (property | enumName) | caseUcfirst }} } from '../enums/{{ (property
 
 {% endif %}
 /**
- * {{ requestModel.description }}
+ * {{ requestModel.description | escapeComment }}
  */
 export interface {{ requestModelName | caseUcfirst }} {
     {%~ for property in requestModel.properties %}
     /**
-     * {{ property.description }}
+     * {{ property.description | escapeComment }}
      */
     {{ (((property | schemaName) | escapeKeyword) ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty(((property | getPropertyType(spec)) | replace({'Models.': ''})), 4, (property | schemaNullable)) | raw }}
     {%~ endfor %}

@@ -300,7 +300,7 @@ class Client {
      * Set {{headerKey | caseUcfirst}}
      *
     {%~ if header.description %}
-     * {{header.description}}
+     * {{header.description | escapeComment}}
      *
     {%~ endif %}
      * @param value string

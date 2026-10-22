@@ -56,11 +56,11 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
     /**
     {%~ if method.description %}
-     * {{ method.description | replace({'\n': '\n     * '}) | trimLines | raw }}
+     * {{ method.description | escapeComment | replace({'\n': '\n     * '}) | trimLines | raw }}
     {%~ endif %}
      *
     {%~ for parameter in (method | parameters('all')) %}
-     * @param {{ '{' }}{{ parameter | getPropertyType(method, spec) | raw }}{{ '}' }} params.{{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method, spec) | raw }}{{ '}' }} params.{{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | escapeComment | raw }}
     {%~ endfor %}
      * @throws {{ '{' }}{{ spec.info.title | caseUcfirst}}Exception}
      * @returns {% if (method | methodType) == 'webAuth' %}{void|string}{% elseif (method | methodType) == 'location' %}{ArrayBuffer}{% else %}{Promise}{% endif %}
@@ -78,11 +78,11 @@ export class {{ service.name | caseUcfirst }} extends Service {
     {% if 'multipart/form-data' in (method | consumes) %}async {% endif %}{{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature([objectParam], (method | getReturn(spec)), 4, ';') | raw }}
     /**
      {%~ if method.description %}
-     * {{ method.description | replace({'\n': '\n     * '}) | trimLines | raw }}
+     * {{ method.description | escapeComment | replace({'\n': '\n     * '}) | trimLines | raw }}
      {%~ endif %}
      *
      {%~ for parameter in (method | parameters('all')) %}
-     * @param {{ '{' }}{{ parameter | getPropertyType(method, spec) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method, spec) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | escapeComment | raw }}
      {%~ endfor %}
      * @throws {{ '{' }}{{ spec.info.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
@@ -521,7 +521,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
     /**
 {% if method.description %}
-{{ (method.description | wrap(75, '     * ')) | trimLines }}
+{{ (method.description | escapeComment | wrap(75, '     * ')) | trimLines }}
 {% endif %}
      *
 {% for parameter in (method | parameters('all')) %}
