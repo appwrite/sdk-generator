@@ -1477,6 +1477,11 @@ final class GenerationTest extends TestCase
         yield 'ruby resume' => ['ruby', 'server', 'lib/appwrite/client.rb', 'path: "#{path}/#{encode_path(upload_id)}",'];
         yield 'php path' => ['php', 'server', 'src/Appwrite/Services/General.php', "['{pathid}'],\n            [self::encodepath(\$pathid)],"];
         yield 'php encoder' => ['php', 'server', 'src/Appwrite/Service.php', "return strtr(rawurlencode((string) \$value), ["];
+        yield 'dotnet path' => ['dotnet', 'server', 'Appwrite/Services/General.cs', '.replace("{pathid}", client.encodepath(pathid));'];
+        yield 'dotnet encoder' => ['dotnet', 'server', 'Appwrite/Client.cs', "return uri.escapedatastring(value ?? string.empty)\n                .replace(\"%21\", \"!\")"];
+        yield 'dotnet resume' => ['dotnet', 'server', 'Appwrite/Client.cs', 'path: $"{path}/{encodepath(uploadid)}",'];
+        yield 'unity path' => ['unity', 'client', 'Runtime/Core/Services/General.cs', '.replace("{pathid}", client.encodepath(pathid));'];
+        yield 'unity resume' => ['unity', 'client', 'Runtime/Core/Client.cs', 'path: $"{path}/{encodepath(parameters[idparamname!]?.tostring())}",'];
     }
 
     /**

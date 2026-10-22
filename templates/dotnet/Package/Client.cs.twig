@@ -25,6 +25,21 @@ namespace {{ spec.info.title | caseUcfirst }}
             return _config.TryGetValue(key, out var value) ? value : "";
         }
 
+        /// <summary>
+        /// Encodes a value as one path segment. Everything but letters, digits
+        /// and -_.!~*'() is escaped, as encodeURIComponent does, so a value
+        /// fills exactly the segment it replaces.
+        /// </summary>
+        internal static string EncodePath(string? value)
+        {
+            return Uri.EscapeDataString(value ?? string.Empty)
+                .Replace("%21", "!")
+                .Replace("%2A", "*")
+                .Replace("%27", "'")
+                .Replace("%28", "(")
+                .Replace("%29", ")");
+        }
+
         private HttpClient _http;
         private HttpClient _httpForRedirect;
         private readonly Dictionary<string, string> _headers;
@@ -501,7 +516,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                     // Make a request to check if a file already exists
                     var current = await Call<Dictionary<string, object?>>(
                         method: "GET",
-                        path: $"{path}/{uploadId}",
+                        path: $"{path}/{EncodePath(uploadId)}",
                         new Dictionary<string, string> { { "content-type", "application/json" } },
                         parameters: new Dictionary<string, object?>()
                     );
