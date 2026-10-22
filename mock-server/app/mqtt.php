@@ -18,6 +18,8 @@
  *    see which credential an automatic reconnect sent.
  *  - SUBSCRIBE to "e2e-drop/<ms>" closes the connection <ms> later without a DISCONNECT (a lost
  *    connection, which the client reconnects from on its own), once per client id.
+ *  - SUBSCRIBE to "e2e-refuse-reconnect" drops the connection and refuses its next CONNECT
+ *    once, so a test can verify recovery after a transient reconnect refusal.
  *  - SUBSCRIBE to "e2e-disconnect/<reason>" makes the broker DISCONNECT the client with <reason>
  *    as the Reason String.
  *  - "e2e-replay" keeps a replay position per project and client id, like the real broker does
@@ -81,6 +83,9 @@ class MockHandler implements Handler
     /** @var array<string, true> project|client id => already dropped by "e2e-drop/<ms>" */
     private array $dropped = [];
 
+    /** @var array<string, bool> project|client id => refuse its next reconnect once */
+    private array $retryRefusals = [];
+
     public function onConnect(Connect $connect, Connection $connection): Connack|Auth
     {
         $connection->prefix = $connect->userProperties()['projectId'] ?? '';
@@ -118,6 +123,15 @@ class MockHandler implements Handler
             $clientId = 'custom_' . $connection->prefix . '_' . \spl_object_id($connection);
         }
         $connection->setClientId($clientId);
+        $key = $connection->prefix . '|' . $clientId;
+        if ($this->retryRefusals[$key] ?? false) {
+            $this->retryRefusals[$key] = false;
+
+            return Connack::refuse(
+                Connack::NOT_AUTHORIZED,
+                (new Properties())->add(new Property(Property::REASON_STRING, 'retry-refused-by-test')),
+            );
+        }
         $this->credentials[\spl_object_id($connection)] = $credential;
 
         // A client id that asked for "e2e-whoauth" hears the credential of every later CONNECT.
@@ -161,6 +175,13 @@ class MockHandler implements Handler
         // delivers it when that client id subscribes again, like the real broker's replay position.
         // A SUBSCRIBE to "e2e-replay-publish" stands in for the server publishing a message.
         foreach ($subscribe->filters() as $filter) {
+            if ($filter->topic === 'e2e-refuse-reconnect') {
+                $key = $connection->prefix . '|' . $connection->getClientId();
+                if (!isset($this->retryRefusals[$key])) {
+                    $this->retryRefusals[$key] = true;
+                    \Swoole\Timer::after(200, fn () => $connection->disconnect());
+                }
+            }
             if (\str_starts_with($filter->topic, 'e2e-disconnect/')) {
                 $reason = \substr($filter->topic, \strlen('e2e-disconnect/'));
                 \Swoole\Timer::after(100, fn () => $connection->disconnect(Disconnect::NOT_AUTHORIZED, $reason));
