@@ -17,7 +17,7 @@ use reqwest::Method;
 
 use std::collections::HashMap;
 
-{% if service.description %}{{ service.description | rustdocComment }}
+{% if service.description %}{{ service.description | escapeComment | rustdocComment }}
 {% endif %}#[derive(Debug, Clone)]
 pub struct {{ service.name | caseUcfirst }} {
     client: Client,
@@ -63,7 +63,7 @@ impl {{ service.name | caseUcfirst }} {
 {% endif %}
 {% endfor %}
 
-    {{ method.description | rustdocComment(4) }}
+    {{ method.description | escapeComment | rustdocComment(4) }}
 {% if (method | parameters('all')) | length > 6 %}
     #[allow(clippy::too_many_arguments)]
 {% endif %}

@@ -7,14 +7,14 @@ part of '../{{ language.params.packageName }}.dart';
 {% endfor %}{% if 'multipart/form-data' in consumes %}    Function(UploadProgress)? onProgress,
 {% endif %}  }{% endif %}
 {% endmacro %}
-{% if service.description %}{{- service.description | wrap(75, '/// ') | split('///') | join('///') }}
+{% if service.description %}{{- service.description | escapeComment | wrap(75, '/// ') | split('///') | join('///') }}
 {% endif %}class {{ service.name | caseUcfirst }} extends Service {
   /// Initializes a [{{ service.name | caseUcfirst }}] service
   {{ service.name | caseUcfirst }}(super.client);
 {% for method in (service | operations) %}
 
 {% if method.description %}
-{{ method.description | trim | wrap(75, '  /// ') | trimLines | raw }}
+{{ method.description | escapeComment | trim | wrap(75, '  /// ') | trimLines | raw }}
 {% endif %}
 {% if method.deprecated %}
 {% if (method | appwrite('deprecated', {})['since'] ?? '') and (method | appwrite('deprecated', {})['replaceWith'] ?? '') %}

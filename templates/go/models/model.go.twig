@@ -9,10 +9,10 @@ import (
 	"errors"
 )
 
-{{ ((definition.description | caseUcfirst) ~ " Model") | godocComment }}
+{{ ((definition.description | escapeComment | caseUcfirst) ~ " Model") | godocComment }}
 type {{ definitionName | caseUcfirst }} struct {
 	{%~ for property in definition.properties %}
-	{{ (property.description | godocComment | replace({"\n": "\n\t"})) | raw }}
+	{{ (property.description | escapeComment | godocComment | replace({"\n": "\n\t"})) | raw }}
 	{{ (property | schemaName) | caseUcfirst | escapeKeyword }} {{ property | responsePropertyType(spec) }} `json:"{{ (property | schemaName) }}"`
 	{%~ endfor %}
 

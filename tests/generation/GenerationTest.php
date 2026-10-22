@@ -116,13 +116,19 @@ final class GenerationTest extends TestCase
      * Replaces every `description` and `summary` in the fixture: prose that
      * tries to close the doc comment it is printed in and continue as code.
      */
-    private const string PROSE = "zzprose */ zzbreak(); /* zzprose \"\"\" zzbreak() \\\nzzbreak(); zzprose";
+    private const string PROSE = "zzprose */ zzbreak(); /* zzprose \"\"\" zzbreak() \\\nzzbreak(); zzprose\rzzbreak(); zzprose\u{85}zzbreak(); zzprose\u{2028}zzbreak(); zzprose";
 
     /**
      * Generated source extensions whose doc comments are C-style blocks, where
      * prose must never close the block or open a nested one.
      */
     private const array BLOCK_COMMENT_SOURCES = ['ts', 'js', 'mjs', 'php', 'kt', 'kts', 'java'];
+
+    /**
+     * Generated source extensions whose doc comments are line comments, where
+     * every line of prose must still start with the comment marker.
+     */
+    private const array LINE_COMMENT_SOURCES = ['dart', 'swift', 'cs', 'rs', 'go', 'rb'];
 
     /**
      * Targets that ship Agent Skills, whose `SKILL.md` frontmatter name must
@@ -355,11 +361,18 @@ final class GenerationTest extends TestCase
             $files = $this->generateWithProse($name, $platform);
             $this->assertNotEmpty($files, "{$name} {$platform}: nothing generated");
             foreach ($files as $path => $contents) {
-                if (!\in_array(\pathinfo((string) $path, PATHINFO_EXTENSION), self::BLOCK_COMMENT_SOURCES, true)) {
-                    continue;
+                $extension = \pathinfo((string) $path, PATHINFO_EXTENSION);
+                if (\in_array($extension, self::BLOCK_COMMENT_SOURCES, true)) {
+                    $this->assertStringNotContainsString('*/ zzbreak', $contents, "{$name} {$platform}: prose closes a comment in {$path}");
+                    $this->assertStringNotContainsString('/* zzprose', $contents, "{$name} {$platform}: prose opens a comment in {$path}");
                 }
-                $this->assertStringNotContainsString('*/ zzbreak', $contents, "{$name} {$platform}: prose closes a comment in {$path}");
-                $this->assertStringNotContainsString('/* zzprose', $contents, "{$name} {$platform}: prose opens a comment in {$path}");
+                if (\in_array($extension, self::LINE_COMMENT_SOURCES, true)) {
+                    // C# also ends a line at U+0085, U+2028 and U+2029.
+                    $breaks = $extension === 'cs' ? '/\r\n|\r|\n|\x{85}|\x{2028}|\x{2029}/u' : '/\r\n|\r|\n/';
+                    $lines = (array) \preg_split($breaks, $contents);
+                    $code = \array_filter($lines, static fn(string $line): bool => \str_starts_with(\ltrim($line), 'zzbreak'));
+                    $this->assertSame([], $code, "{$name} {$platform}: prose continues as code in {$path}");
+                }
             }
         }
     }

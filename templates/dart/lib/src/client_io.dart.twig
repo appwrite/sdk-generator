@@ -61,7 +61,7 @@ class ClientIO extends ClientBase with ClientMixin {
 
 {% for headerKey, header in globalHeaders %}
 {% if header.description %}
-  /// {{ header.description }}
+  /// {{ header.description | escapeComment | replace({'\n': '\n  /// '}) }}
 {% endif %}
   @override
   ClientIO set{{ headerKey | caseUcfirst }}(value) {

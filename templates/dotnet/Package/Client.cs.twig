@@ -123,7 +123,7 @@ namespace {{ spec.info.title | caseUcfirst }}
 
         {%~ for headerKey, header in globalHeaders %}
         {%~ if header.description %}
-        /// <summary>{{header.description}}</summary>
+        /// <summary>{{ header.description | escapeComment | replace({'\n': '\n        /// '}) }}</summary>
         {%~ endif %}
         public Client Set{{headerKey | caseUcfirst}}(string value)
         {
