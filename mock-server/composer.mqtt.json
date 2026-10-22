@@ -1,6 +1,6 @@
 {
     "name": "utopia/mock-server-mqtt",
-    "description": "Dependencies for app/mqtt.php (the mock MQTT broker), installed to ./vendor-mqtt. Kept separate from the HTTP mock's composer.json because utopia-php/mqtt needs utopia-php/telemetry ^0.4, which the mock's utopia-php/framework (older telemetry line, carries param(model:)) does not allow. Committed with a lock so CI installs a reproducible tree.",
+    "description": "Dependencies for app/mqtt.php (the mock MQTT broker), installed to ./vendor-mqtt and locked independently of the HTTP mock.",
     "repositories": [
         {
             "type": "vcs",

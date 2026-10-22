@@ -6,16 +6,16 @@ if (\file_exists(__DIR__ . '/../vendor/autoload.php')) {
     require_once __DIR__ . '/../vendor/autoload.php';
 }
 
-use Utopia\App;
-use Utopia\Database\Helpers\ID;
+use Utopia\Http\Http as App;
 use Utopia\MockServer\Utopia\Exception;
 use Utopia\MockServer\Utopia\File;
 use Swoole\Http\Request as SwooleRequest;
-use Swoole\Http\Response as SwooleResponse;
-use Utopia\Console;
+use Utopia\Console\Console;
 use Utopia\MockServer\Utopia\Response;
-use Utopia\Swoole\Request;
-use Utopia\Swoole\Response as UtopiaSwooleResponse;
+use Utopia\Http\Adapter\Swoole\Request;
+use Utopia\Http\Adapter\Swoole\Response as UtopiaSwooleResponse;
+use Utopia\MockServer\Utopia\HttpAdapter;
+use Utopia\Http\Route;
 use Utopia\Validator\JSON;
 use Utopia\Validator\Text;
 use Utopia\Validator\Integer;
@@ -54,6 +54,7 @@ $adapter->getNative()->set([
     'http_compression' => true,
     'http_compression_level' => 6,
     'buffer_output_size' => $payloadSize,
+    'hook_flags' => SWOOLE_HOOK_ALL,
 ]);
 
 $server = new WebSocketServer($adapter);
@@ -79,7 +80,7 @@ App::get('/v1/ping')
     ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
     ->inject('request')
     ->action(function (Request $request) {
-        $projectId = $request->getHeader('x-appwrite-project', '');
+        $projectId = $request->getHeaderLine('x-appwrite-project', '');
 
         if (empty($projectId)) {
             throw new Exception(Exception::GENERAL_MOCK, 'Missing project ID');
@@ -287,11 +288,11 @@ App::get('/v1/mock/tests/general/headers')
     ->inject('response')
     ->action(function (Request $request, UtopiaSwooleResponse $response) {
         $res = [
-            'x-sdk-name' => $request->getHeader('x-sdk-name'),
-            'x-sdk-platform' => $request->getHeader('x-sdk-platform'),
-            'x-sdk-language' => $request->getHeader('x-sdk-language'),
-            'x-sdk-version' => $request->getHeader('x-sdk-version'),
-            'accept' => $request->getHeader('accept'),
+            'x-sdk-name' => $request->getHeaderLine('x-sdk-name'),
+            'x-sdk-platform' => $request->getHeaderLine('x-sdk-platform'),
+            'x-sdk-language' => $request->getHeaderLine('x-sdk-language'),
+            'x-sdk-version' => $request->getHeaderLine('x-sdk-version'),
+            'accept' => $request->getHeaderLine('accept'),
         ];
         $res = array_map(function ($key, $value) {
             return $key . ': ' . $value;
@@ -325,7 +326,7 @@ App::post('/v1/mock/tests/general/zone-import')
         if ($records !== 'www 3600 IN A 192.0.2.1') {
             throw new Exception(Exception::GENERAL_MOCK, 'Wrong zone records');
         }
-        if (!str_starts_with($request->getHeader('content-type', ''), 'multipart/form-data; boundary=')) {
+        if (!str_starts_with($request->getHeaderLine('content-type', ''), 'multipart/form-data; boundary=')) {
             throw new Exception(Exception::GENERAL_MOCK, 'Expected multipart with a boundary');
         }
 
@@ -363,11 +364,11 @@ App::get('/v1/mock/tests/general/download')
 
         // Client SDKs build a URL for the browser, so credentials may arrive in
         // the query string instead of headers. The real API accepts both.
-        $project = $request->getHeader('x-appwrite-project', '') ?: $request->getParam('project', '');
+        $project = $request->getHeaderLine('x-appwrite-project', '') ?: $request->getParam('project', '');
         if (empty($project)) {
             throw new Exception(Exception::GENERAL_MOCK, 'Missing project ID');
         }
-        $impersonate = $request->getHeader('x-appwrite-impersonate-user-id', '') ?: $request->getParam('impersonateuserid', '');
+        $impersonate = $request->getHeaderLine('x-appwrite-impersonate-user-id', '') ?: $request->getParam('impersonateuserid', '');
 
         $response
             ->setContentType('text/plain')
@@ -400,7 +401,7 @@ App::post('/v1/mock/tests/general/upload')
 
         $file = $request->getFiles('file');
 
-        $contentRange = $request->getHeader('content-range');
+        $contentRange = $request->getHeaderLine('content-range');
 
         $chunkSize = 5 * 1024 * 1024; // 5MB
 
@@ -408,7 +409,7 @@ App::post('/v1/mock/tests/general/upload')
             $start = $request->getContentRangeStart();
             $end = $request->getContentRangeEnd();
             $size = $request->getContentRangeSize();
-            $id = $request->getHeader('x-appwrite-id', '');
+            $id = $request->getHeaderLine('x-appwrite-id', '');
             $file['size'] = (\is_array($file['size'])) ? $file['size'][0] : $file['size'];
 
             if (is_null($start) || is_null($end) || is_null($size) || $end >= $size) {
@@ -445,7 +446,7 @@ App::post('/v1/mock/tests/general/upload')
 
             if ($end !== $size - 1) {
                 $response->json([
-                    '$id' => ID::custom('newfileid'),
+                    '$id' => 'newfileid',
                     'chunksTotal' => (int) ceil($size / ($end + 1 - $start)),
                     'chunksUploaded' => ceil($start / $chunkSize) + 1
                 ]);
@@ -453,7 +454,7 @@ App::post('/v1/mock/tests/general/upload')
                 $chunksTotal = (int) ceil($size / $chunkSize);
 
                 $response->json([
-                    '$id' => ID::custom('newfileid'),
+                    '$id' => 'newfileid',
                     'chunksTotal' => $chunksTotal,
                     'chunksUploaded' => $chunksTotal,
                     'result' => 'POST:/v1/mock/tests/general/upload:passed',
@@ -507,10 +508,10 @@ App::post('/v1/mock/tests/general/optional-upload')
         if ($message !== 'conversation without a required file') {
             throw new Exception(Exception::GENERAL_MOCK, 'Wrong conversation message');
         }
-        if (!str_starts_with($request->getHeader('content-type', ''), 'multipart/form-data; boundary=')) {
+        if (!str_starts_with($request->getHeaderLine('content-type', ''), 'multipart/form-data; boundary=')) {
             throw new Exception(Exception::GENERAL_MOCK, 'Expected multipart with a boundary');
         }
-        if ($request->getHeader('content-range', '') !== '') {
+        if ($request->getHeaderLine('content-range', '') !== '') {
             throw new Exception(Exception::GENERAL_MOCK, 'Optional attachment must not be chunked');
         }
 
@@ -642,18 +643,19 @@ App::get('/v1/mock/tests/general/query')
 
 // Shared nullable-path e2e contract. Null is serialized literally by targets
 // that previously could not compile nullable string interpolation.
-foreach (['0', 'null'] as $id) {
-    App::get('/v1/mock/tests/general/path-validation/' . $id . '/0')
-        ->desc('Path validation')
-        ->groups(['mock'])
-        ->label('scope', 'public')
-        ->label('sdk.response.code', Response::STATUS_CODE_OK)
-        ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
-        ->label('sdk.response.model', Response::MODEL_MOCK)
-        ->label('sdk.mock', true)
-        ->action(function () {
-        });
-}
+// Use path parameters because the router drops literal "0" segments at registration.
+App::get('/v1/mock/tests/general/path-validation/:id/:zero')
+    ->desc('Path validation')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('id', '', new WhiteList(['0', 'null'], true), 'Nullable path value.')
+    ->param('zero', '', new WhiteList(['0'], true), 'Zero path value.')
+    ->action(function () {
+    });
 
 App::get('/v1/mock/tests/general/set-cookie')
     ->desc('Set Cookie')
@@ -796,7 +798,7 @@ App::post('/v1/mock/tests/general/models')
     ->label('sdk.response.model', Response::MODEL_MOCK)
     ->label('sdk.mock', true)
     ->param('player', [], new PlayerValidator(), 'Player object.', model: Player::class)
-    ->action(function (Player $player) {
+    ->action(function (array $player) {
     });
 
 App::post('/v1/mock/tests/general/models/array')
@@ -813,7 +815,6 @@ App::post('/v1/mock/tests/general/models/array')
     ->label('sdk.mock', true)
     ->param('players', [], new ArrayList(new PlayerValidator(), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Array of player objects.', model: Player::class)
     ->action(function (array $players) {
-        /** @var Player[] $players */
     });
 
 App::post('/v1/mock/tests/general/documents')
@@ -1119,7 +1120,7 @@ App::get('/v1/mock/tests/general/oauth2/failure')
  */
 function apnsMockState(Request $request, callable $change): mixed
 {
-    $project = (string) $request->getHeader('x-appwrite-project', 'default');
+    $project = (string) $request->getHeaderLine('x-appwrite-project', 'default');
 
     return mockState('apns-' . $project, ['providers' => [], 'platforms' => []], $change);
 }
@@ -1350,7 +1351,7 @@ App::post('/apple/services-account/QH65B2/account/auth/key/v2/create')
     ->inject('request')
     ->inject('response')
     ->action(function (Request $request, UtopiaSwooleResponse $response) {
-        if ($request->getHeader('csrf', '') === '') {
+        if ($request->getHeaderLine('csrf', '') === '') {
             $response->setStatusCode(403)->json([]);
             return;
         }
@@ -1399,7 +1400,7 @@ App::post('/apple/services-account/v1/bundleIds')
             return;
         }
         $body = \json_decode($request->getRawPayload(), true) ?: [];
-        if ($request->getHeader('x-http-method-override', '') === 'GET') {
+        if ($request->getHeaderLine('x-http-method-override', '') === 'GET') {
             \parse_str((string) ($body['urlEncodedQueryParams'] ?? ''), $query);
             $identifier = (string) ($query['filter']['identifier'] ?? '');
             $appIds = appleMockState($account, function (array &$state) use ($identifier) {
@@ -1455,13 +1456,16 @@ App::patch('/apple/services-account/v1/bundleIds/:id')
 
 App::shutdown()
     ->groups(['mock'])
-    ->inject('utopia')
+    ->inject('route')
     ->inject('response')
     ->inject('request')
-    ->action(function (App $utopia, UtopiaSwooleResponse $response, Request $request) {
+    ->action(function (Route $route, UtopiaSwooleResponse $response, Request $request) {
 
         $result = [];
-        $route  = $utopia->getRoute();
+        $routePath = $route->getPath();
+        if ($routePath === '/v1/mock/tests/general/path-validation/:id/:zero') {
+            $routePath = \parse_url($request->getURI(), PHP_URL_PATH);
+        }
         $path   = APP_STORAGE_CACHE . '/tests.json';
         $handle = \fopen($path, 'c+');
 
@@ -1481,7 +1485,7 @@ App::shutdown()
                 throw new Exception(Exception::GENERAL_MOCK, 'Failed to read results', 500);
             }
 
-            $result[$route->getMethod() . ':' . $route->getPath()] = true;
+            $result[$route->getMethod() . ':' . $routePath] = true;
             $tests = \array_merge($tests, $result);
 
             \ftruncate($handle, 0);
@@ -1497,7 +1501,7 @@ App::shutdown()
             \fclose($handle);
         }
 
-        $response->json(['result' => $route->getMethod() . ':' . $route->getPath() . ':passed']);
+        $response->json(['result' => $route->getMethod() . ':' . $routePath . ':passed']);
     });
 
 App::error()
@@ -1507,7 +1511,7 @@ App::error()
     ->inject('response')
     ->action(
         function ($utopia, $error, $request, $response) {
-            $route = $utopia->match($request);
+            $route = $utopia->match($request)?->route;
 
             $code = $error->getCode();
             $message = $error->getMessage();
@@ -1566,8 +1570,7 @@ App::error()
                 ->setStatusCode($code);
 
             $response->json($output);
-        },
-        ['utopia', 'error', 'request', 'response']
+        }
     );
 
 /**
@@ -1586,14 +1589,10 @@ $server->onStart(function () use ($payloadSize) {
     Console::success('Server started successfully (max payload is ' . number_format($payloadSize) . ' bytes)');
 });
 
-$server->onRequest(function (SwooleRequest $swooleRequest, SwooleResponse $swooleResponse) {
-    $request = new Request($swooleRequest);
-    $response = new UtopiaSwooleResponse($swooleResponse);
-
-    $app = new App('UTC');
-
-    $app->run($request, $response);
-});
+$httpAdapter = new HttpAdapter($adapter->getNative());
+$app = new App($httpAdapter, 'UTC');
+$app->resources()->set('utopia', fn () => $app);
+$httpAdapter->onRequest(fn (Request $request, UtopiaSwooleResponse $response) => $app->run($request, $response));
 
 $server->onOpen(function (int $fd, SwooleRequest $swooleRequest) use ($server, $realtimeProtocol) {
     $path = (string) ($swooleRequest->server['request_uri'] ?? '');

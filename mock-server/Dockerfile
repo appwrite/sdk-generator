@@ -24,11 +24,7 @@ RUN set -eu; \
 
 FROM composer:2.10 AS composer_mqtt
 
-# app/mqtt.php (the mock MQTT broker) has its own dependency set: utopia-php/mqtt needs
-# utopia-php/telemetry ^0.4, which conflicts with the HTTP mock's utopia-php/framework (it
-# pins the older telemetry line and only that version carries the param(model:) the mock
-# uses). So it can't share the vendor above and is installed separately into ./vendor-mqtt
-# from its own committed lock (composer.mqtt.json/.lock), for a reproducible tree.
+# The broker keeps its own locked dependencies so it can evolve independently of the HTTP mock.
 WORKDIR /usr/local/src/
 
 COPY composer.mqtt.lock /usr/local/src/composer.lock
@@ -44,7 +40,7 @@ RUN set -eu; \
         sleep $((n * 5)); \
     done
 
-FROM phpswoole/swoole:6.2.3-php8.4-alpine AS final
+FROM phpswoole/swoole:6.2.3-php8.5-alpine AS final
 
 RUN apk add docker
 
