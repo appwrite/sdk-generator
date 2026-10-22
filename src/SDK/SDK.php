@@ -205,6 +205,9 @@ class SDK
             $value = str_replace('$', '\\$', $value);   // Escape dollar signs
             return $value;
         }, ['is_safe' => ['html']]));
+        // Spec prose printed inside a `/* ... */` doc block must not end it, or
+        // open a nested one in languages that nest comments (Kotlin, Swift).
+        $this->twig->addFilter(new TwigFilter('escapeComment', fn($value): string => str_replace(['*/', '/*'], ['*\\/', '/\\*'], (string) $value)));
         $this->twig->addFilter(new TwigFilter('html', fn($value) => $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', fn(string $value): string => $language->escapeKeyword($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseHTML', fn($value) => $value, ['is_safe' => ['html']]));

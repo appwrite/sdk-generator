@@ -22,7 +22,7 @@ use {{ namespace | caseNamespace }}\Enums\{{ enumName | caseUcfirst | overrideId
 {% set requiredProperties = requestModel.properties | filter((property) => (property | schemaRequired)) %}
 {% set optionalProperties = requestModel.properties | filter((property) => not (property | schemaRequired)) %}
 /**
- * {{ requestModel.description | unescape | raw }}
+ * {{ requestModel.description | unescape | escapeComment | raw }}
  *
  * @phpstan-consistent-constructor
  */
@@ -40,7 +40,7 @@ readonly class {{ requestModelName | caseUcfirst | overrideIdentifier }}
 {% elseif (property | schemaType) == 'array' and (property | enumValues) is not empty %}
 {% set paramDocType = 'list<' ~ (((property | enumName)) | caseUcfirst | overrideIdentifier) ~ '>' %}
 {% endif %}
-{% set description = property.description | trim | unescape | lower %}
+{% set description = property.description | trim | unescape | lower | escapeComment %}
 {% if description is not empty or paramDocType != nativeType %}
 {% set paramDocs = paramDocs|merge([paramDocType ~ ((property | schemaRequired) ? '' : '|null') ~ ' $' ~ ((property | schemaName) | caseCamel) ~ (description is not empty ? ' ' ~ description : '')]) %}
 {% endif %}

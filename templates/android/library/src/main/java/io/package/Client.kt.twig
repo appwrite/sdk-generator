@@ -118,7 +118,7 @@ class Client @JvmOverloads constructor(
      * Set {{headerKey | caseUcfirst}}
      *
 {% if header.description %}
-     * {{header.description}}
+     * {{header.description | escapeComment}}
      *
 {% endif %}
      * @param {string} {{headerKey | caseLower}}
@@ -291,7 +291,7 @@ class Client @JvmOverloads constructor(
     {%~ for clientMethodName, clientMethods in clientMethods %}
     {%~ for clientMethod in clientMethods %}
     /**
-     * {{ clientMethod.description | replace({'\n': '\n     * '}) | raw }}
+     * {{ clientMethod.description | escapeComment | replace({'\n': '\n     * '}) | raw }}
      *
      * @return String
      */
