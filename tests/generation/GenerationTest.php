@@ -1371,6 +1371,45 @@ final class GenerationTest extends TestCase
         yield 'ruby path' => ['ruby', 'server', 'lib/appwrite/services/general.rb', ".gsub('{pathid}', @client.encode_path(path_id))"];
         yield 'ruby encoder' => ['ruby', 'server', 'lib/appwrite/client.rb', "value.to_s.b.gsub(/[^a-za-z0-9\\-_.!~*'()]/n)"];
         yield 'ruby resume' => ['ruby', 'server', 'lib/appwrite/client.rb', 'path: "#{path}/#{encode_path(upload_id)}",'];
+        yield 'php path' => ['php', 'server', 'src/Appwrite/Services/General.php', "['{pathid}'],\n            [self::encodepath(\$pathid)],"];
+        yield 'php encoder' => ['php', 'server', 'src/Appwrite/Service.php', "return strtr(rawurlencode((string) \$value), ["];
+    }
+
+    /**
+     * PHP resumes a chunked upload from its service method: it asks for the
+     * chunks already uploaded at the path plus the upload ID, which fills
+     * one segment like any path parameter.
+     */
+    public function testPhpUploadResumeFillsOneSegment(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'storage']],
+            'paths' => ['/storage/buckets/{bucketId}/files' => ['post' => [
+                'operationId' => 'storageCreateFile',
+                'tags' => ['storage'],
+                'summary' => 'Create file',
+                'description' => 'Create file.',
+                'parameters' => [
+                    ['name' => 'bucketId', 'in' => 'path', 'required' => true, 'description' => 'Bucket ID.', 'schema' => ['type' => 'string']],
+                ],
+                'requestBody' => ['content' => ['multipart/form-data' => ['schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'fileId' => ['type' => 'string', 'description' => 'File ID.'],
+                        'file' => ['type' => 'string', 'format' => 'binary', 'description' => 'File.'],
+                    ],
+                    'required' => ['fileId', 'file'],
+                ]]]],
+                'responses' => ['204' => ['description' => 'ok']],
+            ]]],
+        ];
+
+        $service = $this->generateDocument($document, 'php', 'upload-resume')['src/Appwrite/Services/Storage.php'];
+
+        $this->assertStringContainsString("Client::METHOD_GET, \$apiPath . '/' . self::encodePath(\$fileId));", $service);
+        $this->assertStringNotContainsString("\$apiPath . '/' . \$fileId", $service);
     }
 
     /**
@@ -1401,7 +1440,7 @@ final class GenerationTest extends TestCase
     /** @return Iterator<string, array{string, string, string, string}> */
     public static function serviceTestRequests(): Iterator
     {
-        yield 'php path' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "->expects()->call(\n                'get',\n                '/mock/tests/general/path/grant/special&id',"];
+        yield 'php path' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "->expects()->call(\n                'get',\n                '/mock/tests/general/path/grant%2fspecial%26id',"];
         yield 'php params' => ['php', 'server', 'tests/Appwrite/Services/FooTest.php', "->expects()->call(\n                'put',\n                '/mock/tests/foo',\n                mockery::any(),\n                mockery::on(function (array \$params): bool {\n                    \$this->assertsame(['x', 'y', 'z'], array_keys(\$params));"];
         yield 'python path' => ['python', 'server', 'test/services/test_general.py', "response = self.general.get_path(\n            'grant/special&id',\n        )\n        request = m.last_request\n        url = urlsplit(request.url)\n        self.assertequal(\n            unquote(url.path),\n            '/v1/mock/tests/general/path/grant/special&id',\n        )"];
         yield 'python params' => ['python', 'server', 'test/services/test_foo.py', "m.request(\n            'put',\n            requests_mock.any,"];
