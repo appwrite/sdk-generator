@@ -77,6 +77,7 @@ final class WebChromiumTest extends Base
         ...Base::PUSH_RESPONSES,
         ...Base::PUSH_SIGN_IN_SESSION_RESPONSES,
         ...Base::PUSH_SESSION_REPLAY_RESPONSES,
+        'Push refused reconnect:passed',
         ...Base::PUSH_ERROR_RESPONSES,
         ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
         ...Base::WEB_PUSH_CONNECTION_RESPONSES,

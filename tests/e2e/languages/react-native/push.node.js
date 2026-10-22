@@ -157,6 +157,23 @@ async function main() {
     nextSignIn.close();
     console.log(replayed === 'push-replayed' ? 'Push session replay:passed' : 'Push session replay:failed');
 
+    // A lost connection is refused once by the broker, then accepted on the next retry.
+    const retryPush = new Push(client);
+    let refusedReconnect = false;
+    let connections = 0;
+    let recoveredResolve;
+    const recovered = new Promise((resolve) => (recoveredResolve = resolve));
+    retryPush.onError((error) => {
+        if (error.message === 'retry-refused-by-test') refusedReconnect = true;
+    });
+    retryPush.onOpen(() => {
+        if (++connections === 2) recoveredResolve(refusedReconnect);
+    });
+    await retryPush.subscribe(['e2e-refuse-reconnect'], () => {});
+    const retried = await Promise.race([recovered, timeout(15000, false)]);
+    retryPush.close();
+    console.log(retried ? 'Push refused reconnect:passed' : 'Push refused reconnect:failed');
+
     // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused CONNECT
     // (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated
     // DISCONNECT (the mock disconnects a client subscribing to "e2e-disconnect/<reason>").

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "41fd34d79f573ce486f12bdd9c91661f",
+    "content-hash": "ece42d82fdd401c4fcbcd3a590925aca",
     "packages": [
         {
             "name": "brick/math",
@@ -2341,33 +2341,28 @@
         },
         {
             "name": "utopia-php/query",
-            "version": "0.6.0",
+            "version": "0.7.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/query.git",
-                "reference": "abaebb2f3426bdbc6f44bab04254a668de937148"
+                "reference": "945ef1c9f1c863b0e6e8bbac4c81c1b667dbfc9c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/query/zipball/abaebb2f3426bdbc6f44bab04254a668de937148",
-                "reference": "abaebb2f3426bdbc6f44bab04254a668de937148",
+                "url": "https://api.github.com/repos/utopia-php/query/zipball/945ef1c9f1c863b0e6e8bbac4c81c1b667dbfc9c",
+                "reference": "945ef1c9f1c863b0e6e8bbac4c81c1b667dbfc9c",
                 "shasum": ""
             },
             "require": {
                 "php": ">=8.4"
             },
             "require-dev": {
-                "brianium/paratest": "*",
-                "laravel/pint": "*",
-                "mongodb/mongodb": "^2.0",
-                "phpstan/phpstan": "*",
-                "phpunit/phpcov": "*",
-                "phpunit/phpunit": "^12.0"
+                "mongodb/mongodb": "^2.0"
             },
             "type": "library",
             "autoload": {
                 "psr-4": {
-                    "Utopia\\Query\\": "src/Query"
+                    "Utopia\\Query\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -2384,9 +2379,9 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/query/issues",
-                "source": "https://github.com/utopia-php/query/tree/0.6.0"
+                "source": "https://github.com/utopia-php/query/tree/0.7.2"
             },
-            "time": "2026-08-21T11:03:36+00:00"
+            "time": "2026-10-16T10:52:31+00:00"
         },
         {
             "name": "utopia-php/servers",
@@ -2637,16 +2632,16 @@
     "packages-dev": [
         {
             "name": "swoole/ide-helper",
-            "version": "6.2.2",
+            "version": "6.2.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/swoole/ide-helper.git",
-                "reference": "ad91a281e135f498426fb2e5297376581a4e2dca"
+                "reference": "9af0522cf3b301f3bc7ee6b43db8c24a00b1342c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/swoole/ide-helper/zipball/ad91a281e135f498426fb2e5297376581a4e2dca",
-                "reference": "ad91a281e135f498426fb2e5297376581a4e2dca",
+                "url": "https://api.github.com/repos/swoole/ide-helper/zipball/9af0522cf3b301f3bc7ee6b43db8c24a00b1342c",
+                "reference": "9af0522cf3b301f3bc7ee6b43db8c24a00b1342c",
                 "shasum": ""
             },
             "type": "library",
@@ -2663,9 +2658,9 @@
             "description": "IDE help files for Swoole.",
             "support": {
                 "issues": "https://github.com/swoole/ide-helper/issues",
-                "source": "https://github.com/swoole/ide-helper/tree/6.2.2"
+                "source": "https://github.com/swoole/ide-helper/tree/6.2.3"
             },
-            "time": "2026-07-25T08:15:29+00:00"
+            "time": "2026-09-22T16:12:54+00:00"
         }
     ],
     "aliases": [],
