@@ -69,21 +69,21 @@ class TestPromise : Promise {
         settled.complete(Result.failure(Exception(message)))
     }
 
-    override fun reject(code: String, message: String?) = fail(message)
+    override fun reject(code: String?, message: String?) = fail(message)
 
-    override fun reject(code: String, throwable: Throwable?) = fail(throwable?.message)
+    override fun reject(code: String?, throwable: Throwable?) = fail(throwable?.message)
 
-    override fun reject(code: String, message: String?, throwable: Throwable?) = fail(message)
+    override fun reject(code: String?, message: String?, throwable: Throwable?) = fail(message)
 
     override fun reject(throwable: Throwable) = fail(throwable.message)
 
     override fun reject(throwable: Throwable, userInfo: WritableMap) = fail(throwable.message)
 
-    override fun reject(code: String, userInfo: WritableMap) = fail(code)
+    override fun reject(code: String?, userInfo: WritableMap) = fail(code)
 
-    override fun reject(code: String, throwable: Throwable?, userInfo: WritableMap) = fail(throwable?.message)
+    override fun reject(code: String?, throwable: Throwable?, userInfo: WritableMap) = fail(throwable?.message)
 
-    override fun reject(code: String, message: String?, userInfo: WritableMap) = fail(message)
+    override fun reject(code: String?, message: String?, userInfo: WritableMap) = fail(message)
 
     override fun reject(code: String?, message: String?, throwable: Throwable?, userInfo: WritableMap?) = fail(message)
 

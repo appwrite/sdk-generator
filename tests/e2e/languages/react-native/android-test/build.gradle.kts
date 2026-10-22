@@ -1,5 +1,5 @@
 plugins {
-    id("com.android.library") version "9.4.0"
+    id("com.android.library") version "9.4.1"
 }
 
 android {
@@ -25,7 +25,7 @@ android {
 dependencies {
     implementation("com.hivemq:hivemq-mqtt-client:1.3.6")
     implementation("androidx.core:core-ktx:1.13.1")
-    implementation("com.facebook.react:react-android:0.76.9")
+    implementation("com.facebook.react:react-android:0.88.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.test.ext:junit-ktx:1.3.0")
     testImplementation("androidx.test:core-ktx:1.7.0")
