@@ -1050,6 +1050,20 @@ final class GenerationTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/debug\.log\([^;]*\{(cookie|c)\}/', $unity);
     }
 
+    /**
+     * The installer checks the download against its checksum and later copies
+     * it with sudo. Between the two, a file in a directory other users can
+     * write can be replaced, so the download goes into a private directory.
+     */
+    public function testCliInstallerDownloadsIntoAPrivateDirectory(): void
+    {
+        $installer = $this->generate('cli', 'console')['install.sh'];
+
+        $this->assertStringContainsString('appwrite_temp_dir=$(mktemp -d)', $installer);
+        $this->assertStringContainsString('appwrite_temp_name="$appwrite_temp_dir/', $installer);
+        $this->assertStringNotContainsString('temp-$(date', $installer);
+    }
+
     public function testDotNetKeepsDateTimeStringsAsStrings(): void
     {
         $converter = $this->generate('dotnet', 'server')['Appwrite/Converters/ObjectToInferredTypesConverter.cs'];
