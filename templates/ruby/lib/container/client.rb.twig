@@ -94,6 +94,18 @@ module {{ spec.info.title | caseUcfirst }}
             @headers.dup
         end
 
+        # Encode a value as one path segment.
+        #
+        # Every byte but letters, digits and -_.!~*'() is escaped, as
+        # encodeURIComponent does, so a value fills exactly the segment it replaces.
+        #
+        # @param [String] value The path parameter value
+        #
+        # @return [String]
+        def encode_path(value)
+            value.to_s.b.gsub(/[^A-Za-z0-9\-_.!~*'()]/n) { |byte| format('%%%02X', byte.ord) }
+        end
+
         # Send the HTTP request.
         #
         # @param [String] method The HTTP method for the request
@@ -173,7 +185,7 @@ module {{ spec.info.title | caseUcfirst }}
                 begin
                     current = call(
                         method: "GET",
-                        path: "#{path}/#{params[id_param_name]}",
+                        path: "#{path}/#{encode_path(upload_id)}",
                         headers: headers,
                         params: {}
                     )
