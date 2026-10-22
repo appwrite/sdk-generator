@@ -672,7 +672,7 @@ App::get('/v1/mock/tests/general/set-cookie')
     ->inject('response')
     ->inject('request')
     ->action(function (UtopiaSwooleResponse $response, Request $request) {
-        $response->addCookie('cookieName', 'cookieValue', \time() + 31536000, '/', $request->getHostname(), true, true, '');
+        $response->addCookie('cookiename', 'cookieValue', \time() + 31536000, '/', $request->getHostname(), true, true, '');
     });
 
 App::get('/v1/mock/tests/general/get-cookie')
@@ -689,7 +689,7 @@ App::get('/v1/mock/tests/general/get-cookie')
     ->label('sdk.mock', true)
     ->inject('request')
     ->action(function (Request $request) {
-        if ($request->getCookie('cookieName', '') !== 'cookieValue') {
+        if ($request->getCookie('cookiename', '') !== 'cookieValue') {
             throw new Exception(Exception::GENERAL_MOCK, 'Missing cookie value');
         }
     });
