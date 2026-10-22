@@ -45,6 +45,25 @@ class SDK
 {
     private const string MULTIPART_MEDIA_TYPE = 'multipart/form-data';
 
+    /**
+     * What a name or value from the spec may contain, by role. Templates print
+     * these as identifiers (a model property is a field name in TypeScript,
+     * Kotlin and Swift) or between quotes (paths, header names, enum values,
+     * the endpoint) without escaping, so a quote, backslash, `$`, backtick or
+     * line break in one would be code in the generated SDK.
+     */
+    private const array SAFE = [
+        'name' => '/^[A-Za-z0-9_-]+$/',
+        'field' => '/^\$?[A-Za-z0-9_-]+$/',
+        'path' => '/^\/[A-Za-z0-9_\/{}.-]*$/',
+        'url' => '/^https?:\/\/[^\s"\'`\\\\$\p{Cc}\x{2028}\x{2029}]+$/u',
+        'title' => '/^[A-Za-z0-9 _-]+$/',
+        'version' => '/^[A-Za-z0-9.+_-]*$/',
+    ];
+
+    /** Characters an enum value may not contain, for the same reason. */
+    private const string UNSAFE_ENUM_VALUE = '/["\'`\\\\$]|[\p{Cc}\x{2028}\x{2029}]/u';
+
     protected ?Environment $twig = null;
 
     protected array $defaultHeaders = [];
@@ -101,6 +120,7 @@ class SDK
      */
     public function __construct(protected Language $language, protected Specification $spec)
     {
+        $this->validate();
         $this->indexSchemas();
         $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'), [
             'debug' => true
@@ -1742,6 +1762,106 @@ class SDK
     protected function normalizeSchemaReference(string $reference): string
     {
         return \str_replace(['#/components/schemas/', '#/definitions/'], '', $reference);
+    }
+
+    /**
+     * Refuse a spec whose names or values would not stay names and values in
+     * the generated source. See SAFE.
+     *
+     * @throws UnexpectedValueException
+     */
+    protected function validate(): void
+    {
+        $this->assertSafe('title', 'title', $this->spec->info->title);
+        $this->assertSafe('version', 'version', $this->spec->info->version);
+        foreach ($this->spec->servers as $server) {
+            $this->assertSafe('url', 'server URL', $server->url);
+        }
+        foreach ($this->spec->tags as $tag) {
+            $this->assertSafe('name', 'tag', $tag->name);
+        }
+        foreach ($this->spec->securitySchemes as $key => $scheme) {
+            $this->assertSafe('name', 'security scheme', (string) $key);
+            if ($scheme->name !== null) {
+                $this->assertSafe('name', 'security scheme name', $scheme->name);
+            }
+        }
+        foreach ($this->spec->schemas as $name => $schema) {
+            $this->assertSafe('name', 'schema', (string) $name);
+            $this->validateSchema($schema);
+        }
+        foreach ($this->spec->paths as $path => $item) {
+            $this->assertSafe('path', 'path', (string) $path);
+            foreach ($item->parameters as $parameter) {
+                $this->validateParameter($parameter);
+            }
+            foreach ($item->operations as $operation) {
+                $this->assertSafe('name', 'operation ID', $operation->id);
+                foreach ($operation->tags as $tag) {
+                    $this->assertSafe('name', 'tag', $tag);
+                }
+                foreach ($operation->parameters as $parameter) {
+                    $this->validateParameter($parameter);
+                }
+                $media = \array_values($operation->requestBody?->content ?? []);
+                foreach ($operation->responses as $response) {
+                    \array_push($media, ...\array_values($response->content));
+                }
+                foreach ($media as $type) {
+                    if ($type->schema !== null) {
+                        $this->validateSchema($type->schema);
+                    }
+                }
+                $aliases = $operation->extensions[Extension::APPWRITE->value][Appwrite::METHODS->value] ?? [];
+                foreach (\is_array($aliases) ? $aliases : [] as $alias) {
+                    foreach (['name', 'namespace'] as $key) {
+                        if (\is_array($alias) && isset($alias[$key])) {
+                            $this->assertSafe('name', 'method ' . $key, (string) $alias[$key]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    protected function validateParameter(Parameter $parameter): void
+    {
+        $this->assertSafe('field', 'parameter', $parameter->name);
+        if ($parameter->schema instanceof Schema) {
+            $this->validateSchema($parameter->schema);
+        }
+    }
+
+    protected function validateSchema(Schema $schema): void
+    {
+        foreach ($schema->enum as $value) {
+            if (\is_string($value) && \preg_match(self::UNSAFE_ENUM_VALUE, $value)) {
+                throw new UnexpectedValueException('Spec enum value is not safe to generate: ' . \json_encode($value));
+            }
+        }
+        if ($schema instanceof ObjectSchema) {
+            foreach ($schema->properties as $name => $property) {
+                $this->assertSafe('field', 'property', (string) $name);
+                $this->validateSchema($property);
+            }
+            if ($schema->additionalProperties instanceof Schema) {
+                $this->validateSchema($schema->additionalProperties);
+            }
+        } elseif ($schema instanceof ArraySchema) {
+            $this->validateSchema($schema->items);
+        } elseif ($schema instanceof CompositeSchema) {
+            foreach ($schema->schemas as $branch) {
+                $this->validateSchema($branch);
+            }
+        }
+    }
+
+    /** @throws UnexpectedValueException */
+    protected function assertSafe(string $role, string $what, string $value): void
+    {
+        if (!\preg_match(self::SAFE[$role], $value)) {
+            throw new UnexpectedValueException('Spec ' . $what . ' is not safe to generate: ' . \json_encode($value));
+        }
     }
 
     protected function indexSchemas(): void
