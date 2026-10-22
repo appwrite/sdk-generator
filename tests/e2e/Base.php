@@ -54,6 +54,13 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/path/grant%2Fspecial%26id:passed',
     ];
 
+    // getPath('../grant?special=id#x y%') and getPath('unique()'): every reserved character
+    // stays inside the one segment, and the parentheses of unique() are left as they are.
+    protected const PATH_SEGMENT_RESPONSES = [
+        'GET:/v1/mock/tests/general/path/..%2Fgrant%3Fspecial%3Did%23x%20y%25:passed',
+        'GET:/v1/mock/tests/general/path/unique():passed',
+    ];
+
     // One behavioral contract, invoked by each SDK's language adapter.
     // The mock never emits these errors: reaching it cannot pass the rejection checks.
     protected const PATH_VALIDATION_RESPONSES = [
