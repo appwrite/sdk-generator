@@ -220,8 +220,9 @@ func findSessionForEndpoint(global *config.Global, endpoint string) (string, str
 	return authenticated, endpointOnly
 }
 
-// isAuthenticatedSession reports whether a session carries login credentials
-// rather than just an endpoint.
+// isAuthenticatedSession reports whether a session carries credentials rather
+// than just an endpoint. An API key counts: a key-only session treated as a
+// stub was repointed at the new endpoint and sent the old server's key there.
 func isAuthenticatedSession(global *config.Global, id string) bool {
 	session := global.SessionData(id)
 	if session == nil {
@@ -229,7 +230,8 @@ func isAuthenticatedSession(global *config.Global, id string) bool {
 	}
 
 	return session.GetString(config.PreferenceAccessToken) != "" ||
-		session.GetString(config.PreferenceCookie) != ""
+		session.GetString(config.PreferenceCookie) != "" ||
+		session.GetString(config.PreferenceKey) != ""
 }
 
 func sessionEndpoint(global *config.Global, id string) string {
