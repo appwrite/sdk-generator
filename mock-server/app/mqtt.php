@@ -18,6 +18,8 @@
  *    see which credential an automatic reconnect sent.
  *  - SUBSCRIBE to "e2e-drop/<ms>" closes the connection <ms> later without a DISCONNECT (a lost
  *    connection, which the client reconnects from on its own), once per client id.
+ *  - SUBSCRIBE to "e2e-refuse-reconnect" drops the connection and refuses its next CONNECT
+ *    once, so a test can verify recovery after a transient reconnect refusal.
  *  - SUBSCRIBE to "e2e-disconnect/<reason>" makes the broker DISCONNECT the client with <reason>
  *    as the Reason String.
  *  - "e2e-replay" keeps a replay position per project and client id, like the real broker does
