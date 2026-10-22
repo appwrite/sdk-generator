@@ -1,0 +1,49 @@
+import Foundation
+import Testing
+
+@testable import {{ spec.info.title | caseUcfirst }}
+
+// Starting a login presents ASWebAuthenticationSession where it exists, so these run
+// only where authenticate() just records the login.
+#if !canImport(AuthenticationServices)
+    @Suite(.serialized)
+    final class WebAuthComponentTests {
+        private let scheme = "appwrite-callback-zzwebauth"
+        private let login = URL(string: "https://api.example/v1/account/sessions/oauth2/github")!
+
+        init() {
+            UserDefaults.standard.removeObject(forKey: "api.example")
+            UserDefaults.standard.removeObject(forKey: "other.example")
+        }
+
+        @Test func callbackWithoutALoginIsIgnored() {
+            WebAuthComponent.handleIncomingCookie(from: URL(string: "\(scheme)://?domain=.api.example&key=a_session_p&secret=planted")!)
+
+            #expect(UserDefaults.standard.stringArray(forKey: "api.example") == nil)
+        }
+
+        @Test func callbackForAnotherHostIsIgnored() {
+            var result: Result<String, {{ spec.info.title | caseUcfirst }}Error>?
+            WebAuthComponent.authenticate(url: login, callbackScheme: scheme) { result = $0 }
+
+            WebAuthComponent.handleIncomingCookie(from: URL(string: "\(scheme)://?domain=.other.example&key=a_session_p&secret=planted")!)
+
+            #expect(UserDefaults.standard.stringArray(forKey: "other.example") == nil)
+            #expect(result == nil)
+
+            WebAuthComponent.handleIncomingCookie(from: URL(string: "\(scheme)://?domain=.api.example&key=a_session_p&secret=issued")!)
+
+            #expect(UserDefaults.standard.stringArray(forKey: "api.example") == ["a_session_p=issued"])
+            #expect((try? result?.get()) != nil)
+        }
+
+        @Test func malformedCallbackDoesNotCrash() {
+            WebAuthComponent.authenticate(url: login, callbackScheme: scheme) { _ in }
+
+            WebAuthComponent.handleIncomingCookie(from: URL(string: "\(scheme)://?domain=&domain=&key=a&key=b&secret=c")!)
+            WebAuthComponent.onCallback()
+
+            #expect(UserDefaults.standard.stringArray(forKey: "api.example") == nil)
+        }
+    }
+#endif
