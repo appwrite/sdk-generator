@@ -1044,22 +1044,23 @@ class SDK
             if (!\in_array($file['scope'], ['copy', 'download'], true)) {
                 $template = $this->twig->load($file['template']); /* @var $template TemplateWrapper */
             }
-            $destination    = $target . '/' . $file['destination'];
+            $destination    = $file['destination'];
             $block          = $file['block'] ?? null;
             $minify         = $file['minify'] ?? false;
 
             switch ($file['scope']) {
                 case 'default':
-                    $this->render($template, $destination, $block, $params, $minify);
+                    $this->render($template, $target, $destination, $block, $params, $minify);
                     break;
                 case 'copy':
+                    $destination = $target . '/' . $destination;
                     if (!file_exists(dirname($destination))) {
                         mkdir(dirname($destination), 0777, true);
                     }
                     copy(realpath(__DIR__ . '/../../templates/' . $file['template']), $destination);
                     break;
                 case 'download':
-                    $this->download($file['template'], $destination, $params);
+                    $this->download($file['template'], $target, $destination, $params);
                     break;
                 case 'service':
                     foreach ($filteredServices as $key => $service) {
@@ -1079,7 +1080,7 @@ class SDK
                             continue;
                         }
 
-                        $this->render($template, $destination, $block, $params, $minify);
+                        $this->render($template, $target, $destination, $block, $params, $minify);
                     }
                     break;
                 case 'definition':
@@ -1091,7 +1092,7 @@ class SDK
                             continue;
                         }
 
-                        $this->render($template, $destination, $block, $params, $minify);
+                        $this->render($template, $target, $destination, $block, $params, $minify);
                     }
                     break;
                 case 'requestModel':
@@ -1103,7 +1104,7 @@ class SDK
                             continue;
                         }
 
-                        $this->render($template, $destination, $block, $params, $minify);
+                        $this->render($template, $target, $destination, $block, $params, $minify);
                     }
                     break;
                 case 'method':
@@ -1125,7 +1126,7 @@ class SDK
                                 continue;
                             }
 
-                            $this->render($template, $destination, $block, $params, $minify);
+                            $this->render($template, $target, $destination, $block, $params, $minify);
                         }
                     }
                     break;
@@ -1133,7 +1134,7 @@ class SDK
                     foreach ($filteredAllEnums as $enum) {
                         $params['enum'] = $enum;
 
-                        $this->render($template, $destination, $block, $params, $minify);
+                        $this->render($template, $target, $destination, $block, $params, $minify);
                     }
                     break;
             }
@@ -1426,10 +1427,9 @@ class SDK
      * @throws Twig_Error_Loader
      * @throws Twig_Error_Syntax
      */
-    protected function render(TemplateWrapper $template, string $destination, ?string $block, array $params = [], bool $minify = false): void
+    protected function render(TemplateWrapper $template, string $target, string $destination, ?string $block, array $params = [], bool $minify = false): void
     {
-        $destination    = $this->twig->createTemplate($destination);
-        $destination    = $destination->render($params);
+        $destination    = $this->resolveDestination($target, $destination, $params);
         $output         = (empty($block)) ? $template->render($params) : $template->renderBlock($block, $params);
 
         if (!file_exists(dirname($destination))) {
@@ -1464,9 +1464,9 @@ class SDK
      *
      * @throws Exception
      */
-    protected function download(string $url, string $destination, array $params = []): void
+    protected function download(string $url, string $target, string $destination, array $params = []): void
     {
-        $destination = $this->twig->createTemplate($destination)->render($params);
+        $destination = $this->resolveDestination($target, $destination, $params);
 
         if (!file_exists(dirname($destination))) {
             mkdir(dirname($destination), 0777, true);
@@ -1483,6 +1483,27 @@ class SDK
         if ($result === false) {
             throw new Exception('Can\'t save file: ' . $destination);
         }
+    }
+
+    /**
+     * Render a `getFiles()` destination and place it under the target.
+     *
+     * Destinations interpolate names taken from the spec (services, methods,
+     * models, enums, the title), and some filters keep `/` and `.`, so a spec
+     * naming a service `../../x` would write outside the SDK. Such a path is
+     * refused rather than rewritten: the spec is wrong, not the file.
+     *
+     * @throws Exception
+     */
+    protected function resolveDestination(string $target, string $destination, array $params): string
+    {
+        $path = $this->twig->createTemplate($destination)->render($params);
+
+        if (\str_contains($path, "\0") || \in_array('..', \explode('/', \str_replace('\\', '/', $path)), true)) {
+            throw new Exception('Refusing to write outside the SDK directory: ' . $path);
+        }
+
+        return $target . '/' . $path;
     }
 
     protected function helperCamelCase(?string $str): string
