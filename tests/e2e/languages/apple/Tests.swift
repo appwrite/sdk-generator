@@ -24,7 +24,6 @@ class Tests: XCTestCase {
         let client = Client()
             .setProject("123456")
             .addHeader(key: "Origin", value: "http://localhost")
-            .setSelfSigned()
         let sdkHeaders = client.getHeaders()
         print("x-sdk-name: \(sdkHeaders["x-sdk-name"] ?? "nil"); x-sdk-platform: \(sdkHeaders["x-sdk-platform"] ?? "nil"); x-sdk-language: \(sdkHeaders["x-sdk-language"] ?? "nil"); x-sdk-version: \(sdkHeaders["x-sdk-version"] ?? "nil")")
 
@@ -36,7 +35,6 @@ class Tests: XCTestCase {
         // reset configs
         client.setProject("console")
         client.setEndpointRealtime("ws://mockapi/v1")
-        // Keep selfSigned=true so WebSocketClient skips TLS for the ws:// mock endpoint.
 
         let foo = Foo(client)
         let bar = Bar(client)
