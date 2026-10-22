@@ -32,10 +32,14 @@ nil
 {%- endfor -%}
 }
 {%- endmacro %}
+{%- set defaulted = definition.properties | filter((property) => (property | schemaRequired) and (property | schemaDefault) is not null) %}
 package models
 
 import (
 	"encoding/json"
+{% if defaulted is not empty %}
+	"reflect"
+{% endif %}
 	"testing"
 )
 
@@ -60,4 +64,39 @@ func Test{{ definitionName | caseUcfirst }}Model(t *testing.T) {
 {% endif %}
 {% endfor %}
 }
+{% if defaulted is not empty %}
+
+func Test{{ definitionName | caseUcfirst }}ModelDefaults(t *testing.T) {
+	var fresh {{ definitionName | caseUcfirst }}
+	if err := json.Unmarshal([]byte("{}"), &fresh); err != nil {
+		t.Fatal(err)
+	}
+{% for property in defaulted %}
+	{
+		var want, got interface{}
+		if err := json.Unmarshal([]byte({{ (property | schemaDefault) | goJsonString }}), &want); err != nil {
+			t.Fatal(err)
+		}
+		encoded, err := json.Marshal(fresh.{{ (property | schemaName) | caseUcfirst | escapeKeyword }})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal(encoded, &got); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(want, got) {
+			t.Errorf("Expected missing {{ property | schemaName }} to default to %v, got %v", want, got)
+		}
+	}
+{% endfor %}
+
+	reused := {{ _self.render_struct_init(definitions, definition, spec) }}
+	if err := json.Unmarshal([]byte("{}"), &reused); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(fresh, reused) {
+		t.Errorf("Expected decoding into a used model to match a fresh decode, got %+v", reused)
+	}
+}
+{% endif %}
 {% endautoescape %}

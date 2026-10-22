@@ -16,6 +16,11 @@
 package main
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"os"
@@ -94,6 +99,10 @@ func main() {
 
 	harness.typesDependencies()
 	fmt.Println("CLI_TYPES_DEPENDENCIES:passed")
+	harness.initApns()
+	fmt.Println("CLI_INIT_APNS:passed")
+	harness.initApnsApple()
+	fmt.Println("CLI_INIT_APNS_APPLE:passed")
 	fmt.Println("CLI_CONFORMANCE:passed")
 }
 
@@ -106,6 +115,7 @@ func (h *harness) command(args ...string) *exec.Cmd {
 	command.Env = append(os.Environ(),
 		"HOME="+h.home,
 		"USERPROFILE="+h.home,
+		"XDG_CONFIG_HOME="+filepath.Join(h.home, ".config"),
 	)
 
 	return command
@@ -288,6 +298,141 @@ func (h *harness) value(args ...string) string {
 	fail(fmt.Errorf("no value in CLI output for `%s`", strings.Join(args, " ")))
 
 	return ""
+}
+
+// initApns sets up APNs for a project folder against the mock API: both providers and the Apple
+// platform on the first run, nothing new on a rerun, and nothing written for bad input. The App ID
+// check needs an Apple sign-in, and without a terminal it is skipped.
+func (h *harness) initApns() {
+	project := h.apnsProject()
+	defer os.RemoveAll(project.dir)
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		fail(err)
+	}
+	der, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		fail(err)
+	}
+	project.write("AuthKey_ABCDE12345.p8", string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})))
+
+	first := project.run(true, "--key-path", "AuthKey_ABCDE12345.p8", "--team-id", "ABCDE12345", "--bundle-id", "io.appwrite.e2e")
+	expectOutput(first,
+		"Created provider APNs (io.appwrite.e2e)",
+		"Created provider APNs sandbox (io.appwrite.e2e)",
+		"APNs is set up for io.appwrite.e2e",
+		"Added the Apple platform io.appwrite.e2e to the project",
+		"Skipped the App ID check",
+		"Enable the Appwrite push provider",
+		"AppwriteNotificationService",
+	)
+
+	again := project.run(true, "--bundle-id", "io.appwrite.e2e")
+	expectOutput(again, "APNs is already set up for io.appwrite.e2e")
+	if strings.Contains(again, "Added the Apple platform") || strings.Contains(again, "Created provider") {
+		fail(fmt.Errorf("a rerun changed the project:\n%s", again))
+	}
+
+	expectOutput(project.run(false, "--bundle-id", "not a bundle id!", "--key-path", "AuthKey_ABCDE12345.p8", "--team-id", "ABCDE12345"), "is not a bundle ID")
+	expectOutput(project.run(false, "--bundle-id", "io.appwrite.e2e", "--provider", "nope"), `unknown APNs key setup "nope"`)
+	expectOutput(project.run(false, "--bundle-id", "io.appwrite.e2e", "--environment", "staging"), "--environment must be production, sandbox or all")
+}
+
+// initApnsApple signs in to the mock of Apple with an Apple ID and password, creates the key and
+// registers the App ID, then reuses the saved sign-in: to check the App ID on a rerun, to turn on
+// Push Notifications for an existing App ID, and to create keys until the team has no free slot.
+func (h *harness) initApnsApple() {
+	project := h.apnsProject()
+	defer os.RemoveAll(project.dir)
+
+	appleID := project.name + "@example.com"
+	project.env = []string{"APPWRITE_APPLE_HOST=http://mockapi/apple"}
+	first := project.runWith([]string{"APPWRITE_APPLE_ID=" + appleID, "APPWRITE_APPLE_PASSWORD=e2e-password"},
+		true, "--create-key", "--register-app-id", "--bundle-id", "io.appwrite.e2e.apple")
+	expectOutput(first,
+		"Using the Apple ID from APPWRITE_APPLE_ID",
+		"Using Apple team E2E Team (E2ETEAM123)",
+		"Created provider APNs (io.appwrite.e2e.apple)",
+		"Created provider APNs sandbox (io.appwrite.e2e.apple)",
+		"Registered io.appwrite.e2e.apple as an App ID with Push Notifications on team E2ETEAM123",
+	)
+	keys, err := filepath.Glob(filepath.Join(project.dir, "AuthKey_*.p8"))
+	if err != nil || len(keys) != 1 {
+		fail(fmt.Errorf("want the created key saved in the project folder, found %v:\n%s", keys, first))
+	}
+
+	expectOutput(project.run(true, "--bundle-id", "io.appwrite.e2e.apple"),
+		"APNs is already set up for io.appwrite.e2e.apple",
+		"Using the saved Apple sign-in for "+appleID,
+		"io.appwrite.e2e.apple is registered as an App ID with Push Notifications",
+	)
+
+	expectOutput(project.run(true, "--register-app-id", "--bundle-id", "io.appwrite.e2e.nopush", "--key-path", filepath.Base(keys[0]), "--team-id", "E2ETEAM123"),
+		"Using the saved Apple sign-in for "+appleID,
+		"Turned on Push Notifications for the App ID io.appwrite.e2e.nopush",
+	)
+
+	project.run(true, "--create-key", "--bundle-id", "io.appwrite.e2e.second")
+	expectOutput(project.run(false, "--create-key", "--bundle-id", "io.appwrite.e2e.third"), "this team has no free slot")
+}
+
+type apnsProject struct {
+	h    *harness
+	dir  string
+	name string
+	env  []string
+}
+
+// apnsProject is a project folder with a project of its own: the mock keeps state across runs.
+func (h *harness) apnsProject() *apnsProject {
+	dir, err := os.MkdirTemp("", "appwrite-cli-apns-")
+	if err != nil {
+		fail(err)
+	}
+	project := &apnsProject{h: h, dir: dir, name: "apns-e2e-" + filepath.Base(dir)[len("appwrite-cli-apns-"):]}
+	project.write("appwrite.config.json", `{"projectId":"`+project.name+`","endpoint":"http://mockapi/v1"}`)
+
+	return project
+}
+
+func (p *apnsProject) write(name, contents string) {
+	if err := os.WriteFile(filepath.Join(p.dir, name), []byte(contents), 0o600); err != nil {
+		fail(err)
+	}
+}
+
+func (p *apnsProject) run(wantSuccess bool, args ...string) string {
+	return p.runWith(nil, wantSuccess, args...)
+}
+
+// runWith runs `init apns` in the project folder with extra environment variables.
+func (p *apnsProject) runWith(env []string, wantSuccess bool, args ...string) string {
+	absolute, err := filepath.Abs(binary)
+	if err != nil {
+		fail(err)
+	}
+	command := p.h.command(append([]string{"init", "apns"}, args...)...)
+	command.Dir = p.dir
+	command.Path = absolute
+	command.Env = append(append(command.Env, p.env...), env...)
+	var combined strings.Builder
+	command.Stdout = &combined
+	command.Stderr = &combined
+	err = command.Run()
+	if (err == nil) != wantSuccess {
+		fail(fmt.Errorf("`init apns %s` exit = %v, want success %v:\n%s", strings.Join(args, " "), err, wantSuccess, combined.String()))
+	}
+
+	return combined.String()
+}
+
+func expectOutput(output string, want ...string) {
+	for _, part := range want {
+		if !strings.Contains(output, part) {
+			fail(fmt.Errorf("init apns output is missing %q:\n%s", part, output))
+		}
+	}
 }
 
 func fail(err error) {

@@ -409,6 +409,20 @@ abstract class Language
         return $value instanceof Parameter ? ($value->schema ?? new AnySchema()) : $value;
     }
 
+    /**
+     * The value a model fills a required field with when a response omits it. A collection the
+     * spec gives no default is filled empty, the only value its type always admits; a nested model
+     * stays absent, since an empty object may not satisfy the fields it requires.
+     */
+    public function getModelDefault(Schema $property, bool $required): mixed
+    {
+        if (!$required) {
+            return null;
+        }
+
+        return $property->default ?? ($property instanceof ArraySchema ? [] : null);
+    }
+
     protected function getSchemaType(Schema|Parameter $value): string
     {
         $schema = $this->getSchema($value);
@@ -569,17 +583,23 @@ abstract class Language
             return $name;
         }
 
+        $source = $this->getSchema($value);
+        $source = $source instanceof ArraySchema ? $source->items : $source;
+
         foreach ($spec?->schemas ?? [] as $modelName => $model) {
             if (!$model instanceof ObjectSchema) {
                 continue;
             }
             foreach ($model->properties as $propertyName => $property) {
-                if ($this->getEnumSchema($property) === $enumSchema) {
+                $propertySource = $this->getSchema($property);
+                $propertySource = $propertySource instanceof ArraySchema ? $propertySource->items : $propertySource;
+                if ($propertySource === $source) {
                     return \ucfirst($modelName) . \ucfirst($propertyName);
                 }
             }
         }
-        return '';
+
+        return $value instanceof Parameter ? $value->name : '';
     }
 
     protected function getSpecificationSchemaName(Schema $schema, Specification $spec): string

@@ -15,6 +15,18 @@ use Twig\TwigFilter;
 
 class Web extends JS
 {
+    protected $params = [
+        'npmPackage' => 'packageName',
+        'cdnPath' => '',
+    ];
+
+    public function setCdnPath(string $path): self
+    {
+        $this->setParam('cdnPath', $path);
+
+        return $this;
+    }
+
     public function getName(): string
     {
         return 'Web';
@@ -66,6 +78,7 @@ class Web extends JS
             [
                 'scope'         => 'default',
                 'destination'   => 'src/services/analytics-tracking.ts',
+                'requires'      => 'analytics',
                 'template'      => 'web/src/services/analytics-tracking.ts.twig',
             ],
             [
@@ -320,7 +333,7 @@ class Web extends JS
             return match ($type) {
                 self::TYPE_ARRAY => '[]',
                 self::TYPE_FILE => $this->getFileExample(),
-                self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => 'null',
+                self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => $this->getScalarExampleFallback($param),
                 self::TYPE_OBJECT => '{}',
                 self::TYPE_STRING => "''",
             };
@@ -482,6 +495,19 @@ class Web extends JS
     }
 
     protected function getPropertyType(Schema|Parameter $value, Operation $method, Specification $spec): string
+    {
+        $type = $this->getRequestType($value, $method, $spec);
+        $schema = $this->getSchema($value);
+        // A multipart part is either present or absent on the wire, never null
+        $parts = $method->requestBody?->content['multipart/form-data']->schema->properties ?? [];
+        if (!$schema->nullable || \in_array($schema, $parts, true)) {
+            return $type;
+        }
+
+        return (\str_contains($type, ' extends ') ? '(' . $type . ')' : $type) . ' | null';
+    }
+
+    protected function getRequestType(Schema|Parameter $value, Operation $method, Specification $spec): string
     {
         if ($this->getSchemaType($value) === self::TYPE_OBJECT) {
             $responseModel = $this->getOperationResponseModels($method)[0] ?? '';
@@ -906,8 +932,12 @@ class Web extends JS
      * Render a model property, breaking a parenthesised union array type across
      * lines when the declaration overflows the print width.
      */
-    protected function formatModelProperty(string $label, string $type, int $indent): string
+    protected function formatModelProperty(string $label, string $type, int $indent, bool $nullable = false): string
     {
+        if ($nullable) {
+            return $this->formatNullableModelProperty($label, $type, $indent);
+        }
+
         $pad = str_repeat(' ', $indent);
         if (mb_strlen($pad . $label . ': ' . $type . ';') <= self::PRINT_WIDTH) {
             return $label . ': ' . $type . ';';
@@ -933,6 +963,34 @@ class Web extends JS
 
         return $label . ": (\n" . $inner . '| '
             . implode("\n" . $inner . '| ', $options) . "\n" . $pad . ')[];';
+    }
+
+    protected function formatNullableModelProperty(string $label, string $type, int $indent): string
+    {
+        $pad = str_repeat(' ', $indent);
+        $union = $type . ' | null';
+        if (mb_strlen($pad . $label . ': ' . $union . ';') <= self::PRINT_WIDTH) {
+            return $label . ': ' . $union . ';';
+        }
+
+        $inner = $pad . str_repeat(' ', 4);
+        if (!str_contains($type, '<') && mb_strlen($inner . $union . ';') <= self::PRINT_WIDTH) {
+            return $label . ":\n" . $inner . $union . ';';
+        }
+
+        if (preg_match('/^\((.+)\)\[\]$/', $type, $match) === 1) {
+            if (mb_strlen($inner . '| ' . $type) <= self::PRINT_WIDTH) {
+                return $label . ":\n" . $inner . '| ' . $type . "\n" . $inner . '| null;';
+            }
+
+            $options = $this->splitTopLevel($match[1], '|', trackGenerics: true);
+            $member = $inner . str_repeat(' ', 6) . '| ';
+
+            return $label . ":\n" . $inner . "| (\n" . $member . implode("\n" . $member, $options)
+                . "\n" . $inner . '  )[]' . "\n" . $inner . '| null;';
+        }
+
+        return $label . ': ' . $union . ';';
     }
 
     /**
@@ -1095,7 +1153,7 @@ class Web extends JS
 
                 return $lhs . ' ' . $this->wrapConditionalType($type, $indent);
             }, ['is_safe' => ['html']]),
-            new TwigFilter('tsModelProperty', fn(string $label, string $type, int $indent = 8): string => $this->formatModelProperty($label, $type, $indent), ['is_safe' => ['html']]),
+            new TwigFilter('tsModelProperty', fn(string $label, string $type, int $indent = 8, bool $nullable = false): string => $this->formatModelProperty($label, $type, $indent, $nullable), ['is_safe' => ['html']]),
             new TwigFilter('tsArgument', fn(Operation $method, ?Parameter $parameter = null): string => $this->formatArgument($method, $parameter), ['is_safe' => ['html']]),
             new TwigFilter('tsRestTuple', fn(Operation $method, Specification $spec): string => $this->formatRestTuple($method, $spec), ['is_safe' => ['html']]),
             new TwigFilter('tsTypeAlias', fn(string $name, string $generics, string $tail, int $indent = 4): string => $this->formatTypeAlias($name, $generics, $tail, $indent), ['is_safe' => ['html']]),

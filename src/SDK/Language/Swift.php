@@ -3,13 +3,11 @@
 namespace Appwrite\SDK\Language;
 
 use stdClass;
-use Utopia\OpenAPI\Model\AnySchema;
 use Utopia\OpenAPI\Model\ArraySchema;
-use Utopia\OpenAPI\Model\ObjectSchema;
+use Utopia\OpenAPI\Model\NumberSchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
-use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -195,6 +193,11 @@ class Swift extends Language
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Query/Builder.swift',
+                'template'      => 'swift/Sources/Query/Builder.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -458,6 +461,34 @@ class Swift extends Language
         return $output . ('    ' . $baseIndent . ']');
     }
 
+    protected function erasedLiteral(mixed $value, ?bool $object = null, bool $double = false): string
+    {
+        if ($value instanceof stdClass) {
+            $value = get_object_vars($value);
+            $object = true;
+        }
+        if (is_array($value)) {
+            $object ??= !array_is_list($value);
+            if ($value === []) {
+                return $object ? '[String: Any]()' : '[Any]()';
+            }
+            $entries = [];
+            foreach ($value as $key => $item) {
+                $literal = $this->erasedLiteral($item);
+                $entries[] = $object ? $this->swiftString((string) $key) . ': ' . $literal : $literal;
+            }
+
+            return '[' . implode(', ', $entries) . '] as ' . ($object ? '[String: Any]' : '[Any]');
+        }
+
+        return match (true) {
+            $value === null => 'NSNull()',
+            $double && is_int($value) => $value . '.0',
+            is_float($value) => var_export($value, true),
+            default => $this->swiftLiteral($value, 0),
+        };
+    }
+
     protected function swiftLiteral(mixed $value, int $indent): string
     {
         return match (true) {
@@ -477,7 +508,7 @@ class Swift extends Language
     protected function swiftString(string $value): string
     {
         $escaped = preg_replace_callback(
-            '/[\\"\x00-\x1F]/',
+            '/[\\\\"\x00-\x1F]/',
             fn(array $match): string => match ($match[0]) {
                 '\\' => '\\\\',
                 '"' => '\\"',
@@ -619,6 +650,8 @@ class Swift extends Language
                 return '.' . $resolveKey($value);
             }),
             new TwigFilter('modelToMapValue', fn(Schema $property, string $name, bool $required): string => $this->getModelToMapValue($property, $name, $required), ['is_safe' => ['html']]),
+            new TwigFilter('swiftLiteral', fn(mixed $value): string => $this->swiftLiteral($value, 0), ['is_safe' => ['html']]),
+            new TwigFilter('swiftErasedDefault', fn(Schema $property): string => $this->erasedLiteral($this->getModelDefault($property, true), $property instanceof ArraySchema ? false : ($property->default === [] ? true : null), $property instanceof NumberSchema), ['is_safe' => ['html']]),
             new TwigFilter('swiftDoc', fn(string $value, int $width = 75, string $prefix = '    ///'): string => $this->swiftDoc($value, $width, $prefix), ['is_safe' => ['html']]),
         ];
     }

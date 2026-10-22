@@ -1,5 +1,5 @@
 ---
-name: deploy-site
+name: {{ language.name == 'CodexPlugin' ? 'deploy-site' | skillName(spec) : 'deploy-site' }}
 description: Deploy a site using the {{ spec.info.title }} CLI
 {% if language.name == 'ClaudePlugin' %}
 disable-model-invocation: true

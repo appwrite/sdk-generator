@@ -1,4 +1,4 @@
-{%- set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) -%}
+{%- set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) ~ '.' ~ (language.name | lower) -%}
 package {{ pushNamespace }}.services
 
 import android.Manifest
@@ -53,8 +53,15 @@ import java.util.concurrent.atomic.AtomicInteger
 
 private const val LOG_TAG = "{{ spec.info.title | caseUcfirst }}Push"
 
-/** What a message's `notification` block asks a background notification to show; [present] is false without one. */
-internal data class PushNotificationContent(val present: Boolean, val title: String?, val body: String?, val image: String?)
+/**
+ * What a message asks a background notification to show. A [raw] payload, one that is not a JSON
+ * object, is shown as the body under the subscription's title; an envelope is [visible] only with a
+ * title or body in its `notification`.
+ */
+internal data class PushNotificationContent(val raw: Boolean, val title: String?, val body: String?, val image: String?) {
+    val visible: Boolean
+        get() = raw || title != null || body != null
+}
 
 /** A background subscription saved across restarts: its filter, QoS choice and notification title. */
 internal data class PushEntry(
@@ -160,6 +167,16 @@ internal object PushBackground {
     // app's onError received the error (false when it registered none).
     @Volatile
     var errorHandler: ((Throwable) -> Boolean)? = null
+
+    // Tells the Push instance that hosts its subscriptions here when the connection opens (true)
+    // or closes (false).
+    @Volatile
+    var connectionHandler: ((Boolean) -> Unit)? = null
+
+    // Whether the live connection (not a retired one) is open.
+    @Volatile
+    var isConnected = false
+        private set
 
     @Volatile
     var serviceRunning = false
@@ -300,6 +317,7 @@ internal object PushBackground {
      * the app's current credential. A rotated session of the same user replaces the saved one; a
      * different user drops the saved subscriptions, as does no credential when
      * [signedOutWhenMissing] (the caller read the session store, so none means signed out).
+     * While a live Push hosts subscriptions here, it does nothing: that Push owns the connection.
      */
     fun resume(context: Context, authMethod: String? = null, credential: String? = null, signedOutWhenMissing: Boolean = false) {
         val app = context.applicationContext
@@ -308,6 +326,9 @@ internal object PushBackground {
             val current = config
             when {
                 !isActive() || current == null -> null
+                // A live Push hosts here and owns the connection and its credential; resuming only
+                // reconciles saved delivery, so it leaves a live host alone.
+                listeners.isNotEmpty() -> null
                 // No credential: signed out when the caller can tell, else possibly not set yet.
                 authMethod == null || credential == null -> if (signedOutWhenMissing) false else null
                 current.authMethod == authMethod && current.credential == credential -> true
@@ -495,6 +516,7 @@ internal object PushBackground {
             loaded = false
         }
         errorHandler = null
+        connectionHandler = null
         unregisterNetworkCallback(context.applicationContext)
         worker.submit { disconnect() }.get()
     }
@@ -660,6 +682,18 @@ internal object PushBackground {
         val retired = AtomicBoolean(false)
         val client = buildPushClient(
             config.copy(keepAlive = KEEP_ALIVE_SECONDS),
+            onConnected = {
+                if (!retired.get()) {
+                    isConnected = true
+                    connectionHandler?.invoke(true)
+                }
+            },
+            onDisconnected = {
+                if (!retired.get()) {
+                    isConnected = false
+                    connectionHandler?.invoke(false)
+                }
+            },
             onError = { error ->
                 if (!quiet || connected.get()) {
                     report(error)
@@ -772,6 +806,11 @@ internal object PushBackground {
     private fun disconnect() {
         mqttRetired?.set(true)
         mqttRetired = null
+        // A retired client's own disconnect is not reported, so report the live one closing here.
+        if (isConnected) {
+            isConnected = false
+            connectionHandler?.invoke(false)
+        }
         mqtt?.disconnect()
         mqtt = null
         connectedConfig = null
@@ -856,7 +895,7 @@ internal object PushBackground {
     // Deliver a message to the matching live callbacks; with none, to the declared PushReceiver
     // and/or a notification per saved subscription that matches it. [deferAck] hands a listener
     // that acknowledges messages itself its acknowledgement.
-    private fun deliverMessage(context: Context, message: PushMessage, deferAck: () -> () -> Unit) {
+    internal fun deliverMessage(context: Context, message: PushMessage, deferAck: () -> () -> Unit) {
         val matching = listeners.filter { listener -> listener.topics.any { matchesTopic(it, message.topic) } }
         // Saved background subscriptions no live one has taken over; they deliver even when a live
         // foreground-only subscription on an overlapping filter received the message too.
@@ -882,10 +921,12 @@ internal object PushBackground {
             val handled = matching.isEmpty() && deliverToReceivers(context, message)
             val content = notificationContent(message)
             // Background subscriptions notify while the app is not visible; on screen, only those
-            // that opted in with notifyInForeground do, since the app shows the message itself.
+            // that opted in with notifyInForeground do, since the app shows the message itself. A
+            // message no live callback received still notifies, as the app has not shown it.
             val foreground = appInForeground()
+            val shown = foreground && matching.isNotEmpty()
             val titles = matching.filter { it.background && (!foreground || it.notifyInForeground) }.map { it.title ?: message.topic } +
-                if (handled) emptyList() else entries.filter { !foreground || it.notifyInForeground }.map { it.title ?: message.topic }
+                if (handled) emptyList() else entries.filter { !shown || it.notifyInForeground }.map { it.title ?: message.topic }
             // A title the server sent replaces every subscription's, so one notification is posted.
             titles.map { content.title ?: it }.distinct().forEach { notify(context, message, it, content) }
         } finally {
@@ -919,16 +960,21 @@ internal object PushBackground {
 
     /**
      * Post a notification for [message] that opens the app, with the message in its extras. It shows
-     * the server's title, body and image from [content], falling back to [title] and the raw payload.
+     * the server's title, body and image from [content], falling back to [title], and to the payload
+     * as the body when it is not a JSON object. An envelope with neither a title nor a body, such as
+     * a data-only push, posts nothing.
      */
     fun notify(context: Context, message: PushMessage, title: String, content: PushNotificationContent = notificationContent(message)) {
+        if (!content.visible) {
+            return
+        }
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) {
             return
         }
         createChannels(context)
         val id = 31 * message.hashCode() + title.hashCode()
-        val body = content.body ?: message.data.takeIf { !content.present }
+        val body = content.body ?: message.data.takeIf { content.raw }
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(content.title ?: title)
             .setSmallIcon(notificationIcon(context))
@@ -940,14 +986,13 @@ internal object PushBackground {
             builder.setLargeIcon(image)
                 .setStyle(NotificationCompat.BigPictureStyle().bigPicture(image).bigLargeIcon(null as Bitmap?).setSummaryText(body))
         }
-        context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { launch ->
-            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                .putExtra(EXTRA_TOPIC, message.topic)
-                .putExtra(EXTRA_PAYLOAD, message.data)
-            builder.setContentIntent(
-                PendingIntent.getActivity(context, id, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
-            )
-        }
+        val open = Intent(context, PushOpenActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+            .putExtra(EXTRA_TOPIC, message.topic)
+            .putExtra(EXTRA_PAYLOAD, message.data)
+        builder.setContentIntent(
+            PendingIntent.getActivity(context, id, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
+        )
         try {
             manager.notify(id, builder.build())
         } catch (e: SecurityException) {
@@ -960,12 +1005,13 @@ internal object PushBackground {
         .also { ActivityManager.getMyMemoryState(it) }
         .importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
 
-    /** The server's `notification` block in [message]: nulls when the payload has none or is not JSON. */
+    /** The server's `notification` block in [message], [PushNotificationContent.raw] when the payload is not a JSON object. */
     fun notificationContent(message: PushMessage): PushNotificationContent {
-        val notification = runCatching { JSONObject(message.data) }.getOrNull()?.optJSONObject("notification")
-            ?: return PushNotificationContent(false, null, null, null)
-        fun field(name: String) = (notification.opt(name) as? String)?.takeIf { it.isNotEmpty() }
-        return PushNotificationContent(true, field("title"), field("body"), field("image"))
+        val envelope = runCatching { JSONObject(message.data) }.getOrNull()
+            ?: return PushNotificationContent(true, null, null, null)
+        val notification = envelope.optJSONObject("notification")
+        fun field(name: String) = (notification?.opt(name) as? String)?.takeIf { it.isNotEmpty() }
+        return PushNotificationContent(false, field("title"), field("body"), field("image"))
     }
 
     // Downloads notification images, so a slow one is abandoned without holding up delivery.
@@ -1169,6 +1215,8 @@ internal object PushBackground {
                 app.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true,
             ignoringBatteryOptimizations = app.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(app.packageName) == true,
             foregroundService = PushStore.foreground(app),
+            backgroundRestricted = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&
+                app.getSystemService(ActivityManager::class.java)?.isBackgroundRestricted == true,
         )
     }
 

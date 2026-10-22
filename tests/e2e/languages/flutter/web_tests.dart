@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
+// ignore: deprecated_member_use
+import 'dart:html' as html;
 
 import 'package:packageName/packageName.dart';
 
@@ -115,6 +118,22 @@ void main() async {
   print(noCredentialRejected
       ? 'Push user no credential:passed'
       : 'Push user no credential:failed');
+
+  // Signed in through the client: with no JWT or session set on it, the user comes from the
+  // session its sign-in kept in localStorage (cookieFallback).
+  html.window.localStorage['cookieFallback'] =
+      jsonEncode({'a_session_console': e2eSession});
+  try {
+    final signInTopics = await userTopicsOf(
+      Client().setProject('console').setPushEndpoint('ws://mqtt:8083'),
+    );
+    print(onlyTopic(signInTopics, 'users/e2e-session-user')
+        ? 'Push user sign-in session topic:passed'
+        : 'Push user sign-in session topic:failed');
+  } catch (_) {
+    print('Push user sign-in session topic:failed');
+  }
+  html.window.localStorage.remove('cookieFallback');
 
   // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
   // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT

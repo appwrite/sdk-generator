@@ -1,0 +1,366 @@
+import Foundation
+import Testing
+
+@testable import {{ spec.info.title | caseUcfirst }}
+
+#if canImport(ObjectiveC)
+    import ObjectiveC
+#endif
+
+@Suite(.serialized)
+final class PushTests {
+    private var suites: [String] = []
+
+    deinit {
+        for name in suites {
+            UserDefaults.standard.removePersistentDomain(forName: name)
+        }
+    }
+
+    // MARK: Environment
+
+    private func profile(_ entitlements: [String: Any]?) -> Data {
+        var plist: [String: Any] = ["Name": "Test"]
+        if let entitlements {
+            plist["Entitlements"] = entitlements
+        }
+        let xml = try! PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+        // A provisioning profile wraps the plist in a signed container.
+        return Data([0x30, 0x82, 0x01, 0x00]) + xml + Data([0x00, 0xA0, 0x82])
+    }
+
+    @Test func environmentFromTheProvisioningProfile() {
+        #expect(Push.Environment.detect(profile: profile(["aps-environment": "development"])) == .sandbox)
+        #expect(Push.Environment.detect(profile: profile(["aps-environment": "production"])) == .production)
+        #expect(Push.Environment.detect(profile: profile(["com.apple.developer.aps-environment": "development"])) == .sandbox)
+        #expect(Push.Environment.detect(profile: profile([:])) == .production)
+        #expect(Push.Environment.detect(profile: profile(nil)) == .production)
+        #expect(Push.Environment.detect(profile: Data("not a profile".utf8)) == .production)
+    }
+
+    // MARK: Deliveries
+
+    private func defaults() -> UserDefaults {
+        let name = "push-tests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        suites.append(name)
+        return defaults
+    }
+
+    @Test func eachMessageIsDeliveredOnce() {
+        let deliveries = Push.Deliveries(defaults: defaults())
+        #expect(deliveries.record("message-1"))
+        #expect(!deliveries.record("message-1"))
+        #expect(deliveries.contains("message-1"))
+        #expect(!deliveries.contains("message-2"))
+    }
+
+    @Test func deliveriesAreKeptAcrossLaunchesAndBounded() {
+        let store = defaults()
+        let first = Push.Deliveries(defaults: store)
+        for index in 0...Push.Deliveries.capacity {
+            first.record("message-\(index)")
+        }
+        let relaunched = Push.Deliveries(defaults: store)
+        #expect(!relaunched.contains("message-0"), "the oldest id is dropped past the capacity")
+        #expect(relaunched.contains("message-1"))
+        #expect(relaunched.contains("message-\(Push.Deliveries.capacity)"))
+        #expect(!relaunched.record("message-\(Push.Deliveries.capacity)"))
+    }
+
+    // MARK: Payloads
+
+    @Test func appwriteDataUnderTheAppwriteKey() {
+        let message = Push.RemoteMessage(userInfo: [
+            "aps": ["alert": ["title": "Sale", "body": "50% off"]],
+            "appwrite": ["messageId": "m1", "topic": "news", "data": ["saleId": "42"]],
+        ])
+        #expect(message?.id == "m1")
+        #expect(message?.topic == "news")
+        #expect(message?.data["saleId"] as? String == "42")
+        #expect(message?.wake == false)
+    }
+
+    @Test func wakeAsAppwriteSendsIt() {
+        let message = Push.RemoteMessage(userInfo: [
+            "aps": ["content-available": 1],
+            "data": ["type": "wake", "messageId": "m7"],
+        ])
+        #expect(message?.id == "m7")
+        #expect(message?.wake == true)
+
+        #expect(Push.RemoteMessage(userInfo: ["aps": ["alert": "Hello"], "data": ["orderId": "7"]]) == nil)
+    }
+
+    @Test func wakeFromServersBeforeTheAppwriteKey() {
+        let message = Push.RemoteMessage(userInfo: [
+            "aps": ["content-available": 1, "data": ["type": "wake", "messageId": "m2"]]
+        ])
+        #expect(message?.id == "m2")
+        #expect(message?.wake == true)
+
+        // FCM-style top-level keys.
+        let flat = Push.RemoteMessage(userInfo: ["type": "wake", "messageId": "m3"])
+        #expect(flat?.id == "m3")
+        #expect(flat?.wake == true)
+    }
+
+    @Test func otherPushesAreNotAppwrites() {
+        #expect(Push.RemoteMessage(userInfo: ["aps": ["alert": "Hello"], "orderId": "7"]) == nil)
+        #expect(Push.RemoteMessage(userInfo: ["aps": ["alert": "Hello"], "messageId": ""]) == nil)
+    }
+
+    @Test func messageIdInAnMqttPayload() {
+        #expect(Push.RemoteMessage.id(payload: Array(#"{"messageId":"m4","data":{}}"#.utf8)) == "m4")
+        #expect(Push.RemoteMessage.id(payload: Array(#"{"appwrite":{"messageId":"m5"}}"#.utf8)) == "m5")
+        #expect(Push.RemoteMessage.id(payload: Array(#"{"data":{}}"#.utf8)) == nil)
+        #expect(Push.RemoteMessage.id(payload: Array("plain text".utf8)) == nil)
+    }
+
+    // MARK: Ids
+
+    @Test func targetAndSubscriberIds() {
+        let target = Push.Ids.target(installation: "install-1", userId: "user-1")
+        #expect(target.count == 36)
+        #expect(target.allSatisfy { "0123456789abcdef".contains($0) })
+        #expect(target == Push.Ids.target(installation: "install-1", userId: "user-1"), "stable for the same install and user")
+        #expect(target != Push.Ids.target(installation: "install-1", userId: "user-2"), "one target per user")
+        #expect(Push.Ids.subscriber(targetId: target, topic: "news") != Push.Ids.subscriber(targetId: target, topic: "sales"))
+        #expect(Push.Ids.subscriber(targetId: target, topic: "news").count == 36)
+    }
+
+    @Test func onlyMessagingTopicsGetSubscribers() {
+        #expect(Push.Ids.isMessagingTopic("news"))
+        #expect(!Push.Ids.isMessagingTopic("users/123"))
+        #expect(!Push.Ids.isMessagingTopic("news/+"))
+        #expect(!Push.Ids.isMessagingTopic("news/#"))
+        #expect(!Push.Ids.isMessagingTopic(""))
+    }
+
+    @Test func theInstallationIdIsStable() {
+        #expect(Push.Installation.id == Push.Installation.id)
+    }
+
+    // MARK: Remote notifications
+
+    @Test func remoteNotifications() {
+        let previous = Push.apnsDeliveries
+        Push.apnsDeliveries = Push.Deliveries(defaults: defaults())
+        defer { Push.apnsDeliveries = previous }
+
+        #expect(!Push.handleRemoteNotification(["aps": ["alert": "Not Appwrite's"]]))
+
+        let push: [AnyHashable: Any] = ["appwrite": ["messageId": "m6", "topic": "news"]]
+        var results: [Bool] = []
+        #expect(Push.apnsHandle(push) { results.append($0) })
+        #expect(Push.apnsHandle(push) { results.append($0) }, "still Appwrite's the second time")
+        #expect(results == [true, false], "delivered once")
+        #expect(Push.apnsDeliveries.contains("m6"))
+    }
+
+    // MARK: Shared with the Notification Service Extension
+
+    private func withSharedDefaults(_ body: () -> Void) {
+        let previous = Push.Shared.defaults
+        Push.Shared.defaults = defaults()
+        defer { Push.Shared.defaults = previous }
+        body()
+    }
+
+    private func message(_ topic: String, _ text: String) -> PushMessage {
+        PushMessage(topic: topic, payload: Array(text.utf8), qos: 1)
+    }
+
+    @Test func linkedTopicsAreKeptAcrossLaunches() {
+        let shared = defaults()
+        let launch = Push.LinkedTopics(defaults: shared)
+        launch.add("news", to: "t1")
+        launch.add("sales", to: "t1")
+        launch.add("news", to: "t2")
+        launch.remove("sales", from: "t1")
+
+        let next = Push.LinkedTopics(defaults: shared)
+        #expect(next.topics("t1") == ["news"])
+        #expect(next.topics("t2") == ["news"])
+        next.removeTarget("t1")
+        #expect(Push.LinkedTopics(defaults: shared).topics("t1").isEmpty)
+    }
+
+    @Test func aRegisteredTargetIsKeptUntilItIsDeleted() {
+        let links = Push.LinkedTopics(defaults: defaults())
+        #expect(!links.isRegistered("t1"))
+        links.register("t1")
+        links.add("news", to: "t1")
+        links.remove("news", from: "t1")
+        #expect(links.isRegistered("t1"))
+        links.removeTarget("t1")
+        #expect(!links.isRegistered("t1"))
+    }
+
+    @Test func topicsNoSubscriptionClaimsAreStale() {
+        #expect(Push.LinkedTopics.stale(saved: ["news", "sales", "users-1"], claimed: ["news"]) == ["sales", "users-1"])
+        #expect(Push.LinkedTopics.stale(saved: ["news"], claimed: ["news", "deals"]).isEmpty)
+    }
+
+    @Test func onlyRawPayloadsAndEnvelopesWithTextAreShown() {
+        let shown: [(String, Bool, Bool)] = [
+            ("plain text", true, true),
+            ("[1, 2]", true, true),
+            (#"{"notification":{"title":"Sale"}}"#, false, true),
+            (#"{"notification":{"body":"50% off"}}"#, false, true),
+            (#"{"messageId":"m1","data":{"saleId":"1"}}"#, false, false),
+            (#"{"notification":{}}"#, false, false),
+            (#"{"notification":{"image":"https://example.com/a.png"}}"#, false, false),
+            (#"{"notification":{"title":""},"contentAvailable":true,"badge":1}"#, false, false),
+        ]
+        for (payload, raw, visible) in shown {
+            let content = PushNotificationContent(message: message("news", payload))
+            #expect(content.raw == raw, "\(payload)")
+            #expect(content.visible == visible, "\(payload)")
+        }
+    }
+
+    @Test func theSessionIsKeptForTheExtension() {
+        withSharedDefaults {
+            let session = Push.Shared.Session(
+                endpoint: "https://cloud.appwrite.io/v1", pushEndpoint: "mqtts://push.cloud.appwrite.io:8883", project: "p1",
+                clientId: "", topics: ["news": "News"], jwt: false)
+            Push.Shared.save(session)
+            #expect(Push.Shared.loadSession() == session)
+            Push.Shared.save(nil)
+            #expect(Push.Shared.loadSession() == nil)
+        }
+    }
+
+    @Test func theAppIsLiveOnlyWhileItKeepsMarkingIt() {
+        withSharedDefaults {
+            let now = Date()
+            #expect(!Push.Shared.isAppLive(at: now))
+            Push.Shared.markLive(at: now)
+            #expect(Push.Shared.isAppLive(at: now.addingTimeInterval(5)))
+            #expect(!Push.Shared.isAppLive(at: now.addingTimeInterval(Push.Shared.liveWindow + 1)))
+        }
+    }
+
+    @Test func theLastHeartbeatIsKept() {
+        withSharedDefaults {
+            #expect(Push.Shared.lastLive() == nil)
+            let now = Date(timeIntervalSince1970: 1_800_000_000)
+            Push.Shared.markLive(at: now)
+            #expect(Push.Shared.lastLive() == now)
+        }
+    }
+
+    @Test func handedOffMessagesGoToTheMatchingTopicsOnce() {
+        withSharedDefaults {
+            Push.Shared.handOff([message("news", "a"), message("sales", "b"), message("news", "c")])
+            let news = Push.Shared.takeHandedOff { $0 == "news" }
+            #expect(news.map(\.data) == ["a", "c"])
+            #expect(Push.Shared.takeHandedOff { $0 == "news" }.isEmpty)
+            #expect(Push.Shared.takeHandedOff { _ in true }.map(\.data) == ["b"])
+        }
+    }
+
+    @Test func queuedMessagesComeOutInOrder() {
+        withSharedDefaults {
+            Push.Shared.enqueue([message("news", "1"), message("news", "2")])
+            #expect(Push.Shared.dequeue()?.data == "1")
+            #expect(Push.Shared.dequeue()?.data == "2")
+            #expect(Push.Shared.dequeue() == nil)
+        }
+    }
+
+    @Test func expiredQueuedMessagesAreDropped() {
+        withSharedDefaults {
+            Push.Shared.enqueue([message("news", "1")])
+            #expect(Push.Shared.dequeue(at: Date().addingTimeInterval(Push.Shared.pendingLifetime + 1)) == nil)
+            #expect(Push.Shared.dequeue() == nil)
+        }
+    }
+
+    @Test func theAppAndTheExtensionSeeEachOthersDeliveries() {
+        let shared = defaults()
+        let app = Push.Deliveries(defaults: shared)
+        let serviceExtension = Push.Deliveries(defaults: shared)
+        #expect(serviceExtension.record("m8"))
+        #expect(app.contains("m8"))
+        #expect(!app.record("m8"))
+    }
+}
+
+// The delegate proxy needs the Objective-C runtime.
+#if canImport(ObjectiveC)
+    extension PushTests {
+        // MARK: Delegate proxy
+
+        @Test func theProxyTellsPushAndKeepsTheAppsOwnMethod() {
+            let cls: AnyClass = objc_allocateClassPair(NSObject.self, "PushTestsDelegate\(UUID().uuidString.prefix(8))", 0)!
+            var calls = 0
+            let original: @convention(block) (AnyObject, AnyObject, NSData) -> Void = { _, _, _ in calls += 1 }
+            class_addMethod(cls, Push.DelegateProxy.didRegister, imp_implementationWithBlock(original), "v@:@@")
+            objc_registerClassPair(cls)
+            Push.DelegateProxy.install(on: cls)
+
+            let delegate = (cls as! NSObject.Type).init()
+            let token = Data([0xde, 0xad, 0xbe, 0xef])
+            _ = delegate.perform(Push.DelegateProxy.didRegister, with: NSObject(), with: token as NSData)
+
+            #expect(calls == 1, "the app's own method still runs")
+            #expect(Push.apnsCurrentToken == "deadbeef")
+        }
+
+        @Test func theProxyAddsMethodsTheAppDoesNotHave() {
+            let cls: AnyClass = objc_allocateClassPair(NSObject.self, "PushTestsBareDelegate\(UUID().uuidString.prefix(8))", 0)!
+            objc_registerClassPair(cls)
+            #expect(!class_respondsToSelector(cls, Push.DelegateProxy.didRegister))
+            Push.DelegateProxy.install(on: cls)
+            #expect(class_respondsToSelector(cls, Push.DelegateProxy.didRegister))
+            #expect(class_respondsToSelector(cls, Push.DelegateProxy.didFail))
+            #expect(class_respondsToSelector(cls, Push.DelegateProxy.didReceive))
+
+            let delegate = (cls as! NSObject.Type).init()
+            _ = delegate.perform(Push.DelegateProxy.didRegister, with: NSObject(), with: Data([0x01, 0x02]) as NSData)
+            #expect(Push.apnsCurrentToken == "0102")
+        }
+
+        @Test func theProxyFollowsAForwardingDelegate() {
+            // SwiftUI's app delegate forwards to the `@UIApplicationDelegateAdaptor` class rather than
+            // implementing the methods. The proxy must go on that class, or the app's method stops running.
+            let target = ForwardedDelegate()
+            let delegate = ForwardingDelegate(target: target)
+            Push.DelegateProxy.install(on: delegate)
+
+            #expect(class_getInstanceMethod(ForwardingDelegate.self, Push.DelegateProxy.didRegister) == nil, "nothing added to the forwarding class")
+            _ = delegate.perform(Push.DelegateProxy.didRegister, with: NSObject(), with: Data([0xab, 0xcd]) as NSData)
+            #expect(target.tokens == 1, "the app's own method still runs")
+            #expect(Push.apnsCurrentToken == "abcd")
+        }
+    }
+
+    /// Stands in for SwiftUI's app delegate: implements nothing, forwards to the app's class.
+    private final class ForwardingDelegate: NSObject {
+        let target: ForwardedDelegate
+
+        init(target: ForwardedDelegate) {
+            self.target = target
+        }
+
+        override func forwardingTarget(for selector: Selector!) -> Any? {
+            target.responds(to: selector) ? target : nil
+        }
+
+        override func responds(to selector: Selector!) -> Bool {
+            super.responds(to: selector) || target.responds(to: selector)
+        }
+    }
+
+    /// Stands in for the app's `@UIApplicationDelegateAdaptor` class.
+    private final class ForwardedDelegate: NSObject {
+        var tokens = 0
+
+        @objc(application:didRegisterForRemoteNotificationsWithDeviceToken:)
+        func didRegister(_ application: AnyObject, token: NSData) {
+            tokens += 1
+        }
+    }
+#endif

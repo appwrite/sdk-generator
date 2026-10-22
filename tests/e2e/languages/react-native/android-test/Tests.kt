@@ -12,6 +12,7 @@ import android.content.pm.ResolveInfo
 import android.os.Build
 import android.net.Uri
 import android.os.Looper
+import android.os.PowerManager
 import android.util.Base64
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -21,12 +22,16 @@ import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.network.ForwardingCookieHandler
 import io.appwrite.reactnative.AppwriteCookiesModule
 import io.appwrite.reactnative.AppwritePushModule
-import io.appwrite.services.PushBackground
-import io.appwrite.services.PushMessage
-import io.appwrite.services.PushReceiver
-import io.appwrite.services.PushStore
+import io.appwrite.reactnative.services.PushBackground
+import io.appwrite.reactnative.services.PushBridge
+import io.appwrite.reactnative.services.PushMessage
+import io.appwrite.reactnative.services.PushOpenActivity
+import io.appwrite.reactnative.services.PushReceiver
+import io.appwrite.reactnative.services.PushStore
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -129,7 +134,7 @@ class Tests {
         val notifications = context.getSystemService(NotificationManager::class.java)
         val alarms = shadowOf(context.getSystemService(AlarmManager::class.java))
         shadowOf(context.packageManager).addResolveInfoForIntent(
-            Intent("io.appwrite.push.MESSAGE").setPackage(context.packageName),
+            Intent("io.appwrite.reactnative.push.MESSAGE").setPackage(context.packageName),
             ResolveInfo().apply {
                 activityInfo = ActivityInfo().apply {
                     name = E2EPushReceiver::class.java.name
@@ -145,11 +150,28 @@ class Tests {
         waitFor { messages().isNotEmpty() }
         val message = messages().firstOrNull()
         message?.let { module.ack(it["ackToken"] as String) }
+        // A second Push constructed with another credential resumes saved delivery; it leaves the
+        // live subscriptions hosted here alone, so the next message still reaches sub-1. Hosting
+        // one more subscription makes the mock publish again; the original set is then restored.
+        val opened = events.any { it.first == AppwritePushModule.CONNECTION_EVENT && it.second["connected"] == true }
+        call { module.resume("appwrite-session", "another-session", true, it) }
+        events.clear()
+        val withExtra = JSONArray(subscriptions)
+            .put(JSONObject().put("id", "sub-2").put("topic", "e2e-after-resume").put("background", false).put("retry", true))
+            .toString()
+        call { module.host(config("appwrite-session", SESSION), withExtra, it) }
+        waitFor { messages().any { it["id"] == "sub-1" } }
+        val afterResume = messages().firstOrNull { it["id"] == "sub-1" }
+        messages().forEach { module.ack(it["ackToken"] as String) }
+        call { module.host(config("appwrite-session", SESSION), subscriptions, it) }
+        val keptLive = afterResume != null && decode(afterResume["payload"]) == "push-payload"
         writeToFile(
-            if (hosted.isSuccess && message?.get("id") == "sub-1" && decode(message["payload"]) == "push-payload") {
+            if (hosted.isSuccess && message?.get("id") == "sub-1" && decode(message["payload"]) == "push-payload" &&
+                opened && keptLive
+            ) {
                 "Push background message:passed"
             } else {
-                "Push background message:failed"
+                "Push background message:failed (hosted: ${hosted.isSuccess}, opened: $opened, after resume: $afterResume)"
             },
         )
 
@@ -318,26 +340,50 @@ class Tests {
         call { module.stop(it) }
     }
 
-    // Taps on the notifications background delivery posts, read the way push.ts reads them: the tap
-    // that launched the app is reported once, and a tap while the app runs arrives as an event.
+    // Taps on the notifications background delivery posts, read the way push.ts reads them: a tap
+    // before JS listens, as when it launched the app, is reported once by getInitialNotification,
+    // and a tap while JS listens arrives as an event. The app opens with the tap's extras.
     private fun notificationOpened() {
         val payload = JSONObject().put("data", JSONObject().put("saleId", "42")).toString()
-        val tap = { Intent(Intent.ACTION_MAIN).putExtra(PushBackground.EXTRA_TOPIC, "e2e-push").putExtra(PushBackground.EXTRA_PAYLOAD, payload) }
-        val activity = Robolectric.buildActivity(Activity::class.java, tap()).setup().get()
-        reactContext.onHostResume(activity)
+        shadowOf(context.packageManager).addResolveInfoForIntent(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(context.packageName),
+            ResolveInfo().apply {
+                activityInfo = ActivityInfo().apply {
+                    name = Activity::class.java.name
+                    packageName = context.packageName
+                }
+            },
+        )
+        val tap = {
+            val intent = Intent(context, PushOpenActivity::class.java)
+                .putExtra(PushBackground.EXTRA_TOPIC, "e2e-push")
+                .putExtra(PushBackground.EXTRA_PAYLOAD, payload)
+            Robolectric.buildActivity(PushOpenActivity::class.java, intent).setup().get()
+        }
+        val launchedBy = shadowOf(tap()).nextStartedActivity
         val launched = call { module.getInitialNotification(it) }.getOrNull() as? String
         val again = call { module.getInitialNotification(it) }.getOrNull()
         val initial = launched?.let { JSONObject(it) }
         events.clear()
-        reactContext.onNewIntent(activity, tap())
+        call { module.listenOpened(true, it) }
+        tap()
         val opened = events.firstOrNull { it.first == AppwritePushModule.OPENED_EVENT }?.second
+        val heldWhileListening = call { module.getInitialNotification(it) }.getOrNull()
+        call { module.listenOpened(false, it) }
+        events.clear()
+        tap()
+        val emittedAfterStop = events.any { it.first == AppwritePushModule.OPENED_EVENT }
+        val heldAfterStop = call { module.getInitialNotification(it) }.getOrNull() as? String
         writeToFile(
             if (initial?.optString("topic") == "e2e-push" && initial.optString("payload") == payload && again == null &&
-                opened?.get("topic") == "e2e-push" && opened["payload"] == payload
+                launchedBy?.getStringExtra(PushBackground.EXTRA_PAYLOAD) == payload &&
+                opened?.get("topic") == "e2e-push" && opened["payload"] == payload && heldWhileListening == null &&
+                !emittedAfterStop && heldAfterStop?.let { JSONObject(it).optString("payload") } == payload
             ) {
                 "Push notification opened:passed"
             } else {
-                "Push notification opened:failed (launched: $launched, again: $again, opened: $opened)"
+                "Push notification opened:failed (launched: $launched, again: $again, by: ${launchedBy?.extras}, opened: $opened, " +
+                    "held: $heldWhileListening, after stop: $emittedAfterStop/$heldAfterStop)"
             },
         )
     }
@@ -395,5 +441,61 @@ class Tests {
 
     private companion object {
         const val SESSION = "eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0="
+    }
+}
+
+/**
+ * The status the SDKs read through the bridge on Android 9, where restricted background usage is
+ * reported: best effort unless the app is also exempt from battery optimisation.
+ */
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.P])
+@RunWith(AndroidJUnit4::class)
+class PushBridgeBackgroundStatusTest {
+    private val context = ApplicationProvider.getApplicationContext<Application>()
+    private val shadow = shadowOf(context.getSystemService(android.app.ActivityManager::class.java))
+    private val power = shadowOf(context.getSystemService(PowerManager::class.java))
+    private val bridge = PushBridge(
+        context,
+        object : PushBridge.Events {
+            override fun onMessage(subscriptionId: String, message: PushMessage, ackToken: String) = Unit
+
+            override fun onError(message: String) = Unit
+
+            override fun onConnection(connected: Boolean) = Unit
+        },
+    )
+
+    @Test
+    fun testRestrictedBackgroundUsageIsBestEffort() {
+        val unrestricted = JSONObject(bridge.backgroundStatus())
+        shadow.setBackgroundRestricted(true)
+        val restricted = JSONObject(bridge.backgroundStatus())
+        shadow.setBackgroundRestricted(false)
+
+        assertFalse("unrestricted: $unrestricted", unrestricted.getBoolean(BACKGROUND_RESTRICTED))
+        assertFalse("unrestricted: $unrestricted", unrestricted.getBoolean(BEST_EFFORT))
+        assertTrue("restricted: $restricted", restricted.getBoolean(BACKGROUND_RESTRICTED))
+        assertTrue("restricted: $restricted", restricted.getBoolean(BEST_EFFORT))
+    }
+
+    @Test
+    fun testBatteryOptimisationExemptionLiftsRestrictedBackgroundUsage() {
+        shadow.setBackgroundRestricted(true)
+        power.setIgnoringBatteryOptimizations(context.packageName, true)
+        val exempt = JSONObject(bridge.backgroundStatus())
+        power.setIgnoringBatteryOptimizations(context.packageName, false)
+        shadow.setBackgroundRestricted(false)
+
+        assertTrue("exempt: $exempt", exempt.getBoolean(EXACT_ALARMS))
+        assertTrue("exempt: $exempt", exempt.getBoolean(IGNORING_BATTERY_OPTIMIZATIONS))
+        assertTrue("exempt: $exempt", exempt.getBoolean(BACKGROUND_RESTRICTED))
+        assertFalse("exempt: $exempt", exempt.getBoolean(BEST_EFFORT))
+    }
+
+    private companion object {
+        const val EXACT_ALARMS = "exactAlarms"
+        const val IGNORING_BATTERY_OPTIMIZATIONS = "ignoringBatteryOptimizations"
+        const val BACKGROUND_RESTRICTED = "backgroundRestricted"
+        const val BEST_EFFORT = "bestEffort"
     }
 }

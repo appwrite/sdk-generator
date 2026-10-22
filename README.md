@@ -45,7 +45,7 @@ use Utopia\OpenAPI\Parser;
 
 // Parse an OpenAPI 2, 3.0, or 3.1 document into the canonical specification model.
 // One document covers every SDK platform; the SDK selects its own below.
-$version = '2.3.x';
+$version = '2.4.x';
 $platform = 'server';
 $content = file_get_contents("https://raw.githubusercontent.com/appwrite/specs/main/specs/{$version}/open-api3-{$version}.json");
 $spec = Parser::parse($content);
@@ -88,7 +88,7 @@ $spec = Parser::parse([
     'info' => [
         'title' => 'Appwrite',
         'description' => 'Appwrite backend as a service',
-        'version' => '2.3.x',
+        'version' => '2.4.x',
         'license' => [
             'name' => 'BSD-3-Clause',
             'url' => 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE',
@@ -101,7 +101,7 @@ $sdk = new SDK(new Skills(), $spec);
 
 $sdk
     ->setName('Appwrite')
-    ->setVersion('2.3.x')
+    ->setVersion('2.4.x')
 ;
 
 $sdk->generate(__DIR__ . '/examples/skills');
@@ -160,7 +160,7 @@ php example.php <target> <platform> <format>
 
 `<platform>` can be `console`, `client`, or `server`. If omitted, it defaults to `console`.
 
-`<format>` can be `openapi3` or `swagger2`. If omitted, it defaults to `openapi3`. Remote OpenAPI 3 generation uses the current `2.3.x` specs; because Swagger 2 documents are not published for `2.3.x`, remote Swagger 2 generation uses the latest available `1.8.x` specs.
+`<format>` can be `openapi3` or `swagger2`. If omitted, it defaults to `openapi3`. Remote OpenAPI 3 generation uses the current `2.4.x` specs; because Swagger 2 documents are not published for `2.4.x`, remote Swagger 2 generation uses the latest available `1.8.x` specs.
 
 Examples:
 
@@ -176,11 +176,11 @@ php example.php zed-extension
 
 | Target | Argument | Supported Versions | Coding Standards | Package Manager | Output |
 |--------|----------|--------------------|------------------|-----------------|--------|
-| Web | `web` | ES5+; Node.js >=18 for builds | [NPM Coding Style] | NPM | `examples/web/` |
+| Web | `web` | ES5+; Node.js >=20 for builds | [NPM Coding Style] | NPM | `examples/web/` |
 | Flutter | `flutter` | Dart >=3.7 <4; Flutter >=3.29 | [Effective Dart] | pub | `examples/flutter/` |
 | Apple | `apple` | iOS 15+, macOS 11+, watchOS 7+, tvOS 13+ | [Swift Style Guide] | Swift Package Manager | `examples/apple/` |
 | Android | `android` | Android 6.0+; Java 17 in CI | [Android style guide] | Gradle, Maven | `examples/android/` |
-| React Native | `react-native` | React Native >=0.76.7 <1.0.0; Node.js >=18 | [NPM Coding Style] | NPM | `examples/react-native/` |
+| React Native | `react-native` | React Native >=0.76.7 <1.0.0; Node.js >=20 | [NPM Coding Style] | NPM | `examples/react-native/` |
 
 ### Server SDKs
 
@@ -195,7 +195,7 @@ php example.php zed-extension
 | Swift | `swift` | Swift 5.1+; Swift 5.9.2 in CI | [Swift Style Guide] | Swift Package Manager | `examples/swift/` |
 | .NET | `dotnet` | .NET Standard 2.0; .NET Framework 4.6.2 | [C# Coding Conventions] | NuGet | `examples/dotnet/` |
 | Kotlin | `kotlin` | JVM 1.8 target; Java 17 in CI | [Kotlin style guide] | Gradle, Maven | `examples/kotlin/` |
-| Rust | `rust` | Rust >=1.83 | [Rust API Guidelines] | Cargo | `examples/rust/` |
+| Rust | `rust` | Rust >=1.85 | [Rust API Guidelines] | Cargo | `examples/rust/` |
 
 ### Tooling and Documentation
 

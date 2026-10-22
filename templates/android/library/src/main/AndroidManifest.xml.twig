@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-{% set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) %}
+{% set pushNamespace = language.name == 'Android' ? (sdk.namespace | caseDot) : 'io.' ~ (spec.info.title | caseLower) ~ '.' ~ (language.name | lower) %}
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -17,6 +17,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
 
     <application>
+        <activity
+            android:name="{{ pushNamespace }}.services.PushOpenActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <service
             android:name="{{ pushNamespace }}.services.PushService"
             android:exported="false"

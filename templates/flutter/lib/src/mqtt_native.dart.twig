@@ -58,12 +58,13 @@ class PushNative {
       debugInstance ?? (Platform.isAndroid ? _plugin : null);
 
   /// Host [subscriptionsJson] on the background connection described by [configJson]. Completes
-  /// once the connection is up and every filter is subscribed, or throws why not.
-  Future<void> host(String configJson, String subscriptionsJson) =>
-      _methods.invokeMethod<void>('host', {
+  /// with whether the connection is open once every filter is subscribed, or throws why not.
+  Future<bool> host(String configJson, String subscriptionsJson) async =>
+      await _methods.invokeMethod<bool>('host', {
         'config': configJson,
         'subscriptions': subscriptionsJson,
-      });
+      }) ??
+      false;
 
   /// Ask for the notification permission background messages are posted with (Android 13+),
   /// without waiting for the answer. False when no Activity was attached to ask from.
@@ -123,17 +124,51 @@ class PushNative {
       }) ??
       '';
 
-  /// Listen to the plugin's messages and errors.
+  /// The tapped notification that launched the app as `{topic, payload}`, once, or null.
+  Future<Map<Object?, Object?>?> getInitialNotification() =>
+      _methods.invokeMethod<Map<Object?, Object?>>('getInitialNotification');
+
+  /// Call [onOpened] with the topic and payload of each notification tap while listening.
+  /// Until something listens, a tap waits for [getInitialNotification]. Returns a function
+  /// that stops listening.
+  void Function() listenOpened(
+    void Function(String topic, String payload) onOpened,
+  ) {
+    final stream = _stream ??= _events
+        .receiveBroadcastStream()
+        .map((event) => event as Map<Object?, Object?>)
+        .asBroadcastStream();
+    final subscription = stream.listen((event) {
+      if (event['type'] == 'opened') {
+        onOpened(event['topic'] as String, event['payload'] as String);
+      }
+    });
+    unawaited(
+      _methods.invokeMethod<void>('listenOpened', {'listening': true}),
+    );
+    var listening = true;
+    return () {
+      if (!listening) {
+        return;
+      }
+      listening = false;
+      unawaited(subscription.cancel());
+      unawaited(
+        _methods.invokeMethod<void>('listenOpened', {'listening': false}),
+      );
+    };
+  }
+
+  /// Listen to the plugin's messages, errors and connection changes.
   StreamSubscription<Map<Object?, Object?>> listen({
     required void Function(NativePushMessage message) onMessage,
     required void Function(String message) onError,
+    required void Function(bool connected) onConnection,
   }) {
-    final stream =
-        _stream ??=
-            _events
-                .receiveBroadcastStream()
-                .map((event) => event as Map<Object?, Object?>)
-                .asBroadcastStream();
+    final stream = _stream ??= _events
+        .receiveBroadcastStream()
+        .map((event) => event as Map<Object?, Object?>)
+        .asBroadcastStream();
     return stream.listen((event) {
       if (event['type'] == 'message') {
         onMessage(
@@ -147,6 +182,8 @@ class PushNative {
         );
       } else if (event['type'] == 'error') {
         onError(event['message'] as String? ?? 'Background push failed');
+      } else if (event['type'] == 'connection') {
+        onConnection(event['connected'] == true);
       }
     });
   }

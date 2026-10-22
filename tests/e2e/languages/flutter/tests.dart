@@ -219,6 +219,18 @@ void main() async {
   ]);
   print(response.result);
 
+  final preset = await general.getPreset();
+  print('preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}');
+  final presets = await general.listPresets();
+  for (final item in presets.presets) {
+    print('preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}');
+  }
+  print('empty presets: ${(await general.listEmptyPresets()).presets.length}');
+  print('preset verified: ${preset.verified}');
+  print('preset scopes: ${(preset.scopes ?? []).map((scope) => scope.value).join(',')}');
+  print('preset settings: options=${(await general.getPresetSettings()).options.length}');
+  print('preset profile: prefs=${(await general.getPresetProfile()).prefs.data.length}');
+
   try {
     await general.error400();
   } on AppwriteException catch (e) {
@@ -417,6 +429,47 @@ void main() async {
     Query.equal("name", "Alice"),
     Query.greaterThan("age", 18)
   ]));
+  print(Query.relationship("comments", [
+    Query.equal("approved", true),
+    Query.limit(2)
+  ]));
+  final queryTransport = await general.listRows(queries: [
+    Query.count('*', 'total'),
+    Query.join('orders', '\$id', 'customerId'),
+    Query.groupBy(['status']),
+    Query.distinct(),
+    Query.covers('location', [1, 2]),
+    Query.countDistinct('year', 'uniqueYears'),
+    Query.sum('price', 'total'),
+    Query.avg('price', 'avgPrice'),
+    Query.min('price', 'lowest'),
+    Query.max('price', 'highest'),
+    Query.stddev('price', 'sd'),
+    Query.stddevPop('price', 'sdp'),
+    Query.stddevSamp('price', 'sds'),
+    Query.variance('price', 'var'),
+    Query.varPop('price', 'vp'),
+    Query.varSamp('price', 'vs'),
+    Query.bitAnd('flags', 'band'),
+    Query.bitOr('flags', 'bor'),
+    Query.bitXor('flags', 'bxor'),
+    Query.having([Query.greaterThan('total', 1)]),
+    Query.leftJoin('orders', '\$id', 'customerId', '=', 'ord'),
+    Query.rightJoin('orders', '\$id', 'customerId'),
+    Query.fullOuterJoin('orders', '\$id', 'customerId'),
+    Query.crossJoin('orders', 'ord'),
+    Query.on('\$id', 'customerId'),
+    Query.leftJoin('orders', 'ord', [
+      Query.on('\$id', 'customerId'),
+      Query.equal('ord.status', 'paid'),
+    ]),
+    Query.notCovers('location', [1, 2]),
+    Query.spatialEquals('location', [1, 2]),
+    Query.notSpatialEquals('location', [1, 2]),
+    ...Query.page(2, 10),
+    ...Query.builder().limit(1).build(),
+  ]);
+  print(queryTransport.result);
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
@@ -437,17 +490,13 @@ void main() async {
   // Topic helper tests
   print(Topic.path(['user', '123', 'notification']).toString());
   print(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
-  print(Topic.path(['user']).any().path(['notification']).toString());
-  print(Topic.path(['chat']).any().any().path(['message']).toString());
-  print(Topic.path(['org']).any().path(['logs']).all().toString());
-  print(Topic.any().path(['notification']).toString());
-  print(Topic.all().toString());
   final topicCases = <String, List<String>>{
     'empty path': [],
     'empty level': ['user', ''],
     'slash': ['user/123'],
     'plus': ['user', 'a+b'],
     'hash': ['user', '#'],
+    'nul': ['user', 'a\u0000b'],
   };
   topicCases.forEach((name, levels) {
     try {
@@ -624,6 +673,33 @@ void main() async {
       ? 'Push user no credential:passed'
       : 'Push user no credential:failed');
 
+  // Signed in through the client: with no JWT or session set on it, the user comes from the
+  // session its sign-in saved in the cookie store.
+  final signInClient = Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883');
+  try {
+    final signInIO = signInClient as ClientIO;
+    // Client() starts initialising on its own: wait for it before using the cookie store.
+    while (!signInIO.initialized && signInIO.initProgress) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+    if (!signInIO.initialized) {
+      await signInIO.init();
+    }
+    await signInIO.cookieJar.saveFromResponse(
+      Uri.parse(signInIO.endPoint),
+      [Cookie('a_session_console', Uri.encodeComponent(e2eSession))],
+    );
+    final signInTopics = await userTopicsOf(signInClient);
+    print(onlyTopic(signInTopics, 'users/e2e-session-user')
+        ? 'Push user sign-in session topic:passed'
+        : 'Push user sign-in session topic:failed');
+  } catch (e) {
+    print('Push user sign-in session topic:failed ($e)');
+  }
+
   // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
   // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
   // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
@@ -731,6 +807,32 @@ void main() async {
             firstPendingOutcome == 'switched-pending'
         ? 'Push credential pending switch:passed'
         : 'Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending)',
+  );
+
+  // close() while the connection is still being set up (the mock accepts a "slow:" credential
+  // after 500 ms): the subscribe fails with the close, and the connection never opens after it.
+  var closingOpened = 0;
+  final closingPush = Push(Client()
+          .setSelfSigned()
+          .setProject('console')
+          .setPushEndpoint('mqtt://mqtt:1883')
+          .setJWT('slow:closing'))
+      .onOpen(() => closingOpened++);
+  final closingOutcome = closingPush.subscribe(['e2e-switch'], (_) {}).then(
+        (_) => '',
+        onError: (Object e) => e is AppwriteException ? e.message ?? '' : e.toString(),
+      );
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+  closingPush.close();
+  final closedOutcome = await closingOutcome.timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => 'timeout',
+  );
+  await Future<void>.delayed(const Duration(seconds: 1));
+  print(
+    closedOutcome == 'Push was closed before the subscription was established' && closingOpened == 0
+        ? 'Push close while connecting:passed'
+        : 'Push close while connecting:failed ($closedOutcome, opened: $closingOpened)',
   );
 
   // Background delivery on Android through the public API. The SDK's native Android plugin needs

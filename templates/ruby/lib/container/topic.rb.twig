@@ -2,27 +2,13 @@ module {{spec.info.title | caseUcfirst }}
     # Helper to build MQTT topics for `Push`, level by level.
     #
     #     Topic.path(['user', user_id, 'notification']) # "user/123/notification"
-    #     Topic.path(['user']).any.path(['notification']) # "user/+/notification"
-    #     Topic.path(['org']).any.path(['logs']).all # "org/+/logs/#"
-    #
-    # `any` matches exactly one level and `all` everything below, at any depth (including the
-    # parent itself). `all` ends the topic, so it returns a ResolvedTopic.
+    #     Topic.path(['org', org_id]).path(['logs']) # "org/42/logs"
     class Topic
         private_class_method :new
 
         # Start a topic with the given levels, e.g. `Topic.path(['user', user_id])`.
         def self.path(levels)
             new([]).path(levels)
-        end
-
-        # Start a topic with a single-level wildcard (`+`).
-        def self.any
-            new(['+'])
-        end
-
-        # The multi-level wildcard alone (`#`): matches every topic.
-        def self.all
-            ResolvedTopic.new(['#'])
         end
 
         def initialize(levels)
@@ -34,22 +20,12 @@ module {{spec.info.title | caseUcfirst }}
             self.class.send(:new, @levels + self.class.send(:levels_of, levels))
         end
 
-        # Append a single-level wildcard (`+`): matches exactly one level.
-        def any
-            self.class.send(:new, @levels + ['+'])
-        end
-
-        # Append the multi-level wildcard (`#`) and end the topic.
-        def all
-            ResolvedTopic.new(@levels + ['#'])
-        end
-
         def to_s
             @levels.join('/')
         end
 
         # Validate the levels passed to `path`: a non-empty array of non-empty strings, none holding
-        # the level separator `/` or the wildcards `+` and `#` (use `any` and `all` for those).
+        # the level separator `/` or the MQTT wildcards `+` and `#`.
         def self.levels_of(levels)
             raise ArgumentError, "path() expects an array, e.g. path(['user'])" unless levels.is_a?(Array)
             raise ArgumentError, 'path() needs at least one level' if levels.empty?
@@ -65,38 +41,13 @@ module {{spec.info.title | caseUcfirst }}
                     parts = level.split('/', -1).map { |part| "'#{part}'" }.join(', ')
                     raise ArgumentError, "\"#{level}\" contains \"/\", split it: path([#{parts}])"
                 end
-                raise ArgumentError, '"+" is reserved, use any()' if level == '+'
-                raise ArgumentError, "\"#{level}\" contains \"+\", use any() for wildcards" if level.include?('+')
-                raise ArgumentError, '"#" is reserved, use all()' if level == '#'
-                raise ArgumentError, "\"#{level}\" contains \"#\", use all() for wildcards" if level.include?('#')
+                raise ArgumentError, "\"#{level}\" contains \"+\", not allowed in a topic" if level.include?('+')
+                raise ArgumentError, "\"#{level}\" contains \"#\", not allowed in a topic" if level.include?('#')
+                raise ArgumentError, "level at index #{index} contains a NUL character" if level.include?("\0")
             end
 
             levels.dup
         end
         private_class_method :levels_of
-    end
-
-    # A topic ended by `all`: nothing can be appended after the `#` wildcard.
-    class ResolvedTopic
-        # Created by Topic.all.
-        def initialize(levels)
-            @levels = levels.freeze
-        end
-
-        def path(_levels)
-            raise NoMethodError, 'nothing can come after all()'
-        end
-
-        def any
-            raise NoMethodError, 'nothing can come after all()'
-        end
-
-        def all
-            raise NoMethodError, 'nothing can come after all()'
-        end
-
-        def to_s
-            @levels.join('/')
-        end
     end
 end

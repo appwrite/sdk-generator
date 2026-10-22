@@ -23,7 +23,7 @@ let {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client{% i
 let {% if (method | methodType) == 'webAuth' %}success{% elseif (method | methodType) == 'location' %}bytes{% elseif (method | getValidResponseModels)|length > 1 or (method | responseModel) | length == 0 %}result{% else %}{{ (method | responseModel) | caseCamel | escapeSwiftKeyword }}{% endif %} = try await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %}){{ '\n' }}{% endif %}
 
     {%~ for parameter in (method | parameters('all')) %}
-    {{ parameter.name }}: {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
+    {{ parameter.name | caseCamel }}: {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
     {%~ if loop.last %}
 
 )
