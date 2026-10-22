@@ -15,6 +15,7 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -121,8 +122,16 @@ func New(optionalSetters ...ClientOption) Client {
 	return client
 }
 
+// String describes the client by header name only: the values hold the API
+// key, JWT and session, and String is what %v and %s print.
 func (client *Client) String() string {
-	return fmt.Sprintf("%s\n%s\n%v", client.Endpoint, client.Headers, client.Timeout)
+	names := make([]string, 0, len(client.Headers))
+	for name := range client.Headers {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	return fmt.Sprintf("%s\n%v\n%v", client.Endpoint, names, client.Timeout)
 }
 
 func GetDefaultClient(timeout time.Duration) (*http.Client, error) {
