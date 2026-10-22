@@ -29,7 +29,7 @@ from .{{ subSchema | caseSnake }} import {{ subSchema | caseUcfirst }}
 
 class {{ requestModelName | caseUcfirst }}(AppwriteModel):
     """
-    {{ requestModel.description }}
+    {{ requestModel.description | formatDocstring(4) }}
 {% if requestModel.properties | length > 0 %}
 
     Attributes
