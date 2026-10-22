@@ -285,6 +285,12 @@ class Client
         }
 {% endif %}
         $headers = array_merge($this->headers, $headers);
+        foreach ($headers as $name => $value) {
+            // A line break ends the header and starts one of the caller's choosing.
+            if (\strpbrk($name . ':' . $value, "\r\n\0") !== false) {
+                throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception('Header contains a line break: ' . \strtr($name, "\r\n\0", '   '));
+            }
+        }
         $params = \array_map(self::flatten(...), $params);
         $contentType = strtolower((string) ($headers['content-type'] ?? ''));
         if ($contentType === '') {
