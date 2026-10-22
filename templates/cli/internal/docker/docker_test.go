@@ -305,6 +305,14 @@ func TestQuoteShellArgumentEscapesQuotes(t *testing.T) {
 	}
 }
 
+// The function runs with the project's variables and an ephemeral key, so it
+// must not be reachable from other machines.
+func TestPublishArgumentBindsLoopbackOnly(t *testing.T) {
+	if got := publishArgument(3000); got != "127.0.0.1:3000:3000" {
+		t.Errorf("got %q, want 127.0.0.1:3000:3000", got)
+	}
+}
+
 // `localhost` is not one address. A dev server bound only to [::1] leaves the
 // v4 loopback free, so a v4-only probe called the port available; docker then
 // published it on 0.0.0.0 without complaint and the browser, resolving localhost
