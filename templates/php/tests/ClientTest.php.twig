@@ -175,6 +175,20 @@ final class ClientTest extends TestCase
         $this->assertSame('injected', $received[0]->getHeaderLine('x-test'));
     }
 
+    public function testHeaderLineBreaksAreRefused(): void
+    {
+        $transport = $this->createMock(ClientInterface::class);
+        $transport->expects($this->never())->method('sendRequest');
+
+        $client = new Client($transport)
+            ->setEndpoint('https://example.com/v1')
+            ->addHeader('x-test', "value\r\nx-injected: 1");
+
+        $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
+        $this->expectExceptionMessage('Header contains a line break: x-test');
+        $client->call(Client::METHOD_GET, '/items');
+    }
+
     public function testInjectedTransportReceivesFlattenedParams(): void
     {
         $received = [];
