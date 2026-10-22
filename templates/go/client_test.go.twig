@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 
@@ -28,6 +29,14 @@ func TestSetEndPoint(t *testing.T) {
 	c.Endpoint = "https://example.com/v1"
 	if c.Endpoint != "https://example.com/v1" {
 		t.Errorf("Expected https://example.com/v1, got %s", c.Endpoint)
+	}
+}
+
+func TestStringOmitsHeaderValues(t *testing.T) {
+	c := New()
+	c.AddHeader("x-appwrite-key", "zzsecret")
+	if s := c.String(); strings.Contains(s, "zzsecret") || !strings.Contains(s, "x-appwrite-key") {
+		t.Errorf("String() must name headers without their values, got %q", s)
 	}
 }
 
