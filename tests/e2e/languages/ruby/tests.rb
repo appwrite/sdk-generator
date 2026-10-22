@@ -66,6 +66,20 @@ puts response["result"]
 end
 puts general.validate_path(id: '0', plain: '0').result
 
+zone = Plaintext.new(client).get_zone
+raise "Expected zone text as String, got #{zone.class}" unless zone.is_a?(String)
+print zone, "\n"
+puts general.get_mixed.result
+plaintext = Plaintext.new(client)
+print plaintext.import_zone(records: 'www 3600 IN A 192.0.2.1'), "\n"
+print plaintext.import_zone(records: 'www 3600 IN A 192.0.2.1', zone: InputFile.from_path('./tests/resources/file.png')), "\n"
+
+message = 'conversation without a required file'
+puts general.optional_upload(message: message).result
+puts general.optional_upload(message: message, attachment: InputFile.from_path('./tests/resources/file.png')).result
+puts general.optional_upload(message: message, metadata: { 'source' => 'sdk', 'uri' => 'café' }).result
+puts general.optional_upload(message: message, attachment: InputFile.from_path('./tests/resources/file.png'), metadata: { 'source' => 'sdk', 'uri' => 'café' }).result
+
 begin
     response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_path('./tests/resources/file.png'))
     puts response.result
@@ -96,6 +110,20 @@ rescue => e
     puts e
 end
 
+begin
+    response = general.upload(x: 'string', y: 123, z:['string in array'], file: InputFile.from_string("\0" * (5 * 1024 * 1024), filename: 'boundary.bin', mime_type: 'application/octet-stream'))
+    puts response.result
+rescue => e
+    puts e
+end
+
+begin
+    response = general.upload_generic(file: InputFile.from_path('./tests/resources/file.png'))
+    puts response.prefs.data['result']
+rescue => e
+    puts e
+end
+
 puts general.download.body
 
 response = general.enum(mock_type: MockType::FIRST)
@@ -110,6 +138,15 @@ response = general.create_players(players: [
     {id: 'player2', name: 'Jane Doe', score: 200}
 ])
 puts response.result
+
+preset = general.get_preset()
+puts "preset: name=#{preset.name}, count=#{preset.count}, enabled=#{preset.enabled}"
+general.list_presets().presets.each do |item|
+    puts "preset: name=#{item.name}, count=#{item.count}, enabled=#{item.enabled}"
+end
+puts "empty presets: #{general.list_empty_presets().presets.length}"
+puts "preset verified: #{preset.verified.nil? ? 'null' : preset.verified}"
+puts "preset scopes: #{(preset.scopes || []).join(',')}"
 
 begin
     general.error400()
@@ -227,6 +264,47 @@ puts Query.elem_match("friends", [
   Query.equal("name", "Alice"),
   Query.greater_than("age", 18)
 ])
+puts Query.relationship("comments", [
+  Query.equal("approved", true),
+  Query.limit(2)
+])
+query_transport = general.list_rows(queries: [
+  Query.count('*', 'total'),
+  Query.join('orders', '$id', 'customerId'),
+  Query.group_by(['status']),
+  Query.distinct(),
+  Query.covers('location', [1, 2]),
+  Query.count_distinct('year', 'uniqueYears'),
+  Query.sum('price', 'total'),
+  Query.avg('price', 'avgPrice'),
+  Query.min('price', 'lowest'),
+  Query.max('price', 'highest'),
+  Query.stddev('price', 'sd'),
+  Query.stddev_pop('price', 'sdp'),
+  Query.stddev_samp('price', 'sds'),
+  Query.variance('price', 'var'),
+  Query.var_pop('price', 'vp'),
+  Query.var_samp('price', 'vs'),
+  Query.bit_and('flags', 'band'),
+  Query.bit_or('flags', 'bor'),
+  Query.bit_xor('flags', 'bxor'),
+  Query.having([Query.greater_than('total', 1)]),
+  Query.left_join('orders', '$id', 'customerId', '=', 'ord'),
+  Query.right_join('orders', '$id', 'customerId'),
+  Query.full_outer_join('orders', '$id', 'customerId'),
+  Query.cross_join('orders', 'ord'),
+  Query.on('$id', 'customerId'),
+  Query.left_join('orders', 'ord', [
+    Query.on('$id', 'customerId'),
+    Query.equal('ord.status', 'paid'),
+  ]),
+  Query.not_covers('location', [1, 2]),
+  Query.spatial_equals('location', [1, 2]),
+  Query.not_spatial_equals('location', [1, 2]),
+  *Query.page(2, 10),
+  Query.builder.limit(1),
+])
+puts query_transport.result
 
 # Permission & Role helper tests
 puts Permission.read(Role.any())
@@ -247,17 +325,13 @@ puts ID.custom('custom_id')
 # Topic helper tests
 puts Topic.path(['user', '123', 'notification'])
 puts Topic.path(['org', '42', 'user', '123']).path(['notification'])
-puts Topic.path(['user']).any.path(['notification'])
-puts Topic.path(['chat']).any.any.path(['message'])
-puts Topic.path(['org']).any.path(['logs']).all
-puts Topic.any.path(['notification'])
-puts Topic.all
 [
     ['empty path', []],
     ['empty level', ['user', '']],
     ['slash', ['user/123']],
     ['plus', ['user', 'a+b']],
-    ['hash', ['user', '#']]
+    ['hash', ['user', '#']],
+    ['nul', ['user', "a\0b"]]
 ].each do |name, levels|
     begin
         Topic.path(levels)

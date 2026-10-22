@@ -16,6 +16,7 @@ use Utopia\Console;
 use Utopia\MockServer\Utopia\Response;
 use Utopia\Swoole\Request;
 use Utopia\Swoole\Response as UtopiaSwooleResponse;
+use Utopia\Validator\JSON;
 use Utopia\Validator\Text;
 use Utopia\Validator\Integer;
 use Utopia\Validator\ArrayList;
@@ -300,6 +301,50 @@ App::get('/v1/mock/tests/general/headers')
         $response->json(['result' => $res]);
     });
 
+App::get('/v1/mock/tests/general/mixed')
+    ->inject('response')
+    ->action(function ($response) {
+        $response->setStatusCode(206)->json(['result' => 'mixed-model']);
+    });
+
+App::get('/v1/mock/tests/general/zone')
+    ->inject('response')
+    ->action(function ($response) {
+        $response
+            ->setStatusCode(203)
+            ->setContentType('text/plain; charset=utf-8')
+            ->send("; café zone\nwww 3600 IN A 192.0.2.1\n");
+    });
+
+App::post('/v1/mock/tests/general/zone-import')
+    ->param('records', '', new Text(100), 'Zone records')
+    ->param('zone', [], new File(), 'Optional zone file', optional: true, skipValidation: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $records, mixed $zone, Request $request, UtopiaSwooleResponse $response) {
+        if ($records !== 'www 3600 IN A 192.0.2.1') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong zone records');
+        }
+        if (!str_starts_with($request->getHeader('content-type', ''), 'multipart/form-data; boundary=')) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Expected multipart with a boundary');
+        }
+
+        $file = $request->getFiles('zone');
+        $hasFile = !empty($file);
+        if ($hasFile) {
+            $tmpName = is_array($file['tmp_name']) ? $file['tmp_name'][0] : $file['tmp_name'];
+            $name = is_array($file['name']) ? $file['name'][0] : $file['name'];
+            if ($name !== 'file.png' || md5(file_get_contents($tmpName)) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong zone file');
+            }
+        }
+
+        $response
+            ->setStatusCode(201)
+            ->setContentType('text/plain; charset=utf-8')
+            ->send('zone-import:' . ($hasFile ? 'with-file' : 'without-file') . "\n");
+    });
+
 App::get('/v1/mock/tests/general/download')
     ->desc('Download File')
     ->groups(['mock'])
@@ -374,6 +419,10 @@ App::post('/v1/mock/tests/general/upload')
                 throw new Exception(Exception::GENERAL_MOCK, 'Invalid content-range header');
             }
 
+            if ($start === 0 && $end === $size - 1 && $size === $chunkSize) {
+                throw new Exception(Exception::GENERAL_MOCK, 'A file of exactly the chunk size must be sent in one request');
+            }
+
             if ($start === 0 && !empty($id)) {
                 throw new Exception(Exception::GENERAL_MOCK, 'First chunked request cannot have id header');
             }
@@ -415,6 +464,14 @@ App::post('/v1/mock/tests/general/upload')
             $file['name'] = (\is_array($file['name'])) ? $file['name'][0] : $file['name'];
             $file['size'] = (\is_array($file['size'])) ? $file['size'][0] : $file['size'];
 
+            if ($file['name'] === 'boundary.bin') {
+                if ($file['size'] !== $chunkSize) {
+                    throw new Exception(Exception::GENERAL_MOCK, 'Wrong boundary file size');
+                }
+
+                return;
+            }
+
             if ($file['name'] !== 'file.png') {
                 throw new Exception(Exception::GENERAL_MOCK, 'Wrong file name');
             }
@@ -427,6 +484,88 @@ App::post('/v1/mock/tests/general/upload')
                 throw new Exception(Exception::GENERAL_MOCK, 'Wrong file uploaded');
             }
         }
+    });
+
+App::post('/v1/mock/tests/general/optional-upload')
+    ->desc('Send an optional attachment')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'optionalUpload')
+    ->label('sdk.request.type', 'multipart/form-data')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('message', '', new Text(100), 'Conversation message')
+    ->param('attachment', [], new File(), 'Optional attachment', optional: true, skipValidation: true)
+    ->param('metadata', null, new JSON(), 'Optional metadata object', optional: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $message, mixed $attachment, array|string|null $metadata, Request $request, UtopiaSwooleResponse $response) {
+        if ($message !== 'conversation without a required file') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong conversation message');
+        }
+        if (!str_starts_with($request->getHeader('content-type', ''), 'multipart/form-data; boundary=')) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Expected multipart with a boundary');
+        }
+        if ($request->getHeader('content-range', '') !== '') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Optional attachment must not be chunked');
+        }
+
+        $file = $request->getFiles('attachment');
+        $hasFile = !empty($file);
+        if ($hasFile) {
+            $tmpName = is_array($file['tmp_name']) ? $file['tmp_name'][0] : $file['tmp_name'];
+            $name = is_array($file['name']) ? $file['name'][0] : $file['name'];
+            if ($name !== 'file.png' || md5(file_get_contents($tmpName)) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong attachment');
+            }
+        }
+
+        $hasMetadata = $metadata !== null;
+        if ($hasMetadata) {
+            $decoded = \is_string($metadata) ? \json_decode($metadata, true) : $metadata;
+            if (\is_array($decoded)) {
+                \ksort($decoded);
+            }
+            if ($decoded !== ['source' => 'sdk', 'uri' => 'café']) {
+                throw new Exception(Exception::GENERAL_MOCK, 'Wrong metadata');
+            }
+        }
+
+        $response->json([
+            'result' => 'optional-upload:' . ($hasFile ? 'with-file' : 'without-file') . ($hasMetadata ? ':with-metadata' : ''),
+        ]);
+    });
+
+App::put('/v1/mock/tests/general/upload-generic')
+    ->desc('Upload Generic')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'uploadGeneric')
+    ->label('sdk.request.type', 'multipart/form-data')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.mock', true)
+    ->param('file', [], new File(), 'Sample file param', skipValidation: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (mixed $file, Request $request, UtopiaSwooleResponse $response) {
+        $file = $request->getFiles('file');
+        $tmpName = is_array($file['tmp_name'] ?? null) ? $file['tmp_name'][0] : ($file['tmp_name'] ?? '');
+        if ($tmpName === '' || md5(file_get_contents($tmpName)) !== 'd80e7e6999a3eb2ae0d631a96fe135a4') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Wrong file');
+        }
+
+        // The SDK must hydrate the free-form preferences, not drop them.
+        $response->json([
+            'name' => 'John Doe',
+            'prefs' => ['result' => 'PUT:/v1/mock/tests/general/upload-generic:passed'],
+        ]);
     });
 
 App::get('/v1/mock/tests/general/redirect')
@@ -474,6 +613,31 @@ App::get('/v1/mock/tests/general/path/grant%2Fspecial%26id')
     ->label('sdk.response.model', Response::MODEL_MOCK)
     ->label('sdk.mock', true)
     ->action(function () {
+    });
+
+// Query values must arrive intact: a raw `&`, `+` or `#` splits, decodes to a space or truncates them.
+App::get('/v1/mock/tests/general/query')
+    ->desc('Query Param')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'getQuery')
+    ->label('sdk.description', 'Mock a request with query values that need encoding.')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('value', '', new Text(100), 'Query value.')
+    ->param('values', [], new ArrayList(new Text(100), APP_LIMIT_ARRAY_PARAMS_SIZE), 'Query values.')
+    ->action(function (string $value, array $values) {
+        if ($value !== 'a&b+c#d=e%f') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Query value was not encoded: ' . $value);
+        }
+
+        if ($values !== ['a&b', 'c+d#e']) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Query values were not encoded: ' . \implode(',', $values));
+        }
     });
 
 // Shared nullable-path e2e contract. Null is serialized literally by targets
@@ -591,10 +755,19 @@ App::post('/v1/mock/tests/general/nullable')
     ->label('sdk.method', 'nullable')
     ->label('sdk.description', 'Mock a nullable parameter.')
     ->label('sdk.mock', true)
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
     ->param('required', '', new Text(100), 'Sample string param')
     ->param('nullable', '', new Nullable(new Text(100)), 'Sample string param')
     ->param('optional', '', new Text(100), 'Sample string param', true)
-    ->action(function (string $required, string $nullable, ?string $optional) {
+    ->param('nullableInteger', null, new Nullable(new Integer()), 'Optional nullable integer param', true)
+    ->inject('request')
+    ->action(function (string $required, ?string $nullable, ?string $optional, ?int $nullableInteger, Request $request) {
+        $params = $request->getParams();
+        if (!\array_key_exists('nullable', $params) || $nullable !== null || !\array_key_exists('nullableInteger', $params) || $nullableInteger !== null) {
+            throw new Exception(Exception::GENERAL_MOCK, 'nullable and nullableInteger must be sent as null', 400);
+        }
     });
 
 App::post('/v1/mock/tests/general/enum')
@@ -694,6 +867,57 @@ App::get('/v1/mock/tests/union')
                 'result' => 'GET:/v1/mock/tests/union:passed',
             ]);
         }
+    });
+
+App::get('/v1/mock/tests/general/preset')
+    ->desc('Get Preset')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json(['enabled' => false, 'verified' => null, 'scopes' => ['read', 'write'], 'settings' => new \stdClass()]);
+    });
+
+App::get('/v1/mock/tests/general/preset/settings')
+    ->desc('Get Preset Settings')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->setContentType('application/json')->send('{}');
+    });
+
+App::get('/v1/mock/tests/general/preset/profile')
+    ->desc('Get Preset Profile')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->setContentType('application/json')->send('{}');
+    });
+
+App::get('/v1/mock/tests/general/presets')
+    ->desc('List Presets')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json([
+            'total' => 2,
+            'presets' => [
+                ['enabled' => false, 'settings' => new \stdClass()],
+                ['name' => 'server', 'enabled' => true, 'settings' => new \stdClass()],
+            ],
+        ]);
+    });
+
+App::get('/v1/mock/tests/general/presets/empty')
+    ->desc('List Empty Presets')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json(['total' => 0]);
     });
 
 App::get('/v1/mock/tests/compound')
@@ -887,6 +1111,346 @@ App::get('/v1/mock/tests/general/oauth2/failure')
             ->json([
                 'result' => 'failure',
             ]);
+    });
+
+/**
+ * Messaging providers and project platforms, for `appwrite init apns`. Kept per project in a file,
+ * since the workers share no memory, so a second run sees what the first created.
+ */
+function apnsMockState(Request $request, callable $change): mixed
+{
+    $project = (string) $request->getHeader('x-appwrite-project', 'default');
+
+    return mockState('apns-' . $project, ['providers' => [], 'platforms' => []], $change);
+}
+
+function mockState(string $name, array $initial, callable $change): mixed
+{
+    $handle = \fopen(APP_STORAGE_CACHE . '/' . \preg_replace('/[^A-Za-z0-9_-]/', '', $name) . '.json', 'c+');
+    if ($handle === false) {
+        throw new Exception(Exception::GENERAL_MOCK, 'Failed to open the mock state', 500);
+    }
+    \flock($handle, LOCK_EX);
+    $state = \json_decode((string) \stream_get_contents($handle), true) ?: $initial;
+    $result = $change($state);
+    \ftruncate($handle, 0);
+    \rewind($handle);
+    \fwrite($handle, \json_encode($state));
+    \flock($handle, LOCK_UN);
+    \fclose($handle);
+
+    return $result;
+}
+
+function apnsMockProvider(string $id, array $params): array
+{
+    return [
+        '$id' => $id,
+        'name' => $params['name'] ?? '',
+        'provider' => 'apns',
+        'type' => 'push',
+        'enabled' => (bool) ($params['enabled'] ?? true),
+        'credentials' => [
+            'authKeyId' => $params['authKeyId'] ?? '',
+            'teamId' => $params['teamId'] ?? '',
+            'bundleId' => $params['bundleId'] ?? '',
+        ],
+        'options' => ['sandbox' => (bool) ($params['sandbox'] ?? false)],
+    ];
+}
+
+App::get('/v1/messaging/providers')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $kind = '';
+        foreach ((array) $request->getParam('queries', []) as $query) {
+            $decoded = \json_decode((string) $query, true);
+            if (($decoded['attribute'] ?? '') === 'provider') {
+                $kind = (string) ($decoded['values'][0] ?? '');
+            }
+        }
+        $providers = apnsMockState($request, fn (array &$state) => \array_values(\array_filter(
+            $state['providers'],
+            fn (array $provider) => $kind === '' || $provider['provider'] === $kind
+        )));
+        $response->json(['total' => \count($providers), 'providers' => $providers]);
+    });
+
+App::post('/v1/messaging/providers/apns')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $params = $request->getParams();
+        $provider = apnsMockState($request, function (array &$state) use ($params) {
+            $provider = apnsMockProvider('provider' . \count($state['providers']), $params);
+            $state['providers'][] = $provider;
+            return $provider;
+        });
+        $response->setStatusCode(Response::STATUS_CODE_CREATED)->json($provider);
+    });
+
+App::patch('/v1/messaging/providers/apns/:providerId')
+    ->param('providerId', '', new Text(36), 'Provider ID.')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $providerId, Request $request, UtopiaSwooleResponse $response) {
+        $params = $request->getParams();
+        $provider = apnsMockState($request, function (array &$state) use ($providerId, $params) {
+            foreach ($state['providers'] as $index => $provider) {
+                if ($provider['$id'] === $providerId) {
+                    return $state['providers'][$index] = apnsMockProvider($providerId, $params);
+                }
+            }
+            return null;
+        });
+        if ($provider === null) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Provider not found', 404);
+        }
+        $response->json($provider);
+    });
+
+App::get('/v1/project/platforms')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $platforms = apnsMockState($request, fn (array &$state) => $state['platforms']);
+        $response->json(['total' => \count($platforms), 'platforms' => $platforms]);
+    });
+
+App::post('/v1/project/platforms/apple')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $params = $request->getParams();
+        if (($params['bundleIdentifier'] ?? '') === '') {
+            throw new Exception(Exception::GENERAL_MOCK, 'Missing bundleIdentifier', 400);
+        }
+        $platform = apnsMockState($request, function (array &$state) use ($params) {
+            $platform = [
+                '$id' => 'platform' . \count($state['platforms']),
+                'type' => 'apple',
+                'name' => $params['name'] ?? '',
+                'bundleIdentifier' => $params['bundleIdentifier'],
+            ];
+            $state['platforms'][] = $platform;
+            return $platform;
+        });
+        $response->setStatusCode(Response::STATUS_CODE_CREATED)->json($platform);
+    });
+
+/**
+ * Apple's sign-in, App Store Connect and Developer portal, for `appwrite init apns` with
+ * APPWRITE_APPLE_HOST set to /apple. Any password signs in, without two-factor, and the session
+ * cookie carries the Apple ID. Each Apple ID has one team with room for two keys, and its own App
+ * IDs; an App ID ending in .nopush already exists with Push Notifications off.
+ */
+const APPLE_MOCK_TEAM = 'E2ETEAM123';
+
+function appleMockAccount(Request $request): string
+{
+    return \rawurldecode((string) $request->getCookie('myacinfo', ''));
+}
+
+function appleMockState(string $account, callable $change): mixed
+{
+    return mockState('apple-' . \md5($account), ['keys' => [], 'appIds' => []], $change);
+}
+
+function appleMockAppId(array $appId): array
+{
+    return [
+        'type' => 'bundleIds',
+        'id' => $appId['id'],
+        'attributes' => ['identifier' => $appId['identifier'], 'seedId' => APPLE_MOCK_TEAM],
+        'relationships' => ['bundleIdCapabilities' => ['data' => $appId['push'] ? [['type' => 'bundleIdCapabilities', 'id' => $appId['id'] . '_PUSH']] : []]],
+    ];
+}
+
+function appleMockPortal(Request $request, UtopiaSwooleResponse $response, callable $handle): void
+{
+    $account = appleMockAccount($request);
+    if ($account === '') {
+        $response->setStatusCode(401)->json(['resultCode' => 1100, 'resultString' => 'Your session has expired']);
+        return;
+    }
+    $response->json(appleMockState($account, $handle) + ['resultCode' => 0]);
+}
+
+App::get('/apple/olympus/v1/app/config')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json(['authServiceKey' => 'e2e-widget-key']);
+    });
+
+App::get('/apple/olympus/v1/session')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $account = appleMockAccount($request);
+        if ($account === '') {
+            $response->setStatusCode(401)->json([]);
+            return;
+        }
+        $response->json(['user' => ['emailAddress' => $account], 'provider' => ['providerId' => 1, 'name' => 'E2E Team']]);
+    });
+
+App::post('/apple/appleauth/auth/signin/init')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->json([
+            'iteration' => 1000,
+            'salt' => \base64_encode(\random_bytes(16)),
+            'protocol' => 's2k',
+            'b' => \base64_encode(\random_bytes(256)),
+            'c' => 'e2e',
+        ]);
+    });
+
+App::get('/apple/appleauth/auth/signin')
+    ->inject('response')
+    ->action(function (UtopiaSwooleResponse $response) {
+        $response->noContent();
+    });
+
+App::post('/apple/appleauth/auth/signin/complete')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $account = (string) (\json_decode($request->getRawPayload(), true)['accountName'] ?? '');
+        if ($account === '') {
+            $response->setStatusCode(401)->json([]);
+            return;
+        }
+        $response
+            ->addCookie('myacinfo', \rawurlencode($account), \time() + 3600, '/')
+            ->json([]);
+    });
+
+App::post('/apple/services-account/QH65B2/account/listTeams.action')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        appleMockPortal($request, $response, fn () => [
+            'teams' => [['teamId' => APPLE_MOCK_TEAM, 'name' => 'E2E Team', 'type' => 'Company/Organization']],
+        ]);
+    });
+
+App::post('/apple/services-account/QH65B2/account/auth/key/list')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $response->addHeader('csrf', 'e2e-csrf')->addHeader('csrf_ts', (string) \time());
+        appleMockPortal($request, $response, fn (array &$state) => [
+            'keys' => \array_map(fn (array $key) => ['keyId' => $key['id'], 'keyName' => $key['name'], 'canRevoke' => true], $state['keys']),
+        ]);
+    });
+
+App::post('/apple/services-account/QH65B2/account/auth/key/v2/create')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        if ($request->getHeader('csrf', '') === '') {
+            $response->setStatusCode(403)->json([]);
+            return;
+        }
+        $name = (string) (\json_decode($request->getRawPayload(), true)['name'] ?? '');
+        appleMockPortal($request, $response, function (array &$state) use ($name) {
+            if (\count($state['keys']) >= 2) {
+                return ['resultCode' => 1, 'resultString' => 'There is a problem with the request entity', 'userString' => 'You have already reached the maximum allowed number of Keys for this service.'];
+            }
+            $key = \openssl_pkey_new(['curve_name' => 'prime256v1', 'private_key_type' => OPENSSL_KEYTYPE_EC]);
+            \openssl_pkey_export($key, $pem);
+            $id = \strtoupper(\substr(\bin2hex(\random_bytes(5)), 0, 10));
+            $state['keys'][] = ['id' => $id, 'name' => $name, 'p8' => $pem, 'downloaded' => false];
+            return ['keys' => [['keyId' => $id, 'keyName' => $name, 'canRevoke' => true]]];
+        });
+    });
+
+App::get('/apple/services-account/QH65B2/account/auth/key/download')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $account = appleMockAccount($request);
+        $keyId = (string) $request->getParam('keyId', '');
+        $p8 = $account === '' ? null : appleMockState($account, function (array &$state) use ($keyId) {
+            foreach ($state['keys'] as $index => $key) {
+                if ($key['id'] === $keyId && !$key['downloaded']) {
+                    $state['keys'][$index]['downloaded'] = true;
+                    return $key['p8'];
+                }
+            }
+            return null;
+        });
+        if ($p8 === null) {
+            $response->json(['resultCode' => 1, 'resultString' => 'The key cannot be downloaded']);
+            return;
+        }
+        $response->setContentType('application/octet-stream')->send($p8);
+    });
+
+App::post('/apple/services-account/v1/bundleIds')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (Request $request, UtopiaSwooleResponse $response) {
+        $account = appleMockAccount($request);
+        if ($account === '') {
+            $response->setStatusCode(401)->json([]);
+            return;
+        }
+        $body = \json_decode($request->getRawPayload(), true) ?: [];
+        if ($request->getHeader('x-http-method-override', '') === 'GET') {
+            \parse_str((string) ($body['urlEncodedQueryParams'] ?? ''), $query);
+            $identifier = (string) ($query['filter']['identifier'] ?? '');
+            $appIds = appleMockState($account, function (array &$state) use ($identifier) {
+                if (\str_ends_with($identifier, '.nopush') && !isset($state['appIds'][$identifier])) {
+                    $state['appIds'][$identifier] = ['id' => 'APPID' . \count($state['appIds']), 'identifier' => $identifier, 'push' => false];
+                }
+                return \array_values(\array_filter($state['appIds'], fn (array $appId) => \str_starts_with($appId['identifier'], $identifier)));
+            });
+            $response->json([
+                'data' => \array_map(appleMockAppId(...), $appIds),
+                'included' => \array_values(\array_map(fn (array $appId) => [
+                    'type' => 'bundleIdCapabilities',
+                    'id' => $appId['id'] . '_PUSH',
+                    'attributes' => ['capabilityType' => 'PUSH_NOTIFICATIONS', 'enabled' => true],
+                ], \array_filter($appIds, fn (array $appId) => $appId['push']))),
+            ]);
+            return;
+        }
+        $identifier = (string) ($body['data']['attributes']['identifier'] ?? '');
+        $appId = appleMockState($account, function (array &$state) use ($identifier) {
+            return $state['appIds'][$identifier] = ['id' => 'APPID' . \count($state['appIds']), 'identifier' => $identifier, 'push' => false];
+        });
+        $response->setStatusCode(Response::STATUS_CODE_CREATED)->json(['data' => appleMockAppId($appId)]);
+    });
+
+App::patch('/apple/services-account/v1/bundleIds/:id')
+    ->param('id', '', new Text(36), 'App ID.')
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $id, Request $request, UtopiaSwooleResponse $response) {
+        $account = appleMockAccount($request);
+        if ($account === '') {
+            $response->setStatusCode(401)->json([]);
+            return;
+        }
+        $body = \json_decode($request->getRawPayload(), true) ?: [];
+        $push = ($body['data']['relationships']['bundleIdCapabilities']['data'][0]['relationships']['capability']['data']['id'] ?? '') === 'PUSH_NOTIFICATIONS';
+        $appId = appleMockState($account, function (array &$state) use ($id, $push) {
+            foreach ($state['appIds'] as $identifier => $appId) {
+                if ($appId['id'] === $id) {
+                    $state['appIds'][$identifier]['push'] = $appId['push'] || $push;
+                    return $state['appIds'][$identifier];
+                }
+            }
+            return null;
+        });
+        if ($appId === null) {
+            $response->setStatusCode(404)->json(['errors' => [['status' => '404', 'detail' => 'No App ID ' . $id]]]);
+            return;
+        }
+        $response->json(['data' => appleMockAppId($appId)]);
     });
 
 App::shutdown()

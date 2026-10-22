@@ -65,8 +65,8 @@ class Node extends Web
     public function getReturn(Operation $method, Specification $spec): string
     {
         return match ($this->getMethodType($method, $spec)) {
-            'webAuth' => 'Promise<string>',
-            'location' => 'Promise<ArrayBuffer>',
+            self::METHOD_TYPE_WEB_AUTH => 'Promise<string>',
+            self::METHOD_TYPE_LOCATION => 'Promise<ArrayBuffer>',
             default => parent::getReturn($method, $spec),
         };
     }

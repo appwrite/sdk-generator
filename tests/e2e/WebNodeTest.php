@@ -32,7 +32,7 @@ final class WebNodeTest extends Base
     ];
     #[Override]
     protected string $command =
-        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web node:18-alpine node node.js';
+        'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web node:20-alpine node node.js';
 
     #[Override]
     protected array $expectedOutput = [
@@ -45,12 +45,20 @@ final class WebNodeTest extends Base
         ...Base::LOCATION_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
+        ...Base::TEXT_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
         ...Base::OPTIONAL_PARAM_RESPONSES,
         ...Base::UNION_RESPONSES,
+        ...Base::MODEL_DEFAULT_RESPONSES,
+        ...Base::JS_DEFAULT_COPY_RESPONSES,
+        ...Base::JS_NESTED_BUILDER_RESPONSES,
+        ...Base::NULLABLE_MODEL_RESPONSES,
+        ...Base::JS_MODEL_TO_STRING_RESPONSES,
+        ...Base::NULLABLE_PARAM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
+        Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::TOPIC_HELPER_RESPONSES,

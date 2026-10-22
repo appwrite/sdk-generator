@@ -7,7 +7,7 @@ import org.junit.Test
 class TopicTest {
     private fun assertPathFails(levels: List<String>) {
         assertThrows(IllegalArgumentException::class.java) { Topic.path(levels) }
-        assertThrows(IllegalArgumentException::class.java) { Topic.any().path(levels) }
+        assertThrows(IllegalArgumentException::class.java) { Topic.path(listOf("user")).path(levels) }
     }
 
     @Test
@@ -24,23 +24,6 @@ class TopicTest {
     }
 
     @Test
-    fun anyAppendsSingleLevelWildcard() {
-        assertEquals("user/+/notification", Topic.path(listOf("user")).any().path(listOf("notification")).toString())
-        assertEquals("chat/+/+/message", Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
-    }
-
-    @Test
-    fun allEndsTopic() {
-        assertEquals("org/+/logs/#", Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
-    }
-
-    @Test
-    fun staticAnyAndAll() {
-        assertEquals("+/notification", Topic.any().path(listOf("notification")).toString())
-        assertEquals("#", Topic.all().toString())
-    }
-
-    @Test
     fun pathRejectsInvalidLevels() {
         assertPathFails(emptyList())
         assertPathFails(listOf("user", ""))
@@ -49,5 +32,6 @@ class TopicTest {
         assertPathFails(listOf("user", "a+b"))
         assertPathFails(listOf("user", "#"))
         assertPathFails(listOf("a#b"))
+        assertPathFails(listOf("user", "a\u0000b"))
     }
 }

@@ -57,6 +57,16 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Tests/{{ spec.info.title | caseUcfirst}}Tests/PushTests.swift',
+                'template'      => 'apple/Tests/PushTests.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Tests/{{ spec.info.title | caseUcfirst}}Tests/MessageHandlerTests.swift',
+                'template'      => 'apple/Tests/MessageHandlerTests.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Models/{{ spec.info.title | caseUcfirst}}Error.swift',
                 'template'      => '/swift/Sources/Models/Error.swift.twig',
             ],
@@ -94,6 +104,11 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Query.swift',
                 'template'      => 'swift/Sources/Query.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Query/Builder.swift',
+                'template'      => 'swift/Sources/Query/Builder.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -255,6 +270,11 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Services/Push.swift',
                 'template'      => '/apple/Sources/Services/Push.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Services/PushServiceExtension.swift',
+                'template'      => '/apple/Sources/Services/PushServiceExtension.swift.twig',
             ],
             [
                 'scope'         => 'default',
@@ -524,7 +544,7 @@ class Apple extends Swift
     #[Override]
     protected function getReturnType(Operation $method, Specification $spec, string $generic = 'T'): string
     {
-        if ($this->getMethodType($method, $spec) === 'webAuth') {
+        if ($this->getMethodType($method, $spec) === self::METHOD_TYPE_WEB_AUTH) {
             return 'Bool';
         }
 

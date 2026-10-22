@@ -24,6 +24,7 @@ final class FlutterBetaTest extends Base
     protected string $class = Flutter::class;
     #[Override]
     protected array $build = [
+        'docker run --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:beta sh -c "flutter pub get && flutter test"',
         'mkdir -p tests/e2e/sdks/flutter/test',
         'cp tests/e2e/languages/flutter/tests.dart tests/e2e/sdks/flutter/test/appwrite_test.dart',
     ];
@@ -39,22 +40,37 @@ final class FlutterBetaTest extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
+        ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
+        ...Base::MODEL_DEFAULT_RESPONSES,
+        ...Base::NULLABLE_MODEL_RESPONSES,
+        ...Base::ENUM_ARRAY_MODEL_RESPONSES,
+        ...Base::MAP_MODEL_DEFAULT_RESPONSES,
+        ...Base::NESTED_MODEL_DEFAULT_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
+        Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::CHANNEL_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES,
         ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_SIGN_IN_SESSION_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
+        ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
+        ...Base::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,
         ...Base::FLUTTER_PUSH_NATIVE_RESPONSES,
-        ...Base::PUSH_NATIVE_DISPLACED_RESPONSES
+        ...Base::PUSH_NATIVE_DISPLACED_RESPONSES,
+        ...Base::PUSH_NOTIFICATION_PERMISSION_RESPONSES
     ];
 }

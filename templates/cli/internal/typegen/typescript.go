@@ -15,6 +15,9 @@ type TypeScript struct {
 	// Dependency is the package the generated file imports Models from,
 	// resolved by AppwriteDependency().
 	Dependency string
+
+	EnumStyle   EnumStyle
+	Declaration bool
 }
 
 // identifierPattern decides whether a property key can be written bare or has
@@ -126,6 +129,45 @@ func (t TypeScript) Enum(entityName, attributeKey string, elements []string) Enu
 	}
 }
 
+func (t TypeScript) DeclareEnum(definition EnumDefinition) (string, error) {
+	opening, closing := "export enum %s {\n", "}"
+	member := "    %s = %s%s\n"
+	if t.EnumStyle == EnumStyleConst {
+		opening, closing = "export const %s = {\n", "} as const;"
+		member = "    %s: %s%s\n"
+		if t.Declaration {
+			opening, closing = "export declare const %s: {\n", "};"
+			member = "    readonly %s: %s%s\n"
+		}
+	}
+
+	var out strings.Builder
+	fmt.Fprintf(&out, opening, definition.Name)
+
+	for index, entry := range definition.Members {
+		value, err := jsonx.Marshal(entry.Value)
+		if err != nil {
+			return "", err
+		}
+
+		separator := ","
+		if t.EnumStyle == EnumStyleConst && t.Declaration {
+			separator = ";"
+		} else if index == len(definition.Members)-1 {
+			separator = ""
+		}
+		fmt.Fprintf(&out, member, entry.Key, value, separator)
+	}
+
+	out.WriteString(closing)
+
+	if t.EnumStyle == EnumStyleConst {
+		fmt.Fprintf(&out, "\n\nexport type %[1]s = (typeof %[1]s)[keyof typeof %[1]s];", definition.Name)
+	}
+
+	return out.String(), nil
+}
+
 // Render implements Language.
 //
 // Layout is pinned to the EJS template's output, including the blank line after
@@ -148,23 +190,12 @@ func (t TypeScript) Render(collections []Collection, _ *Collection, strict bool,
 				continue
 			}
 
-			definition := t.Enum(collection.Name, attribute.Key, attribute.Elements)
-			fmt.Fprintf(&out, "export enum %s {\n", definition.Name)
-
-			for index, member := range definition.Members {
-				value, err := jsonx.Marshal(member.Value)
-				if err != nil {
-					return "", err
-				}
-
-				separator := ""
-				if index < len(definition.Members)-1 {
-					separator = ","
-				}
-				fmt.Fprintf(&out, "    %s = %s%s\n", member.Key, value, separator)
+			declaration, err := t.DeclareEnum(t.Enum(collection.Name, attribute.Key, attribute.Elements))
+			if err != nil {
+				return "", err
 			}
 
-			out.WriteString("}\n\n")
+			out.WriteString(declaration + "\n\n")
 		}
 	}
 

@@ -39,14 +39,33 @@ data class RealtimeCallback(
 open class RealtimeResponse(
     val type: String,
     val data: Any?
-)
+) {
+    companion object {
+        fun from(map: Map<String, Any?>) = RealtimeResponse(
+            type = map["type"] as? String ?: "",
+            data = map["data"],
+        )
+    }
+}
 
 data class RealtimeResponseEvent<T>(
     val events: Collection<String>,
     val channels: Collection<String>,
     val timestamp: String,
     var payload: T
-)
+) {
+    companion object {
+        fun from(map: Map<String, Any?>): RealtimeResponseEvent<Any>? {
+            val payload = map["payload"] ?: return null
+            return RealtimeResponseEvent(
+                events = (map["events"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+                channels = (map["channels"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+                timestamp = map["timestamp"]?.toString() ?: "",
+                payload = payload,
+            )
+        }
+    }
+}
 
 enum class RealtimeCode(val value: Int) {
     POLICY_VIOLATION(1008),

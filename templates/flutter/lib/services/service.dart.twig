@@ -25,7 +25,7 @@ part of '../{{ language.params.packageName }}.dart';
   @Deprecated('This API has been deprecated.')
 {% endif %}
 {% endif %}
-  {% if (method | methodType) == 'webAuth' %}Future{% elseif (method | methodType) == 'location' %}Future<Uint8List>{% else %}{% set responseModels = method | getValidResponseModels %}{% if responseModels|length > 1 %}Future<models.Model>{% elseif (method | responseModel) and (method | responseModel) != 'any' %}Future<models.{{ (method | responseModel) | caseUcfirst | overrideIdentifier }}>{% else %}Future{% endif %}{% endif %} {{ (method | methodName) | caseCamel | overrideIdentifier }}({{ _self.method_parameters((method | parameters('all')), (method | consumes)) }}) async {
+  {% if (method | methodType) == 'webAuth' %}Future{% elseif (method | methodType) == 'location' %}Future<Uint8List>{% elseif (method | textResponse) %}Future<String>{% else %}{% set responseModels = method | getValidResponseModels %}{% if responseModels|length > 1 %}Future<models.Model>{% elseif (method | responseModel) and (method | responseModel) != 'any' %}Future<models.{{ (method | responseModel) | caseUcfirst | overrideIdentifier }}>{% else %}Future{% endif %}{% endif %} {{ (method | methodName) | caseCamel | overrideIdentifier }}({{ _self.method_parameters((method | parameters('all')), (method | consumes)) }}) async {
 {% set pathParameters = method | parameters('path') %}
 {% set securityQueries = method | securityQueries %}
 {% for parameter in pathParameters %}
@@ -41,11 +41,14 @@ part of '../{{ language.params.packageName }}.dart';
 {% if pathParameters|length == 0 and securityQueries|length == 0 %}
     final String apiPath = '{{ method.path }}';
 {% elseif pathParameters|length == 1 and securityQueries|length == 0 %}
-{% set wrapPath = method.path|length > 39 %}
-    final String apiPath ={% if wrapPath %}{{ "\n" }}        {% else %} {% endif %}'{{ method.path }}'.replaceAll(
-      '{{ '{' }}{{ pathParameters|first.name }}{{ '}' }}',
-      {% if (pathParameters|first | configKey(method)) %}client.config['{{ (pathParameters|first | configKey(method)) | caseLower }}'] ?? ''{% else %}{{ pathParameters|first.name | caseCamel | overrideIdentifier }}{% if (pathParameters|first | enumValues) | length > 0 %}.value{% endif %}{% if pathParameters|first.required and (pathParameters|first | schemaNullable) and (pathParameters|first | typeName) == 'String' %}.toString(){% endif %}{% endif %},
-    );
+{# Paths that fit after `=` but not with `.replaceAll(` chain the call onto the next line. #}
+{% set chainPath = method.path|length > 39 and method.path|length <= 51 %}
+{% set wrapPath = method.path|length > 51 %}
+{% set argumentIndent = chainPath ? '          ' : '      ' %}
+    final String apiPath ={% if wrapPath %}{{ "\n" }}        {% else %} {% endif %}'{{ method.path }}'{% if chainPath %}{{ "\n" }}        {% endif %}.replaceAll(
+{{ argumentIndent }}'{{ '{' }}{{ pathParameters|first.name }}{{ '}' }}',
+{{ argumentIndent }}{% if (pathParameters|first | configKey(method)) %}client.config['{{ (pathParameters|first | configKey(method)) | caseLower }}'] ?? ''{% else %}{{ pathParameters|first.name | caseCamel | overrideIdentifier }}{% if (pathParameters|first | enumValues) | length > 0 %}.value{% endif %}{% if pathParameters|first.required and (pathParameters|first | schemaNullable) and (pathParameters|first | typeName) == 'String' %}.toString(){% endif %}{% endif %},
+{% if chainPath %}        {% else %}    {% endif %});
 {% else %}
 {% set wrapPath = method.path|length > 51 %}
     final String apiPath ={% if wrapPath %}{{ "\n" }}        {% else %} {% endif %}'{{ method.path }}'

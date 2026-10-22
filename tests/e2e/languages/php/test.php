@@ -21,6 +21,7 @@ use Appwrite\Enums\MockType;
 use Appwrite\Services\Bar;
 use Appwrite\Services\Foo;
 use Appwrite\Services\General;
+use Appwrite\Services\Plaintext;
 
 readonly class AdditionalPropsDataOnly
 {
@@ -123,7 +124,7 @@ readonly class AdditionalPropsMapped
     }
 }
 
-$client = (new Client())
+$client = new Client()
     ->addHeader("Origin", "http://localhost")
     ->setProject('console')
     ->setSelfSigned();
@@ -183,6 +184,13 @@ foreach ([['', '0'], ['0', '']] as [$id, $plain]) {
 }
 echo $general->validatePath('0', '0')->result . "\n";
 
+$zone = new Plaintext($client)->getZone();
+echo $zone . "\n";
+echo $general->getMixed()->result . "\n";
+$plaintext = new Plaintext($client);
+echo $plaintext->importZone('www 3600 IN A 192.0.2.1') . "\n";
+echo $plaintext->importZone('www 3600 IN A 192.0.2.1', InputFile::withPath(__DIR__ . '/../../../resources/file.png')) . "\n";
+
 $response = $general->getUnion();
 echo $response->result . "\n";
 
@@ -214,6 +222,12 @@ foreach (['boolean', 'missing'] as $scenario) {
 }
 echo "compound invalid response: passed\n";
 
+$message = 'conversation without a required file';
+echo $general->optionalUpload($message)->result . "\n";
+echo $general->optionalUpload($message, InputFile::withPath(__DIR__ . '/../../../resources/file.png'))->result . "\n";
+echo $general->optionalUpload($message, metadata: ['source' => 'sdk', 'uri' => 'café'])->result . "\n";
+echo $general->optionalUpload($message, InputFile::withPath(__DIR__ . '/../../../resources/file.png'), ['source' => 'sdk', 'uri' => 'café'])->result . "\n";
+
 $data = file_get_contents(__DIR__ . '/../../../resources/file.png');
 $response = $general->upload('string', 123, ['string in array'], InputFile::withData($data, 'image/png', 'file.png'));
 echo $response->result . "\n";
@@ -227,6 +241,9 @@ echo $response->result . "\n";
 
 $response = $general->upload('string', 123, ['string in array'], InputFile::withPath(__DIR__ .'/../../../resources/large_file.mp4'));
 echo $response->result . "\n";
+
+$response = $general->uploadGeneric(InputFile::withPath(__DIR__ . '/../../../resources/file.png'));
+echo $response->prefs->data['result'] . "\n";
 
 echo $general->download() . "\n";
 
@@ -244,6 +261,15 @@ $players = [
 ];
 $response = $general->createPlayers($players);
 echo $response->result . "\n";
+
+$preset = $general->getPreset();
+echo 'preset: name=' . $preset->name . ', count=' . $preset->count . ', enabled=' . ($preset->enabled ? 'true' : 'false') . "\n";
+foreach ($general->listPresets()->presets as $item) {
+    echo 'preset: name=' . $item->name . ', count=' . $item->count . ', enabled=' . ($item->enabled ? 'true' : 'false') . "\n";
+}
+echo 'empty presets: ' . count($general->listEmptyPresets()->presets) . "\n";
+echo 'preset verified: ' . ($preset->verified === null ? 'null' : var_export($preset->verified, true)) . "\n";
+echo 'preset scopes: ' . implode(',', array_map(strval(...), $preset->scopes ?? [])) . "\n";
 
 try {
     $response = $general->error400();
@@ -367,6 +393,47 @@ echo Query::elemMatch('friends', [
     Query::equal('name', ['Alice']),
     Query::greaterThan('age', 18)
 ]) . "\n";
+echo Query::relationship('comments', [
+    Query::equal('approved', [true]),
+    Query::limit(2)
+]) . "\n";
+$queryTransport = $general->listRows([
+    Query::count('*', 'total'),
+    Query::join('orders', '$id', 'customerId'),
+    Query::groupBy(['status']),
+    Query::distinct(),
+    Query::covers('location', [1, 2]),
+    Query::countDistinct('year', 'uniqueYears'),
+    Query::sum('price', 'total'),
+    Query::avg('price', 'avgPrice'),
+    Query::min('price', 'lowest'),
+    Query::max('price', 'highest'),
+    Query::stddev('price', 'sd'),
+    Query::stddevPop('price', 'sdp'),
+    Query::stddevSamp('price', 'sds'),
+    Query::variance('price', 'var'),
+    Query::varPop('price', 'vp'),
+    Query::varSamp('price', 'vs'),
+    Query::bitAnd('flags', 'band'),
+    Query::bitOr('flags', 'bor'),
+    Query::bitXor('flags', 'bxor'),
+    Query::having([Query::greaterThan('total', 1)]),
+    Query::leftJoin('orders', '$id', 'customerId', '=', 'ord'),
+    Query::rightJoin('orders', '$id', 'customerId'),
+    Query::fullOuterJoin('orders', '$id', 'customerId'),
+    Query::crossJoin('orders', 'ord'),
+    Query::on('$id', 'customerId'),
+    Query::leftJoin('orders', 'ord', [
+        Query::on('$id', 'customerId'),
+        Query::equal('ord.status', 'paid'),
+    ]),
+    Query::notCovers('location', [1, 2]),
+    Query::spatialEquals('location', [1, 2]),
+    Query::notSpatialEquals('location', [1, 2]),
+    ...Query::page(2, 10),
+    Query::builder()->limit(1),
+]);
+echo $queryTransport->result . "\n";
 
 // Permission & Role helper tests
 echo Permission::read(Role::any()) . "\n";
@@ -387,17 +454,13 @@ echo ID::custom('custom_id') . "\n";
 // Topic helper tests
 echo Topic::path(['user', '123', 'notification']) . "\n";
 echo Topic::path(['org', '42', 'user', '123'])->path(['notification']) . "\n";
-echo Topic::path(['user'])->any()->path(['notification']) . "\n";
-echo Topic::path(['chat'])->any()->any()->path(['message']) . "\n";
-echo Topic::path(['org'])->any()->path(['logs'])->all() . "\n";
-echo Topic::any()->path(['notification']) . "\n";
-echo Topic::all() . "\n";
 foreach ([
     ['empty path', []],
     ['empty level', ['user', '']],
     ['slash', ['user/123']],
     ['plus', ['user', 'a+b']],
     ['hash', ['user', '#']],
+    ['nul', ['user', "a\0b"]],
 ] as [$name, $levels]) {
     try {
         Topic::path($levels);

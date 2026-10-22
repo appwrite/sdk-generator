@@ -132,6 +132,11 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/QueryTest.kt',
+                'template'      => '/kotlin/src/test/kotlin/io/appwrite/QueryTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Operator.kt',
                 'template'      => '/android/library/src/main/java/io/package/Operator.kt.twig',
             ],
@@ -149,6 +154,11 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/JsonRequestBodyTest.kt',
                 'template'      => '/android/library/src/test/java/io/package/JsonRequestBodyTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/JsonCastTest.kt',
+                'template'      => '/android/library/src/test/java/io/package/JsonCastTest.kt.twig',
             ],
             [
                 'scope'         => 'default',
@@ -234,6 +244,11 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushReceiver.kt',
                 'template'      => '/android/library/src/main/java/io/package/services/PushReceiver.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/services/PushOpenActivity.kt',
+                'template'      => '/android/library/src/main/java/io/package/services/PushOpenActivity.kt.twig',
             ],
             [
                 'scope'         => 'default',

@@ -171,6 +171,24 @@ namespace AppwriteTests
                 }
             }
             LogResult((await general.ValidatePath("0", "0")).Result);
+            LogResult((await general.GetQuery("a&b+c#d=e%f", new List<string>() { "a&b", "c+d#e" })).Result);
+
+            string zone = await new Plaintext(client).GetZone();
+            LogResult(zone);
+            LogResult((await general.GetMixed()).Result);
+            var imported = await new Plaintext(client).ImportZone("www 3600 IN A 192.0.2.1");
+            LogResult(imported);
+            imported = await new Plaintext(client).ImportZone("www 3600 IN A 192.0.2.1", InputFile.FromPath("../../../resources/file.png"));
+            LogResult(imported);
+
+            mock = await general.OptionalUpload("conversation without a required file");
+            LogResult(mock.Result);
+            mock = await general.OptionalUpload("conversation without a required file", InputFile.FromPath("../../../resources/file.png"));
+            LogResult(mock.Result);
+            mock = await general.OptionalUpload("conversation without a required file", metadata: new Dictionary<string, object> { { "source", "sdk" }, { "uri", "café" } });
+            LogResult(mock.Result);
+            mock = await general.OptionalUpload("conversation without a required file", InputFile.FromPath("../../../resources/file.png"), new Dictionary<string, object> { { "source", "sdk" }, { "uri", "café" } });
+            LogResult(mock.Result);
 
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromPath("../../../resources/file.png"));
             LogResult(mock.Result);
@@ -185,6 +203,12 @@ namespace AppwriteTests
             info = new FileInfo("../../../resources/large_file.mp4");
             mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromStream(info.OpenRead(), "large_file.mp4", "video/mp4"));
             LogResult(mock.Result);
+
+            mock = await general.Upload("string", 123, new List<string>() { "string in array" }, InputFile.FromBytes(new byte[5 * 1024 * 1024], "boundary.bin", "application/octet-stream"));
+            LogResult(mock.Result);
+
+            var profile = await general.UploadGeneric(InputFile.FromPath("../../../resources/file.png"));
+            LogResult(profile.Prefs.Data["result"]);
 
             // Download test
             var downloadResult = await general.Download();
@@ -206,6 +230,16 @@ namespace AppwriteTests
                 new Player("player2", "Jane Doe", 200)
             });
             LogResult(mock.Result);
+
+            var preset = await general.GetPreset();
+            LogResult($"preset: name={preset.Name}, count={preset.Count}, enabled={preset.Enabled.ToString().ToLowerInvariant()}");
+            foreach (var item in (await general.ListPresets()).Presets)
+            {
+                LogResult($"preset: name={item.Name}, count={item.Count}, enabled={item.Enabled.ToString().ToLowerInvariant()}");
+            }
+            LogResult($"empty presets: {(await general.ListEmptyPresets()).Presets.Count}");
+            LogResult($"preset verified: {preset.Verified?.ToString() ?? "null"}");
+            LogResult($"preset scopes: {string.Join(",", (preset.Scopes ?? new List<PresetScopes>()).ConvertAll(scope => scope.Value))}");
 
             try
             {
@@ -387,6 +421,49 @@ namespace AppwriteTests
                 Query.Equal("name", "Alice"),
                 Query.GreaterThan("age", 18)
             }));
+            LogResult(Query.Relationship("comments", new List<string> {
+                Query.Equal("approved", true),
+                Query.Limit(2)
+            }));
+            var transportQueries = new List<string>
+            {
+                Query.Count("*", "total"),
+                Query.Join("orders", "$id", "customerId"),
+                Query.GroupBy(new List<string> { "status" }),
+                Query.Distinct(),
+                Query.Covers("location", new List<object> { 1, 2 }),
+                Query.CountDistinct("year", "uniqueYears"),
+                Query.Sum("price", "total"),
+                Query.Avg("price", "avgPrice"),
+                Query.Min("price", "lowest"),
+                Query.Max("price", "highest"),
+                Query.Stddev("price", "sd"),
+                Query.StddevPop("price", "sdp"),
+                Query.StddevSamp("price", "sds"),
+                Query.Variance("price", "var"),
+                Query.VarPop("price", "vp"),
+                Query.VarSamp("price", "vs"),
+                Query.BitAnd("flags", "band"),
+                Query.BitOr("flags", "bor"),
+                Query.BitXor("flags", "bxor"),
+                Query.Having(new List<string> { Query.GreaterThan("total", 1) }),
+                Query.LeftJoin("orders", "$id", "customerId", "=", "ord"),
+                Query.RightJoin("orders", "$id", "customerId"),
+                Query.FullOuterJoin("orders", "$id", "customerId"),
+                Query.CrossJoin("orders", "ord"),
+                Query.On("$id", "customerId"),
+                Query.LeftJoin("orders", "ord", new List<string> {
+                    Query.On("$id", "customerId"),
+                    Query.Equal("ord.status", "paid"),
+                }),
+                Query.NotCovers("location", new List<object> { 1, 2 }),
+                Query.SpatialEquals("location", new List<object> { 1, 2 }),
+                Query.NotSpatialEquals("location", new List<object> { 1, 2 }),
+            };
+            transportQueries.AddRange(Query.Page(2, 10));
+            transportQueries.AddRange(new Query.Builder().Limit(1).Build());
+            var queryTransport = await general.ListRows(transportQueries);
+            LogResult(queryTransport.Result);
             // Permission & Roles helper tests
             LogResult(Permission.Read(Role.Any()));
             LogResult(Permission.Write(Role.User(ID.Custom("userid"))));
@@ -406,11 +483,6 @@ namespace AppwriteTests
             // Topic helper tests
             LogResult(Topic.Path(new[] { "user", "123", "notification" }).ToString());
             LogResult(Topic.Path(new[] { "org", "42", "user", "123" }).Path(new[] { "notification" }).ToString());
-            LogResult(Topic.Path(new[] { "user" }).Any().Path(new[] { "notification" }).ToString());
-            LogResult(Topic.Path(new[] { "chat" }).Any().Any().Path(new[] { "message" }).ToString());
-            LogResult(Topic.Path(new[] { "org" }).Any().Path(new[] { "logs" }).All().ToString());
-            LogResult(Topic.Any().Path(new[] { "notification" }).ToString());
-            LogResult(Topic.All().ToString());
             var topicCases = new (string Name, string[] Levels)[]
             {
                 ("empty path", new string[0]),
@@ -418,6 +490,7 @@ namespace AppwriteTests
                 ("slash", new[] { "user/123" }),
                 ("plus", new[] { "user", "a+b" }),
                 ("hash", new[] { "user", "#" }),
+                ("nul", new[] { "user", "a\0b" }),
             };
             foreach (var (name, levels) in topicCases)
             {
@@ -430,6 +503,15 @@ namespace AppwriteTests
                 {
                     LogResult($"Topic {name}:passed");
                 }
+            }
+            try
+            {
+                Query.Page(50000000, 50);
+                LogResult("Query page overflow:failed");
+            }
+            catch (System.OverflowException)
+            {
+                LogResult("Query page overflow:passed");
             }
 
             // Channel helper tests
@@ -636,11 +718,83 @@ namespace AppwriteTests
                 ? "Push disconnect error:passed"
                 : "Push disconnect error:failed");
 
+            async Task<string> Outcome(System.Func<Task> subscribing)
+            {
+                try
+                {
+                    await subscribing();
+                    return "";
+                }
+                catch (System.Exception e)
+                {
+                    return e.Message;
+                }
+            }
+
+            var switchClient = PushClient().SetSession(e2eSession);
+            var switchPushObject = new GameObject("PushSwitchTest");
+            var switchPush = switchPushObject.AddComponent<Push>();
+            switchPush.Initialize(switchClient);
+            await switchPush.Subscribe("e2e-switch", (message) => { });
+            switchClient.SetJWT("deny:switched-user");
+            var switched = await Outcome(() => switchPush.Subscribe("e2e-switch", (message) => { }));
+            switchPush.Close();
+            Object.DestroyImmediate(switchPushObject);
+            LogResult(switched == "switched-user"
+                ? "Push credential switch:passed"
+                : $"Push credential switch:failed ({switched})");
+
+            var pendingClient = PushClient().SetJWT("slow:pending");
+            var pendingPushObject = new GameObject("PushPendingSwitchTest");
+            var pendingPush = pendingPushObject.AddComponent<Push>();
+            pendingPush.Initialize(pendingClient);
+            var firstPending = Outcome(() => pendingPush.Subscribe("e2e-switch", (message) => { }));
+            await Task.Delay(100);
+            pendingClient.SetJWT("deny:switched-pending");
+            var secondPending = await Outcome(() => pendingPush.Subscribe("e2e-switch", (message) => { }));
+            var firstWinner = await Task.WhenAny(firstPending, Task.Delay(5000));
+            var firstPendingOutcome = firstWinner == firstPending ? firstPending.Result : "timeout";
+            pendingPush.Close();
+            Object.DestroyImmediate(pendingPushObject);
+            LogResult(secondPending == "switched-pending" && firstPendingOutcome == "switched-pending"
+                ? "Push credential pending switch:passed"
+                : $"Push credential pending switch:failed (first: {firstPendingOutcome}, second: {secondPending})");
+
             // Cleanup Realtime GameObject
             if (realtimeObject)
             {
                 Object.DestroyImmediate(realtimeObject);
             }
+
+            // Reinitializing the manager rebuilds Push on the new client
+            var managerObject = new GameObject("AppwriteManagerTest");
+            var manager = managerObject.AddComponent<AppwriteManager>();
+            var managerConfig = ScriptableObject.CreateInstance<AppwriteConfig>();
+            await manager.Reinitialize(managerConfig);
+            var firstManagerPush = manager.Push;
+            await manager.Reinitialize(managerConfig);
+            LogResult(!ReferenceEquals(manager.Push, firstManagerPush)
+                ? "Manager push reinitialize:passed"
+                : "Manager push reinitialize:failed");
+            Object.DestroyImmediate(managerObject);
+
+            // A config that selected every service it knew about also selects the services added since
+            var allServices = (int)AppwriteService.All;
+            var newestService = allServices;
+            while ((newestService & (newestService - 1)) != 0)
+                newestService &= newestService - 1;
+            var olderServices = allServices & ~newestService;
+            var fullConfig = ScriptableObject.CreateInstance<AppwriteConfig>();
+            JsonUtility.FromJsonOverwrite($"{{\"servicesToInitialize\":{olderServices},\"knownServices\":{olderServices}}}", fullConfig);
+            LogResult(fullConfig.ServicesToInitialize == AppwriteService.All
+                ? "Config all services:passed"
+                : $"Config all services:failed ({(int)fullConfig.ServicesToInitialize})");
+            var oldestService = allServices & -allServices;
+            var partialConfig = ScriptableObject.CreateInstance<AppwriteConfig>();
+            JsonUtility.FromJsonOverwrite($"{{\"servicesToInitialize\":{oldestService},\"knownServices\":{olderServices}}}", partialConfig);
+            LogResult((int)partialConfig.ServicesToInitialize == oldestService
+                ? "Config some services:passed"
+                : $"Config some services:failed ({(int)partialConfig.ServicesToInitialize})");
 
         }
     }

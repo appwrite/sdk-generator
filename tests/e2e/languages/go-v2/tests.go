@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/repoowner/reponame/v2/appwrite"
@@ -136,13 +137,92 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	}
 	fmt.Printf("%s\n", pathResponse.Result)
 
+	zone, err := appwrite.NewPlaintext(client).GetZone()
+	if err != nil {
+		panic(err)
+	}
+	var text string = *zone
+	fmt.Println(text)
+	mixed, err := general.GetMixed()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(mixed.Result)
+	plaintext := appwrite.NewPlaintext(client)
+	imported, err := plaintext.ImportZone("www 3600 IN A 192.0.2.1")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(*imported)
+	zoneFile := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+	imported, err = plaintext.ImportZone("www 3600 IN A 192.0.2.1", plaintext.WithImportZoneZone(zoneFile))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(*imported)
+
+	message := "conversation without a required file"
+	optional, err := general.OptionalUpload(message)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+	attachment := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+	optional, err = general.OptionalUpload(message, general.WithOptionalUploadAttachment(attachment))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+	metadata := map[string]interface{}{"source": "sdk", "uri": "café"}
+	optional, err = general.OptionalUpload(message, general.WithOptionalUploadMetadata(metadata))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+	optional, err = general.OptionalUpload(message, general.WithOptionalUploadAttachment(attachment), general.WithOptionalUploadMetadata(metadata))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(optional.Result)
+
 	testGeneralUpload(client, stringInArray)
 	testGeneralUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)
 	testLargeUpload(client, stringInArray)
+	testGenericUpload(client)
 
 	// Extended General Responses
 	testGeneralDownload(client)
+
+	preset, err := general.GetPreset()
+	if err != nil {
+		fmt.Printf("general.GetPreset => error %v\n", err)
+	} else {
+		fmt.Printf("preset: name=%s, count=%d, enabled=%t\n", preset.Name, preset.Count, preset.Enabled)
+	}
+
+	presets, err := general.ListPresets()
+	if err != nil {
+		fmt.Printf("general.ListPresets => error %v\n", err)
+	} else {
+		for _, item := range presets.Presets {
+			fmt.Printf("preset: name=%s, count=%d, enabled=%t\n", item.Name, item.Count, item.Enabled)
+		}
+	}
+	emptyPresets, err := general.ListEmptyPresets()
+	if err != nil {
+		fmt.Printf("general.ListEmptyPresets => error %v\n", err)
+	} else {
+		fmt.Printf("empty presets: %d\n", len(emptyPresets.Presets))
+	}
+	if preset != nil {
+		if preset.Verified == nil {
+			fmt.Println("preset verified: null")
+		} else {
+			fmt.Printf("preset verified: %t\n", *preset.Verified)
+		}
+		fmt.Printf("preset scopes: %s\n", strings.Join(preset.Scopes, ","))
+	}
 
 	// Exception Responses
 	_, err = general.Error400()
@@ -168,7 +248,7 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	general.Empty()
 
 	// Test Queries
-	testQueries()
+	testQueries(client)
 
 	// Test Permission Helpers
 	testPermissionHelpers()
@@ -221,7 +301,26 @@ func testLargeUpload(client client.Client, stringInArray []string) {
 	fmt.Printf("%s\n", response.Result)
 }
 
-func testQueries() {
+func testGenericUpload(client client.Client) {
+	general := appwrite.NewGeneral(client)
+	inputFile := file.NewInputFile(path.Join("/app", "tests/resources/file.png"), "file.png")
+
+	response, err := general.UploadGeneric(inputFile)
+	if err != nil {
+		fmt.Printf("general.UploadGeneric => error %v\n", err)
+		return
+	}
+	var profile struct {
+		Prefs map[string]interface{} `json:"prefs"`
+	}
+	if err := response.Decode(&profile); err != nil {
+		fmt.Printf("general.UploadGeneric => decode error %v\n", err)
+		return
+	}
+	fmt.Printf("%s\n", profile.Prefs["result"])
+}
+
+func testQueries(client client.Client) {
 	fmt.Println(query.Equal("released", true))
 	fmt.Println(query.Equal("title", []interface{}{"Spiderman", "Dr. Strange"}))
 	fmt.Println(query.NotEqual("title", "Spiderman"))
@@ -305,6 +404,52 @@ func testQueries() {
 		query.Equal("name", "Alice"),
 		query.GreaterThan("age", 18),
 	}))
+	fmt.Println(query.Relationship("comments", []string{
+		query.Equal("approved", true),
+		query.Limit(2),
+	}))
+	general := appwrite.NewGeneral(client)
+	queries := []string{
+		query.Count("*", "total"),
+		query.Join("orders", "$id", "customerId", "=", ""),
+		query.GroupBy([]interface{}{"status"}),
+		query.Distinct(),
+		query.Covers("location", []interface{}{1, 2}),
+		query.CountDistinct("year", "uniqueYears"),
+		query.Sum("price", "total"),
+		query.Avg("price", "avgPrice"),
+		query.Min("price", "lowest"),
+		query.Max("price", "highest"),
+		query.Stddev("price", "sd"),
+		query.StddevPop("price", "sdp"),
+		query.StddevSamp("price", "sds"),
+		query.Variance("price", "var"),
+		query.VarPop("price", "vp"),
+		query.VarSamp("price", "vs"),
+		query.BitAnd("flags", "band"),
+		query.BitOr("flags", "bor"),
+		query.BitXor("flags", "bxor"),
+		query.Having([]string{query.GreaterThan("total", 1)}),
+		query.LeftJoin("orders", "$id", "customerId", "=", "ord"),
+		query.RightJoin("orders", "$id", "customerId", "=", ""),
+		query.FullOuterJoin("orders", "$id", "customerId", "=", ""),
+		query.CrossJoin("orders", "ord"),
+		query.On("$id", "customerId", ""),
+		query.LeftJoinOn("orders", "ord", []string{
+			query.On("$id", "customerId", ""),
+			query.Equal("ord.status", "paid"),
+		}),
+		query.NotCovers("location", []interface{}{1, 2}),
+		query.SpatialEquals("location", []interface{}{1, 2}),
+		query.NotSpatialEquals("location", []interface{}{1, 2}),
+	}
+	queries = append(queries, query.Page(2, 10)...)
+	queries = append(queries, query.NewBuilder().Limit(1).Build()...)
+	queryTransport, err := general.ListRows(general.WithListRowsQueries(queries))
+	if err != nil {
+		fmt.Printf("general.ListRows => error %v", err)
+	}
+	fmt.Println(queryTransport.Result)
 }
 
 func testPermissionHelpers() {
@@ -328,11 +473,6 @@ func testIdHelpers() {
 func testTopicHelpers() {
 	fmt.Println(topic.Path([]string{"user", "123", "notification"}))
 	fmt.Println(topic.Path([]string{"org", "42", "user", "123"}).Path([]string{"notification"}))
-	fmt.Println(topic.Path([]string{"user"}).Any().Path([]string{"notification"}))
-	fmt.Println(topic.Path([]string{"chat"}).Any().Any().Path([]string{"message"}))
-	fmt.Println(topic.Path([]string{"org"}).Any().Path([]string{"logs"}).All())
-	fmt.Println(topic.Any().Path([]string{"notification"}))
-	fmt.Println(topic.All())
 	cases := []struct {
 		name   string
 		levels []string
@@ -342,6 +482,7 @@ func testTopicHelpers() {
 		{"slash", []string{"user/123"}},
 		{"plus", []string{"user", "a+b"}},
 		{"hash", []string{"user", "#"}},
+		{"nul", []string{"user", "a\x00b"}},
 	}
 	for _, c := range cases {
 		if topicPanics(c.levels) {

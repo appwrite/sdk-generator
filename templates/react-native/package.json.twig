@@ -11,7 +11,6 @@
             "require": "./dist/cjs/sdk.js",
             "types": "./types/index.d.ts"
         },
-        "./app.plugin.js": "./app.plugin.js",
         "./package.json": "./package.json"
     },
     "module": "dist/esm/sdk.js",
@@ -19,8 +18,9 @@
     "files": [
         "android",
         "!android/build",
-        "app.plugin.js",
         "dist",
+        "ios",
+        "*.podspec",
         "react-native.config.js",
         "types"
     ],
@@ -39,11 +39,12 @@
         "analyse": "tsc --noEmit"
     },
     "engines": {
-        "node": ">=18.0.0"
+        "node": ">=20.0.0"
     },
     "devDependencies": {
         "@eslint/js": "10.0.1",
         "eslint": "10.10.0",
+        "expo-file-system": "58.0.9",
         "@rollup/plugin-typescript": "12.3.0",
         "@types/json-bigint": "1.0.4",
         "@types/node": "24.9.2",
@@ -58,24 +59,20 @@
     },
     "dependencies": {
         "buffer": "6.0.3",
-        "expo-file-system": "18.*.*",
         "json-bigint": "1.0.0",
         "mqtt": "5.15.2",
         "process": "0.11.10",
         "readable-stream": "4.7.0"
     },
     "peerDependencies": {
-        "@expo/config-plugins": "*",
-        "expo": "*",
+        "expo": ">=52.0.0",
+        "expo-file-system": ">=18.0.0",
         "expo-notifications": "*",
         "react-native": ">=0.76.7 <1.0.0",
         "react-native-background-actions": ">=4.0.0 <5.0.0",
         "react-native-tcp-socket": ">=6.2.0 <7.0.0"
     },
     "peerDependenciesMeta": {
-        "@expo/config-plugins": {
-            "optional": true
-        },
         "expo-notifications": {
             "optional": true
         },
@@ -89,9 +86,9 @@
     "overrides": {
         "glob": {
             ".": "^13.0.0",
-            "brace-expansion": "5.0.9"
+            "brace-expansion": "5.0.12"
         },
-        "brace-expansion": "5.0.9",
+        "brace-expansion": "5.0.12",
         "rimraf": "^6.0.0",
         "@xmldom/xmldom": "^0.9.10",
         "uuid": "^14.0.0",

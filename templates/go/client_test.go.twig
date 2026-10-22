@@ -3,11 +3,16 @@ package client
 
 import (
 	"crypto/tls"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"sync"
 	"testing"
+
+	"{{ sdk | goPackagePath }}/query"
 )
 
 func TestSetProject(t *testing.T) {
@@ -270,6 +275,127 @@ func TestResponseBodyRejectsAnotherType(t *testing.T) {
 	}
 	if _, err := ResponseBody(nil); err == nil {
 		t.Error("Expected an error for a nil response")
+	}
+}
+
+func TestFlattenValueNestedFloatsDoesNotPanic(t *testing.T) {
+	geometry := [][]float64{
+		{1, 2},
+		{3, 4},
+	}
+	got := flattenValue(geometry)
+	if !reflect.DeepEqual(got, geometry) {
+		t.Errorf("Expected nested floats to pass through, got %#v", got)
+	}
+}
+
+func TestFlattenValueSpreadsWrappedBuilder(t *testing.T) {
+	builder := query.NewBuilder().Limit(1)
+	got := flattenValue([]interface{}{builder})
+	want := []interface{}{query.Limit(1)}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Expected %#v, got %#v", want, got)
+	}
+}
+func TestFlattenValueKeepsNestedStringArrays(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		value interface{}
+	}{
+		{name: "typed", value: [][]string{[]string{"a", "b"}}},
+		{name: "untyped", value: []interface{}{[]interface{}{"a", "b"}}},
+		{name: "mixed", value: []interface{}{"x", []string{"a", "b"}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got := flattenValue(test.value)
+			if !reflect.DeepEqual(got, test.value) {
+				t.Errorf("Expected %#v to pass through, got %#v", test.value, got)
+			}
+		})
+	}
+}
+
+func TestFlattenValueBuildsBuilder(t *testing.T) {
+	builder := query.NewBuilder().Equal("status", "active").Limit(1)
+	got := flattenValue(builder)
+	want := []string{query.Equal("status", "active"), query.Limit(1)}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Expected %#v, got %#v", want, got)
+	}
+}
+
+func TestFlattenValueSpreadsBuildersBesideStrings(t *testing.T) {
+	builder := query.NewBuilder().Limit(1)
+	got := flattenValue([]interface{}{query.Offset(2), builder, *builder})
+	want := []interface{}{query.Offset(2), query.Limit(1), query.Limit(1)}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Expected %#v, got %#v", want, got)
+	}
+}
+
+func TestCallSendsFlattenedParams(t *testing.T) {
+	var body map[string]interface{}
+	var rawQuery url.Values
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rawQuery = r.URL.Query()
+		if r.Method != http.MethodGet {
+			data, _ := ioutil.ReadAll(r.Body)
+			json.Unmarshal(data, &body)
+		}
+		w.Header().Set("content-type", "application/json")
+		w.Write([]byte("{}"))
+	}))
+	defer server.Close()
+
+	c := New()
+	c.Endpoint = server.URL
+	builder := query.NewBuilder().Limit(1)
+
+	_, err := c.Call("POST", "/", map[string]interface{}{"content-type": "application/json"}, map[string]interface{}{
+		"values":  []interface{}{[]interface{}{"a", "b"}},
+		"queries": []interface{}{query.Offset(2), builder},
+	})
+	if err != nil {
+		t.Fatalf("Expected the call to succeed, got %v", err)
+	}
+	wantValues := []interface{}{[]interface{}{"a", "b"}}
+	if !reflect.DeepEqual(body["values"], wantValues) {
+		t.Errorf("Expected values %#v in the JSON body, got %#v", wantValues, body["values"])
+	}
+	wantQueries := []interface{}{query.Offset(2), query.Limit(1)}
+	if !reflect.DeepEqual(body["queries"], wantQueries) {
+		t.Errorf("Expected queries %#v in the JSON body, got %#v", wantQueries, body["queries"])
+	}
+
+	_, err = c.Call("GET", "/", map[string]interface{}{}, map[string]interface{}{
+		"queries": builder,
+	})
+	if err != nil {
+		t.Fatalf("Expected the call to succeed, got %v", err)
+	}
+	if got := rawQuery.Get("queries[0]"); got != query.Limit(1) {
+		t.Errorf("Expected queries[0] to be %q in the query string, got %q", query.Limit(1), got)
+	}
+}
+
+func TestCallLeavesTheCallersParamsUnchanged(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		w.Write([]byte("{}"))
+	}))
+	defer server.Close()
+
+	c := New()
+	c.Endpoint = server.URL
+	builder := query.NewBuilder().Limit(1)
+	params := map[string]interface{}{"queries": builder}
+
+	_, err := c.Call("POST", "/", map[string]interface{}{"content-type": "application/json"}, params)
+	if err != nil {
+		t.Fatalf("Expected the call to succeed, got %v", err)
+	}
+	if params["queries"] != builder {
+		t.Errorf("Expected the caller's params to keep the builder, got %#v", params["queries"])
 	}
 }
 {% endautoescape %}

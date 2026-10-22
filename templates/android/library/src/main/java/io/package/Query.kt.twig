@@ -18,6 +18,14 @@ class Query(
      */
     override fun toString() = this.toJson()
 
+    fun toMap(): Map<String, Any?> = mapOf(
+        "method" to method,
+        "attribute" to attribute,
+        "values" to values,
+    ).filterValues { it != null }
+
+    fun toJson(): String = toMap().toJson()
+
     companion object {
 
         /**
@@ -27,6 +35,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun equal(attribute: String, value: Any) = Query("equal", attribute, parseValue(value)).toJson()
 
         /**
@@ -36,6 +45,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun notEqual(attribute: String, value: Any) = Query("notEqual", attribute, parseValue(value)).toJson()
 
         /**
@@ -45,6 +55,7 @@ class Query(
          * @param pattern The regular expression pattern to match.
          * @returns The query string.
          */
+        @JvmStatic
         fun regex(attribute: String, pattern: String) = Query("regex", attribute, parseValue(pattern)).toJson()
 
         /**
@@ -54,6 +65,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun lessThan(attribute: String, value: Any) = Query("lessThan", attribute, parseValue(value)).toJson()
 
         /**
@@ -63,6 +75,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun lessThanEqual(attribute: String, value: Any) = Query("lessThanEqual", attribute, parseValue(value)).toJson()
 
         /**
@@ -72,6 +85,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun greaterThan(attribute: String, value: Any) = Query("greaterThan", attribute, parseValue(value)).toJson()
 
         /**
@@ -81,6 +95,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun greaterThanEqual(attribute: String, value: Any) = Query("greaterThanEqual", attribute, parseValue(value)).toJson()
 
         /**
@@ -90,6 +105,7 @@ class Query(
          * @param value The search value to match against.
          * @returns The query string.
          */
+        @JvmStatic
         fun search(attribute: String, value: String) = Query("search", attribute, listOf(value)).toJson()
 
         /**
@@ -98,6 +114,7 @@ class Query(
          * @param attribute The attribute to filter on.
          * @returns The query string.
          */
+        @JvmStatic
         fun isNull(attribute: String) = Query("isNull", attribute).toJson()
 
         /**
@@ -106,6 +123,7 @@ class Query(
          * @param attribute The attribute to filter on.
          * @returns The query string.
          */
+        @JvmStatic
         fun isNotNull(attribute: String) = Query("isNotNull", attribute).toJson()
 
         /**
@@ -114,6 +132,7 @@ class Query(
          * @param attributes The list of attributes that must exist.
          * @returns The query string.
          */
+        @JvmStatic
         fun exists(attributes: List<String>) = Query("exists", null, attributes).toJson()
 
         /**
@@ -122,6 +141,7 @@ class Query(
          * @param attributes The list of attributes that must not exist.
          * @returns The query string.
          */
+        @JvmStatic
         fun notExists(attributes: List<String>) = Query("notExists", null, attributes).toJson()
 
         /**
@@ -132,6 +152,7 @@ class Query(
          * @param end The end value of the range.
          * @returns The query string.
          */
+        @JvmStatic
         fun between(attribute: String, start: Any, end: Any) = Query("between", attribute, listOf(start, end)).toJson()
 
         /**
@@ -141,6 +162,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun startsWith(attribute: String, value: String) = Query("startsWith", attribute, listOf(value)).toJson()
 
         /**
@@ -150,6 +172,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun endsWith(attribute: String, value: String) = Query("endsWith", attribute, listOf(value)).toJson()
 
         /**
@@ -158,6 +181,7 @@ class Query(
          * @param attributes The list of attributes to select.
          * @returns The query string.
          */
+        @JvmStatic
         fun select(attributes: List<String>) = Query("select", null, attributes).toJson()
 
         /**
@@ -166,6 +190,7 @@ class Query(
          * @param attribute The attribute to sort by.
          * @returns The query string.
          */
+        @JvmStatic
         fun orderAsc(attribute: String) = Query("orderAsc", attribute).toJson()
 
         /**
@@ -174,6 +199,7 @@ class Query(
          * @param attribute The attribute to sort by.
          * @returns The query string.
          */
+        @JvmStatic
         fun orderDesc(attribute: String) = Query("orderDesc", attribute).toJson()
 
         /**
@@ -181,6 +207,7 @@ class Query(
          *
          * @returns The query string.
          */
+        @JvmStatic
         fun orderRandom() = Query("orderRandom").toJson()
 
         /**
@@ -189,6 +216,7 @@ class Query(
          * @param documentId The document ID to use as cursor.
          * @returns The query string.
          */
+        @JvmStatic
         fun cursorBefore(documentId: String) = Query("cursorBefore", null, listOf(documentId)).toJson()
 
         /**
@@ -197,6 +225,7 @@ class Query(
          * @param documentId The document ID to use as cursor.
          * @returns The query string.
          */
+        @JvmStatic
         fun cursorAfter(documentId: String) = Query("cursorAfter", null, listOf(documentId)).toJson()
 
         /**
@@ -205,6 +234,7 @@ class Query(
          * @param limit The number of results to return.
          * @returns The query string.
          */
+        @JvmStatic
         fun limit(limit: Int) = Query("limit", null, listOf(limit)).toJson()
 
         /**
@@ -213,6 +243,7 @@ class Query(
          * @param offset The number of results to skip.
          * @returns The query string.
          */
+        @JvmStatic
         fun offset(offset: Int) = Query("offset", null, listOf(offset)).toJson()
 
         /**
@@ -224,6 +255,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun contains(attribute: String, value: Any) = Query("contains", attribute, parseValue(value)).toJson()
 
         /**
@@ -235,6 +267,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun containsAny(attribute: String, value: List<Any>) = Query("containsAny", attribute, value).toJson()
 
         /**
@@ -246,6 +279,7 @@ class Query(
          * @param value The values to match against.
          * @returns The query string.
          */
+        @JvmStatic
         fun containsAll(attribute: String, value: List<Any>) = Query("containsAll", attribute, value).toJson()
 
         /**
@@ -255,6 +289,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun notContains(attribute: String, value: Any) = Query("notContains", attribute, parseValue(value)).toJson()
 
         /**
@@ -264,6 +299,7 @@ class Query(
          * @param value The search value to match against.
          * @returns The query string.
          */
+        @JvmStatic
         fun notSearch(attribute: String, value: String) = Query("notSearch", attribute, listOf(value)).toJson()
 
         /**
@@ -274,6 +310,7 @@ class Query(
          * @param end The end value of the range.
          * @returns The query string.
          */
+        @JvmStatic
         fun notBetween(attribute: String, start: Any, end: Any) = Query("notBetween", attribute, listOf(start, end)).toJson()
 
         /**
@@ -283,6 +320,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun notStartsWith(attribute: String, value: String) = Query("notStartsWith", attribute, listOf(value)).toJson()
 
         /**
@@ -292,6 +330,7 @@ class Query(
          * @param value The value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun notEndsWith(attribute: String, value: String) = Query("notEndsWith", attribute, listOf(value)).toJson()
 
         /**
@@ -300,6 +339,7 @@ class Query(
          * @param value The date value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun createdBefore(value: String) = lessThan("\$createdAt", value)
 
         /**
@@ -308,6 +348,7 @@ class Query(
          * @param value The date value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun createdAfter(value: String) = greaterThan("\$createdAt", value)
 
         /**
@@ -317,6 +358,7 @@ class Query(
          * @param end The end date value.
          * @returns The query string.
          */
+        @JvmStatic
         fun createdBetween(start: String, end: String) = between("\$createdAt", start, end)
 
         /**
@@ -325,6 +367,7 @@ class Query(
          * @param value The date value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun updatedBefore(value: String) = lessThan("\$updatedAt", value)
 
         /**
@@ -333,6 +376,7 @@ class Query(
          * @param value The date value to compare against.
          * @returns The query string.
          */
+        @JvmStatic
         fun updatedAfter(value: String) = greaterThan("\$updatedAt", value)
 
         /**
@@ -342,6 +386,7 @@ class Query(
          * @param end The end date value.
          * @returns The query string.
          */
+        @JvmStatic
         fun updatedBetween(start: String, end: String) = between("\$updatedAt", start, end)
 
         /**
@@ -350,7 +395,8 @@ class Query(
          * @param queries The list of query strings to combine.
          * @returns The query string.
          */
-        fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Query>() }).toJson()
+        @JvmStatic
+        fun or(queries: List<String>) = Query("or", null, queries.map { it.fromJson<Map<String, Any>>() }).toJson()
 
         /**
          * Combine multiple queries using logical AND operator.
@@ -358,7 +404,8 @@ class Query(
          * @param queries The list of query strings to combine.
          * @returns The query string.
          */
-        fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Query>() }).toJson()
+        @JvmStatic
+        fun and(queries: List<String>) = Query("and", null, queries.map { it.fromJson<Map<String, Any>>() }).toJson()
 
         /**
          * Filter array elements where at least one element matches all the specified queries.
@@ -367,7 +414,18 @@ class Query(
          * @param queries The list of query strings to match against array elements.
          * @returns The query string.
          */
-        fun elemMatch(attribute: String, queries: List<String>) = Query("elemMatch", attribute, queries.map { it.fromJson<Query>() }).toJson()
+        @JvmStatic
+        fun elemMatch(attribute: String, queries: List<String>) = Query("elemMatch", attribute, queries.map { it.fromJson<Map<String, Any>>() }).toJson()
+
+        /**
+         * Constrain populated related documents on a relationship attribute.
+         *
+         * @param attribute The relationship attribute to query.
+         * @param queries Filter, order, select, and pagination queries applied to related documents.
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun relationship(attribute: String, queries: List<String>) = Query("relationship", attribute, queries.map { it.fromJson<Map<String, Any>>() }).toJson()
 
         /**
          * Filter resources where attribute is at a specific distance from the given coordinates.
@@ -378,6 +436,8 @@ class Query(
          * @param meters Whether the distance is in meters.
          * @returns The query string.
          */
+        @JvmStatic
+        @JvmOverloads
         fun distanceEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceEqual", attribute, listOf(listOf(values, distance, meters))).toJson()
 
         /**
@@ -389,6 +449,8 @@ class Query(
          * @param meters Whether the distance is in meters.
          * @returns The query string.
          */
+        @JvmStatic
+        @JvmOverloads
         fun distanceNotEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceNotEqual", attribute, listOf(listOf(values, distance, meters))).toJson()
 
         /**
@@ -400,6 +462,8 @@ class Query(
          * @param meters Whether the distance is in meters.
          * @returns The query string.
          */
+        @JvmStatic
+        @JvmOverloads
         fun distanceGreaterThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceGreaterThan", attribute, listOf(listOf(values, distance, meters))).toJson()
 
         /**
@@ -411,6 +475,8 @@ class Query(
          * @param meters Whether the distance is in meters.
          * @returns The query string.
          */
+        @JvmStatic
+        @JvmOverloads
         fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = Query("distanceLessThan", attribute, listOf(listOf(values, distance, meters))).toJson()
 
         /**
@@ -420,6 +486,7 @@ class Query(
          * @param vector The query vector.
          * @returns The query string.
          */
+        @JvmStatic
         fun vectorDot(attribute: String, vector: List<Number>) = Query("vectorDot", attribute, listOf(vector)).toJson()
 
         /**
@@ -429,6 +496,7 @@ class Query(
          * @param vector The query vector.
          * @returns The query string.
          */
+        @JvmStatic
         fun vectorCosine(attribute: String, vector: List<Number>) = Query("vectorCosine", attribute, listOf(vector)).toJson()
 
         /**
@@ -438,6 +506,7 @@ class Query(
          * @param vector The query vector.
          * @returns The query string.
          */
+        @JvmStatic
         fun vectorEuclidean(attribute: String, vector: List<Number>) = Query("vectorEuclidean", attribute, listOf(vector)).toJson()
 
         /**
@@ -447,6 +516,7 @@ class Query(
          * @param values The coordinate values.
          * @returns The query string.
          */
+        @JvmStatic
         fun intersects(attribute: String, values: List<Any>) = Query("intersects", attribute, listOf(values)).toJson()
 
         /**
@@ -456,6 +526,7 @@ class Query(
          * @param values The coordinate values.
          * @returns The query string.
          */
+        @JvmStatic
         fun notIntersects(attribute: String, values: List<Any>) = Query("notIntersects", attribute, listOf(values)).toJson()
 
         /**
@@ -465,6 +536,7 @@ class Query(
          * @param values The coordinate values.
          * @returns The query string.
          */
+        @JvmStatic
         fun crosses(attribute: String, values: List<Any>) = Query("crosses", attribute, listOf(values)).toJson()
 
         /**
@@ -474,6 +546,7 @@ class Query(
          * @param values The coordinate values.
          * @returns The query string.
          */
+        @JvmStatic
         fun notCrosses(attribute: String, values: List<Any>) = Query("notCrosses", attribute, listOf(values)).toJson()
 
         /**
@@ -483,6 +556,7 @@ class Query(
          * @param values The coordinate values.
          * @returns The query string.
          */
+        @JvmStatic
         fun overlaps(attribute: String, values: List<Any>) = Query("overlaps", attribute, listOf(values)).toJson()
 
         /**
@@ -492,6 +566,7 @@ class Query(
          * @param values The coordinate values.
          * @returns The query string.
          */
+        @JvmStatic
         fun notOverlaps(attribute: String, values: List<Any>) = Query("notOverlaps", attribute, listOf(values)).toJson()
 
         /**
@@ -501,6 +576,7 @@ class Query(
          * @param values The coordinate values.
          * @returns The query string.
          */
+        @JvmStatic
         fun touches(attribute: String, values: List<Any>) = Query("touches", attribute, listOf(values)).toJson()
 
         /**
@@ -510,7 +586,439 @@ class Query(
          * @param values The coordinate values.
          * @returns The query string.
          */
+        @JvmStatic
         fun notTouches(attribute: String, values: List<Any>) = Query("notTouches", attribute, listOf(values)).toJson()
+
+        /**
+         * Count rows of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to count. Defaults to `*`.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun count(attribute: String = "*", alias: String = "") = Query("count", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Count distinct values of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to count.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun countDistinct(attribute: String, alias: String = "") = Query("countDistinct", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Sum values of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to sum.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun sum(attribute: String, alias: String = "") = Query("sum", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Average values of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to average.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun avg(attribute: String, alias: String = "") = Query("avg", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Minimum value of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun min(attribute: String, alias: String = "") = Query("min", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Maximum value of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun max(attribute: String, alias: String = "") = Query("max", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Population standard deviation of [attribute] (the same as stddevPop), optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun stddev(attribute: String, alias: String = "") = Query("stddev", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Population standard deviation of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun stddevPop(attribute: String, alias: String = "") = Query("stddevPop", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Sample standard deviation of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun stddevSamp(attribute: String, alias: String = "") = Query("stddevSamp", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Population variance of [attribute] (the same as varPop), optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun variance(attribute: String, alias: String = "") = Query("variance", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Population variance of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun varPop(attribute: String, alias: String = "") = Query("varPop", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Sample variance of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun varSamp(attribute: String, alias: String = "") = Query("varSamp", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Bitwise AND of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun bitAnd(attribute: String, alias: String = "") = Query("bitAnd", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Bitwise OR of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun bitOr(attribute: String, alias: String = "") = Query("bitOr", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Bitwise XOR of [attribute], optionally aliased.
+         *
+         * @param attribute The attribute to inspect.
+         * @param alias Optional result alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun bitXor(attribute: String, alias: String = "") = Query("bitXor", attribute, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Group results by [attributes].
+         *
+         * @param attributes Attributes to group by.
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun groupBy(attributes: List<String>) = Query("groupBy", null, attributes).toJson()
+
+        /**
+         * Filter grouped results. [queries] are nested like `and`/`or`.
+         *
+         * @param queries Nested query strings.
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun having(queries: List<String>) = Query("having", null, queries.map { it.fromJson<Map<String, Any>>() }).toJson()
+
+        /**
+         * Select distinct rows.
+         *
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun distinct() = Query("distinct").toJson()
+
+        /**
+         * Column-to-column join ON condition.
+         *
+         * @param left Left-hand column.
+         * @param right Right-hand column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun on(left: String, right: String, operator: String = "=") = Query("on", values = listOf(left, operator, right)).toJson()
+
+        /**
+         * Inner join. [table] is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias. Defaults to the table ID when that is a valid alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun join(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("join", table, left, right, operator, alias)
+
+        /**
+         * Inner join with nested ON queries, named after the table ID when that is a valid alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun join(table: String, on: List<String>) = nestedJoin("join", table, "", on)
+
+        /**
+         * Inner join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun join(table: String, alias: String, on: List<String>) = nestedJoin("join", table, alias, on)
+
+        /**
+         * Left join. [table] is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias. Defaults to the table ID when that is a valid alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun leftJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("leftJoin", table, left, right, operator, alias)
+
+        /**
+         * Left join with nested ON queries, named after the table ID when that is a valid alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun leftJoin(table: String, on: List<String>) = nestedJoin("leftJoin", table, "", on)
+
+        /**
+         * Left join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun leftJoin(table: String, alias: String, on: List<String>) = nestedJoin("leftJoin", table, alias, on)
+
+        /**
+         * Right join. [table] is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias. Defaults to the table ID when that is a valid alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun rightJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("rightJoin", table, left, right, operator, alias)
+
+        /**
+         * Right join with nested ON queries, named after the table ID when that is a valid alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun rightJoin(table: String, on: List<String>) = nestedJoin("rightJoin", table, "", on)
+
+        /**
+         * Right join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun rightJoin(table: String, alias: String, on: List<String>) = nestedJoin("rightJoin", table, alias, on)
+
+        /**
+         * Full outer join. [table] is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
+         *
+         * @param table Joined table ID.
+         * @param left Left-hand join column.
+         * @param right Right-hand join column.
+         * @param operator Comparison operator. Defaults to `=`.
+         * @param alias Optional table alias. Defaults to the table ID when that is a valid alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun fullOuterJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = joinQuery("fullOuterJoin", table, left, right, operator, alias)
+
+        /**
+         * Full outer join with nested ON queries, named after the table ID when that is a valid alias.
+         *
+         * @param table Joined table ID.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun fullOuterJoin(table: String, on: List<String>) = nestedJoin("fullOuterJoin", table, "", on)
+
+        /**
+         * Full outer join with nested ON queries and an alias.
+         *
+         * @param table Joined table ID.
+         * @param alias Table alias.
+         * @param on Nested ON queries, including [on].
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun fullOuterJoin(table: String, alias: String, on: List<String>) = nestedJoin("fullOuterJoin", table, alias, on)
+
+        /**
+         * Cross join. [table] is the joined collection/table ID; without an alias the server names the join after it, if the ID is a valid alias, and otherwise rejects the query.
+         *
+         * @param table Joined table ID.
+         * @param alias Optional table alias. Defaults to the table ID when that is a valid alias.
+         * @returns The query string.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun crossJoin(table: String, alias: String = "") = Query("crossJoin", table, if (alias.isNotEmpty()) listOf(alias) else null).toJson()
+
+        /**
+         * Filter resources where [attribute] covers the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun covers(attribute: String, values: List<Any>) = Query("covers", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where [attribute] does not cover the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun notCovers(attribute: String, values: List<Any>) = Query("notCovers", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where [attribute] is spatially equal to the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun spatialEquals(attribute: String, values: List<Any>) = Query("spatialEquals", attribute, listOf(values)).toJson()
+
+        /**
+         * Filter resources where [attribute] is not spatially equal to the given geometry.
+         *
+         * @param attribute The attribute to filter on.
+         * @param values The coordinate values.
+         * @returns The query string.
+         */
+        @JvmStatic
+        fun notSpatialEquals(attribute: String, values: List<Any>) = Query("notSpatialEquals", attribute, listOf(values)).toJson()
+
+        /**
+         * Return limit and offset queries for 1-based page pagination.
+         *
+         * @param page 1-based page number.
+         * @param perPage Rows per page. Defaults to 25.
+         * @returns Limit and offset query strings.
+         */
+        @JvmStatic
+        @JvmOverloads
+        fun page(page: Int, perPage: Int = 25): List<String> {
+            require(page >= 1) { "Page must be >= 1, got $page" }
+            require(perPage >= 1) { "Per page must be >= 1, got $perPage" }
+            return listOf(limit(perPage), offset(Math.multiplyExact(page - 1, perPage)))
+        }
+
+        /**
+         * Start a fluent query builder.
+         *
+         * @returns A new query builder.
+         */
+        @JvmStatic
+        fun builder() = Builder()
+
+        private fun joinQuery(method: String, table: String, left: String, right: String, operator: String, alias: String): String {
+            val values = if (alias.isNotEmpty()) listOf(left, operator, right, alias) else listOf(left, operator, right)
+            return Query(method, table, values).toJson()
+        }
+
+        private fun nestedJoin(method: String, table: String, alias: String, on: List<String>): String {
+            val values = mutableListOf<Any>()
+            if (alias.isNotEmpty()) {
+                values.add(alias)
+            }
+            on.forEach { values.add(it.fromJson<Map<String, Any>>()) }
+            return Query(method, table, values).toJson()
+        }
 
         /**
          * Parse the value to a list of values.
@@ -524,5 +1032,199 @@ class Query(
                 else -> listOf(value)
             }
         }
+    }
+
+    class Builder {
+        private val queries = mutableListOf<String>()
+
+        fun build(): List<String> = queries.toList()
+
+        fun equal(attribute: String, value: Any) = push(Query.equal(attribute, value))
+
+        fun notEqual(attribute: String, value: Any) = push(Query.notEqual(attribute, value))
+
+        fun lessThan(attribute: String, value: Any) = push(Query.lessThan(attribute, value))
+
+        fun lessThanEqual(attribute: String, value: Any) = push(Query.lessThanEqual(attribute, value))
+
+        fun greaterThan(attribute: String, value: Any) = push(Query.greaterThan(attribute, value))
+
+        fun greaterThanEqual(attribute: String, value: Any) = push(Query.greaterThanEqual(attribute, value))
+
+        fun search(attribute: String, value: String) = push(Query.search(attribute, value))
+
+        fun isNull(attribute: String) = push(Query.isNull(attribute))
+
+        fun isNotNull(attribute: String) = push(Query.isNotNull(attribute))
+
+        fun between(attribute: String, start: Any, end: Any) = push(Query.between(attribute, start, end))
+
+        fun startsWith(attribute: String, value: String) = push(Query.startsWith(attribute, value))
+
+        fun endsWith(attribute: String, value: String) = push(Query.endsWith(attribute, value))
+
+        fun select(attributes: List<String>) = push(Query.select(attributes))
+
+        fun cursorAfter(documentId: String) = push(Query.cursorAfter(documentId))
+
+        fun cursorBefore(documentId: String) = push(Query.cursorBefore(documentId))
+
+        fun orderAsc(attribute: String) = push(Query.orderAsc(attribute))
+
+        fun orderDesc(attribute: String) = push(Query.orderDesc(attribute))
+
+        fun orderRandom() = push(Query.orderRandom())
+
+        fun limit(limit: Int) = push(Query.limit(limit))
+
+        fun offset(offset: Int) = push(Query.offset(offset))
+
+        fun contains(attribute: String, value: Any) = push(Query.contains(attribute, value))
+
+        fun containsAny(attribute: String, value: List<Any>) = push(Query.containsAny(attribute, value))
+
+        fun containsAll(attribute: String, value: List<Any>) = push(Query.containsAll(attribute, value))
+
+        fun notContains(attribute: String, value: Any) = push(Query.notContains(attribute, value))
+
+        fun notSearch(attribute: String, value: String) = push(Query.notSearch(attribute, value))
+
+        fun notBetween(attribute: String, start: Any, end: Any) = push(Query.notBetween(attribute, start, end))
+
+        fun notStartsWith(attribute: String, value: String) = push(Query.notStartsWith(attribute, value))
+
+        fun notEndsWith(attribute: String, value: String) = push(Query.notEndsWith(attribute, value))
+
+        fun regex(attribute: String, pattern: String) = push(Query.regex(attribute, pattern))
+
+        fun exists(attributes: List<String>) = push(Query.exists(attributes))
+
+        fun notExists(attributes: List<String>) = push(Query.notExists(attributes))
+
+        fun createdBefore(value: String) = push(Query.createdBefore(value))
+
+        fun createdAfter(value: String) = push(Query.createdAfter(value))
+
+        fun createdBetween(start: String, end: String) = push(Query.createdBetween(start, end))
+
+        fun updatedBefore(value: String) = push(Query.updatedBefore(value))
+
+        fun updatedAfter(value: String) = push(Query.updatedAfter(value))
+
+        fun updatedBetween(start: String, end: String) = push(Query.updatedBetween(start, end))
+
+        fun or(queries: List<String>) = push(Query.or(queries))
+
+        fun and(queries: List<String>) = push(Query.and(queries))
+
+        fun elemMatch(attribute: String, queries: List<String>) = push(Query.elemMatch(attribute, queries))
+
+        fun relationship(attribute: String, queries: List<String>) = push(Query.relationship(attribute, queries))
+
+        fun distanceEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceEqual(attribute, values, distance, meters))
+
+        fun distanceNotEqual(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceNotEqual(attribute, values, distance, meters))
+
+        fun distanceGreaterThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceGreaterThan(attribute, values, distance, meters))
+
+        fun distanceLessThan(attribute: String, values: List<Any>, distance: Number, meters: Boolean = true) = push(Query.distanceLessThan(attribute, values, distance, meters))
+
+        fun intersects(attribute: String, values: List<Any>) = push(Query.intersects(attribute, values))
+
+        fun notIntersects(attribute: String, values: List<Any>) = push(Query.notIntersects(attribute, values))
+
+        fun crosses(attribute: String, values: List<Any>) = push(Query.crosses(attribute, values))
+
+        fun notCrosses(attribute: String, values: List<Any>) = push(Query.notCrosses(attribute, values))
+
+        fun overlaps(attribute: String, values: List<Any>) = push(Query.overlaps(attribute, values))
+
+        fun notOverlaps(attribute: String, values: List<Any>) = push(Query.notOverlaps(attribute, values))
+
+        fun touches(attribute: String, values: List<Any>) = push(Query.touches(attribute, values))
+
+        fun notTouches(attribute: String, values: List<Any>) = push(Query.notTouches(attribute, values))
+
+        fun count(attribute: String = "*", alias: String = "") = push(Query.count(attribute, alias))
+
+        fun countDistinct(attribute: String, alias: String = "") = push(Query.countDistinct(attribute, alias))
+
+        fun sum(attribute: String, alias: String = "") = push(Query.sum(attribute, alias))
+
+        fun avg(attribute: String, alias: String = "") = push(Query.avg(attribute, alias))
+
+        fun min(attribute: String, alias: String = "") = push(Query.min(attribute, alias))
+
+        fun max(attribute: String, alias: String = "") = push(Query.max(attribute, alias))
+
+        fun stddev(attribute: String, alias: String = "") = push(Query.stddev(attribute, alias))
+
+        fun stddevPop(attribute: String, alias: String = "") = push(Query.stddevPop(attribute, alias))
+
+        fun stddevSamp(attribute: String, alias: String = "") = push(Query.stddevSamp(attribute, alias))
+
+        fun variance(attribute: String, alias: String = "") = push(Query.variance(attribute, alias))
+
+        fun varPop(attribute: String, alias: String = "") = push(Query.varPop(attribute, alias))
+
+        fun varSamp(attribute: String, alias: String = "") = push(Query.varSamp(attribute, alias))
+
+        fun bitAnd(attribute: String, alias: String = "") = push(Query.bitAnd(attribute, alias))
+
+        fun bitOr(attribute: String, alias: String = "") = push(Query.bitOr(attribute, alias))
+
+        fun bitXor(attribute: String, alias: String = "") = push(Query.bitXor(attribute, alias))
+
+        fun groupBy(attributes: List<String>) = push(Query.groupBy(attributes))
+
+        fun having(queries: List<String>) = push(Query.having(queries))
+
+        fun distinct() = push(Query.distinct())
+
+        fun join(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.join(table, left, right, operator, alias))
+
+        fun join(table: String, on: List<String>) = push(Query.join(table, on))
+
+        fun join(table: String, alias: String, on: List<String>) = push(Query.join(table, alias, on))
+
+        fun leftJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.leftJoin(table, left, right, operator, alias))
+
+        fun leftJoin(table: String, on: List<String>) = push(Query.leftJoin(table, on))
+
+        fun leftJoin(table: String, alias: String, on: List<String>) = push(Query.leftJoin(table, alias, on))
+
+        fun rightJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.rightJoin(table, left, right, operator, alias))
+
+        fun rightJoin(table: String, on: List<String>) = push(Query.rightJoin(table, on))
+
+        fun rightJoin(table: String, alias: String, on: List<String>) = push(Query.rightJoin(table, alias, on))
+
+        fun fullOuterJoin(table: String, left: String, right: String, operator: String = "=", alias: String = "") = push(Query.fullOuterJoin(table, left, right, operator, alias))
+
+        fun fullOuterJoin(table: String, on: List<String>) = push(Query.fullOuterJoin(table, on))
+
+        fun fullOuterJoin(table: String, alias: String, on: List<String>) = push(Query.fullOuterJoin(table, alias, on))
+
+        fun crossJoin(table: String, alias: String = "") = push(Query.crossJoin(table, alias))
+
+        fun vectorDot(attribute: String, vector: List<Number>) = push(Query.vectorDot(attribute, vector))
+
+        fun vectorCosine(attribute: String, vector: List<Number>) = push(Query.vectorCosine(attribute, vector))
+
+        fun vectorEuclidean(attribute: String, vector: List<Number>) = push(Query.vectorEuclidean(attribute, vector))
+
+        fun covers(attribute: String, values: List<Any>) = push(Query.covers(attribute, values))
+
+        fun notCovers(attribute: String, values: List<Any>) = push(Query.notCovers(attribute, values))
+
+        fun spatialEquals(attribute: String, values: List<Any>) = push(Query.spatialEquals(attribute, values))
+
+        fun notSpatialEquals(attribute: String, values: List<Any>) = push(Query.notSpatialEquals(attribute, values))
+
+        fun page(page: Int, perPage: Int = 25) = push(Query.page(page, perPage))
+
+        private fun push(query: String) = apply { queries.add(query) }
+
+        private fun push(query: List<String>) = apply { queries.addAll(query) }
     }
 }

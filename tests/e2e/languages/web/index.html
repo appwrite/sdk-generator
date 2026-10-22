@@ -29,7 +29,7 @@
             let rtsubFailureFiredAfterUnsubscribe = false;
 
             // Init SDK
-            const { Client, Foo, Bar, General, Realtime, Push, Query, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = Appwrite;
+            const { Client, Foo, Bar, General, Plaintext, Realtime, Push, Query, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = Appwrite;
             const client = new Client();
 
             const foo = new Foo(client);
@@ -218,6 +218,41 @@
             response = await general.getPath({ pathId: 'grant/special&id' });
             console.log(response.result);
 
+            const zone = await new Plaintext(client).getZone();
+            if (typeof zone !== 'string') {
+                throw new Error(`Unexpected zone type: ${typeof zone}`);
+            }
+            console.log(zone);
+            console.log((await general.getMixed()).result);
+
+            const plaintext = new Plaintext(client);
+            console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1'));
+            console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1', document.getElementById('file').files[0]));
+
+            // Optional multipart attachment: positional and object overloads.
+            const message = 'conversation without a required file';
+            const attachment = document.getElementById('file').files[0];
+            for (const send of [
+                () => general.optionalUpload(message),
+                () => general.optionalUpload(message, undefined),
+                () => general.optionalUpload({ message }),
+                () => general.optionalUpload({ message, attachment: undefined }),
+                () => general.optionalUpload(message, attachment),
+                () => general.optionalUpload({ message, attachment }),
+            ]) {
+                console.log((await send()).result);
+            }
+            try {
+                await general.upload('string', 123, ['string in array']);
+                throw new Error('Missing required file was accepted');
+            } catch (error) {
+                if (!(error instanceof Appwrite.AppwriteException)) throw error;
+                console.log('required-file:rejected');
+            }
+
+            console.log((await general.optionalUpload({ message, metadata: { source: 'sdk', uri: 'café' } })).result);
+            console.log((await general.optionalUpload({ message, attachment, metadata: { source: 'sdk', uri: 'café' } })).result);
+
             // Upload
             response = await general.upload(
                 "string",
@@ -251,6 +286,9 @@
                 file: document.getElementById("file2").files[0]
             });
             console.log(response.result);
+
+            response = await general.uploadGeneric({ file: document.getElementById("file").files[0] });
+            console.log(response.prefs.result);
 
             response = await general.enum(MockType.First);
             console.log(response.result);
@@ -292,6 +330,22 @@
             } catch (error) {
                 console.log(error);
             }
+
+            const preset = await general.getPreset();
+            console.log(`preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}`);
+            const presets = await general.listPresets();
+            for (const item of presets.presets) {
+                console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
+            }
+            console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
+            presets.presets[0].tags.push('mutated');
+            console.log(`preset tags shared: ${presets.presets[1].tags.length}`);
+            console.log(`nested builder: ${JSON.stringify(Appwrite.flattenParam([[Query.builder().limit(1)]])) === JSON.stringify([[Query.limit(1)]]) ? 'passed' : 'failed'}`);
+            console.log(`preset verified: ${preset.verified}`);
+            console.log(`preset toString: ${preset.toString()}`);
+
+            response = await general.nullable({ required: 'required', nullable: null, nullableInteger: null });
+            console.log(response.result);
 
             try {
                 response = await general.error400();
@@ -458,6 +512,47 @@
                 Query.equal("name", "Alice"),
                 Query.greaterThan("age", 18)
             ]));
+            console.log(Query.relationship("comments", [
+                Query.equal("approved", true),
+                Query.limit(2)
+            ]));
+            const queryTransport = await general.listRows([
+                Query.count("*", "total"),
+                Query.join("orders", "$id", "customerId"),
+                Query.groupBy(["status"]),
+                Query.distinct(),
+                Query.covers("location", [1, 2]),
+                Query.countDistinct("year", "uniqueYears"),
+                Query.sum("price", "total"),
+                Query.avg("price", "avgPrice"),
+                Query.min("price", "lowest"),
+                Query.max("price", "highest"),
+                Query.stddev("price", "sd"),
+                Query.stddevPop("price", "sdp"),
+                Query.stddevSamp("price", "sds"),
+                Query.variance("price", "var"),
+                Query.varPop("price", "vp"),
+                Query.varSamp("price", "vs"),
+                Query.bitAnd("flags", "band"),
+                Query.bitOr("flags", "bor"),
+                Query.bitXor("flags", "bxor"),
+                Query.having([Query.greaterThan("total", 1)]),
+                Query.leftJoin("orders", "$id", "customerId", "=", "ord"),
+                Query.rightJoin("orders", "$id", "customerId"),
+                Query.fullOuterJoin("orders", "$id", "customerId"),
+                Query.crossJoin("orders", "ord"),
+                Query.on("$id", "customerId"),
+                Query.leftJoin("orders", "ord", [
+                    Query.on("$id", "customerId"),
+                    Query.equal("ord.status", "paid"),
+                ]),
+                Query.notCovers("location", [1, 2]),
+                Query.spatialEquals("location", [1, 2]),
+                Query.notSpatialEquals("location", [1, 2]),
+                ...Query.page(2, 10),
+                Query.builder().limit(1),
+            ]);
+            console.log(queryTransport.result);
 
             // Permission & Role helper tests
             console.log(Permission.read(Role.any()));
@@ -479,17 +574,13 @@
             // Topic helper tests
             console.log(Topic.path(['user', '123', 'notification']).toString());
             console.log(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
-            console.log(Topic.path(['user']).any().path(['notification']).toString());
-            console.log(Topic.path(['chat']).any().any().path(['message']).toString());
-            console.log(Topic.path(['org']).any().path(['logs']).all().toString());
-            console.log(Topic.any().path(['notification']).toString());
-            console.log(Topic.all().toString());
             for (const [name, levels] of [
                 ['empty path', []],
                 ['empty level', ['user', '']],
                 ['slash', ['user/123']],
                 ['plus', ['user', 'a+b']],
                 ['hash', ['user', '#']],
+                ['nul', ['user', 'a\u0000b']],
             ]) {
                 try {
                     Topic.path(levels);
@@ -635,6 +726,13 @@
             anonymousPush.close();
             console.log(noCredentialRejected ? 'Push user no credential:passed' : 'Push user no credential:failed');
 
+            // Signed in through the client: with no JWT or session set on it, the user comes from
+            // the session its sign-in kept in localStorage (cookieFallback).
+            window.localStorage.setItem('cookieFallback', JSON.stringify({ a_session_console: e2eSession }));
+            const signInTopics = await userTopicsOf(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083'));
+            window.localStorage.removeItem('cookieFallback');
+            console.log(onlyTopic(signInTopics, 'users/e2e-session-user') ? 'Push user sign-in session topic:passed' : 'Push user sign-in session topic:failed');
+
             // A message published while the user is signed out reaches their next sign-in, though that
             // sign-in has a new session secret (subscribing to "e2e-replay-publish" makes the mock
             // publish on "e2e-replay", queued for clients that subscribed before and are offline).
@@ -677,6 +775,123 @@
             console.log((await kickedError) === 'kicked-by-test' ? 'Push disconnect error:passed' : 'Push disconnect error:failed');
             kickedPush.close();
 
+            const outcome = (subscribing) => subscribing.then(() => '', (e) => (e instanceof Error ? e.message : String(e)));
+            const switchClient = new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession);
+            const switchPush = new Push(switchClient);
+            await switchPush.subscribe(['e2e-switch'], () => {});
+            switchClient.setJWT('deny:switched-user');
+            const switched = await outcome(switchPush.subscribe(['e2e-switch'], () => {}));
+            switchPush.close();
+            console.log(switched === 'switched-user' ? 'Push credential switch:passed' : `Push credential switch:failed (${switched})`);
+
+            const pendingClient = new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setJWT('slow:pending');
+            const pendingPush = new Push(pendingClient);
+            const firstPending = outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            pendingClient.setJWT('deny:switched-pending');
+            const secondPending = await outcome(pendingPush.subscribe(['e2e-switch'], () => {}));
+            const firstPendingOutcome = await Promise.race([firstPending, new Promise((resolve) => setTimeout(() => resolve('timeout'), 5000))]);
+            pendingPush.close();
+            console.log(
+                secondPending === 'switched-pending' && firstPendingOutcome === 'switched-pending'
+                    ? 'Push credential pending switch:passed'
+                    : `Push credential pending switch:failed (first: ${firstPendingOutcome}, second: ${secondPending})`,
+            );
+
+            const refusedPush = new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setJWT('deny:concurrent-refused'));
+            const refused = await Promise.all([
+                outcome(refusedPush.subscribe(['e2e-push'], () => {})),
+                outcome(refusedPush.subscribe(['e2e-push'], () => {})),
+            ]);
+            refusedPush.close();
+            console.log(
+                refused.every((message) => message === 'concurrent-refused')
+                    ? 'Push concurrent refused:passed'
+                    : `Push concurrent refused:failed (${refused.join(', ')})`,
+            );
+
+            // The client id the broker sees for a Push. The mock echoes the connection's client id
+            // on e2e-whoami, so this is an observable identity, not the SDK's formatting.
+            const newTabPush = () => new Push(new Client().setProject('console').setPushEndpoint('ws://mqtt:8083').setSession(e2eSession));
+            const whoamiOf = (tabPush) => Promise.race([
+                new Promise((resolve) => { tabPush.subscribe(['e2e-whoami'], (m) => resolve(m.data)); }),
+                new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
+            ]);
+
+            // Closing and reopening in the same tab resumes the same client id, so the broker replays.
+            const firstTab = newTabPush();
+            const pageId = await whoamiOf(firstTab);
+            firstTab.close();
+            const secondTab = newTabPush();
+            const samePageId = await whoamiOf(secondTab);
+            secondTab.close();
+
+            // Two Push instances alive at the same time in one page must get distinct client ids, so
+            // neither takes over the other's broker session.
+            const liveA = newTabPush();
+            const liveB = newTabPush();
+            const [liveAId, liveBId] = await Promise.all([whoamiOf(liveA), whoamiOf(liveB)]);
+            liveA.close();
+            liveB.close();
+
+            // A popup copies its opener's sessionStorage, like a duplicated tab, and still gets its own id.
+            const popupId = await Promise.race([
+                new Promise((resolve) => {
+                    window.addEventListener('message', (event) => {
+                        if (event.data && typeof event.data.whoami === 'string') {
+                            resolve(event.data.whoami);
+                        }
+                    });
+                    window.open('tab.html', '_blank');
+                }),
+                new Promise((resolve) => setTimeout(() => resolve(''), 5000)),
+            ]);
+            console.log(
+                pageId !== '' && pageId === samePageId &&
+                liveAId !== '' && liveBId !== '' && liveAId !== liveBId &&
+                popupId !== '' && popupId !== pageId
+                    ? 'Push tab client id:passed'
+                    : `Push tab client id:failed (page ${pageId}, same ${samePageId}, liveA ${liveAId}, liveB ${liveBId}, popup ${popupId})`,
+            );
+
+            // A tap on a notification this page showed reaches onNotificationOpened with the
+            // message's parsed data until it is stopped. The browser's Notification is stood in
+            // for, so the test can click the one a background delivery shows.
+            const shown = [];
+            const RealNotification = window.Notification;
+            window.Notification = class {
+                static permission = 'granted';
+                static requestPermission() {
+                    return Promise.resolve('granted');
+                }
+                constructor(title, options) {
+                    this.title = title;
+                    this.options = options;
+                    shown.push(this);
+                }
+                close() {}
+            };
+            const tapPush = new Push(client);
+            const tapped = [];
+            const stopTaps = tapPush.onNotificationOpened((opened) => tapped.push(opened));
+            const initial = await tapPush.getInitialNotification();
+            await tapPush.subscribe(['e2e-push'], () => {}, { background: true, title: 'E2E title' });
+            const shownDeadline = Date.now() + 10000;
+            while (shown.length === 0 && Date.now() < shownDeadline) {
+                await new Promise((resolve) => setTimeout(resolve, 50));
+            }
+            shown[0]?.onclick?.();
+            stopTaps();
+            shown[0]?.onclick?.();
+            tapPush.close();
+            window.Notification = RealNotification;
+            console.log(
+                initial === null && tapped.length === 1 && tapped[0].topic === 'e2e-push' && JSON.stringify(tapped[0].data) === '{}'
+                    ? 'Push notification opened web:passed'
+                    : `Push notification opened web:failed (initial: ${initial}, shown: ${shown.length}, tapped: ${JSON.stringify(tapped)})`,
+            );
+
+            window.indexDone = true;
         });
     </script>
 </body>

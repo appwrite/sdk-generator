@@ -8,6 +8,7 @@ import {{ sdk.namespace | caseDot }}.cookies.stores.SharedPreferencesCookieStore
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import {{ sdk.namespace | caseDot }}.extensions.fromJson
 import {{ sdk.namespace | caseDot }}.extensions.toJsonRequestBody
+import {{ sdk.namespace | caseDot }}.extensions.toJsonWithNulls
 import {{ sdk.namespace | caseDot }}.models.InputFile
 import {{ sdk.namespace | caseDot }}.models.UploadProgress
 import kotlinx.coroutines.CoroutineScope
@@ -49,11 +50,11 @@ class Client @JvmOverloads constructor(
     var endpoint: String = "{{(spec | endpoint)}}",
     @set:JvmSynthetic
     var endpointRealtime: String? = null,
+    private var selfSigned: Boolean = false,
     @set:JvmSynthetic
     var endpointPush: String? = null,
     @set:JvmSynthetic
-    var pushClientId: String? = null,
-    private var selfSigned: Boolean = false
+    var pushClientId: String? = null
 ) : CoroutineScope {
 
     companion object {
@@ -334,7 +335,10 @@ class Client @JvmOverloads constructor(
         headers: Map<String, String> = mapOf(),
         params: Map<String, Any?> = mapOf(),
     ): Request {
-        val filteredParams = params.filterValues { it != null }
+        // flatten() resolves Query/Query.Builder values before the null filter,
+        // so a builder that renders to null is dropped like any other null.
+        val flattenedParams = params.mapValues { flatten(it.value) }
+        val filteredParams = flattenedParams.filterValues { it != null }
 
         val requestHeaders = this.headers.toHeaders().newBuilder()
             .addAll(headers.toHeaders())
@@ -375,8 +379,11 @@ class Client @JvmOverloads constructor(
 
             filteredParams.forEach {
                 when {
-                    it.key == "file" -> {
+                    it.value is MultipartBody.Part -> {
                         builder.addPart(it.value as MultipartBody.Part)
+                    }
+                    it.value is Map<*, *> -> {
+                        builder.addFormDataPart(it.key, (it.value as Map<*, *>).toJsonWithNulls())
                     }
                     it.value is List<*> -> {
                         val list = it.value as List<*>
@@ -394,7 +401,7 @@ class Client @JvmOverloads constructor(
             }
             builder.build()
         } else {
-            params
+            flattenedParams
                 .toJsonRequestBody()
                 .toRequestBody("application/json".toMediaType())
         }
@@ -435,6 +442,7 @@ class Client @JvmOverloads constructor(
      * @param path
      * @param headers
      * @param params
+     * @param method HTTP method the upload endpoint is declared with; resuming by upload ID always uses GET
      *
      * @return [T]
      */
@@ -444,11 +452,22 @@ class Client @JvmOverloads constructor(
         headers: MutableMap<String, String>,
         params: MutableMap<String, Any?>,
         responseType: Class<T>,
-        converter: ((Any) -> T),
+        converter: ((Any) -> T)? = null,
         paramName: String,
         idParamName: String? = null,
         onProgress: ((UploadProgress) -> Unit)? = null,
+        method: String = "POST",
     ): T {
+        if (params[paramName] == null) {
+            return call(
+                method = method,
+                path,
+                headers,
+                params,
+                responseType,
+                converter
+            )
+        }
         val input = params[paramName] as InputFile
         val size: Long = when (input.sourceType) {
             "path", "file" -> {
@@ -460,7 +479,7 @@ class Client @JvmOverloads constructor(
             else -> throw UnsupportedOperationException()
         }
 
-        if (size < CHUNK_SIZE) {
+        if (size <= CHUNK_SIZE || responseType == String::class.java) {
             val data = when (input.sourceType) {
                 "file", "path" -> File(input.path).asRequestBody()
                 "bytes" -> (input.data as ByteArray).toRequestBody(input.mimeType.toMediaType())
@@ -472,7 +491,7 @@ class Client @JvmOverloads constructor(
                 data
             )
             return call(
-                method = "POST",
+                method = method,
                 path,
                 headers,
                 params,
@@ -543,7 +562,7 @@ class Client @JvmOverloads constructor(
             )
 
             val chunkResult = call(
-                method = "POST",
+                method = method,
                 path,
                 chunkHeaders,
                 chunkParams,
@@ -626,7 +645,7 @@ class Client @JvmOverloads constructor(
             result = completedResultRef.get() ?: lastResultRef.get()
         }
 
-        return converter(result as Map<String, Any>)
+        return converter?.invoke(result as Map<String, Any>) ?: result as T
     }
 
     /**
@@ -725,5 +744,45 @@ class Client @JvmOverloads constructor(
                 )
             }
         })
+    }
+
+    fun flatten(value: Any?): Any? {
+        if (value is Query.Builder) {
+            return value.build()
+        }
+        if (value is Query) {
+            return value.toString()
+        }
+
+        val items = when (value) {
+            is Array<*> -> value.asList()
+            is Collection<*> -> value
+            else -> return value
+        }
+
+        val out = ArrayList<Any?>(items.size)
+        var changed = false
+        for (item in items) {
+            val flat = flatten(item)
+            if (item is Query.Builder || item is Query) {
+                if (flat is Collection<*>) {
+                    out.addAll(flat)
+                } else {
+                    out.add(flat)
+                }
+                changed = true
+                continue
+            }
+            if ((item is Array<*> || item is Collection<*>) && flat is Collection<*> && flat.all { it is String }) {
+                out.addAll(flat)
+                changed = true
+                continue
+            }
+            if (flat !== item) {
+                changed = true
+            }
+            out.add(flat)
+        }
+        return if (changed || value is Array<*>) out else value
     }
 }

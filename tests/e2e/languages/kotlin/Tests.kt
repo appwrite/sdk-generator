@@ -18,6 +18,7 @@ import io.appwrite.models.Player
 import io.appwrite.services.Bar
 import io.appwrite.services.Foo
 import io.appwrite.services.General
+import io.appwrite.services.Plaintext
 import kotlinx.coroutines.runBlocking
 import okhttp3.MultipartBody
 import okhttp3.Response
@@ -113,6 +114,18 @@ class ServiceTest {
             writeToFile(general.validatePath("0", "0").result)
             writeToFile(general.validatePath("0", null).result)
 
+            val zone: String = Plaintext(client).getZone()
+            writeToFile(zone)
+            writeToFile(general.getMixed().result)
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1"))
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1", InputFile.fromPath("../../../resources/file.png")))
+
+            val message = "conversation without a required file"
+            writeToFile(general.optionalUpload(message).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../resources/file.png")).result)
+            writeToFile(general.optionalUpload(message, metadata = mapOf("source" to "sdk", "uri" to "café")).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../resources/file.png"), mapOf("source" to "sdk", "uri" to "café")).result)
+
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/file.png"))
                 writeToFile(mock.result)
@@ -140,6 +153,16 @@ class ServiceTest {
                 writeToFile(ex.toString())
             }
 
+            try {
+                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(ByteArray(5 * 1024 * 1024), "boundary.bin", "application/octet-stream"))
+                writeToFile(mock.result)
+            } catch (ex: Exception) {
+                writeToFile(ex.toString())
+            }
+
+            val profile = general.uploadGeneric(InputFile.fromPath("../../../resources/file.png"))
+            writeToFile(profile.prefs.data["result"] as String)
+
             writeToFile(String(general.download()))
 
             mock = general.enum(MockType.FIRST)
@@ -154,6 +177,15 @@ class ServiceTest {
                 Player(id = "player2", name = "Jane Doe", score = 200)
             ))
             writeToFile(mock.result)
+
+            val preset = general.getPreset()
+            writeToFile("preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}")
+            general.listPresets().presets.forEach {
+                writeToFile("preset: name=${it.name}, count=${it.count}, enabled=${it.enabled}")
+            }
+            writeToFile("empty presets: ${general.listEmptyPresets().presets.size}")
+            writeToFile("preset verified: ${preset.verified}")
+            writeToFile("preset scopes: ${preset.scopes?.joinToString(",") { it.value } ?: ""}")
 
             try {
                 general.error400()
@@ -271,6 +303,47 @@ class ServiceTest {
                 Query.equal("name", "Alice"),
                 Query.greaterThan("age", 18)
             )))
+            writeToFile(Query.relationship("comments", listOf(
+                Query.equal("approved", true),
+                Query.limit(2)
+            )))
+            val queryTransport = general.listRows(
+                listOf(
+                    Query.count("*", "total"),
+                    Query.join("orders", "\$id", "customerId"),
+                    Query.groupBy(listOf("status")),
+                    Query.distinct(),
+                    Query.covers("location", listOf(1, 2)),
+                    Query.countDistinct("year", "uniqueYears"),
+                    Query.sum("price", "total"),
+                    Query.avg("price", "avgPrice"),
+                    Query.min("price", "lowest"),
+                    Query.max("price", "highest"),
+                    Query.stddev("price", "sd"),
+                    Query.stddevPop("price", "sdp"),
+                    Query.stddevSamp("price", "sds"),
+                    Query.variance("price", "var"),
+                    Query.varPop("price", "vp"),
+                    Query.varSamp("price", "vs"),
+                    Query.bitAnd("flags", "band"),
+                    Query.bitOr("flags", "bor"),
+                    Query.bitXor("flags", "bxor"),
+                    Query.having(listOf(Query.greaterThan("total", 1))),
+                    Query.leftJoin("orders", "\$id", "customerId", "=", "ord"),
+                    Query.rightJoin("orders", "\$id", "customerId"),
+                    Query.fullOuterJoin("orders", "\$id", "customerId"),
+                    Query.crossJoin("orders", "ord"),
+                    Query.on("\$id", "customerId"),
+                    Query.leftJoin("orders", "ord", listOf(
+                        Query.on("\$id", "customerId"),
+                        Query.equal("ord.status", "paid"),
+                    )),
+                    Query.notCovers("location", listOf(1, 2)),
+                    Query.spatialEquals("location", listOf(1, 2)),
+                    Query.notSpatialEquals("location", listOf(1, 2)),
+                ) + Query.page(2, 10) + Query.builder().limit(1).build()
+            )
+            writeToFile(queryTransport.result)
 
             // Permission & Roles helper tests
             writeToFile(Permission.read(Role.any()))
@@ -288,20 +361,18 @@ class ServiceTest {
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
 
+            JavaInterop.run(general, "../../../resources/file.png").forEach { writeToFile(it) }
+
             // Topic helper tests
             writeToFile(Topic.path(listOf("user", "123", "notification")).toString())
             writeToFile(Topic.path(listOf("org", "42", "user", "123")).path(listOf("notification")).toString())
-            writeToFile(Topic.path(listOf("user")).any().path(listOf("notification")).toString())
-            writeToFile(Topic.path(listOf("chat")).any().any().path(listOf("message")).toString())
-            writeToFile(Topic.path(listOf("org")).any().path(listOf("logs")).all().toString())
-            writeToFile(Topic.any().path(listOf("notification")).toString())
-            writeToFile(Topic.all().toString())
             val topicErrorCases = listOf(
                 "empty path" to emptyList<String>(),
                 "empty level" to listOf("user", ""),
                 "slash" to listOf("user/123"),
                 "plus" to listOf("user", "a+b"),
                 "hash" to listOf("user", "#"),
+                "nul" to listOf("user", "a\u0000b"),
             )
             for ((name, levels) in topicErrorCases) {
                 try {

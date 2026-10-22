@@ -66,7 +66,12 @@ abstract class Client {
     required String idParamName,
     required Map<String, String> headers,
     Function(UploadProgress)? onProgress,
+    ResponseType? responseType,
+    HttpMethod method = HttpMethod.post,
   });
+
+  /// Flatten builders and nested query-string lists for request params.
+  dynamic flatten(dynamic value);
 
   /// Send the API request.
   Future<Response> call(

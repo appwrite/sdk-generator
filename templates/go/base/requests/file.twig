@@ -1,6 +1,18 @@
 {% set fileParameter = (method | parameters('all')) | filter(p => (p | schemaType) == 'file') | last %}
 	paramName := "{{ fileParameter.name }}"
 
+{% if (method | textResponse) %}
+	resp, err := srv.client.SingleUpload(path, headers, params, paramName, "{{ method.method.value | caseUpper }}")
+	if err != nil {
+		return nil, err
+	}
+	body, err := client.ResponseBody(resp)
+	if err != nil {
+		return nil, err
+	}
+	parsed := string(body)
+	return &parsed, nil
+{% else %}
 	uploadId := ""
 {% set uploadIdParameter = method | uploadIdParameter %}
 {% if uploadIdParameter %}
@@ -9,7 +21,7 @@
 	}
 {% endif %}
 
-	resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId)
+	resp, err := srv.client.FileUpload(path, headers, params, paramName, uploadId, "{{ method.method.value | caseUpper }}")
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +55,12 @@
 		}
 		return parsed, nil
 {% endif %}
+{% elseif method | returnType(spec, spec.info.title | caseLower) != 'interface{}' and method | returnType(spec, spec.info.title | caseLower) != '[]byte' and method | returnType(spec, spec.info.title | caseLower) != 'bool' %}
+		parsed := {{ method | returnType(spec, spec.info.title | caseLower) }}{}.New(bytes)
+		if err := json.Unmarshal(bytes, parsed); err != nil {
+			return nil, err
+		}
+		return parsed, nil
 {% else %}
 		var parsed {{ method | returnType(spec, spec.info.title | caseLower) }}
 		err = json.Unmarshal(bytes, &parsed)
@@ -65,4 +83,5 @@
 		return nil, errors.New("unexpected response type")
 	}
 	return &parsed, nil
+{% endif %}
 {% endif %}

@@ -1,4 +1,6 @@
 const { Client } = require('../dist/client');
+const { InputFile } = require('../dist/inputFile');
+const { Query } = require('../dist/query');
 const { fetch: mockedFetch, Response, Dispatcher } = require('undici');
 
 jest.mock('undici', () => ({
@@ -41,5 +43,166 @@ describe('Client', () => {
         } finally {
             client.setSelfSigned(false);
         }
+    });
+});
+
+describe('Client.prepareRequest', () => {
+    const url = () => new URL('https://cloud.appwrite.io/v1/rows');
+    const params = () => ({
+        data: [['a', 'b']],
+        queries: Query.builder().equal('status', 'active').limit(1),
+        filters: [Query.equal('status', 'active'), Query.builder().limit(1)],
+    });
+    const queries = [Query.equal('status', 'active'), Query.limit(1)];
+
+    test('sends nested string arrays and flattened builders as JSON', () => {
+        const { options } = new Client().prepareRequest(
+            'POST',
+            url(),
+            { 'content-type': 'application/json' },
+            params(),
+        );
+
+        expect(JSON.parse(options.body)).toEqual({
+            data: [['a', 'b']],
+            queries,
+            filters: queries,
+        });
+    });
+
+    test('sends nested string arrays and flattened builders as query string', () => {
+        const { uri } = new Client().prepareRequest('GET', url(), {}, params());
+        const search = new URL(uri).searchParams;
+
+        expect(search.get('data[0][0]')).toBe('a');
+        expect(search.get('data[0][1]')).toBe('b');
+        expect(search.has('data[0]')).toBe(false);
+        expect([search.get('queries[0]'), search.get('queries[1]')]).toEqual(
+            queries,
+        );
+        expect([search.get('filters[0]'), search.get('filters[1]')]).toEqual(
+            queries,
+        );
+    });
+
+    test('sends flattened builders as multipart fields', () => {
+        const { options } = new Client().prepareRequest(
+            'POST',
+            url(),
+            { 'content-type': 'multipart/form-data' },
+            params(),
+        );
+
+        expect(options.body.getAll('queries[]')).toEqual(queries);
+        expect(options.body.getAll('filters[]')).toEqual(queries);
+    });
+});
+
+describe('Client.chunkedUpload', () => {
+    const url = new URL(
+        'https://cloud.appwrite.io/v1/storage/buckets/bucket/files',
+    );
+    const headers = { 'content-type': 'multipart/form-data' };
+    const sentHeaders = (index) => mockedFetch.mock.calls[index][1].headers;
+    const file = (size) =>
+        InputFile.fromBuffer(Buffer.alloc(size), 'upload.bin');
+
+    beforeEach(() => {
+        mockedFetch.mockReset();
+    });
+
+    test('sends a file of exactly the chunk size in one request', async () => {
+        mockedFetch.mockImplementation(() => Response.json({ $id: 'file' }));
+        const client = new Client();
+
+        await client.chunkedUpload(
+            'POST',
+            url,
+            { ...headers },
+            { file: file(Client.CHUNK_SIZE) },
+            () => {},
+        );
+
+        expect(mockedFetch).toHaveBeenCalledTimes(1);
+        expect(sentHeaders(0)).not.toHaveProperty('content-range');
+    });
+
+    test('splits a larger file into chunks that share the upload id', async () => {
+        mockedFetch.mockImplementation(() =>
+            Response.json({
+                $id: 'file',
+                chunksUploaded: mockedFetch.mock.calls.length,
+                chunksTotal: 2,
+            }),
+        );
+        const client = new Client();
+        const size = Client.CHUNK_SIZE + 1;
+
+        const result = await client.chunkedUpload(
+            'POST',
+            url,
+            { ...headers },
+            { file: file(size) },
+            () => {},
+        );
+
+        expect(mockedFetch).toHaveBeenCalledTimes(2);
+        expect(sentHeaders(0)['content-range']).toBe(
+            `bytes 0-${Client.CHUNK_SIZE - 1}/${size}`,
+        );
+        expect(sentHeaders(1)['content-range']).toBe(
+            `bytes ${Client.CHUNK_SIZE}-${Client.CHUNK_SIZE}/${size}`,
+        );
+        expect(sentHeaders(1)['x-{{ spec.info.title | caseLower }}-id']).toBe('file');
+        expect(result).toEqual({
+            $id: 'file',
+            chunksUploaded: 2,
+            chunksTotal: 2,
+        });
+    });
+
+    test('sends a text upload in one request whatever its size', async () => {
+        mockedFetch.mockImplementation(
+            () =>
+                new Response('zone file', {
+                    headers: { 'content-type': 'text/plain' },
+                }),
+        );
+        const client = new Client();
+
+        const result = await client.chunkedUpload(
+            'POST',
+            url,
+            { ...headers },
+            { file: file(Client.CHUNK_SIZE * 2 + 1) },
+            () => {},
+            'text',
+        );
+
+        expect(mockedFetch).toHaveBeenCalledTimes(1);
+        expect(sentHeaders(0)).not.toHaveProperty('content-range');
+        expect(result).toBe('zone file');
+    });
+
+    test('makes a plain call with the requested response type when no file is sent', async () => {
+        mockedFetch.mockImplementation(
+            () =>
+                new Response('plain text', {
+                    headers: { 'content-type': 'text/plain' },
+                }),
+        );
+        const client = new Client();
+
+        const result = await client.chunkedUpload(
+            'POST',
+            url,
+            { ...headers },
+            { name: 'zone' },
+            () => {},
+            'text',
+        );
+
+        expect(mockedFetch).toHaveBeenCalledTimes(1);
+        expect(result).toBe('plain text');
     });
 });

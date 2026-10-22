@@ -1,12 +1,17 @@
 import './shims/expo-runtime';
+import { useExpoFileSystem } from './shims/metro-require';
+import { written } from './shims/expo-file-system';
+import { Platform } from 'react-native';
 import {
     Client,
     Foo,
     Bar,
     General,
+    Plaintext,
     AppwriteException,
     Realtime,
     Query,
+    flattenParam,
     Permission,
     Role,
     ID,
@@ -141,22 +146,55 @@ import {
     response = await general.validatePath({ id: '0', plain: '0' });
     console.log(response.result);
 
-    // Download
-    console.log(new TextDecoder().decode(await general.download()));
+    const zone = await new Plaintext(client).getZone();
+    if (typeof zone !== 'string') {
+        throw new Error(`Unexpected zone type: ${typeof zone}`);
+    }
+    console.log(zone);
+    console.log((await general.getMixed()).result);
 
-    // Upload
     const smallFile = {
         name: 'file.png',
         type: 'image/png',
         size: 38756,
         uri: 'http://localhost:3000/file.png',
     };
+    const plaintext = new Plaintext(client);
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1'));
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1', smallFile));
+
+    // Download
+    console.log(new TextDecoder().decode(await general.download()));
+
+    // Upload
     const largeFile = {
         name: 'large_file.mp4',
         type: 'video/mp4',
         size: 16310023,
         uri: 'http://localhost:3000/large_file.mp4',
     };
+    const message = 'conversation without a required file';
+    for (const send of [
+        () => general.optionalUpload(message),
+        () => general.optionalUpload(message, undefined),
+        () => general.optionalUpload({ message }),
+        () => general.optionalUpload({ message, attachment: undefined }),
+        () => general.optionalUpload(message, smallFile),
+        () => general.optionalUpload({ message, attachment: smallFile }),
+    ]) {
+        console.log((await send()).result);
+    }
+    try {
+        await general.upload('string', 123, ['string in array']);
+        throw new Error('Missing required file was accepted');
+    } catch (error) {
+        if (!(error instanceof AppwriteException)) throw error;
+        console.log('required-file:rejected');
+    }
+
+    console.log((await general.optionalUpload({ message, metadata: { source: 'sdk', uri: 'café' } })).result);
+    console.log((await general.optionalUpload({ message, attachment: smallFile, metadata: { source: 'sdk', uri: 'café' } })).result);
+
     response = await general.upload('string', 123, ['string in array'], smallFile);
     console.log(response.result);
     response = await general.upload('string', 123, ['string in array'], largeFile);
@@ -167,6 +205,19 @@ import {
     console.log(response.result);
     response = await general.upload({ x: 'string', y: 123, z: ['string in array'], file: largeFile });
     console.log(response.result);
+
+    Platform.OS = 'android';
+    for (const major of [58, 18]) {
+        useExpoFileSystem(major);
+        response = await general.upload('string', 123, ['string in array'], largeFile);
+        console.log(response.result);
+        console.log(`expo-file-system ${major} chunk files left: ${written.size}`);
+    }
+    useExpoFileSystem(58);
+    Platform.OS = 'web';
+
+    response = await general.uploadGeneric({ file: smallFile });
+    console.log(response.prefs.result);
 
     // Enum
     response = await general.enum(MockType.First);
@@ -186,6 +237,22 @@ import {
     console.log(response.result);
 
     response = await general.getOptional(0, 64, 'zero');
+    console.log(response.result);
+
+    const preset = await general.getPreset();
+    console.log(`preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}`);
+    const presets = await general.listPresets();
+    for (const item of presets.presets) {
+        console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
+    }
+    console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
+    presets.presets[0].tags.push('mutated');
+    console.log(`preset tags shared: ${presets.presets[1].tags.length}`);
+    console.log(`nested builder: ${JSON.stringify(flattenParam([[Query.builder().limit(1)]])) === JSON.stringify([[Query.limit(1)]]) ? 'passed' : 'failed'}`);
+    console.log(`preset verified: ${preset.verified}`);
+    console.log(`preset toString: ${preset.toString()}`);
+
+    response = await general.nullable({ required: 'required', nullable: null, nullableInteger: null });
     console.log(response.result);
 
     // Exception responses
@@ -341,6 +408,47 @@ import {
         Query.equal('name', 'Alice'),
         Query.greaterThan('age', 18),
     ]));
+    console.log(Query.relationship('comments', [
+        Query.equal('approved', true),
+        Query.limit(2),
+    ]));
+    const queryTransport = await general.listRows([
+        Query.count('*', 'total'),
+        Query.join('orders', '$id', 'customerId'),
+        Query.groupBy(['status']),
+        Query.distinct(),
+        Query.covers('location', [1, 2]),
+        Query.countDistinct('year', 'uniqueYears'),
+        Query.sum('price', 'total'),
+        Query.avg('price', 'avgPrice'),
+        Query.min('price', 'lowest'),
+        Query.max('price', 'highest'),
+        Query.stddev('price', 'sd'),
+        Query.stddevPop('price', 'sdp'),
+        Query.stddevSamp('price', 'sds'),
+        Query.variance('price', 'var'),
+        Query.varPop('price', 'vp'),
+        Query.varSamp('price', 'vs'),
+        Query.bitAnd('flags', 'band'),
+        Query.bitOr('flags', 'bor'),
+        Query.bitXor('flags', 'bxor'),
+        Query.having([Query.greaterThan('total', 1)]),
+        Query.leftJoin('orders', '$id', 'customerId', '=', 'ord'),
+        Query.rightJoin('orders', '$id', 'customerId'),
+        Query.fullOuterJoin('orders', '$id', 'customerId'),
+        Query.crossJoin('orders', 'ord'),
+        Query.on('$id', 'customerId'),
+        Query.leftJoin('orders', 'ord', [
+            Query.on('$id', 'customerId'),
+            Query.equal('ord.status', 'paid'),
+        ]),
+        Query.notCovers('location', [1, 2]),
+        Query.spatialEquals('location', [1, 2]),
+        Query.notSpatialEquals('location', [1, 2]),
+        ...Query.page(2, 10),
+        Query.builder().limit(1),
+    ]);
+    console.log(queryTransport.result);
 
     // Permission & Role helper tests
     console.log(Permission.read(Role.any()));
@@ -361,17 +469,13 @@ import {
     // Topic helper tests
     console.log(Topic.path(['user', '123', 'notification']).toString());
     console.log(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
-    console.log(Topic.path(['user']).any().path(['notification']).toString());
-    console.log(Topic.path(['chat']).any().any().path(['message']).toString());
-    console.log(Topic.path(['org']).any().path(['logs']).all().toString());
-    console.log(Topic.any().path(['notification']).toString());
-    console.log(Topic.all().toString());
     for (const [name, levels] of [
         ['empty path', []],
         ['empty level', ['user', '']],
         ['slash', ['user/123']],
         ['plus', ['user', 'a+b']],
         ['hash', ['user', '#']],
+        ['nul', ['user', 'a\u0000b']],
     ]) {
         try {
             Topic.path(levels);

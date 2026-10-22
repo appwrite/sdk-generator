@@ -110,6 +110,11 @@ class Go extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'query/builder.go',
+                'template'      => 'go/query/builder.go.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'operator/operator.go',
                 'template'      => 'go/operator.go.twig',
             ],
@@ -239,59 +244,6 @@ class Go extends Language
         };
     }
 
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type       = $this->getSchemaType($param);
-        $default    = $this->getSchemaDefault($param);
-        $required   = ($param instanceof Parameter && $param->required);
-
-        if ($required) {
-            return '';
-        }
-
-        $output = ' = ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= "0";
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= '""';
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= 'nil';
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= '[]';
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                case self::TYPE_ARRAY:
-                    $output .= $default;
-                    break;
-                case self::TYPE_OBJECT:
-                    $output .= "\"$default\"";
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "nil";
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
         $type       = $this->getSchemaType($param);
@@ -419,6 +371,7 @@ class Go extends Language
             new TwigFilter('returnType', fn(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string => $this->getReturnType($method, $spec, $namespace, $generic)),
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toUpperSnakeCase($value)),
             new TwigFilter('goPackagePath', fn(array $sdk): string => $this->getPackagePath($sdk)),
+            new TwigFilter('goJsonString', fn(mixed $value): string => \json_encode(\json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), ['is_safe' => ['html']]),
         ];
     }
 
@@ -463,11 +416,14 @@ class Go extends Language
     protected function getReturnType(Operation $method, Specification $spec, string $namespace, string $generic = 'map[string]interface{}'): string
     {
         $type = $this->getMethodType($method, $spec);
-        if ($type === 'webAuth') {
+        if ($type === self::METHOD_TYPE_WEB_AUTH) {
             return 'bool';
         }
-        if ($type === 'location') {
+        if ($type === self::METHOD_TYPE_LOCATION) {
             return '[]byte';
+        }
+        if ($this->isTextResponse($method, $spec)) {
+            return 'string';
         }
         $models = \array_values(\array_filter(
             $this->getOperationResponseModels($method),

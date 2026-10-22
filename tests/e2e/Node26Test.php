@@ -24,9 +24,12 @@ final class Node26Test extends Base
     protected string $class = Node::class;
     #[Override]
     protected array $build = [
-        'cp tests/e2e/languages/node/test.js tests/e2e/sdks/node/test.js',
         'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:26-alpine npm install',
-        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:26-alpine npm run build'
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:26-alpine npm run build',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:26-alpine npm test',
+        'cp tests/e2e/languages/node/test.js tests/e2e/sdks/node/test.js',
+        'cp tests/e2e/languages/node/types.ts tests/e2e/sdks/node/types.ts',
+        'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/node node:26-alpine npx tsc --noEmit --strict --skipLibCheck --target es2022 --module es2022 --moduleResolution bundler --esModuleInterop --resolveJsonModule types.ts',
     ];
     #[Override]
     protected string $command =
@@ -42,18 +45,30 @@ final class Node26Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
+        ...Base::OPTIONAL_UPLOAD_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES,
         ...Base::LARGE_FILE_RESPONSES, // Large file uploads
+        ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
         ...Base::OPTIONAL_PARAM_RESPONSES,
+        ...Base::MODEL_DEFAULT_RESPONSES,
+        ...Base::JS_DEFAULT_COPY_RESPONSES,
+        ...Base::JS_NESTED_BUILDER_RESPONSES,
+        ...Base::NULLABLE_MODEL_RESPONSES,
+        ...Base::JS_MODEL_TO_STRING_RESPONSES,
+        ...Base::NULLABLE_PARAM_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::OAUTH_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
+        Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::TOPIC_HELPER_RESPONSES,

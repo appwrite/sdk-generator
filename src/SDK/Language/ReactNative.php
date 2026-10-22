@@ -9,7 +9,6 @@ use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Specification;
 use Override;
-use Twig\TwigFilter;
 
 class ReactNative extends Web
 {
@@ -89,37 +88,42 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushCore.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushCore.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushCore.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushBackground.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushBackground.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushBackground.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushWakeups.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushWakeups.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushWakeups.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushService.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushService.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushService.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushReceiver.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushReceiver.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushReceiver.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/services/PushBridge.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushOpenActivity.kt',
+                'template'      => 'android/library/src/main/java/io/package/services/PushOpenActivity.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/services/PushBridge.kt',
                 'template'      => 'android/library/src/main/java/io/package/services/PushBridge.kt.twig',
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/exceptions/{{ spec.info.title | caseUcfirst }}Exception.kt',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/exceptions/{{ spec.info.title | caseUcfirst }}Exception.kt',
                 'template'      => 'android/push/Exception.kt.twig',
             ],
             [
@@ -134,6 +138,21 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'android/src/main/java/io/{{ spec.info.title | caseLower }}/reactnative/{{ spec.info.title | caseUcfirst }}CookiesModule.kt',
+                'template'      => 'react-native/android/src/main/java/io/package/reactnative/CookiesModule.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'ios/{{ spec.info.title | caseUcfirst }}Cookies.m',
+                'template'      => 'react-native/ios/Cookies.m.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '{{ language.params.npmPackage }}.podspec',
+                'template'      => 'react-native/package.podspec.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'react-native.config.js',
                 'template'      => 'react-native/react-native.config.js.twig',
             ],
@@ -144,13 +163,13 @@ class ReactNative extends Web
             ],
             [
                 'scope'         => 'default',
-                'destination'   => 'src/lib/polyfills.ts',
-                'template'      => 'react-native/src/lib/polyfills.ts.twig',
+                'destination'   => 'src/lib/file-system.ts',
+                'template'      => 'react-native/src/lib/file-system.ts.twig',
             ],
             [
-                'scope'         => 'copy',
-                'destination'   => 'app.plugin.js',
-                'template'      => 'react-native/app.plugin.js.twig',
+                'scope'         => 'default',
+                'destination'   => 'src/lib/polyfills.ts',
+                'template'      => 'react-native/src/lib/polyfills.ts.twig',
             ],
             [
                 'scope'         => 'default',
@@ -294,8 +313,8 @@ class ReactNative extends Web
     public function getReturn(Operation $method, Specification $spec): string
     {
         return match ($this->getMethodType($method, $spec)) {
-            'webAuth' => 'void | URL',
-            'location' => 'Promise<ArrayBuffer>',
+            self::METHOD_TYPE_WEB_AUTH => 'void | URL',
+            self::METHOD_TYPE_LOCATION => 'Promise<ArrayBuffer>',
             default => parent::getReturn($method, $spec),
         };
     }

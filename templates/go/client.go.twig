@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"{{ sdk | goPackagePath }}/file"
+	"{{ sdk | goPackagePath }}/query"
 )
 
 const (
@@ -215,8 +216,52 @@ func copyParams(params map[string]interface{}) map[string]interface{} {
 	return clone
 }
 
-func (client *Client) FileUpload(url string, headers map[string]interface{}, params map[string]interface{}, paramName string, uploadId string) (*ClientResponse, error) {
+// uploadMethod returns the HTTP method an upload helper sends with. The
+// method is optional so callers written before it existed keep sending POST.
+func uploadMethod(method []string) string {
+	if len(method) > 0 && method[0] != "" {
+		return method[0]
+	}
+	return "POST"
+}
+
+// SingleUpload sends the file in one request. method is the endpoint's HTTP
+// method and defaults to POST.
+func (client *Client) SingleUpload(url string, headers map[string]interface{}, params map[string]interface{}, paramName string, method ...string) (*ClientResponse, error) {
+	httpMethod := uploadMethod(method)
 	inputFile, ok := params[paramName].(file.InputFile)
+	if _, present := params[paramName]; !present {
+		return client.Call(httpMethod, url, headers, params)
+	}
+	if !ok {
+		msg := fmt.Sprintf("invalid input file. params[%s] must be of type file.InputFile", paramName)
+		return nil, errors.New(msg)
+	}
+
+	source, err := os.Open(inputFile.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer source.Close()
+
+	var content bytes.Buffer
+	if _, err := content.ReadFrom(source); err != nil {
+		return nil, err
+	}
+	inputFile.Data = content.Bytes()
+	params[paramName] = inputFile
+
+	return client.Call(httpMethod, url, headers, params)
+}
+
+// FileUpload sends the file in chunks, resuming uploadId when it is set.
+// method is the endpoint's HTTP method and defaults to POST.
+func (client *Client) FileUpload(url string, headers map[string]interface{}, params map[string]interface{}, paramName string, uploadId string, method ...string) (*ClientResponse, error) {
+	httpMethod := uploadMethod(method)
+	inputFile, ok := params[paramName].(file.InputFile)
+	if _, present := params[paramName]; !present {
+		return client.Call(httpMethod, url, headers, params)
+	}
 	if !ok {
 		msg := fmt.Sprintf("invalid input file. params[%s] must be of type file.InputFile", paramName)
 		return nil, errors.New(msg)
@@ -267,7 +312,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		}
 		params[paramName] = inputFile
 
-		result, err = client.Call("POST", url, headers, params)
+		result, err = client.Call(httpMethod, url, headers, params)
 		if err != nil {
 			return nil, err
 		}
@@ -351,7 +396,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 		end := offset + chunkSize - 1
 		chunkHeaders["content-range"] = fmt.Sprintf("bytes %d-%d/%d", start, end, totalSize)
 
-		return client.Call("POST", url, chunkHeaders, chunkParams)
+		return client.Call(httpMethod, url, chunkHeaders, chunkParams)
 	}
 
 	if currentChunk == 0 {
@@ -435,6 +480,15 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 
 // Call an API using Client
 func (client *Client) Call(method string, path string, headers map[string]interface{}, params map[string]interface{}) (*ClientResponse, error) {
+	if params != nil {
+		// Work on a copy: the caller's map may be shared or reused
+		flattened := make(map[string]interface{}, len(params))
+		for key, value := range params {
+			flattened[key] = flattenValue(value)
+		}
+		params = flattened
+	}
+
 	if client.Client == nil {
 		// Create HTTP client
 		httpClient, err := GetDefaultClient(client.Timeout)
@@ -455,15 +509,14 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 
 	urlPath := client.Endpoint + path
 	isGet := strings.ToUpper(method) == "GET"
-	isPost := strings.ToUpper(method) == "POST"
 	isJsonRequest := headers["content-type"] == "application/json"
 	isFileUpload := isFileUpload(headers)
 
 	var req *http.Request
 	var err error
 	if isFileUpload {
-		if !isPost {
-			return nil, errors.New("fileupload needs POST Request")
+		if isGet {
+			return nil, errors.New("fileupload cannot be sent as a GET request")
 		}
 		var body bytes.Buffer
 		writer := multipart.NewWriter(&body)
@@ -753,4 +806,60 @@ func flatten(params interface{}, prefix string, result *map[string]string) error
 		(*result)[prefix] = toString(params)
 	}
 	return nil
+}
+
+func Flatten(value interface{}) interface{} {
+	return flattenValue(value)
+}
+
+func flattenValue(value interface{}) interface{} {
+	if value == nil {
+		return nil
+	}
+	switch v := value.(type) {
+	case *query.Builder:
+		if v == nil {
+			return value
+		}
+		return v.Build()
+	case query.Builder:
+		return v.Build()
+	}
+
+	reflected := reflect.ValueOf(value)
+	if reflected.Kind() != reflect.Slice && reflected.Kind() != reflect.Array {
+		return value
+	}
+
+	out := make([]interface{}, 0, reflected.Len())
+	changed := false
+	for i := 0; i < reflected.Len(); i++ {
+		item := reflected.Index(i).Interface()
+		flat := flattenValue(item)
+		if isBuilder(item) {
+			for _, entry := range flat.([]string) {
+				out = append(out, entry)
+			}
+			changed = true
+			continue
+		}
+		if !reflect.DeepEqual(flat, item) {
+			changed = true
+		}
+		out = append(out, flat)
+	}
+	if !changed {
+		return value
+	}
+	return out
+}
+
+func isBuilder(value interface{}) bool {
+	switch v := value.(type) {
+	case *query.Builder:
+		return v != nil
+	case query.Builder:
+		return true
+	}
+	return false
 }

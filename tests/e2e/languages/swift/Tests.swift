@@ -90,6 +90,31 @@ class Tests: XCTestCase {
         }
         print(try await general.validatePath(plain: "0", id: "0").result)
         print(try await general.validatePath(plain: "0", id: nil).result)
+        print(try await general.getQuery(value: "a&b+c#d=e%f", values: ["a&b", "c+d#e"]).result)
+
+        let zone: String = try await Plaintext(client).getZone()
+        print(zone)
+        let mixed: Mock = try await general.getMixed()
+        print(mixed.result)
+        let plaintext = Plaintext(client)
+        var imported: String = try await plaintext.importZone(records: "www 3600 IN A 192.0.2.1")
+        print(imported)
+        let zoneFile = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
+        imported = try await plaintext.importZone(records: "www 3600 IN A 192.0.2.1", zone: zoneFile)
+        print(imported)
+
+        let message = "conversation without a required file"
+        mock = try await general.optionalUpload(message: message)
+        print(mock.result)
+
+        let attachment = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
+        mock = try await general.optionalUpload(message: message, attachment: attachment)
+        print(mock.result)
+
+        mock = try await general.optionalUpload(message: message, metadata: ["source": "sdk", "uri": "café"])
+        print(mock.result)
+        mock = try await general.optionalUpload(message: message, attachment: attachment, metadata: ["source": "sdk", "uri": "café"])
+        print(mock.result)
 
         do {
             var file = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
@@ -127,6 +152,17 @@ class Tests: XCTestCase {
             print(error.localizedDescription)
         }
 
+        do {
+            let file = InputFile.fromData(Data(count: 5 * 1024 * 1024), filename: "boundary.bin", mimeType: "application/octet-stream")
+            mock = try await general.upload(x: "string", y: 123, z: ["string in array"], file: file, onProgress: nil)
+            print(mock.result)
+        } catch {
+            print(error.localizedDescription)
+        }
+
+        let profile = try await general.uploadGeneric(file: InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png"))
+        print(profile.prefs.data["result"]?.value as? String ?? "")
+
         var downloaded = try await general.download()
         print(downloaded.readString(length: downloaded.readableBytes) ?? "")
 
@@ -148,6 +184,15 @@ class Tests: XCTestCase {
             AnyCodable(["$id": "two", "title": "world"])
         ])
         print(mock.result)
+
+        let preset = try await general.getPreset()
+        print("preset: name=\(preset.name), count=\(preset.count), enabled=\(preset.enabled)")
+        for item in try await general.listPresets().presets {
+            print("preset: name=\(item.name), count=\(item.count), enabled=\(item.enabled)")
+        }
+        print("empty presets: \(try await general.listEmptyPresets().presets.count)")
+        print("preset verified: \(preset.verified.map { String($0) } ?? "null")")
+        print("preset scopes: \((preset.scopes ?? []).map { $0.rawValue }.joined(separator: ","))")
 
         do {
             try await general.error400()
@@ -265,6 +310,48 @@ class Tests: XCTestCase {
             Query.equal("name", value: "Alice"),
             Query.greaterThan("age", value: 18)
         ]))
+        print(Query.relationship("comments", queries: [
+            Query.equal("approved", value: true),
+            Query.limit(2)
+        ]))
+        let transportQueries: [String] = [
+            Query.count("*", alias: "total"),
+            Query.join("orders", left: "$id", right: "customerId"),
+            Query.groupBy(["status"]),
+            Query.distinct(),
+            Query.covers("location", values: [1, 2]),
+            Query.countDistinct("year", alias: "uniqueYears"),
+            Query.sum("price", alias: "total"),
+            Query.avg("price", alias: "avgPrice"),
+            Query.min("price", alias: "lowest"),
+            Query.max("price", alias: "highest"),
+            Query.stddev("price", alias: "sd"),
+            Query.stddevPop("price", alias: "sdp"),
+            Query.stddevSamp("price", alias: "sds"),
+            Query.variance("price", alias: "var"),
+            Query.varPop("price", alias: "vp"),
+            Query.varSamp("price", alias: "vs"),
+            Query.bitAnd("flags", alias: "band"),
+            Query.bitOr("flags", alias: "bor"),
+            Query.bitXor("flags", alias: "bxor"),
+            Query.having([Query.greaterThan("total", value: 1)]),
+            Query.leftJoin("orders", left: "$id", right: "customerId", operator: "=", alias: "ord"),
+            Query.rightJoin("orders", left: "$id", right: "customerId"),
+            Query.fullOuterJoin("orders", left: "$id", right: "customerId"),
+            Query.crossJoin("orders", alias: "ord"),
+            Query.on("$id", "customerId"),
+            Query.leftJoin("orders", alias: "ord", on: [
+                Query.on("$id", "customerId"),
+                Query.equal("ord.status", value: "paid"),
+            ]),
+            Query.notCovers("location", values: [1, 2]),
+            Query.spatialEquals("location", values: [1, 2]),
+            Query.notSpatialEquals("location", values: [1, 2]),
+        ]
+        let queryTransport = try await general.listRows(
+            queries: transportQueries + Query.page(2, perPage: 10) + Query.builder().limit(1).build()
+        )
+        print(queryTransport.result)
 
         // Permission & Role helper tests
         print(Permission.read(Role.any()))
@@ -285,17 +372,13 @@ class Tests: XCTestCase {
         // Topic helper tests
         print(try Topic.path(["user", "123", "notification"]).toString())
         print(try Topic.path(["org", "42", "user", "123"]).path(["notification"]).toString())
-        print(try Topic.path(["user"]).any().path(["notification"]).toString())
-        print(try Topic.path(["chat"]).any().any().path(["message"]).toString())
-        print(try Topic.path(["org"]).any().path(["logs"]).all().toString())
-        print(try Topic.any().path(["notification"]).toString())
-        print(Topic.all().toString())
         let topicCases: [(String, [String])] = [
             ("empty path", []),
             ("empty level", ["user", ""]),
             ("slash", ["user/123"]),
             ("plus", ["user", "a+b"]),
             ("hash", ["user", "#"]),
+            ("nul", ["user", "a\u{0}b"]),
         ]
         for (name, levels) in topicCases {
             do {

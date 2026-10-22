@@ -1,0 +1,107 @@
+#if UNITY_ANDROID
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Xml;
+using UnityEditor;
+using UnityEditor.Android;
+using UnityEngine;
+
+namespace {{ spec.info.title | caseUcfirst }}.Editor
+{
+    public class {{ spec.info.title | caseUcfirst }}AndroidManifestProcessor : IPostGenerateGradleAndroidProject
+    {
+        private const string AndroidNamespace = "http://schemas.android.com/apk/res/android";
+        private const string CallbackSchemePrefix = "{{ spec.info.title | caseLower }}-callback-";
+
+        public int callbackOrder => 0;
+
+        public void OnPostGenerateGradleAndroidProject(string path)
+        {
+            var schemes = FindCallbackSchemes();
+            if (schemes.Count == 0)
+            {
+                Debug.Log("{{ spec.info.title | caseUcfirst }}: No {{ spec.info.title | caseUcfirst }}Config with a project ID was found, so no OAuth callback was registered. To use OAuth on Android, set the project ID on a {{ spec.info.title | caseUcfirst }}Config asset, or add an intent filter for the {{ spec.info.title | caseLower }}-callback-<PROJECT_ID> scheme to a custom main manifest.");
+                return;
+            }
+
+            var manifestPath = Path.Combine(path, "src", "main", "AndroidManifest.xml");
+            var manifest = new XmlDocument();
+            manifest.Load(manifestPath);
+
+            var activity = FindUnityActivity(manifest);
+            if (activity == null)
+            {
+                Debug.LogWarning($"{{ spec.info.title | caseUcfirst }}: The Unity activity was not found in {manifestPath}, so no OAuth callback was registered.");
+                return;
+            }
+
+            var registered = new HashSet<string>(manifest.GetElementsByTagName("data")
+                .OfType<XmlElement>()
+                .Select(data => data.GetAttribute("scheme", AndroidNamespace)));
+
+            foreach (var scheme in schemes.Where(scheme => !registered.Contains(scheme)))
+            {
+                activity.AppendChild(CreateIntentFilter(manifest, scheme));
+            }
+
+            manifest.Save(manifestPath);
+        }
+
+        private static HashSet<string> FindCallbackSchemes()
+        {
+            var schemes = new HashSet<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:{{ spec.info.title | caseUcfirst }}Config"))
+            {
+                var config = AssetDatabase.LoadAssetAtPath<ScriptableObject>(AssetDatabase.GUIDToAssetPath(guid));
+                if (config == null)
+                {
+                    continue;
+                }
+
+                var projectId = new SerializedObject(config).FindProperty("projectId")?.stringValue;
+                if (!string.IsNullOrEmpty(projectId))
+                {
+                    schemes.Add(CallbackSchemePrefix + projectId);
+                }
+            }
+
+            return schemes;
+        }
+
+        private static XmlElement FindUnityActivity(XmlDocument manifest)
+        {
+            return manifest.GetElementsByTagName("activity")
+                .OfType<XmlElement>()
+                .FirstOrDefault(activity => HasAndroidName(activity, "meta-data", "unityplayer.UnityActivity")
+                    || HasAndroidName(activity, "category", "android.intent.category.LAUNCHER"));
+        }
+
+        private static bool HasAndroidName(XmlElement parent, string tag, string name)
+        {
+            return parent.GetElementsByTagName(tag)
+                .OfType<XmlElement>()
+                .Any(element => element.GetAttribute("name", AndroidNamespace) == name);
+        }
+
+        private static XmlElement CreateIntentFilter(XmlDocument manifest, string scheme)
+        {
+            var filter = manifest.CreateElement("intent-filter");
+            filter.AppendChild(CreateElement(manifest, "action", "name", "android.intent.action.VIEW"));
+            filter.AppendChild(CreateElement(manifest, "category", "name", "android.intent.category.DEFAULT"));
+            filter.AppendChild(CreateElement(manifest, "category", "name", "android.intent.category.BROWSABLE"));
+            filter.AppendChild(CreateElement(manifest, "data", "scheme", scheme));
+            return filter;
+        }
+
+        private static XmlElement CreateElement(XmlDocument manifest, string tag, string attribute, string value)
+        {
+            var element = manifest.CreateElement(tag);
+            var node = manifest.CreateAttribute("android", attribute, AndroidNamespace);
+            node.Value = value;
+            element.Attributes.Append(node);
+            return element;
+        }
+    }
+}
+#endif

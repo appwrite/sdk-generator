@@ -1,6 +1,6 @@
 import unittest
 
-from {{ namespace | caseSnake }}.topic import ResolvedTopic, Topic
+from {{ namespace | caseSnake }}.topic import Topic
 
 
 class TestTopicMethods(unittest.TestCase):
@@ -9,20 +9,7 @@ class TestTopicMethods(unittest.TestCase):
         self.assertEqual(str(Topic.path(['user'])), 'user')
         self.assertEqual(str(Topic.path(['user', 'notification'])), 'user/notification')
         self.assertEqual(str(Topic.path(['user']).path(['notification'])), 'user/notification')
-
-    def test_any(self):
-        self.assertEqual(str(Topic.path(['user']).any().path(['notification'])), 'user/+/notification')
-        self.assertEqual(str(Topic.path(['chat']).any().any().path(['message'])), 'chat/+/+/message')
-        self.assertEqual(str(Topic.any().path(['notification'])), '+/notification')
-
-    def test_all(self):
-        self.assertEqual(str(Topic.path(['org']).any().path(['logs']).all()), 'org/+/logs/#')
-        self.assertEqual(str(Topic.all()), '#')
-        self.assertIsInstance(Topic.all(), ResolvedTopic)
-
-    def test_nothing_after_all(self):
-        with self.assertRaises(TypeError):
-            Topic.all().any()
+        self.assertEqual(str(Topic.path(['org', '42']).path(['logs'])), 'org/42/logs')
 
     def test_errors(self):
         cases = [
@@ -36,10 +23,11 @@ class TestTopicMethods(unittest.TestCase):
             (['user', 'a+b'], ValueError),
             (['user', '#'], ValueError),
             (['user', 'a#b'], ValueError),
+            (['user', 'a\x00b'], ValueError),
         ]
         for levels, error in cases:
             with self.subTest(levels=levels):
                 with self.assertRaises(error):
                     Topic.path(levels)
                 with self.assertRaises(error):
-                    Topic.any().path(levels)
+                    Topic.path(['user']).path(levels)

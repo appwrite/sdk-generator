@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
@@ -40,11 +41,12 @@ var typeLanguages = map[string]func(directory string) typegen.Language{
 	"java":   func(string) typegen.Language { return typegen.Java{} },
 	"dart":   func(string) typegen.Language { return typegen.Dart{} },
 	"cs":     func(string) typegen.Language { return typegen.CSharp{} },
+	"python": func(string) typegen.Language { return typegen.Python{} },
 }
 
 // typeLanguageChoices is the accepted `-l` values, in the order the help lists
 // them.
-var typeLanguageChoices = []string{"auto", "ts", "js", "php", "kotlin", "swift", "java", "dart", "cs"}
+var typeLanguageChoices = []string{"auto", "ts", "js", "php", "kotlin", "swift", "java", "dart", "cs", "python"}
 
 // typeLanguageAliases maps a name a user is likely to reach for to the value
 // the CLI accepts.
@@ -59,6 +61,8 @@ var typeLanguageAliases = map[string]string{
 	"javascript": "js",
 	"node":       "js",
 	"nodejs":     "js",
+	"py":         "python",
+	"python3":    "python",
 	"typescript": "ts",
 }
 
@@ -84,7 +88,7 @@ func typeLanguageNames() string {
 // a suggestion rather than only a list.
 //
 // Detection reaches this too, and there the list is the only thing that says
-// what to do next: a Python or Ruby project resolves to a language the CLI has
+// what to do next: a Ruby project resolves to a language the CLI has
 // no emitter for, so no spelling of it would have worked.
 func unsupportedLanguage(requested string) error {
 	if suggestion, ok := typeLanguageAliases[strings.ToLower(requested)]; ok {
@@ -97,10 +101,13 @@ func unsupportedLanguage(requested string) error {
 		requested, typeLanguageNames())
 }
 
+var declarationFile = regexp.MustCompile(`\.d\.[cm]?ts$`)
+
 func newTypesCommand() *cobra.Command {
 	var (
-		language string
-		strict   bool
+		language  string
+		strict    bool
+		enumStyle string
 	)
 
 	command := &cobra.Command{
@@ -108,7 +115,7 @@ func newTypesCommand() *cobra.Command {
 		Short: "Generate types for your Appwrite project",
 		Args:  RequiredArgument("<output-directory>", "The directory to write the types to"),
 		RunE: func(command *cobra.Command, args []string) error {
-			return runTypes(command, args[0], language, strict)
+			return runTypes(command, args[0], language, strict, enumStyle)
 		},
 	}
 
@@ -116,6 +123,8 @@ func newTypesCommand() *cobra.Command {
 		"The language of the types ("+strings.Join(typeLanguageChoices, "|")+")")
 	command.Flags().BoolVarP(&strict, "strict", "s", false,
 		"Enable strict mode to automatically convert field names to follow language conventions")
+	command.Flags().StringVar(&enumStyle, "enum-style", string(typegen.EnumStyleEnum),
+		"How TypeScript enums are declared ("+typegen.EnumStyleChoices()+"); const emits an `as const` object and a union type")
 
 	return command
 }
@@ -190,10 +199,20 @@ func collectionsForTypes(path string) ([]typegen.Collection, string, error) {
 	return collections, kind, nil
 }
 
-func runTypes(command *cobra.Command, rawOutput, requested string, strict bool) error {
+func runTypes(command *cobra.Command, rawOutput, requested string, strict bool, rawEnumStyle string) error {
+	enumStyle, err := typegen.ParseEnumStyle(rawEnumStyle)
+	if err != nil {
+		return err
+	}
+
 	name, emitter, err := resolveTypeLanguage(command, requested)
 	if err != nil {
 		return err
+	}
+
+	typescript, isTypeScript := emitter.(typegen.TypeScript)
+	if enumStyle != typegen.EnumStyleEnum && !isTypeScript {
+		return fmt.Errorf("--enum-style is only supported for ts, not %s", name)
 	}
 
 	if strict {
@@ -213,7 +232,7 @@ func runTypes(command *cobra.Command, rawOutput, requested string, strict bool) 
 		directory, singleFile = filepath.Dir(rawOutput), rawOutput
 	}
 
-	collections, kind, err := collectionsForTypes(config.LocalFileName)
+	collections, kind, err := collectionsForTypes(config.LocalPathOr(config.LocalFileName))
 	if err != nil {
 		return err
 	}
@@ -242,15 +261,22 @@ func runTypes(command *cobra.Command, rawOutput, requested string, strict bool) 
 	arguments := invocation()
 
 	if emitter.SingleFile() {
+		destination := singleFile
+		if destination == "" {
+			destination = filepath.Join(directory, emitter.FileName(nil))
+		}
+
+		if isTypeScript {
+			typescript.EnumStyle = enumStyle
+			typescript.Declaration = declarationFile.MatchString(destination)
+			emitter = typescript
+		}
+
 		content, err := emitter.Render(collections, nil, strict, arguments)
 		if err != nil {
 			return err
 		}
 
-		destination := singleFile
-		if destination == "" {
-			destination = filepath.Join(directory, emitter.FileName(nil))
-		}
 		if err := os.WriteFile(destination, []byte(content), 0o644); err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ from appwrite.client import Client
 from appwrite.services.foo import Foo
 from appwrite.services.bar import Bar
 from appwrite.services.general import General
+from appwrite.services.plaintext import Plaintext
 from appwrite.exception import AppwriteException
 from appwrite.input_file import InputFile
 from appwrite.query import Query
@@ -75,6 +76,21 @@ for id, plain in [('', '0'), ('0', '')]:
         print(error.message)
 print(general.validate_path('0', '0').result)
 
+zone = Plaintext(client).get_zone()
+if not isinstance(zone, str):
+    raise AssertionError(f'Expected zone text as str, got {type(zone).__name__}')
+print(zone)
+print(general.get_mixed().result)
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1'))
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1', InputFile.from_path('./tests/resources/file.png')))
+
+message = 'conversation without a required file'
+print(general.optional_upload(message).result)
+attachment = InputFile.from_path('./tests/resources/file.png')
+print(general.optional_upload(message, attachment).result)
+print(general.optional_upload(message, metadata={'source': 'sdk', 'uri': 'café'}).result)
+print(general.optional_upload(message, InputFile.from_path('./tests/resources/file.png'), {'source': 'sdk', 'uri': 'café'}).result)
+
 response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
 print(response.result)
 
@@ -88,6 +104,12 @@ print(response.result)
 data = open('./tests/resources/large_file.mp4', 'rb').read()
 response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4','video/mp4'))
 print(response.result)
+
+response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(bytes(5 * 1024 * 1024), 'boundary.bin', 'application/octet-stream'))
+print(response.result)
+
+response = general.upload_generic(InputFile.from_path('./tests/resources/file.png'))
+print(response.prefs.data['result'])
 
 print(general.download().decode())
 
@@ -103,6 +125,16 @@ response = general.create_players([
     {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
 ])
 print(response.result)
+
+preset = general.get_preset()
+print(f"preset: name={preset.name}, count={preset.count:g}, enabled={str(preset.enabled).lower()}")
+for item in general.list_presets().presets:
+    print(f"preset: name={item.name}, count={item.count:g}, enabled={str(item.enabled).lower()}")
+print(f"empty presets: {len(general.list_empty_presets().presets)}")
+print(f"preset verified: {'null' if preset.verified is None else preset.verified}")
+print(f"preset scopes: {','.join(scope.value for scope in (preset.scopes or []))}")
+print(f"preset tier: {preset.tier}")
+print(f"preset settings: options={len(general.get_preset_settings().options)}")
 
 try:
     response = general.error400()
@@ -220,6 +252,47 @@ print(Query.elem_match("friends", [
     Query.equal("name", "Alice"),
     Query.greater_than("age", 18)
 ]))
+print(Query.relationship("comments", [
+    Query.equal("approved", True),
+    Query.limit(2)
+]))
+query_transport = general.list_rows([
+    Query.count("*", "total"),
+    Query.join("orders", "$id", "customerId"),
+    Query.group_by(["status"]),
+    Query.distinct(),
+    Query.covers("location", [1, 2]),
+    Query.count_distinct("year", "uniqueYears"),
+    Query.sum("price", "total"),
+    Query.avg("price", "avgPrice"),
+    Query.min("price", "lowest"),
+    Query.max("price", "highest"),
+    Query.stddev("price", "sd"),
+    Query.stddev_pop("price", "sdp"),
+    Query.stddev_samp("price", "sds"),
+    Query.variance("price", "var"),
+    Query.var_pop("price", "vp"),
+    Query.var_samp("price", "vs"),
+    Query.bit_and("flags", "band"),
+    Query.bit_or("flags", "bor"),
+    Query.bit_xor("flags", "bxor"),
+    Query.having([Query.greater_than("total", 1)]),
+    Query.left_join("orders", "$id", "customerId", "=", "ord"),
+    Query.right_join("orders", "$id", "customerId"),
+    Query.full_outer_join("orders", "$id", "customerId"),
+    Query.cross_join("orders", "ord"),
+    Query.on("$id", "customerId"),
+    Query.left_join("orders", "ord", [
+        Query.on("$id", "customerId"),
+        Query.equal("ord.status", "paid"),
+    ]),
+    Query.not_covers("location", [1, 2]),
+    Query.spatial_equals("location", [1, 2]),
+    Query.not_spatial_equals("location", [1, 2]),
+    *Query.page(2, 10),
+    Query.builder().limit(1),
+])
+print(query_transport.result)
 
 # Permission & Role helper tests
 print(Permission.read(Role.any()))
@@ -240,17 +313,13 @@ print(ID.custom('custom_id'))
 # Topic helper tests
 print(Topic.path(['user', '123', 'notification']))
 print(Topic.path(['org', '42', 'user', '123']).path(['notification']))
-print(Topic.path(['user']).any().path(['notification']))
-print(Topic.path(['chat']).any().any().path(['message']))
-print(Topic.path(['org']).any().path(['logs']).all())
-print(Topic.any().path(['notification']))
-print(Topic.all())
 for name, levels in [
     ('empty path', []),
     ('empty level', ['user', '']),
     ('slash', ['user/123']),
     ('plus', ['user', 'a+b']),
     ('hash', ['user', '#']),
+    ('nul', ['user', 'a\0b']),
 ]:
     try:
         Topic.path(levels)

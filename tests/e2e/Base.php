@@ -68,6 +68,11 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/path-validation/null/0:passed',
     ];
 
+    // Query values containing `&`, `+` and `#` reach the server unchanged.
+    protected const QUERY_ENCODING_RESPONSES = [
+        'GET:/v1/mock/tests/general/query:passed',
+    ];
+
     protected const OAUTH_RESPONSES = [
         'https://localhost?code=abcdef&state=123456',
     ];
@@ -90,6 +95,58 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/models/array:passed',
     ];
 
+    protected const MODEL_DEFAULT_RESPONSES = [
+        'preset: name=guest, count=25, enabled=false',
+        'preset: name=guest, count=25, enabled=false',
+        'preset: name=server, count=25, enabled=true',
+        'empty presets: 0',
+    ];
+
+    protected const JS_MODEL_TO_STRING_RESPONSES = [
+        'preset toString: {"name":"guest","count":25,"enabled":false,"tier":"free","tags":[],"settings":{},"verified":null,"scopes":["read","write"]}',
+    ];
+
+    protected const JS_DEFAULT_COPY_RESPONSES = [
+        'preset tags shared: 0',
+    ];
+
+    protected const JS_NESTED_BUILDER_RESPONSES = [
+        'nested builder: passed',
+    ];
+
+    protected const NULLABLE_PARAM_RESPONSES = [
+        'POST:/v1/mock/tests/general/nullable:passed',
+    ];
+
+    protected const NULLABLE_MODEL_RESPONSES = [
+        'preset verified: null',
+    ];
+
+    protected const ENUM_DEFAULT_RESPONSES = [
+        'preset quality default: medium',
+    ];
+
+    protected const ENUM_ARRAY_MODEL_RESPONSES = [
+        'preset scopes: read,write',
+    ];
+
+    protected const PYTHON_MODEL_DEFAULT_RESPONSES = [
+        'preset tier: PresetTier.FREE',
+    ];
+
+    protected const DOTNET_DATETIME_STRING_RESPONSES = [
+        'datetime property: 2026-10-16T22:10:08.123+00:00',
+        'datetime data: 2026-10-16T22:10:08.123+00:00',
+    ];
+
+    protected const MAP_MODEL_DEFAULT_RESPONSES = [
+        'preset settings: options=0',
+    ];
+
+    protected const NESTED_MODEL_DEFAULT_RESPONSES = [
+        'preset profile: prefs=0',
+    ];
+
     protected const OBJECT_ARRAY_RESPONSES = [
         'POST:/v1/mock/tests/general/documents:passed',
     ];
@@ -105,6 +162,40 @@ abstract class Base extends TestCase
         'stub',
     ];
 
+    protected const OPTIONAL_UPLOAD_RESPONSES = [
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:without-file',
+        'optional-upload:with-file',
+        'optional-upload:with-file',
+        'required-file:rejected',
+    ];
+
+    protected const MULTIPART_OBJECT_RESPONSES = [
+        'optional-upload:without-file:with-metadata',
+        'optional-upload:with-file:with-metadata',
+    ];
+
+    protected const OPTIONAL_ATTACHMENT_RESPONSES = [
+        'optional-upload:without-file',
+        'optional-upload:with-file',
+    ];
+
+    protected const TEXT_RESPONSES = [
+        '; café zone',
+        'www 3600 IN A 192.0.2.1',
+        '',
+        'mixed-model',
+    ];
+
+    protected const TEXT_UPLOAD_RESPONSES = [
+        'zone-import:without-file',
+        '',
+        'zone-import:with-file',
+        '',
+    ];
+
     protected const UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
@@ -113,6 +204,14 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
+        'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
+    protected const GENERIC_UPLOAD_RESPONSES = [
+        'PUT:/v1/mock/tests/general/upload-generic:passed',
+    ];
+
+    protected const BOUNDARY_UPLOAD_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
@@ -163,6 +262,45 @@ abstract class Base extends TestCase
         'Push session replay:passed',
     ];
 
+    protected const PUSH_CREDENTIAL_SWITCH_RESPONSES = [
+        'Push credential switch:passed',
+        'Push credential pending switch:passed',
+    ];
+
+    protected const PUSH_CLOSE_WHILE_CONNECTING_RESPONSES = [
+        'Push close while connecting:passed',
+    ];
+
+    protected const PUSH_CLOSE_RIGHT_AFTER_SUBSCRIBE_RESPONSES = [
+        'Push close right after subscribe:passed',
+    ];
+
+    protected const PUSH_CLOSE_FROM_CALLBACK_RESPONSES = [
+        'Push close from callback:passed',
+    ];
+
+    protected const WEB_PUSH_CONNECTION_RESPONSES = [
+        'Push concurrent refused:passed',
+        'Push tab client id:passed',
+        'Push notification opened web:passed',
+    ];
+
+    // Android, Apple, Flutter and Web: a topic-less subscribe uses the session the client signed
+    // in with when no JWT or session is set on it.
+    protected const PUSH_SIGN_IN_SESSION_RESPONSES = [
+        'Push user sign-in session topic:passed',
+    ];
+
+    protected const PUSH_SESSION_COOKIE_RESPONSES = [
+        'Push user cookie topic:passed',
+        'Push user cookie switch:passed',
+        'Push user cookie pending switch:passed',
+    ];
+
+    protected const PUSH_NATIVE_SESSION_COOKIE_RESPONSES = [
+        'Push session cookie:passed',
+    ];
+
     // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
     // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
     // expose the reason string).
@@ -190,10 +328,59 @@ abstract class Base extends TestCase
         'Push background opt-out:passed',
     ];
 
+    // Android: unsubscribing one of two in-process subscriptions on the same topic stops its
+    // callback, though the other subscription keeps the broker filter.
+    protected const ANDROID_PUSH_SHARED_TOPIC_RESPONSES = [
+        'Push shared topic unsubscribe:passed',
+    ];
+
+    protected const ANDROID_COOKIE_STORE_RESPONSES = [
+        'Cookie store reload:passed',
+        'Cookie store saved format:passed',
+    ];
+
     // React Native and Flutter on Android: when a Push with another credential starts background
     // delivery, the Push that had it hears on onError that its background delivery stopped.
     protected const PUSH_NATIVE_DISPLACED_RESPONSES = [
         'Push native displaced:passed',
+    ];
+
+    // React Native and Flutter on Android ask for POST_NOTIFICATIONS once background delivery starts.
+    protected const PUSH_NOTIFICATION_PERMISSION_RESPONSES = [
+        'Push notification permission:passed',
+    ];
+
+    protected const REACT_NATIVE_PUSH_JS_RESPONSES = [
+        'Push native connection JS:passed',
+        'Push background status JS:passed',
+        'Push notification opened JS:passed',
+        'Push notification opened expo:passed',
+        'Push notification content JS:passed',
+    ];
+
+    // React Native on Android: the tap that launched the app is reported once, later taps as events.
+    protected const PUSH_NOTIFICATION_OPENED_RESPONSES = [
+        'Push notification opened:passed',
+    ];
+
+    // React Native on Android: background runs follow the session in the WebView cookie store.
+    protected const REACT_NATIVE_PUSH_COOKIE_REFRESH_RESPONSES = [
+        'Push background cookie refresh:passed',
+        'Push background reconnect credential:passed',
+        'Push background drain:passed',
+    ];
+
+    // Android only: no notification while the app is on screen, the watchdog job, resume with the
+    // current credential, and restricted background usage.
+    protected const ANDROID_PUSH_BACKGROUND_RESPONSES = [
+        'Push background message:passed',
+        'Push foreground no notification:passed',
+        'Push background watchdog:passed',
+        'Push background restore:passed',
+        'Push background resume credential:passed',
+        'Push background close:passed',
+        'Push background refused:passed',
+        'Push background restricted:passed',
     ];
 
     protected const PUSH_BACKGROUND_RESPONSES = [
@@ -201,6 +388,11 @@ abstract class Base extends TestCase
         'Push background restore:passed',
         'Push background close:passed',
         'Push background refused:passed',
+    ];
+
+    protected const ANDROID_PUSH_NOTIFICATION_RESPONSES = [
+        'Push notification content:passed',
+        'Push notification opened:passed',
     ];
 
     protected const QUERY_HELPER_RESPONSES = [
@@ -269,6 +461,47 @@ abstract class Base extends TestCase
         '{"method":"exists","values":["attr1","attr2"]}',
         '{"method":"notExists","values":["attr1","attr2"]}',
         '{"method":"elemMatch","attribute":"friends","values":[{"method":"equal","attribute":"name","values":["Alice"]},{"method":"greaterThan","attribute":"age","values":[18]}]}',
+        '{"method":"relationship","attribute":"comments","values":[{"method":"equal","attribute":"approved","values":[true]},{"method":"limit","values":[2]}]}',
+    ];
+
+    // Each language harness sends these through a real listRows request and prints
+    // the echo the mock server returns, so the assertion reads the request the
+    // server received rather than what a helper rendered in process.
+    protected const QUERY_TRANSPORT_RESPONSE = '__QUERY_TRANSPORT_RESPONSE__';
+
+    protected const QUERY_TRANSPORT_QUERIES = [
+        '{"method":"count","attribute":"*","values":["total"]}',
+        '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}',
+        '{"method":"groupBy","values":["status"]}',
+        '{"method":"distinct"}',
+        '{"method":"covers","attribute":"location","values":[[1,2]]}',
+        '{"method":"countDistinct","attribute":"year","values":["uniqueYears"]}',
+        '{"method":"sum","attribute":"price","values":["total"]}',
+        '{"method":"avg","attribute":"price","values":["avgPrice"]}',
+        '{"method":"min","attribute":"price","values":["lowest"]}',
+        '{"method":"max","attribute":"price","values":["highest"]}',
+        '{"method":"stddev","attribute":"price","values":["sd"]}',
+        '{"method":"stddevPop","attribute":"price","values":["sdp"]}',
+        '{"method":"stddevSamp","attribute":"price","values":["sds"]}',
+        '{"method":"variance","attribute":"price","values":["var"]}',
+        '{"method":"varPop","attribute":"price","values":["vp"]}',
+        '{"method":"varSamp","attribute":"price","values":["vs"]}',
+        '{"method":"bitAnd","attribute":"flags","values":["band"]}',
+        '{"method":"bitOr","attribute":"flags","values":["bor"]}',
+        '{"method":"bitXor","attribute":"flags","values":["bxor"]}',
+        '{"method":"having","values":[{"method":"greaterThan","attribute":"total","values":[1]}]}',
+        '{"method":"leftJoin","attribute":"orders","values":["$id","=","customerId","ord"]}',
+        '{"method":"rightJoin","attribute":"orders","values":["$id","=","customerId"]}',
+        '{"method":"fullOuterJoin","attribute":"orders","values":["$id","=","customerId"]}',
+        '{"method":"crossJoin","attribute":"orders","values":["ord"]}',
+        '{"method":"on","values":["$id","=","customerId"]}',
+        '{"method":"leftJoin","attribute":"orders","values":["ord",{"method":"on","values":["$id","=","customerId"]},{"method":"equal","attribute":"ord.status","values":["paid"]}]}',
+        '{"method":"notCovers","attribute":"location","values":[[1,2]]}',
+        '{"method":"spatialEquals","attribute":"location","values":[[1,2]]}',
+        '{"method":"notSpatialEquals","attribute":"location","values":[[1,2]]}',
+        '{"method":"limit","values":[10]}',
+        '{"method":"offset","values":[10]}',
+        '{"method":"limit","values":[1]}',
     ];
 
     protected const PERMISSION_HELPER_RESPONSES = [
@@ -289,19 +522,41 @@ abstract class Base extends TestCase
         'custom_id'
     ];
 
+    protected const ANDROID_JAVA_INTEROP_RESPONSES = [
+        'databases.db1',
+        'account',
+    ];
+
+    protected const JAVA_INTEROP_RESPONSES = [
+        'unique()',
+        'read("any")',
+        '{"method":"limit","values":[1]}',
+        '{"method":"count","attribute":"*"}',
+        '{"method":"increment","values":[1]}',
+        '{"method":"increment","values":[5]}',
+        'Missing required parameter: "id"',
+        'PUT:/v1/mock/tests/general/upload-generic:passed',
+    ];
+
     protected const TOPIC_HELPER_RESPONSES = [
         'user/123/notification',
         'org/42/user/123/notification',
-        'user/+/notification',
-        'chat/+/+/message',
-        'org/+/logs/#',
-        '+/notification',
-        '#',
         'Topic empty path:passed',
         'Topic empty level:passed',
         'Topic slash:passed',
         'Topic plus:passed',
         'Topic hash:passed',
+        'Topic nul:passed',
+    ];
+
+    protected const QUERY_PAGE_OVERFLOW_RESPONSES = [
+        'Query page overflow:passed',
+    ];
+
+    protected const UNITY_MANAGER_RESPONSES = [
+        'Manager push reinitialize:passed',
+        'Config all services:passed',
+        'Config some services:passed',
     ];
 
     protected const ADDITIONAL_PROPERTIES_RESPONSES = [
@@ -634,6 +889,11 @@ abstract class Base extends TestCase
                 $expected = $this->getExpectedSdkHeaders() . '; accept: application/json, text/plain';
             }
 
+            if ($expected === self::QUERY_TRANSPORT_RESPONSE) {
+                $this->assertQueriesReachedTheServer($output[$index] ?? null);
+                continue;
+            }
+
             // HACK: Swift does not guarantee the order of the JSON parameters
             if (\str_starts_with((string) $expected, '{')) {
                 $this->assertEquals(
@@ -648,6 +908,30 @@ abstract class Base extends TestCase
             } else {
                 $this->assertEquals($expected, $output[$index]);
             }
+        }
+    }
+
+    private function assertQueriesReachedTheServer(?string $echo): void
+    {
+        $received = \json_decode((string) $echo, true);
+
+        $this->assertIsArray(
+            $received,
+            "The SDK did not print the query list the mock server echoes back, it printed: {$echo}"
+        );
+        $this->assertCount(
+            \count(self::QUERY_TRANSPORT_QUERIES),
+            $received,
+            'The server received a different number of queries than the SDK was given'
+        );
+
+        foreach (self::QUERY_TRANSPORT_QUERIES as $position => $expected) {
+            // HACK: Swift does not guarantee the order of the JSON parameters
+            $this->assertEquals(
+                \json_decode($expected, true),
+                \json_decode((string) $received[$position], true),
+                "Query {$position} did not reach the server as the helper described it"
+            );
         }
     }
 

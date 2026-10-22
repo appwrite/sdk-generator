@@ -432,7 +432,7 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
             launch(IO) {
                 if (isStale(webSocket)) return@launch
                 try {
-                    val message = text.fromJson<RealtimeResponse>()
+                    val message = RealtimeResponse.from(text.fromJson<Map<String, Any?>>())
                     when (message.type) {
                         TYPE_ERROR -> handleResponseError(message)
                         TYPE_CONNECTED -> handleResponseConnected(message)
@@ -458,13 +458,19 @@ class Realtime(client: Client) : Service(client), CoroutineScope {
         }
 
         private fun handleResponseError(message: RealtimeResponse) {
-            val ex = message.data?.jsonCast<{{ spec.info.title | caseUcfirst }}Exception>() ?: RuntimeException("Data is not present")
-            throw ex
+            val data = message.data as? Map<*, *> ?: throw RuntimeException("Data is not present")
+            throw {{ spec.info.title | caseUcfirst }}Exception(
+                message = data["message"] as? String,
+                code = (data["code"] as? Number)?.toInt(),
+                type = data["type"] as? String,
+                response = data["response"] as? String,
+            )
         }
 
         private suspend fun handleResponseEvent(message: RealtimeResponse) {
-            val messageData = message.data?.jsonCast<Map<String, Any>>() ?: return
-            val event = messageData.jsonCast<RealtimeResponseEvent<Any>>()
+            @Suppress("UNCHECKED_CAST")
+            val messageData = message.data as? Map<String, Any> ?: return
+            val event = RealtimeResponseEvent.from(messageData) ?: return
 
             if (event.channels.isEmpty()) {
                 return

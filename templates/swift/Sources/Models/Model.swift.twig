@@ -4,7 +4,7 @@ import {{spec.info.title | caseUcfirst}}Enums
 import Foundation
 import JSONCodable
 
-/// {{ definition.description }}
+///{{ (definition.description | trim) ? ' ' ~ definition.description }}
 {% if definition.properties | length == 0 and not definition.additionalProperties %}
 open class {{ definition | modelType(spec) | raw }}: Codable {}
 {% else %}
@@ -20,7 +20,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     }
 
     {%~ for property in definition.properties %}
-    /// {{ property.description | trim }}
+    ///{{ (property.description | trim) ? ' ' ~ (property.description | trim) }}
     public let {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}?{% endif %}
 
     {%~ endfor %}
@@ -50,9 +50,10 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         {%~ for property in definition.properties %}
+        {%~ set fallback = property | modelDefault %}
         {%~ if (property | schemaType) != 'array' and (property | enumValues) is not empty %}
         {%~ if (property | schemaRequired) %}
-        self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: try container.decode(String.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}))!
+        self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: {% if fallback is not null %}try container.contains(.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}) ? container.decode(String.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}) : {{ fallback | swiftLiteral }}{% else %}try container.decode(String.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}){% endif %})!
         {%~ else %}
         if let {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}String = try container.decodeIfPresent(String.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}) {
             self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ property | propertyType(spec) | raw }}(rawValue: {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}String)
@@ -63,7 +64,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         {%~ elseif (property | enumValues) %}
         {%~ set enumName = (property | enumName) %}
         {%~ if (property | schemaRequired) %}
-        self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = try container.decode([String].self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}).map { {{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }
+        self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {% if fallback is not null %}(try container.contains(.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}) ? container.decode([String].self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}) : {{ fallback | swiftLiteral }}){% else %}try container.decode([String].self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}){% endif %}.map { {{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }
         {%~ else %}
         if let {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}Strings = try container.decodeIfPresent([String].self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}) {
             self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}Strings.map { {{ spec.info.title | caseUcfirst }}Enums.{{ enumName | caseUcfirst }}(rawValue: $0)! }
@@ -72,7 +73,9 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         }
         {%~ endif %}
         {%~ else %}
-        self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = try container.decode{% if not (property | schemaRequired) %}IfPresent{% endif %}({{ property | propertyType(spec) | raw }}.self, forKey: .{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }})
+        {%~ set field = (property | schemaName) | escapeSwiftKeyword | removeDollarSign %}
+        self.{{ field }} = {% if fallback is not null %}try container.contains(.{{ field }}) ? container.decode({{ property | propertyType(spec) | raw }}.self, forKey: .{{ field }}) : {% if (property | schemaType) == 'array' and fallback is empty %}[]{% elseif (property | schemaModel) and (property | schemaType) == 'array' %}({{ property | swiftErasedDefault }}).map { {{ (property | schemaModel) | caseUcfirst }}.from(map: $0 as! [String: Any]) }{% elseif (property | schemaModel) %}{{ (property | schemaModel) | caseUcfirst }}.from(map: {{ property | swiftErasedDefault }}){% elseif property | isAnyCodableArray(spec) %}({{ property | swiftErasedDefault }}).map { AnyCodable($0) }{% elseif property | isAnyCodableObject(spec) %}({{ property | swiftErasedDefault }}).mapValues { AnyCodable($0) }{% else %}{{ fallback | swiftLiteral }}{% endif %}{% else %}try container.decode{% if not (property | schemaRequired) %}IfPresent{% endif %}({{ property | propertyType(spec) | raw }}.self, forKey: .{{ field }}){% endif %}
+
         {%~ endif %}
         {%~ endfor %}
         {%~ if definition.additionalProperties %}
@@ -105,6 +108,21 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
     }
 
     public static func from(map: [String: Any]) -> {{ definitionName | caseUcfirst }} {
+        {%~ set defaults = definition.properties | filter(p => (p | modelDefault) is not null) %}
+        {%~ if defaults | length == 1 %}
+        {%~ set property = defaults | first %}
+        let defaults: [String: Any] = ["{{ property | schemaName }}": {{ property | swiftErasedDefault }}]
+        let map = defaults.merging(map) { _, new in new }
+
+        {%~ elseif defaults | length > 1 %}
+        let defaults: [String: Any] = [
+            {%~ for property in defaults %}
+            "{{ property | schemaName }}": {{ property | swiftErasedDefault }},
+            {%~ endfor %}
+        ]
+        let map = defaults.merging(map) { _, new in new }
+
+        {%~ endif %}
         return {{ definitionName | caseUcfirst }}(
             {%~ for property in definition.properties %}
             {%~ set isDocument = definitionName | lower == 'document' %}{# Temporary Fix until BE is fixed to return all attributes #}

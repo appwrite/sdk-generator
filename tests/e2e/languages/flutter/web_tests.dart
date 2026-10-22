@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
+// ignore: deprecated_member_use
+import 'dart:html' as html;
 
 import 'package:packageName/packageName.dart';
 
@@ -116,6 +119,22 @@ void main() async {
       ? 'Push user no credential:passed'
       : 'Push user no credential:failed');
 
+  // Signed in through the client: with no JWT or session set on it, the user comes from the
+  // session its sign-in kept in localStorage (cookieFallback).
+  html.window.localStorage['cookieFallback'] =
+      jsonEncode({'a_session_console': e2eSession});
+  try {
+    final signInTopics = await userTopicsOf(
+      Client().setProject('console').setPushEndpoint('ws://mqtt:8083'),
+    );
+    print(onlyTopic(signInTopics, 'users/e2e-session-user')
+        ? 'Push user sign-in session topic:passed'
+        : 'Push user sign-in session topic:failed');
+  } catch (_) {
+    print('Push user sign-in session topic:failed');
+  }
+  html.window.localStorage.remove('cookieFallback');
+
   // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
   // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
   // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
@@ -163,4 +182,62 @@ void main() async {
         : 'Push disconnect error:failed',
   );
   kickedPush.close();
+
+  Future<String> outcome(Future<void> Function() subscribing) async {
+    try {
+      await subscribing();
+      return '';
+    } catch (e) {
+      final message = e.toString();
+      if (message.contains('switched-user')) {
+        return 'switched-user';
+      }
+      if (message.contains('switched-pending')) {
+        return 'switched-pending';
+      }
+      return message;
+    }
+  }
+
+  final switchClient = Client()
+      .setProject('console')
+      .setPushEndpoint('ws://mqtt:8083')
+      .setSession(e2eSession);
+  final switchPush = Push(switchClient);
+  await switchPush.subscribe(['e2e-switch'], (_) {});
+  switchClient.setJWT('deny:switched-user');
+  final switched = await outcome(
+    () => switchPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  switchPush.close();
+  print(
+    switched == 'switched-user'
+        ? 'Push credential switch:passed'
+        : 'Push credential switch:failed ($switched)',
+  );
+
+  final pendingClient = Client()
+      .setProject('console')
+      .setPushEndpoint('ws://mqtt:8083')
+      .setJWT('slow:pending');
+  final pendingPush = Push(pendingClient);
+  final firstPending = outcome(
+    () => pendingPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+  pendingClient.setJWT('deny:switched-pending');
+  final secondPending = await outcome(
+    () => pendingPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  final firstPendingOutcome = await firstPending.timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => 'timeout',
+  );
+  pendingPush.close();
+  print(
+    secondPending == 'switched-pending' &&
+            firstPendingOutcome == 'switched-pending'
+        ? 'Push credential pending switch:passed'
+        : 'Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending)',
+  );
 }

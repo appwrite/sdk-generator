@@ -1,10 +1,10 @@
 # {{ spec.info.title }} {{sdk.name}} SDK
 
-![License](https://img.shields.io/github/license/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}.svg?style=flat-square)
+![License](https://img.shields.io/badge/license-{{ spec.info.license.name|replace({'-': '--', '_': '__'})|url_encode }}-blue.svg?style=flat-square)
 ![Version](https://img.shields.io/badge/api%20version-{{ spec.info.version|url_encode }}-blue.svg?style=flat-square)
-[![Build Status](https://img.shields.io/travis/com/{{ sdk.gitUserName|url_encode }}/sdk-generator?style=flat-square)](https://travis-ci.com/{{ sdk.gitUserName|url_encode }}/sdk-generator)
+[![npm](https://img.shields.io/npm/v/{{ language.params.npmPackage|url_encode }}?style=flat-square)](https://www.npmjs.com/package/{{ language.params.npmPackage }})
 {% if sdk.twitterHandle %}
-[![Twitter Account](https://img.shields.io/twitter/follow/{{ sdk.twitterHandle }}?color=00acee&label=twitter&style=flat-square)](https://twitter.com/{{ sdk.twitterHandle }})
+[![X Account](https://img.shields.io/badge/follow-%40{{ sdk.twitterHandle|replace({'-': '--', '_': '__'})|url_encode }}-000000?logo=x&style=flat-square)](https://x.com/{{ sdk.twitterHandle }})
 {% endif %}
 {% if sdk.discordChannel %}
 [![Discord](https://img.shields.io/discord/{{ sdk.discordChannel }}?label=discord&style=flat-square)]({{ sdk.discordUrl }})
@@ -22,42 +22,59 @@
 
 ## Installation
 
-The {{ spec.info.title }} CLI is a command line tool to help you interact with the {{ spec.info.title }} API. The CLI is distributed both as an [`npm package`](https://www.npmjs.com/package/{{ spec.info.title|caseLower }}-cli) as well as [native binaries](https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/releases/latest) for specific operating systems and architectures.
+The {{ spec.info.title }} CLI is a command line tool to help you interact with the {{ spec.info.title }} API. You can install it with [Homebrew](https://brew.sh), [`npm`](https://www.npmjs.com/package/{{ language.params.npmPackage }}), [Scoop](https://scoop.sh) or our install scripts, or download a [native binary](https://github.com/{{ sdk.gitUserName|url_encode }}/{{ sdk.gitRepoName|url_encode }}/releases/latest) for your operating system and architecture.
 
-### Install using NPM
----
+### macOS and Linux
 
-If you have `npm` installed, it's as easy as running
+#### Homebrew
 
-```sh
-$ npm install -g {{ language.params.npmPackage }}
-```
-
-Once the installation is complete, you can verify the install using
-
-```sh
-$ {{ language.params.executableName|caseLower }} -v
-{{ sdk.version }}
-```
-
-### Install using prebuilt binaries
----
-
-If you do not have `npm` installed, you can always install the prebuilt binaries for your architecture and OS using our convenient installation scripts.
-
-### Linux / MacOS Terminal
 ```bash
-$ wget -q {{ sdk.url }}/cli/install.sh  -O - | /bin/bash
-```
-
-### MacOS / Linux via [Homebrew](https://brew.sh)
-```bash
-$ brew install {{ language.params.homebrewTapOwner }}/{{ language.params.homebrewTapName }}/{{ language.params.executableName }}
+brew install {{ language.params.homebrewTapOwner }}/{{ language.params.homebrewTapName }}/{{ language.params.executableName }}
 ```
 
 Homebrew pulls the formula from the [`{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}`](https://github.com/{{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}) tap and downloads the native binary for your platform.
 
-### Shell completion
+#### npm
+
+```bash
+npm install -g {{ language.params.npmPackage }}
+```
+
+#### Install script
+
+```bash
+wget -q {{ sdk.url }}/cli/install.sh -O - | /bin/bash
+```
+
+### Windows
+
+#### PowerShell
+
+```powershell
+iwr -useb {{ sdk.url }}/cli/install.ps1 | iex
+```
+
+#### Scoop
+
+```powershell
+scoop install https://raw.githubusercontent.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName|caseDash }}/master/scoop/appwrite.config.json
+```
+
+The npm package also works on Windows:
+
+```powershell
+npm install -g {{ language.params.npmPackage }}
+```
+
+### Verify the installation
+
+```bash
+{{ language.params.executableName|caseLower }} -v
+```
+
+This prints the installed version, for example `{{ sdk.version }}`.
+
+## Shell completion
 
 Install completion for your current shell:
 
@@ -65,36 +82,17 @@ Install completion for your current shell:
 {{ language.params.executableName|caseLower }} completion install
 ```
 
-You can also generate or install completion scripts manually:
+You can also install completion for a specific shell:
 
 ```bash
-# zsh
 {{ language.params.executableName|caseLower }} completion install zsh
-# bash
 {{ language.params.executableName|caseLower }} completion install bash
-# fish
 {{ language.params.executableName|caseLower }} completion install fish
 ```
 
 For zsh, ensure `~/.zfunc` is in your `fpath` and `compinit` is loaded from your shell config.
-
-### Windows
-Via Powershell
-```powershell
-$ iwr -useb {{ sdk.url }}/cli/install.ps1 | iex
-```
-Via [Scoop](https://scoop.sh)
-```powershell
-$ scoop install https://raw.githubusercontent.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/master/scoop/appwrite.config.json
-```
-
-Once the installation completes, you can verify your install using
-```
-$ {{ language.params.executableName|caseLower }} -v
-{{ sdk.version }}
-```
-
 {% if sdk.gettingStarted %}
+
 {{ sdk.gettingStarted|raw }}
 {% endif %}
 
@@ -116,7 +114,8 @@ The CLI reads project resources from `{{ language.params.executableName|caseLowe
         "teams": "./appwrite/teams.json",
         "webhooks": "./appwrite/webhooks.json",
         "topics": "./appwrite/topics.json",
-        "messages": "./appwrite/messages.json"
+        "messages": "./appwrite/messages.json",
+        "analytics": "./appwrite/analytics.json"
     }
 }
 ```
@@ -137,37 +136,51 @@ Each included file contains only the array for that resource. Include paths are 
 
 JSON pointer fragments such as `./resources.json#/functions` are not supported.
 
+### Multiple environments
+
+Pass `--config-file` (or set `APPWRITE_CONFIG_FILE`) to use a config other than the nearest `{{ language.params.executableName|caseLower }}.config.json`, so one repository can target several projects:
+
+```sh
+{{ language.params.executableName }} init project --config-file {{ language.params.executableName|caseLower }}.config.prod.json
+{{ language.params.executableName }} push --config-file {{ language.params.executableName|caseLower }}.config.prod.json
+```
+
+Includes and resource paths are resolved relative to the chosen file.
+
 ## Contribution
 
-This library is auto-generated by {{ spec.info.title | caseUcfirst }} custom [SDK Generator](https://github.com/{{ spec.info.title | lower }}/sdk-generator). To learn more about how you can help us improve this SDK, please check the [contribution guide](https://github.com/{{ spec.info.title | lower }}/sdk-generator/blob/master/CONTRIBUTING.md) before sending a pull-request.
+This library is auto-generated by {{ spec.info.title|caseUcfirst }} custom [SDK Generator](https://github.com/{{ spec.info.title|lower }}/sdk-generator). To learn more about how you can help us improve this SDK, please check the [contribution guide](https://github.com/{{ spec.info.title|lower }}/sdk-generator/blob/main/CONTRIBUTING.md) before sending a pull request.
 
-To build and test the CLI for development, follow these steps 
+To build and test the CLI for development:
 
-1. Clone the SDK Generator repository and cd into the directory
-```sh
-$ git clone https://github.com/{{ spec.info.title | lower }}/sdk-generator
-$ cd sdk-generator
-```
+1. Clone the SDK Generator repository and change into it.
 
-2. Ensure Docker is running locally and then install the composer dependencies using
-```sh 
-$ docker run --rm --interactive --tty --volume "$(pwd)":/app composer install --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
+   ```sh
+   git clone https://github.com/{{ spec.info.title|lower }}/sdk-generator
+   cd sdk-generator
+   ```
 
-# Generate the CLI
-$ docker run --rm -v $(pwd):/app -w /app php:8.5-cli php example.php cli
-```
+2. Make sure Docker is running, then install the Composer dependencies and generate the CLI.
 
-3. Head over to the generated SDK and build it.
-```sh
-$ cd examples/cli
-$ go mod tidy
-$ go build -ldflags="-s -w" -o {{ language.params.executableName|caseLower }} .
-```
+   ```sh
+   docker run --rm --interactive --tty --volume "$(pwd)":/app composer install --ignore-platform-reqs --optimize-autoloader --no-plugins --no-scripts --prefer-dist
+   docker run --rm --volume "$(pwd)":/app --workdir /app php:8.5-cli php example.php cli
+   ```
 
-4. You can now use the CLI
-```sh
-$ ./{{ language.params.executableName|caseLower }} -v
-```
+3. Build the generated CLI.
+
+   ```sh
+   cd examples/cli
+   go mod tidy
+   go build -ldflags="-s -w" -o {{ language.params.executableName|caseLower }} .
+   ```
+
+4. Run the CLI.
+
+   ```sh
+   ./{{ language.params.executableName|caseLower }} -v
+   ```
+
 ## License
 
-Please see the [{{spec.info.license.name}} license]({{spec.info.license.url}}) file for more information.
+Please see the [{{ spec.info.license.name }} license](LICENSE.md) file for more information.

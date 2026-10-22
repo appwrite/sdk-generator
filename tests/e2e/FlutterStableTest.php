@@ -24,6 +24,7 @@ final class FlutterStableTest extends Base
     protected string $class = Flutter::class;
     #[Override]
     protected array $build = [
+        'docker run --rm -v $(pwd):/app:rw -w /app/tests/e2e/sdks/flutter ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && flutter test"',
         'mkdir -p tests/e2e/sdks/flutter/test',
         'cp tests/e2e/languages/flutter/tests.dart tests/e2e/sdks/flutter/test/appwrite_test.dart',
         // The native Android plugin's background delivery: a Robolectric project compiling the
@@ -33,7 +34,7 @@ final class FlutterStableTest extends Base
         'mkdir -p tests/e2e/sdks/flutter/android-test/src/main/java/io/appwrite tests/e2e/sdks/flutter/android-test/src/test/java tests/e2e/sdks/flutter/android-test/gradle/wrapper',
         'cp tests/e2e/languages/flutter/android-test/settings.gradle.kts tests/e2e/languages/flutter/android-test/build.gradle.kts tests/e2e/languages/flutter/android-test/gradle.properties tests/e2e/sdks/flutter/android-test/',
         'cp tests/e2e/languages/flutter/android-test/Tests.kt tests/e2e/sdks/flutter/android-test/src/test/java/Tests.kt',
-        'cp -R tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/services tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/exceptions tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/flutter tests/e2e/sdks/flutter/android-test/src/main/java/io/appwrite/',
+        'cp -R tests/e2e/sdks/flutter/android/src/main/kotlin/io/appwrite/flutter tests/e2e/sdks/flutter/android-test/src/main/java/io/appwrite/',
         'cp tests/e2e/sdks/flutter/android/src/main/AndroidManifest.xml tests/e2e/sdks/flutter/android-test/src/main/AndroidManifest.xml',
         'cp tests/e2e/sdks/flutter/android/build.gradle tests/e2e/sdks/flutter/android-test/plugin.gradle',
         'cp templates/android/gradlew tests/e2e/sdks/flutter/android-test/gradlew',
@@ -59,23 +60,39 @@ final class FlutterStableTest extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
+        ...Base::TEXT_RESPONSES,
+        ...Base::TEXT_UPLOAD_RESPONSES,
+        ...Base::OPTIONAL_ATTACHMENT_RESPONSES,
+        ...Base::MULTIPART_OBJECT_RESPONSES,
         ...Base::UPLOAD_RESPONSES,
+        ...Base::GENERIC_UPLOAD_RESPONSES,
         ...Base::DOWNLOAD_RESPONSES,
         ...Base::ENUM_RESPONSES,
         ...Base::MODEL_RESPONSES,
+        ...Base::MODEL_DEFAULT_RESPONSES,
+        ...Base::NULLABLE_MODEL_RESPONSES,
+        ...Base::ENUM_ARRAY_MODEL_RESPONSES,
+        ...Base::MAP_MODEL_DEFAULT_RESPONSES,
+        ...Base::NESTED_MODEL_DEFAULT_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
         ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
+        Base::QUERY_TRANSPORT_RESPONSE,
         ...Base::PERMISSION_HELPER_RESPONSES,
         ...Base::ID_HELPER_RESPONSES,
         ...Base::TOPIC_HELPER_RESPONSES,
         ...Base::CHANNEL_HELPER_RESPONSES,
         ...Base::OPERATOR_HELPER_RESPONSES,
         ...Base::PUSH_RESPONSES,
+        ...Base::PUSH_SIGN_IN_SESSION_RESPONSES,
         ...Base::PUSH_ERROR_RESPONSES,
+        ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
+        ...Base::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,
         ...Base::FLUTTER_PUSH_NATIVE_RESPONSES,
         ...Base::PUSH_NATIVE_DISPLACED_RESPONSES,
-        ...Base::PUSH_BACKGROUND_RESPONSES
+        ...Base::PUSH_NOTIFICATION_PERMISSION_RESPONSES,
+        ...Base::PUSH_BACKGROUND_RESPONSES,
+        ...Base::PUSH_NOTIFICATION_OPENED_RESPONSES
     ];
 }

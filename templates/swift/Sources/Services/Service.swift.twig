@@ -44,7 +44,8 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 
         {%~ endfor %}
         {%~ if (method | responseModel) | hasGenericType(spec) %}
-        nestedType: T.Type
+        nestedType: T.Type{% if 'multipart/form-data' in (method | consumes) %},{% endif %}
+
         {%~ endif %}
         {%~ if 'multipart/form-data' in (method | consumes) %}
         onProgress: ((UploadProgress) -> Void)? = nil
@@ -148,7 +149,8 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
             {%~ for parameter in (method | parameters('all')) %}
             {{ parameter.name | caseCamel | escapeSwiftKeyword }}: {{ parameter.name | caseCamel | escapeSwiftKeyword }},
             {%~ endfor %}
-            nestedType: [String: AnyCodable].self
+            nestedType: [String: AnyCodable].self{% if 'multipart/form-data' in (method | consumes) %},{% endif %}
+
             {%~ if 'multipart/form-data' in (method | consumes) %}
             onProgress: onProgress
             {%~ endif %}

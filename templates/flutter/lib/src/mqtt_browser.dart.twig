@@ -12,6 +12,7 @@ import 'client.dart';
 import 'exception.dart';
 import 'mqtt.dart';
 import 'mqtt_message.dart';
+import 'mqtt_notification.dart';
 
 Push createPush(Client client) => PushWeb(client);
 
@@ -21,15 +22,27 @@ class _Subscription {
   bool background;
   String? title;
   bool retry;
+  bool notifyInForeground;
 
-  _Subscription(this.filter, this.callback,
-      {this.background = false, this.title, this.retry = true});
+  _Subscription(
+    this.filter,
+    this.callback, {
+    this.background = false,
+    this.title,
+    this.retry = true,
+    this.notifyInForeground = false,
+  });
 }
 
 class _SubscriptionHandle implements PushSubscription {
   final void Function() _unsubscribe;
-  final void Function({bool? background, String? title, bool? retry})
-      _update;
+  final void Function({
+    bool? background,
+    String? title,
+    bool? retry,
+    bool? notifyInForeground,
+  })
+  _update;
 
   _SubscriptionHandle(this._unsubscribe, this._update);
 
@@ -37,11 +50,17 @@ class _SubscriptionHandle implements PushSubscription {
   void unsubscribe() => _unsubscribe();
 
   @override
-  void update({bool? background, String? title, bool? retry}) =>
-      _update(
-          background: background,
-          title: title,
-          retry: retry);
+  void update({
+    bool? background,
+    String? title,
+    bool? retry,
+    bool? notifyInForeground,
+  }) => _update(
+    background: background,
+    title: title,
+    retry: retry,
+    notifyInForeground: notifyInForeground,
+  );
 }
 
 // Fixed connection tuning — not exposed as an option.
@@ -61,6 +80,10 @@ class PushWeb implements Push {
 
   MqttBrowserClient? _mqtt;
   Future<void>? _connecting;
+  int _connectionEpoch = 0;
+  Completer<void>? _openCancel;
+  String _connectedKey = '';
+  bool _resubscribeOnConnect = false;
 
   void Function()? _onOpen;
   void Function()? _onClose;
@@ -86,8 +109,7 @@ class PushWeb implements Push {
     // Secure by default: WSS on when the endpoint scheme is secure, so the credential in the
     // CONNECT packet is not sent over a plaintext socket.
     final resolvedTls = _secureScheme(pushEndpoint);
-    final resolvedPort =
-        _pushEndpointPort(client) ?? (resolvedTls ? 443 : 80);
+    final resolvedPort = _pushEndpointPort(client) ?? (resolvedTls ? 443 : 80);
     // When no explicit push endpoint is set, default to a `push.` host on the regular
     // endpoint (mirroring how realtime derives from the endpoint, on the push subdomain).
     final resolvedHost = client.config['endpointPush'] != null
@@ -108,10 +130,10 @@ class PushWeb implements Push {
     required int port,
     required bool tls,
     required String path,
-  })  : _host = host,
-        _port = port,
-        _tls = tls,
-        _path = path;
+  }) : _host = host,
+       _port = port,
+       _tls = tls,
+       _path = path;
 
   // Empty when the app did not set one: the broker derives a stable id server-side (keyed on
   // the credential/project) so the replay cursor resumes across reloads.
@@ -172,8 +194,9 @@ class PushWeb implements Push {
   // The broker subscription for a filter uses the highest QoS any subscription on it wants,
   // so a QoS-0 subscription never downgrades a QoS-1 one sharing the filter.
   MqttQos _effectiveQos(String filter) {
-    final reliable = _subscriptions.values
-        .any((s) => s.filter == filter && s.retry);
+    final reliable = _subscriptions.values.any(
+      (s) => s.filter == filter && s.retry,
+    );
     return reliable ? MqttQos.atLeastOnce : MqttQos.atMostOnce;
   }
 
@@ -220,8 +243,12 @@ class PushWeb implements Push {
     try {
       callback(error);
     } catch (callbackError, stackTrace) {
-      developer.log('Push onError threw',
-          name: '{{ spec.info.title | caseLower }}', error: callbackError, stackTrace: stackTrace);
+      developer.log(
+        'Push onError threw',
+        name: '{{ spec.info.title | caseLower }}',
+        error: callbackError,
+        stackTrace: stackTrace,
+      );
     }
   }
 
@@ -240,6 +267,7 @@ class PushWeb implements Push {
     bool? background,
     String? title,
     bool retry = true,
+    bool notifyInForeground = false,
   }) async {
     final List<String> topicList;
     final MqttBrowserClient mqtt;
@@ -247,9 +275,20 @@ class PushWeb implements Push {
       topicList = _topicList(client, topics);
       mqtt = await _connect();
     } catch (e) {
+      if (e is _Superseded) {
+        return subscribe(
+          topics,
+          callback,
+          background: background,
+          title: title,
+          retry: retry,
+          notifyInForeground: notifyInForeground,
+        );
+      }
       _notify(e);
       rethrow;
     }
+    final epoch = _connectionEpoch;
     // The own-user topic (topics == null) defaults to background delivery, like FCM/APNs.
     final wantsBackground = background ?? topics == null;
 
@@ -268,8 +307,9 @@ class PushWeb implements Push {
           maybeDowngrade.add(entry.filter);
         }
         // Only unsubscribe the broker filter once its last local callback is gone.
-        final stillUsed =
-            _subscriptions.values.any((s) => s.filter == entry?.filter);
+        final stillUsed = _subscriptions.values.any(
+          (s) => s.filter == entry?.filter,
+        );
         if (entry != null && !stillUsed) {
           try {
             _mqtt?.unsubscribeStringTopic(entry.filter);
@@ -315,6 +355,7 @@ class PushWeb implements Push {
           background: wantsBackground,
           title: title,
           retry: retry,
+          notifyInForeground: notifyInForeground,
         );
 
         final completer = Completer<void>();
@@ -329,12 +370,30 @@ class PushWeb implements Push {
       }
       await Future.wait(acks);
     } catch (e) {
+      if (epoch != _connectionEpoch) {
+        for (final id in ids) {
+          _subscriptions.remove(id);
+        }
+        return subscribe(
+          topics,
+          callback,
+          background: background,
+          title: title,
+          retry: retry,
+          notifyInForeground: notifyInForeground,
+        );
+      }
       unsubscribe();
       _notify(e);
       rethrow;
     }
 
-    void update({bool? background, String? title, bool? retry}) {
+    void update({
+      bool? background,
+      String? title,
+      bool? retry,
+      bool? notifyInForeground,
+    }) {
       final changedFilters = <String>{};
       for (final id in ids) {
         final entry = _subscriptions[id];
@@ -346,6 +405,9 @@ class PushWeb implements Push {
         }
         if (title != null) {
           entry.title = title;
+        }
+        if (notifyInForeground != null) {
+          entry.notifyInForeground = notifyInForeground;
         }
         if (retry != null && retry != entry.retry) {
           entry.retry = retry;
@@ -391,6 +453,30 @@ class PushWeb implements Push {
   Future<void> setForeground(bool enabled) async {}
 
   @override
+  Future<PushBackgroundStatus?> backgroundStatus() async => null;
+
+  @override
+  Future<bool> requestExactAlarms() async => false;
+
+  @override
+  Future<bool> requestIgnoreBatteryOptimizations() async => false;
+
+  // Taps on the notifications this page shows, while it is open.
+  static final StreamController<PushNotificationOpened> _opened =
+      StreamController<PushNotificationOpened>.broadcast();
+
+  @override
+  Future<PushNotificationOpened?> getInitialNotification() async => null;
+
+  @override
+  void Function() onNotificationOpened(
+    void Function(PushNotificationOpened opened) callback,
+  ) {
+    final subscription = _opened.stream.listen(callback);
+    return () => unawaited(subscription.cancel());
+  }
+
+  @override
   void close() {
     _mqtt?.disconnect();
     _mqtt = null;
@@ -399,6 +485,24 @@ class PushWeb implements Push {
   }
 
   Future<MqttBrowserClient> _connect() {
+    if ((_mqtt != null || _connecting != null) &&
+        _connectedKey != _credentialKey) {
+      _connectionEpoch++;
+      _connecting = null;
+      _openCancel?.complete();
+      _openCancel = null;
+      for (final waiting in _subAcks.values) {
+        for (final completer in waiting) {
+          if (!completer.isCompleted) {
+            completer.completeError(const _Superseded());
+          }
+        }
+      }
+      _subAcks.clear();
+      _mqtt?.disconnect();
+      _mqtt = null;
+      _resubscribeOnConnect = _subscriptions.isNotEmpty;
+    }
     final mqtt = _mqtt;
     if (mqtt != null &&
         mqtt.connectionStatus?.state == MqttConnectionState.connected) {
@@ -410,29 +514,55 @@ class PushWeb implements Push {
       _connecting = connecting;
       // A failed open must not poison future attempts — clear the cached in-flight
       // future so a later subscribe/publish can retry.
-      unawaited(connecting.catchError((Object _) {
-        _connecting = null;
-      }));
+      final pending = connecting;
+      unawaited(
+        pending.catchError((Object _) {
+          if (identical(_connecting, pending)) {
+            _connecting = null;
+          }
+        }),
+      );
     }
     return connecting.then((_) => _mqtt!);
   }
 
-  Future<void> _open() async {
-    // Read the credential set on the client (via Client.setJWT / setSession).
+  // The credential set on the client (via Client.setJWT / setSession), else the session it
+  // signed in with, as (method, credential).
+  (String, String) _credential() {
     final jwt = client.config['jwt'] ?? client.config['jWT'];
-    final session = client.config['session'];
-    final String authMethod;
-    final String credential;
+    final session = _clientSession(client);
     if (jwt != null && jwt.isNotEmpty) {
-      authMethod = 'appwrite-jwt';
-      credential = jwt;
-    } else if (session != null && session.isNotEmpty) {
-      authMethod = 'appwrite-session';
-      credential = session;
-    } else {
-      throw {{spec.info.title | caseUcfirst}}Exception(
-          'No credential set on the client; call Client.setJWT() or Client.setSession() first.');
+      return ('appwrite-jwt', jwt);
     }
+    if (session != null && session.isNotEmpty) {
+      return ('appwrite-session', session);
+    }
+    throw {{spec.info.title | caseUcfirst}}Exception(
+      'No credential: sign in with this client, or call Client.setJWT() or Client.setSession() first.',
+    );
+  }
+
+  String get _credentialKey {
+    try {
+      final (authMethod, credential) = _credential();
+      return [
+        _host,
+        _port,
+        _path,
+        client.config['project'] ?? '',
+        _resolvedClientId,
+        authMethod,
+        credential,
+      ].join('|');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<void> _open() async {
+    final (authMethod, credential) = _credential();
+    _connectedKey = _credentialKey;
+    final epoch = _connectionEpoch;
 
     final project = client.config['project'] ?? '';
     // An empty client id makes the broker derive a stable id server-side (keyed on the
@@ -442,8 +572,11 @@ class PushWeb implements Push {
     final clientId = _resolvedClientId;
 
     final scheme = _tls ? 'wss' : 'ws';
-    final mqtt =
-        MqttBrowserClient.withPort('$scheme://$_host$_path', clientId, _port);
+    final mqtt = MqttBrowserClient.withPort(
+      '$scheme://$_host$_path',
+      clientId,
+      _port,
+    );
     mqtt.keepAlivePeriod = _keepAliveSeconds;
     // The broker negotiates the "mqtt" WebSocket subprotocol; offer exactly that so the
     // handshake succeeds (a browser rejects the socket when the subprotocol is not echoed).
@@ -484,15 +617,23 @@ class PushWeb implements Push {
 
     _mqtt = mqtt;
 
-    final failure = await _connectOrFail(mqtt, (error) {
+    final cancel = Completer<void>();
+    _openCancel = cancel;
+    final failure = await _connectOrFail(mqtt, cancel.future, (error) {
+      if (epoch != _connectionEpoch) {
+        return;
+      }
       // Let go of the client first: it is still being wound down, and a close() from
       // onError must not touch it.
       if (identical(_mqtt, mqtt)) {
         _mqtt = null;
       }
-      close();
       _notify(error);
     });
+    if (epoch != _connectionEpoch) {
+      mqtt.disconnect();
+      throw const _Superseded();
+    }
     if (failure != null) {
       throw failure;
     }
@@ -500,6 +641,19 @@ class PushWeb implements Push {
     // Attach the delivery listener only after CONNACK — the `updates` stream is not
     // available until the connection is established.
     mqtt.updates.listen(_onData);
+
+    if (_resubscribeOnConnect) {
+      _resubscribeOnConnect = false;
+      final filters = _subscriptions.values.map((s) => s.filter).toSet();
+      for (final filter in filters) {
+        mqtt.subscribeWithSubscriptionList([
+          MqttSubscription.withMaximumQos(
+            MqttSubscriptionTopic(filter),
+            _effectiveQos(filter),
+          ),
+        ]);
+      }
+    }
   }
 
   void _onData(List<MqttReceivedMessage<MqttMessage>> events) {
@@ -510,21 +664,37 @@ class PushWeb implements Push {
       }
       final topic = received.topic ?? '';
       final bytes = publish.payload.message;
-      final payload =
-          bytes == null ? Uint8List(0) : Uint8List.fromList(bytes.toList());
+      final payload = bytes == null
+          ? Uint8List(0)
+          : Uint8List.fromList(bytes.toList());
       final message = PushMessage(
         topic: topic,
         payload: payload,
         qos: publish.header?.qos.index ?? 0,
       );
+      final content = PushNotificationContent.of(message);
+      final shownTitles = <String>{};
       for (final subscription in _subscriptions.values) {
         if (_matches(subscription.filter, topic)) {
           subscription.callback(message);
           // Notification is per-subscription: only subs that opted in show one, each
-          // with its own title.
+          // title once. A title the server sent replaces theirs, so it is shown once.
+          final title = content.titleOr(subscription.title ?? topic);
           if (subscription.background &&
-              html.Notification.permission == 'granted') {
-            html.Notification(subscription.title ?? topic, body: message.data);
+              content.visible &&
+              (html.document.visibilityState != 'visible' ||
+                  subscription.notifyInForeground) &&
+              html.Notification.supported &&
+              html.Notification.permission == 'granted' &&
+              shownTitles.add(title)) {
+            html.Notification(
+              title,
+              body: content.bodyFor(message),
+            ).onClick.listen((_) {
+              _opened.add(
+                PushNotificationOpened.fromPayload(topic, message.data),
+              );
+            });
           }
         }
       }
@@ -574,6 +744,7 @@ class PushWeb implements Push {
 /// watched for the refusal as well, and the pending connect() is then let go.
 Future<Object?> _connectOrFail(
   MqttClient mqtt,
+  Future<void> cancelled,
   void Function(Object error) failed,
 ) async {
   final connecting = mqtt.connect();
@@ -585,7 +756,7 @@ Future<Object?> _connectOrFail(
   });
   Object? failure;
   try {
-    await Future.any([connecting, refused.future]);
+    await Future.any([connecting, refused.future, cancelled]);
   } catch (e) {
     failure = e;
   } finally {
@@ -609,8 +780,11 @@ Future<Object?> _connectOrFail(
 /// Tear down a client whose connect failed. After a refusal [refusedStatus] is its status:
 /// connect() only stops waiting once the status reads connected, so mark it so until
 /// connect() returns, then disconnected again.
-Future<void> _teardown(MqttClient mqtt, Future<Object?> connecting,
-    MqttConnectionStatus? refusedStatus) async {
+Future<void> _teardown(
+  MqttClient mqtt,
+  Future<Object?> connecting,
+  MqttConnectionStatus? refusedStatus,
+) async {
   if (refusedStatus != null) {
     refusedStatus.state = MqttConnectionState.connected;
     try {
@@ -733,23 +907,41 @@ bool _matches(String filter, String topic) {
   return filterParts.length == topicParts.length;
 }
 
-/// Resolve [Push.subscribe]'s `topics`: a String, Topic or ResolvedTopic, or a List of
+/// Resolve [Push.subscribe]'s `topics`: a String or Topic, or a List of
 /// them, or null for the signed-in user's own `users/<userId>` topic.
 List<String> _topicList(Client client, Object? topics) {
   if (topics == null) {
     return <String>[_userTopic(client)];
   }
-  // A topic is a String or a Topic / ResolvedTopic builder (via toString()).
+  // A topic is a String or a Topic builder (via toString()).
   return topics is List
       ? topics.map((topic) => topic.toString()).toList()
       : <String>[topics.toString()];
+}
+
+/// The session set on the client, else the one it signed in with when the browser keeps it in
+/// localStorage (`cookieFallback`).
+String? _clientSession(Client client) {
+  final session = client.config['session'];
+  if (session != null && session.isNotEmpty) {
+    return session;
+  }
+  try {
+    final fallback =
+        jsonDecode(html.window.localStorage['cookieFallback'] ?? '{}')
+            as Map<String, dynamic>;
+    final value = fallback['a_session_${client.config['project'] ?? ''}'];
+    return value is String && value.isNotEmpty ? value : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 /// The signed-in user's own topic, `users/<userId>`, read off the client's
 /// credential (JWT first, then session) without a network call.
 String _userTopic(Client client) {
   final jwt = client.config['jwt'] ?? client.config['jWT'];
-  final session = client.config['session'];
+  final session = _clientSession(client);
   // The credential the connection authenticates with: the JWT when one is set (never the
   // session, which could belong to a different user), else the session.
   final userId = (jwt != null && jwt.isNotEmpty)
@@ -757,7 +949,7 @@ String _userTopic(Client client) {
       : _userIdFromSession(session);
   if (userId == null) {
     throw {{spec.info.title | caseUcfirst}}Exception(
-      'subscribe() without a topic needs a signed-in user: set a JWT or session on the client',
+      'subscribe() without a topic needs a signed-in user: sign in with this client, or set a JWT or session on it',
     );
   }
   return 'users/$userId';
@@ -792,4 +984,8 @@ String? _stringField(String encoded, String key) {
   } catch (_) {
     return null;
   }
+}
+
+class _Superseded implements Exception {
+  const _Superseded();
 }

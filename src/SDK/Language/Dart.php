@@ -21,9 +21,6 @@ class Dart extends Language
         'packageName' => 'packageName',
     ];
 
-    /**
-     * @return $this
-     */
     public function setPackageName(string $name): self
     {
         $this->setParam('packageName', $name);
@@ -192,59 +189,6 @@ class Dart extends Language
         };
     }
 
-    public function getParamDefault(Schema|Parameter $param): string
-    {
-        $type       = $this->getSchemaType($param);
-        $default    = $this->getSchemaDefault($param);
-        $required   = ($param instanceof Parameter && $param->required);
-
-        if ($required) {
-            return '';
-        }
-
-        $output = ' = ';
-
-        if (empty($default) && $default !== 0 && $default !== false) {
-            switch ($type) {
-                case self::TYPE_OBJECT:
-                    $output .= 'const {}';
-                    break;
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= '0';
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= 'false';
-                    break;
-                case self::TYPE_ARRAY:
-                    $output .= 'const []';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "''";
-                    break;
-            }
-        } else {
-            switch ($type) {
-                case self::TYPE_NUMBER:
-                case self::TYPE_INTEGER:
-                    $output .= $default;
-                    break;
-                case self::TYPE_OBJECT:
-                case self::TYPE_ARRAY:
-                    $output .= 'const ' . $default;
-                    break;
-                case self::TYPE_BOOLEAN:
-                    $output .= ($default) ? 'true' : 'false';
-                    break;
-                case self::TYPE_STRING:
-                    $output .= "'{$default}'";
-                    break;
-            }
-        }
-
-        return $output;
-    }
-
     public function getParamExample(Schema|Parameter $param, string $lang = ''): string
     {
         $type       = $this->getSchemaType($param);
@@ -264,16 +208,21 @@ class Dart extends Language
         }
 
         return match ($type) {
-            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $this->escapeInterpolation((string) $example),
             self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($decoded = json_decode((string) $example, true)) !== null
             ? (empty($decoded) && $example === '{}'
                 ? '{}'
-                : preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT)))
-            : $example,
-            self::TYPE_STRING => "'{$example}'",
+                : $this->escapeInterpolation((string) preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT))))
+            : $this->escapeInterpolation((string) $example),
+            self::TYPE_STRING => "'" . $this->escapeInterpolation((string) $example) . "'",
         };
+    }
+
+    private function escapeInterpolation(string $value): string
+    {
+        return str_replace('$', '\$', str_replace('\$', '$', $value));
     }
 
     public function getModelToMapValue(Schema $property, string $propertyName, bool $required): string
@@ -388,6 +337,11 @@ class Dart extends Language
                 'scope'         => 'default',
                 'destination'   => '/lib/query.dart',
                 'template'      => 'dart/lib/query.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/query/builder.dart',
+                'template'      => 'dart/lib/query/builder.dart.twig',
             ],
             [
                 'scope'         => 'default',
@@ -526,6 +480,11 @@ class Dart extends Language
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/test/src/client_io_test.dart',
+                'template'      => 'dart/test/src/client_io_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/test/src/response_test.dart',
                 'template'      => 'dart/test/src/response_test.dart.twig',
             ],
@@ -563,12 +522,63 @@ class Dart extends Language
         return str_replace('$', '\\$', $encoded);
     }
 
+    protected function getDartLiteral(mixed $value): string
+    {
+        if ($value === null) {
+            return 'null';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_string($value)) {
+            return $this->getDartStringLiteral($value);
+        }
+
+        if (is_array($value) && array_is_list($value)) {
+            return '[' . implode(', ', array_map($this->getDartLiteral(...), $value)) . ']';
+        }
+
+        if (is_array($value)) {
+            return $this->getDartMap($value);
+        }
+
+        return json_encode($value, JSON_THROW_ON_ERROR);
+    }
+
+    protected function getDartDefault(Schema $property): string
+    {
+        $value = $this->getModelDefault($this->getSchema($property), true);
+
+        if (is_array($value) && $this->getSchemaType($property) === self::TYPE_OBJECT) {
+            return $this->getDartMap($value);
+        }
+
+        return $this->getDartLiteral($value);
+    }
+
+    protected function getDartMap(array $value): string
+    {
+        if ($value === []) {
+            return '<String, dynamic>{}';
+        }
+
+        $pairs = [];
+        foreach ($value as $key => $item) {
+            $pairs[] = $this->getDartStringLiteral((string) $key) . ': ' . $this->getDartLiteral($item);
+        }
+
+        return '{' . implode(', ', $pairs) . '}';
+    }
+
     #[Override]
     public function getFilters(): array
     {
         return [
             new TwigFilter('caseEnumKey', fn(string $value): string => $this->toCamelCase($value)),
             new TwigFilter('dartString', fn(?string $value): string => $this->getDartStringLiteral($value ?? ''), ['is_safe' => ['html']]),
+            new TwigFilter('dartDefault', fn(Schema $property): string => $this->getDartDefault($property), ['is_safe' => ['html']]),
             new TwigFilter('trimLines', fn(string $value): string => preg_replace('/[ \t]+$/m', '', $value) ?? $value),
             new TwigFilter('enumExample', function (Schema|Parameter $param): string {
                 $schema = $this->getSchema($param);
@@ -586,13 +596,13 @@ class Dart extends Language
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
-                        return $this->toCamelCase($enumKeys[$index]);
+                        return $this->escapeKeyword($this->toCamelCase($enumKeys[$index]));
                     }
                     if ($index !== false && isset($enumValues[$index])) {
-                        return $this->toCamelCase($enumValues[$index]);
+                        return $this->escapeKeyword($this->toCamelCase($enumValues[$index]));
                     }
                     $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
-                    return $this->toCamelCase((string)$fallback);
+                    return $this->escapeKeyword($this->toCamelCase((string)$fallback));
                 };
 
                 if ($isArray) {

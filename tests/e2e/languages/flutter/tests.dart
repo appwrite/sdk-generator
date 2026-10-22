@@ -150,6 +150,36 @@ void main() async {
   print((await general.validatePath(id: '0', plain: '0')).result);
   print((await general.validatePath(id: null, plain: '0')).result);
 
+  final String zone = await Plaintext(client).getZone();
+  print(zone);
+  final mixed = await general.getMixed();
+  print(mixed.result);
+  final plaintext = Plaintext(client);
+  var imported = await plaintext.importZone(records: 'www 3600 IN A 192.0.2.1');
+  print(imported);
+  imported = await plaintext.importZone(
+    records: 'www 3600 IN A 192.0.2.1',
+    zone: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'),
+  );
+  print(imported);
+
+  const message = 'conversation without a required file';
+  var optional = await general.optionalUpload(message: message);
+  print(optional.result);
+  optional = await general.optionalUpload(
+    message: message,
+    attachment: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'),
+  );
+  print(optional.result);
+  optional = await general.optionalUpload(message: message, metadata: {'source': 'sdk', 'uri': 'café'});
+  print(optional.result);
+  optional = await general.optionalUpload(
+    message: message,
+    attachment: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'),
+    metadata: {'source': 'sdk', 'uri': 'café'},
+  );
+  print(optional.result);
+
   var file = InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png');
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
@@ -170,6 +200,9 @@ void main() async {
   response = await general.upload(x: 'string', y: 123, z: ['string in array'], file: file);
   print(response.result);
 
+  final profile = await general.uploadGeneric(file: InputFile.fromPath(path: '../../../resources/file.png', filename: 'file.png'));
+  print(profile.prefs.data['result']);
+
   final download = await general.download();
   print(utf8.decode(download));
 
@@ -185,6 +218,18 @@ void main() async {
     Player(id: 'player2', name: 'Jane Doe', score: 200)
   ]);
   print(response.result);
+
+  final preset = await general.getPreset();
+  print('preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}');
+  final presets = await general.listPresets();
+  for (final item in presets.presets) {
+    print('preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}');
+  }
+  print('empty presets: ${(await general.listEmptyPresets()).presets.length}');
+  print('preset verified: ${preset.verified}');
+  print('preset scopes: ${(preset.scopes ?? []).map((scope) => scope.value).join(',')}');
+  print('preset settings: options=${(await general.getPresetSettings()).options.length}');
+  print('preset profile: prefs=${(await general.getPresetProfile()).prefs.data.length}');
 
   try {
     await general.error400();
@@ -384,6 +429,47 @@ void main() async {
     Query.equal("name", "Alice"),
     Query.greaterThan("age", 18)
   ]));
+  print(Query.relationship("comments", [
+    Query.equal("approved", true),
+    Query.limit(2)
+  ]));
+  final queryTransport = await general.listRows(queries: [
+    Query.count('*', 'total'),
+    Query.join('orders', '\$id', 'customerId'),
+    Query.groupBy(['status']),
+    Query.distinct(),
+    Query.covers('location', [1, 2]),
+    Query.countDistinct('year', 'uniqueYears'),
+    Query.sum('price', 'total'),
+    Query.avg('price', 'avgPrice'),
+    Query.min('price', 'lowest'),
+    Query.max('price', 'highest'),
+    Query.stddev('price', 'sd'),
+    Query.stddevPop('price', 'sdp'),
+    Query.stddevSamp('price', 'sds'),
+    Query.variance('price', 'var'),
+    Query.varPop('price', 'vp'),
+    Query.varSamp('price', 'vs'),
+    Query.bitAnd('flags', 'band'),
+    Query.bitOr('flags', 'bor'),
+    Query.bitXor('flags', 'bxor'),
+    Query.having([Query.greaterThan('total', 1)]),
+    Query.leftJoin('orders', '\$id', 'customerId', '=', 'ord'),
+    Query.rightJoin('orders', '\$id', 'customerId'),
+    Query.fullOuterJoin('orders', '\$id', 'customerId'),
+    Query.crossJoin('orders', 'ord'),
+    Query.on('\$id', 'customerId'),
+    Query.leftJoin('orders', 'ord', [
+      Query.on('\$id', 'customerId'),
+      Query.equal('ord.status', 'paid'),
+    ]),
+    Query.notCovers('location', [1, 2]),
+    Query.spatialEquals('location', [1, 2]),
+    Query.notSpatialEquals('location', [1, 2]),
+    ...Query.page(2, 10),
+    ...Query.builder().limit(1).build(),
+  ]);
+  print(queryTransport.result);
 
   // Permission & Role helper tests
   print(Permission.read(Role.any()));
@@ -404,17 +490,13 @@ void main() async {
   // Topic helper tests
   print(Topic.path(['user', '123', 'notification']).toString());
   print(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
-  print(Topic.path(['user']).any().path(['notification']).toString());
-  print(Topic.path(['chat']).any().any().path(['message']).toString());
-  print(Topic.path(['org']).any().path(['logs']).all().toString());
-  print(Topic.any().path(['notification']).toString());
-  print(Topic.all().toString());
   final topicCases = <String, List<String>>{
     'empty path': [],
     'empty level': ['user', ''],
     'slash': ['user/123'],
     'plus': ['user', 'a+b'],
     'hash': ['user', '#'],
+    'nul': ['user', 'a\u0000b'],
   };
   topicCases.forEach((name, levels) {
     try {
@@ -591,6 +673,33 @@ void main() async {
       ? 'Push user no credential:passed'
       : 'Push user no credential:failed');
 
+  // Signed in through the client: with no JWT or session set on it, the user comes from the
+  // session its sign-in saved in the cookie store.
+  final signInClient = Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883');
+  try {
+    final signInIO = signInClient as ClientIO;
+    // Client() starts initialising on its own: wait for it before using the cookie store.
+    while (!signInIO.initialized && signInIO.initProgress) {
+      await Future.delayed(const Duration(milliseconds: 10));
+    }
+    if (!signInIO.initialized) {
+      await signInIO.init();
+    }
+    await signInIO.cookieJar.saveFromResponse(
+      Uri.parse(signInIO.endPoint),
+      [Cookie('a_session_console', Uri.encodeComponent(e2eSession))],
+    );
+    final signInTopics = await userTopicsOf(signInClient);
+    print(onlyTopic(signInTopics, 'users/e2e-session-user')
+        ? 'Push user sign-in session topic:passed'
+        : 'Push user sign-in session topic:failed');
+  } catch (e) {
+    print('Push user sign-in session topic:failed ($e)');
+  }
+
   // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
   // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT
   // (the mock disconnects a client subscribing to "e2e-disconnect/<reason>" with <reason>).
@@ -639,6 +748,92 @@ void main() async {
         : 'Push disconnect error:failed',
   );
   kickedPush.close();
+
+  Future<String> outcome(Future<void> Function() subscribing) async {
+    try {
+      await subscribing();
+      return '';
+    } catch (e) {
+      final message = e.toString();
+      if (message.contains('switched-user')) {
+        return 'switched-user';
+      }
+      if (message.contains('switched-pending')) {
+        return 'switched-pending';
+      }
+      return message;
+    }
+  }
+
+  final switchClient = Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setSession(e2eSession);
+  final switchPush = Push(switchClient);
+  await switchPush.subscribe(['e2e-switch'], (_) {});
+  switchClient.setJWT('deny:switched-user');
+  final switched = await outcome(
+    () => switchPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  switchPush.close();
+  print(
+    switched == 'switched-user'
+        ? 'Push credential switch:passed'
+        : 'Push credential switch:failed ($switched)',
+  );
+
+  final pendingClient = Client()
+      .setSelfSigned()
+      .setProject('console')
+      .setPushEndpoint('mqtt://mqtt:1883')
+      .setJWT('slow:pending');
+  final pendingPush = Push(pendingClient);
+  final firstPending = outcome(
+    () => pendingPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+  pendingClient.setJWT('deny:switched-pending');
+  final secondPending = await outcome(
+    () => pendingPush.subscribe(['e2e-switch'], (_) {}),
+  );
+  final firstPendingOutcome = await firstPending.timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => 'timeout',
+  );
+  pendingPush.close();
+  print(
+    secondPending == 'switched-pending' &&
+            firstPendingOutcome == 'switched-pending'
+        ? 'Push credential pending switch:passed'
+        : 'Push credential pending switch:failed (first: $firstPendingOutcome, second: $secondPending)',
+  );
+
+  // close() while the connection is still being set up (the mock accepts a "slow:" credential
+  // after 500 ms): the subscribe fails with the close, and the connection never opens after it.
+  var closingOpened = 0;
+  final closingPush = Push(Client()
+          .setSelfSigned()
+          .setProject('console')
+          .setPushEndpoint('mqtt://mqtt:1883')
+          .setJWT('slow:closing'))
+      .onOpen(() => closingOpened++);
+  final closingOutcome = closingPush.subscribe(['e2e-switch'], (_) {}).then(
+        (_) => '',
+        onError: (Object e) => e is AppwriteException ? e.message ?? '' : e.toString(),
+      );
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+  closingPush.close();
+  final closedOutcome = await closingOutcome.timeout(
+    const Duration(seconds: 5),
+    onTimeout: () => 'timeout',
+  );
+  await Future<void>.delayed(const Duration(seconds: 1));
+  print(
+    closedOutcome == 'Push was closed before the subscription was established' && closingOpened == 0
+        ? 'Push close while connecting:passed'
+        : 'Push close while connecting:failed ($closedOutcome, opened: $closingOpened)',
+  );
 
   // Background delivery on Android through the public API. The SDK's native Android plugin needs
   // a device, so a stand-in answers on its channels, as the mock server stands in for the broker;
@@ -707,6 +902,9 @@ void main() async {
   print(firstErrors.any((e) => e.toString().contains('Background delivery stopped')) && secondErrors.isEmpty
       ? 'Push native displaced:passed'
       : 'Push native displaced:failed');
+  print(plugin.calls.where((m) => m == 'requestNotificationPermission').length == 1
+      ? 'Push notification permission:passed'
+      : 'Push notification permission:failed');
   firstUser.close();
   secondUser.close();
   PushNative.debugInstance = null;
@@ -717,6 +915,7 @@ void main() async {
 class FakePushPlugin implements BinaryMessenger {
   static const codec = StandardMethodCodec();
   final subscribed = Completer<void>();
+  final calls = <String>[];
   final _hosted = <Map<String, dynamic>>[];
   MessageHandler? _events;
 
@@ -737,6 +936,7 @@ class FakePushPlugin implements BinaryMessenger {
   Future<ByteData?> send(String channel, ByteData? message) async {
     final call = codec.decodeMethodCall(message);
     final arguments = call.arguments as Map<Object?, Object?>?;
+    calls.add(call.method);
     switch (call.method) {
       case 'host':
         _hosted
@@ -749,6 +949,8 @@ class FakePushPlugin implements BinaryMessenger {
         return codec.encodeSuccessEnvelope(false);
       case 'defaultClientId':
         return codec.encodeSuccessEnvelope('e2e-session-user-install');
+      case 'requestNotificationPermission':
+        return codec.encodeSuccessEnvelope(true);
       default:
         return codec.encodeSuccessEnvelope(null);
     }

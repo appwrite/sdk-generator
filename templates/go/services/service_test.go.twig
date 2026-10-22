@@ -7,9 +7,12 @@
         {%- set requireModelsPkg = true -%}
     {%- endif -%}
     {%- for parameter in (method | parameters('all')) -%}
-        {%- if "file.InputFile" in (parameter | typeName) -%}
+        {%- if parameter.required and "file.InputFile" in (parameter | typeName) -%}
             {%- set requireFilesPkg = true -%}
             {%- set requireOsPkg = true -%}
+        {%- endif -%}
+        {%- if parameter.required and "models." in (parameter | typeName) -%}
+            {%- set requireModelsPkg = true -%}
         {%- endif -%}
     {%- endfor -%}
 {%- endfor -%}
@@ -88,6 +91,8 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 	}
 
 {% for method in (service | operations) %}
+{% set responseModels = [] %}
+{% set responseModelName = '' %}
 {% if not loop.first %}
 
 {% endif %}
@@ -100,6 +105,8 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% endif %}
 {% elseif (method | methodType) == 'location' %}
 		mockData := []byte("image_data")
+{% elseif (method | textResponse) %}
+		mockResponse := "; café zone\nwww 3600 IN A 192.0.2.1\n"
 {% else %}
 {% set responseModels = method | getValidResponseModels %}
 {% set responseDiscriminator = (method | responseDiscriminator) %}
@@ -116,10 +123,17 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% for definitionName, definition in definitions %}
 {% if definitionName == responseModelName %}
 {% set discriminatorConditions = responseDiscriminator[responseModelName] ?? {} %}
+{% set requiredProperties = definition.properties | filter((param) => param | schemaRequired) %}
+{% set requiredNames = requiredProperties | map((param) => param | schemaName) %}
+{# A union branch can add conditions on properties its model does not declare. #}
+{% set extraConditions = discriminatorConditions | filter((value, name) => name not in requiredNames) %}
 		mockResponse := `
 {
-{% for property in definition.properties | filter((param) => param | schemaRequired) %}
-    "{{ (property | schemaName) | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {% if discriminatorConditions[(property | schemaName)] is defined %}"{{ discriminatorConditions[(property | schemaName)] | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"{% else %}{{ _self.render_json_value(definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last %},{% endif %}{{ "\n" -}}
+{% for property in requiredProperties %}
+    "{{ (property | schemaName) | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": {% if discriminatorConditions[(property | schemaName)] is defined %}"{{ discriminatorConditions[(property | schemaName)] | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"{% else %}{{ _self.render_json_value(definitions, property, spec, '    ') | trim | raw }}{% endif %}{% if not loop.last or extraConditions is not empty %},{% endif %}{{ "\n" -}}
+{% endfor %}
+{% for name, value in extraConditions %}
+    "{{ name | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}": "{{ value | replace({'\\': '\\\\', '"': '\\"', '`': '\\u0060'}) | raw }}"{% if not loop.last %},{% endif %}{{ "\n" -}}
 {% endfor %}
 }
 `
@@ -154,7 +168,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 				t.Errorf("Expected method {{ method.method.value | upper }}, got %s", r.Method)
 			}
 
-			w.Header().Set("Content-Type", {% if (method | methodType) == 'location' %}"image/png"{% else %}"application/json"{% endif %})
+			w.Header().Set("Content-Type", {% if (method | methodType) == 'location' %}"image/png"{% elseif (method | textResponse) %}"text/plain; charset=utf-8"{% else %}"application/json"{% endif %})
 			w.WriteHeader(http.StatusOK)
 {% if (method | methodType) == 'location' %}
 			_, _ = w.Write(mockData)
@@ -172,6 +186,8 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% set type = (parameter | typeName) %}
 {% if "file.InputFile" in type %}
 {% set val = 'file.NewInputFile(tmpFile.Name(), "test.txt")' %}
+{% elseif type starts with 'models.' %}
+{% set val = type ~ '{}' %}
 {% elseif (parameter | schemaType) == 'object' %}
 {% set val = 'map[string]interface{}{}' %}
 {% elseif (parameter | schemaType) == 'array' %}
@@ -183,7 +199,8 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% elseif (parameter | schemaType) == 'boolean' %}
 {% set val = 'true' %}
 {% elseif (parameter | schemaType) == 'string' %}
-{% set val = '"' ~ ((parameter | schemaExample) | replace({'\\': '\\\\', '"': '\\"'}) | raw) ~ '"' %}
+{# The service rejects an empty required path string, so fall back to the parameter name. #}
+{% set val = '"' ~ ((parameter | schemaExample) | default(parameter.name) | replace({'\\': '\\\\', '"': '\\"'}) | raw) ~ '"' %}
 {% elseif (parameter | schemaType) == 'integer' %}
 {% set val = '1' %}
 {% elseif (parameter | schemaType) == 'number' %}
@@ -194,7 +211,7 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 {% set params = params ~ val %}
 {% if not loop.last %}{% set params = params ~ ', ' %}{% endif %}
 {% endfor %}
-{% if responseModels|length > 1 %}
+{% if responseModels|length > 1 or (method | textResponse) %}
 		response, err := srv.{{ (method | methodName) | caseUcfirst }}({{ params }})
 {% else %}
 		_, err := srv.{{ (method | methodName) | caseUcfirst }}({{ params }})
@@ -202,6 +219,11 @@ func Test{{ service.name | caseUcfirst }}(t *testing.T) {
 		if err != nil {
 			t.Errorf("Method {{ (method | methodName) | caseUcfirst }} failed: %v", err)
 		}
+{% if (method | textResponse) %}
+		if response == nil || *response != mockResponse {
+			t.Errorf("Expected exact text %q, got %v", mockResponse, response)
+		}
+{% endif %}
 {% if responseModels|length > 1 and responseModelName %}
 		if _, ok := response.(*models.{{ responseModelName | caseUcfirst }}); !ok {
 			t.Errorf("Expected response type *models.{{ responseModelName | caseUcfirst }}, got %T", response)

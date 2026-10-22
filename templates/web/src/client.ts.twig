@@ -1,6 +1,6 @@
 import { Models } from './models';
 import { Channel, ActionableChannel, ResolvedChannel } from './channel';
-import { Query } from './query';
+import { flattenParam, normalizeQueries, type QueryInput } from './query';
 import { ID } from './id';
 import JSONbigModule from 'json-bigint';
 const JSONbigParser = JSONbigModule({ storeAsString: false });
@@ -44,6 +44,79 @@ export const JSONbig = {
     parse: (text: string) => JSONbigParser.parse(text, reviver),
     stringify: JSONbigSerializer.stringify,
 };
+
+type DefaultsShape = string | { items: DefaultsShape };
+
+type DefaultsModel = {
+    defaults?: Record<string, unknown>;
+    properties?: Record<string, DefaultsShape>;
+};
+
+type Defaults = {
+    root: DefaultsShape;
+    models: Record<string, DefaultsModel>;
+};
+
+export function applyDefaults<T>(value: T, tree: Defaults): T {
+    return fillDefaults(value, tree.root, tree.models) as T;
+}
+
+function cloneDefault(value: unknown): unknown {
+    if (Array.isArray(value)) {
+        return value.map(cloneDefault);
+    }
+    if (typeof value === 'object' && value !== null) {
+        const copy: Record<string, unknown> = {};
+        for (const [key, member] of Object.entries(value)) {
+            copy[key] = cloneDefault(member);
+        }
+        return copy;
+    }
+    return value;
+}
+
+function fillDefaults(
+    value: unknown,
+    shape: DefaultsShape,
+    models: Record<string, DefaultsModel>,
+): unknown {
+    if (typeof shape !== 'string') {
+        if (!Array.isArray(value)) {
+            return value;
+        }
+        const items = shape.items;
+        return value.map((item) => fillDefaults(item, items, models));
+    }
+    const model = models[shape];
+    if (!model || typeof value !== 'object' || value === null) {
+        return value;
+    }
+    if (Array.isArray(value)) {
+        return value;
+    }
+    const result: Record<string, unknown> = { ...model.defaults, ...value };
+    // Each item gets its own copy of a filled-in list or object, so mutating one doesn't change the rest
+    for (const key of Object.keys(model.defaults ?? {})) {
+        if (!Object.prototype.hasOwnProperty.call(value, key)) {
+            result[key] = cloneDefault(result[key]);
+        }
+    }
+    for (const [key, child] of Object.entries(model.properties ?? {})) {
+        if (key in result) {
+            result[key] = fillDefaults(result[key], child, models);
+        }
+    }
+    // The spread drops the non-enumerable JSON toString that Client.call attaches.
+    if (Object.prototype.hasOwnProperty.call(value, 'toString')) {
+        Object.defineProperty(result, 'toString', {
+            value: () => JSONbig.stringify(result),
+            writable: true,
+            enumerable: false,
+            configurable: true,
+        });
+    }
+    return result;
+}
 
 /**
  * Payload type representing a key-value pair with string keys and any values.
@@ -398,9 +471,9 @@ class Client {
         'x-sdk-platform': '{{ sdk.platform }}',
         'x-sdk-language': '{{ language.name | caseLower }}',
         'x-sdk-version': '{{ sdk.version }}',
-        {%~ for key,header in defaultHeaders %}
+{%~ for key,header in defaultHeaders %}
         '{{key}}': '{{header}}',
-        {%~ endfor %}
+{%~ endfor %}
     };
 
     /**
@@ -501,7 +574,10 @@ class Client {
      *
      * A stable client id for the {{ spec.info.title | caseUcfirst }}Push service. The broker keys its
      * offline-replay cursor on this id, so pass a stable value to resume replay across
-     * reloads/restarts. Defaults to a per-connection id when unset.
+     * reloads/restarts. Defaults, when unset, to one per user and tab: stable across reloads of
+     * the tab, different in every other tab, and distinct for each connection open at the same
+     * time, so no two connections take over each other's session. An explicit id shared by
+     * several tabs or connections makes them do that.
      *
      * @param {string} pushClientId
      *
@@ -576,26 +652,26 @@ class Client {
     }
 
 {%~ endif %}
-    {%~ for headerKey, header in globalHeaders %}
+{%~ for headerKey, header in globalHeaders %}
     /**
      * Set {{headerKey | caseUcfirst}}
      *
-    {%~ if header.description %}
+{%~ if header.description %}
      * {{header.description}}
      *
-    {%~ endif %}
+{%~ endif %}
      * @param value string
      *
      * @return {this}
      */
     set{{headerKey | caseUcfirst}}(value: string): this {
-        {%~ if (headerKey != 'Project') %}
+{%~ if (headerKey != 'Project') %}
         this.headers['{{ header.name }}'] = {% if header.scheme == 'bearer' %}`Bearer ${value}`{% else %}value{% endif %};
-        {%~ endif %}
+{%~ endif %}
         this.config.{{ headerKey | caseLower }} = value;
         return this;
     }
-    {%~ endfor %}
+{%~ endfor %}
 
     private realtime: Realtime = {
         socket: undefined,
@@ -910,7 +986,7 @@ class Client {
             | ResolvedChannel
             | (Channel<any> | ActionableChannel | ResolvedChannel)[],
         callback: (payload: RealtimeResponseEvent<T>) => void,
-        queries: (string | Query)[] = [],
+        queries: QueryInput = [],
     ): () => void {
         const channelArray = Array.isArray(channels) ? channels : [channels];
         // Convert Channel instances to strings
@@ -929,9 +1005,7 @@ class Client {
             this.realtime.channels.add(channel),
         );
 
-        const queryStrings = (queries ?? []).map((q) =>
-            typeof q === 'string' ? q : q.toString(),
-        );
+        const queryStrings = normalizeQueries(queries);
 
         let subscriptionId = '';
         const attempts = this.realtime.subscriptions.size + 1;
@@ -984,10 +1058,21 @@ class Client {
     ): { uri: string; options: RequestInit } {
         method = method.toUpperCase();
 
+        for (const key of Object.keys(params)) {
+            params[key] = flattenParam(params[key]);
+        }
+
         headers = Object.assign({}, this.headers, headers);
 
-{% set guard = ["typeof window !== 'undefined'", 'window.localStorage'] %}{% if sdk.platform == 'console' %}{% set guard = guard|merge(['this.shouldUseFallbackCredentials(url)']) %}{% endif %}
-        {{ guard | jsGuard(8) | raw }}
+{%~ if sdk.platform == 'console' %}
+        if (
+            typeof window !== 'undefined' &&
+            window.localStorage &&
+            this.shouldUseFallbackCredentials(url)
+        ) {
+{%~ else %}
+        if (typeof window !== 'undefined' && window.localStorage) {
+{%~ endif %}
             const cookieFallback =
                 window.localStorage.getItem('cookieFallback');
             if (cookieFallback) {
@@ -1025,6 +1110,11 @@ class Client {
                             for (const nestedValue of value) {
                                 formData.append(`${key}[]`, nestedValue);
                             }
+                        } else if (
+                            value !== null &&
+                            typeof value === 'object'
+                        ) {
+                            formData.append(key, JSONbig.stringify(value));
                         } else {
                             formData.append(key, value);
                         }
@@ -1046,6 +1136,7 @@ class Client {
         headers: Headers = {},
         originalPayload: Payload = {},
         onProgress: (progress: UploadProgress) => void,
+        responseType = 'json',
     ) {
         const [fileParam, file] =
             Object.entries(originalPayload).find(
@@ -1053,11 +1144,23 @@ class Client {
             ) ?? [];
 
         if (!file || !fileParam) {
-            throw new Error('File not found in payload');
+            return await this.call(
+                method,
+                url,
+                headers,
+                originalPayload,
+                responseType,
+            );
         }
 
-        if (file.size <= Client.CHUNK_SIZE) {
-            return await this.call(method, url, headers, originalPayload);
+        if (file.size <= Client.CHUNK_SIZE || responseType === 'text') {
+            return await this.call(
+                method,
+                url,
+                headers,
+                originalPayload,
+                responseType,
+            );
         }
 
         const totalChunks = Math.ceil(file.size / Client.CHUNK_SIZE);
@@ -1077,6 +1180,7 @@ class Client {
             url,
             firstChunkHeaders,
             firstPayload,
+            responseType,
         );
         const uploadId = response?.$id;
 
@@ -1137,6 +1241,7 @@ class Client {
                 url,
                 chunkHeaders,
                 chunkPayload,
+                responseType,
             );
 
             if (rejected) {
@@ -1202,20 +1307,20 @@ class Client {
         return finalResponse ?? lastResponse;
     }
 
-    {%~ for clientMethodName, clientMethods in clientMethods %}
-    {%~ for clientMethod in clientMethods %}
+{%~ for clientMethodName, clientMethods in clientMethods %}
+{%~ for clientMethod in clientMethods %}
     async {{ clientMethodName | caseCamel }}(): Promise<unknown> {
         return this.call('{{ clientMethod.method.value | caseUpper }}', new URL(this.config.endpoint + '{{ clientMethod.path }}'), {
-            {%~ for key, security in (clientMethod | securityHeaders) %}
-            {{ security.name | jsKey | raw }}: this.config.{{ key | caseLower }},
-            {%~ endfor %}
-            {%~ for key, header in (clientMethod | methodHeaders) %}
-            {{ key | jsKey | raw }}: '{{ header }}',
-            {%~ endfor %}
+{%~ for key, security in (clientMethod | securityHeaders) %}
+            '{{ security.name }}': this.config.{{ key | caseLower }},
+{%~ endfor %}
+{%~ for key, header in (clientMethod | methodHeaders) %}
+            {% if key matches '/^[A-Za-z_$][A-Za-z0-9_$]*$/' %}{{ key }}{% else %}'{{ key }}'{% endif %}: '{{ header }}',
+{%~ endfor %}
         });
     }
-    {%~ endfor %}
-    {%~ endfor %}
+{%~ endfor %}
+{%~ endfor %}
 
     async call(
         method: string,
@@ -1254,7 +1359,9 @@ class Client {
                 );
         }
 
-        if (
+        if (responseType === 'text' && response.status < 400) {
+            data = await response.text();
+        } else if (
             response.headers.get('content-type')?.includes('application/json')
         ) {
             data = JSONbig.parse(await response.text());
@@ -1267,7 +1374,7 @@ class Client {
         }
 
         if (400 <= response.status) {
-            let responseText: string;
+            let responseText;
             if (
                 response.headers
                     .get('content-type')
@@ -1291,9 +1398,12 @@ class Client {
         if (
             typeof window !== 'undefined' &&
             window.localStorage &&
-            cookieFallback{% if sdk.platform == 'console' %} &&
-            this.shouldUseFallbackCredentials(url){% endif %}
-
+{%~ if sdk.platform == 'console' %}
+            cookieFallback &&
+            this.shouldUseFallbackCredentials(url)
+{%~ else %}
+            cookieFallback
+{%~ endif %}
         ) {
             window.console.warn(
                 '{{spec.info.title | caseUcfirst}} is using localStorage for session management. Increase your security by adding a custom domain as your API endpoint.',
@@ -1330,7 +1440,7 @@ class Client {
 }
 
 export { Client, {{spec.info.title | caseUcfirst}}Exception };
-export { Query } from './query';
+export { Query, QueryBuilder, flattenParam } from './query';
 export type { Models, Payload, UploadProgress };
 export type { RealtimeResponseEvent };
-export type { QueryTypes, QueryTypesList } from './query';
+export type { QueryTypes, QueryTypesList, QueryInput } from './query';
