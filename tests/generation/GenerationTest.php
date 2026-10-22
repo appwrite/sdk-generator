@@ -1482,6 +1482,12 @@ final class GenerationTest extends TestCase
         yield 'dotnet resume' => ['dotnet', 'server', 'Appwrite/Client.cs', 'path: $"{path}/{encodepath(uploadid)}",'];
         yield 'unity path' => ['unity', 'client', 'Runtime/Core/Services/General.cs', '.replace("{pathid}", client.encodepath(pathid));'];
         yield 'unity resume' => ['unity', 'client', 'Runtime/Core/Client.cs', 'path: $"{path}/{encodepath(parameters[idparamname!]?.tostring())}",'];
+        yield 'kotlin path' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/services/General.kt', '.replace("{pathid}", client.encodepath(pathid))'];
+        yield 'kotlin encoder' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/Client.kt', "urlencoder\n                .encode(value, \"utf-8\")\n                .replace(\"+\", \"%20\")"];
+        yield 'kotlin resume' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/Client.kt', 'path = "$path/${encodepath(provideduploadid)}",'];
+        yield 'android path' => ['android', 'client', 'library/src/main/java/io/appwrite/services/General.kt', '.replace("{pathid}", client.encodepath(pathid))'];
+        yield 'android encoder' => ['android', 'client', 'library/src/main/java/io/appwrite/Client.kt', "urlencoder\n                .encode(value, \"utf-8\")\n                .replace(\"+\", \"%20\")"];
+        yield 'android resume' => ['android', 'client', 'library/src/main/java/io/appwrite/Client.kt', 'path = "$path/${encodepath(provideduploadid)}",'];
     }
 
     /**

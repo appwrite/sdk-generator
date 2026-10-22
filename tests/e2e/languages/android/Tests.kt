@@ -209,6 +209,11 @@ class ServiceTest {
             }
             writeToFile(general.validatePath("0", "0").result)
             writeToFile(general.validatePath("0", null).result)
+            // The mock routes are registered at the encoded paths, so each call only reaches
+            // its route if the ID is escaped as one segment.
+            writeToFile(general.getPath("grant/special&id").result)
+            writeToFile(general.getPath("../grant?special=id#x y%").result)
+            writeToFile(general.getPath("unique()").result)
 
             val zone: String = Plaintext(client).getZone()
             writeToFile(zone)
