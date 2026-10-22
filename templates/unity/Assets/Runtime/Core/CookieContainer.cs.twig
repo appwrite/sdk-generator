@@ -105,7 +105,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 if (!cookie.IsExpired)
                 {
                     _cookies.Add(cookie);
-                    Debug.Log($"[CookieContainer] Cookie added to container: {cookie}");
+                    Debug.Log($"[CookieContainer] Cookie added to container: {cookie.Name}");
                     SaveCookies(); // Auto-save when cookie is added
                 }
                 else
@@ -192,7 +192,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                     case "samesite": c.SameSite = val?.ToLowerInvariant() ?? string.Empty; break;
                 }
             }
-            Debug.Log($"[CookieContainer] Parsed cookie => {c}");
+            Debug.Log($"[CookieContainer] Parsed cookie => {c.Name}");
             AddCookie(c);
         }
 
