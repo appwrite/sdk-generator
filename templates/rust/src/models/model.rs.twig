@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 {% endif %}
 {% set additionalFieldName = definition.properties.data is defined ? 'additional_data' : 'data' %}
+{% set defaultedProperties = definition.properties | filter((property) => (property | modelDefault) is not null) %}
 
 {{ definition.description | rustdocComment }}
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,6 +17,9 @@ pub struct {{ definitionName | caseUcfirst | overrideIdentifier }} {
 {% set fieldName = fieldName | overrideIdentifier %}
     {{ property.description | rustdocComment(4) }}
     #[serde(rename = "{{ (property | schemaName) }}")]
+{% if (property | modelDefault) is not null %}
+    #[serde(default = "default_{{ fieldName | replace({'r#': ''}) }}")]
+{% endif %}
 {% if (property | schemaRequired) and not (property | schemaNullable) %}
     pub {{ fieldName }}: {{ property | propertyType(spec) | rustType }},
 {% else %}
@@ -35,6 +39,21 @@ pub struct {{ definitionName | caseUcfirst | overrideIdentifier }} {
     pub {{ additionalFieldName }}: HashMap<String, serde_json::Value>,
 {% endif %}
 }
+{% for property in defaultedProperties %}
+{% set propertyName = (property | schemaName) %}
+{% set fieldName = propertyName matches '/^_?[A-Z_]+$/' ? propertyName | lower | trim('_') : propertyName | caseSnake %}
+{% set fieldName = fieldName | overrideIdentifier %}
+
+{% if property | schemaNullable %}
+fn default_{{ fieldName | replace({'r#': ''}) }}() -> Option<{{ property | propertyType(spec) | rustType }}> {
+    Some({{ property | rustDefault(spec) }})
+}
+{% else %}
+fn default_{{ fieldName | replace({'r#': ''}) }}() -> {{ property | propertyType(spec) | rustType }} {
+    {{ property | rustDefault(spec) }}
+}
+{% endif %}
+{% endfor %}
 
 impl {{ definitionName | caseUcfirst | overrideIdentifier }} {
 {% for property in definition.properties %}

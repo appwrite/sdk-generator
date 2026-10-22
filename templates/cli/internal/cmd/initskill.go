@@ -265,11 +265,11 @@ func fetchAvailableSkills() ([]skillInfo, string, error) {
 		return nil, "", err
 	}
 
-	if err := runGit(tempDir, fmt.Sprintf(
-		"git clone --single-branch --depth 1 --sparse %s .", skillsRepo)); err != nil {
+	if err := runGitCommand(tempDir, "clone", "--single-branch", "--depth", "1",
+		"--sparse", skillsRepo, "."); err != nil {
 		return fail(err)
 	}
-	if err := runGit(tempDir, "git sparse-checkout add skills"); err != nil {
+	if err := runGitCommand(tempDir, "sparse-checkout", "add", "skills"); err != nil {
 		return fail(err)
 	}
 

@@ -35,7 +35,7 @@ describe('{{ service.name | caseUcfirst }}', () => {
         {%- if responseModelName %}
         {%- set dataBody %}
             {%- for definitionName, definition in definitions ~%}{%~ if definitionName == responseModelName -%}{%~ for property in definition.properties | filter((param) => param | schemaRequired) ~%}
-            {% set propValue %}{% if (property | schemaType) == 'object' %}{}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}{{ ((property | schemaExample) | escapeDollarSign) | jsString | raw }}{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{ (property | schemaExample) }}{% endif %}{% endset %}{{ (((property | schemaName) | escapeDollarSign) | jsKey) | jsExampleEntry(propValue, '', 12) | raw }}
+            {% set propValue %}{% if (property | schemaType) == 'object' %}{}{% elseif (property | schemaType) == 'array' %}[]{% elseif (property | schemaType) == 'string' %}{{ ((property | schemaExample) | escapeDollarSign) | jsString | raw }}{% elseif (property | schemaType) == 'boolean' %}true{% else %}{{ (property | schemaExample) }}{% endif %}{% endset %}{{ ((property | schemaName) | jsKey) | jsExampleEntry(propValue, '', 12) | raw }}
             {%- endfor %}{% set break = true %}{%- else -%}{% set continue = true %}{%- endif -%}{%~ endfor %}{% endset %}
         const data = {% if dataBody | trim is empty %}{}{% else %}{{ '{' }}{{ dataBody | raw }}
         }{% endif %};

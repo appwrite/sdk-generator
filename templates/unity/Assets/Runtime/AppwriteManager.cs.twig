@@ -266,6 +266,13 @@ namespace {{ spec.info.title | caseUcfirst }}
                     Destroy(_realtime.gameObject);
             }
             _realtime = null;
+            if (!ReferenceEquals(_push, null))
+            {
+                _push.Close();
+                if (_push.gameObject != null)
+                    Destroy(_push.gameObject);
+            }
+            _push = null;
             _client = null;
             _isInitialized = false;
             _services.Clear();

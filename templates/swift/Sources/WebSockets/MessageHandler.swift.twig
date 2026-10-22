@@ -17,6 +17,7 @@ class MessageHandler {
     private var binaryBuffer: Data = Data()
     private var isText: Bool = false
     private var string: String = ""
+    private var closeDelivered: Bool = false
 
     public init(client: WebSocketClient) {
         self.client = client
@@ -29,6 +30,14 @@ class MessageHandler {
             frameData.webSocketUnmask(maskingKey)
         }
         return frameData
+    }
+
+    private func notifyClose(channel: NIOCore.Channel, data: Data) {
+        if let delegate = client.delegate {
+            delegate.onClose(channel: channel, data: data)
+        } else {
+            client.onClose(channel, data)
+        }
     }
 }
 
@@ -109,17 +118,22 @@ extension MessageHandler: ChannelInboundHandler, RemovableChannelHandler {
                 return
             }
             let data = frame.data
+            closeDelivered = true
             if !client.closeSent {
                 client.close(data: Data(frame.data.readableBytesView))
             }
-            if let delegate = client.delegate {
-                delegate.onClose(channel: context.channel, data: Data(data.readableBytesView))
-            } else {
-                client.onClose(context.channel, Data(data.readableBytesView))
-            }
+            notifyClose(channel: context.channel, data: Data(data.readableBytesView))
         default:
             break
         }
+    }
+
+    public func channelInactive(context: ChannelHandlerContext) {
+        if !closeDelivered {
+            closeDelivered = true
+            notifyClose(channel: context.channel, data: Data())
+        }
+        context.fireChannelInactive()
     }
 
     public func errorCaught(context: ChannelHandlerContext, error: Swift.Error) {

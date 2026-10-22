@@ -176,11 +176,11 @@ php example.php zed-extension
 
 | Target | Argument | Supported Versions | Coding Standards | Package Manager | Output |
 |--------|----------|--------------------|------------------|-----------------|--------|
-| Web | `web` | ES5+; Node.js >=18 for builds | [NPM Coding Style] | NPM | `examples/web/` |
+| Web | `web` | ES5+; Node.js >=20 for builds | [NPM Coding Style] | NPM | `examples/web/` |
 | Flutter | `flutter` | Dart >=3.7 <4; Flutter >=3.29 | [Effective Dart] | pub | `examples/flutter/` |
 | Apple | `apple` | iOS 15+, macOS 11+, watchOS 7+, tvOS 13+ | [Swift Style Guide] | Swift Package Manager | `examples/apple/` |
 | Android | `android` | Android 6.0+; Java 17 in CI | [Android style guide] | Gradle, Maven | `examples/android/` |
-| React Native | `react-native` | React Native >=0.76.7 <1.0.0; Node.js >=18 | [NPM Coding Style] | NPM | `examples/react-native/` |
+| React Native | `react-native` | React Native >=0.76.7 <1.0.0; Node.js >=20 | [NPM Coding Style] | NPM | `examples/react-native/` |
 
 ### Server SDKs
 
@@ -195,7 +195,7 @@ php example.php zed-extension
 | Swift | `swift` | Swift 5.1+; Swift 5.9.2 in CI | [Swift Style Guide] | Swift Package Manager | `examples/swift/` |
 | .NET | `dotnet` | .NET Standard 2.0; .NET Framework 4.6.2 | [C# Coding Conventions] | NuGet | `examples/dotnet/` |
 | Kotlin | `kotlin` | JVM 1.8 target; Java 17 in CI | [Kotlin style guide] | Gradle, Maven | `examples/kotlin/` |
-| Rust | `rust` | Rust >=1.83 | [Rust API Guidelines] | Cargo | `examples/rust/` |
+| Rust | `rust` | Rust >=1.85 | [Rust API Guidelines] | Cargo | `examples/rust/` |
 
 ### Tooling and Documentation
 

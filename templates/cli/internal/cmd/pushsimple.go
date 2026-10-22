@@ -13,10 +13,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Buckets, teams, webhooks and messaging topics are the flat resources: one
-// config entry maps to one remote object, with nothing to upload and nothing to
-// poll. All four follow the same five steps, so they are described as data and
-// driven by one function.
+// Buckets, teams, webhooks, messaging topics and analytics properties are the
+// flat resources: one config entry maps to one remote object, with nothing to
+// upload and nothing to poll. All follow the same five steps, so they are
+// described as data and driven by one function.
 //
 // The remote is fetched twice per resource, once by approveChanges and once by
 // the push. The request sequence is compared request-for-request in tests, so
@@ -159,6 +159,32 @@ func simpleResources() []simpleResource {
 				{"subscribe", "subscribe"},
 			},
 			Announce: true,
+		},
+		{
+			resourceIdentity: analyticsIdentity,
+			Short:            "Push analytics properties in the current project.",
+			PromptNoun:       "analytics properties",
+			// `init analytics` does not exist, so the hint names pull alone.
+			Hint: fmt.Sprintf(
+				"Use '%s pull analytics' to synchronize existing ones.",
+				app.ExecutableName),
+			Keys: config.AnalyticsKeys,
+			// PATCH: the API changes only the fields sent, so a field the
+			// config leaves out keeps its value on the server.
+			UpdateMethod: "PATCH",
+			CreateFields: []requestField{
+				{"$id", "propertyId"},
+				{"name", "name"},
+				{"domain", "domain"},
+				{"enabled", "enabled"},
+				{"allowedOrigins", "allowedOrigins"},
+			},
+			UpdateFields: []requestField{
+				{"name", "name"},
+				{"domain", "domain"},
+				{"enabled", "enabled"},
+				{"allowedOrigins", "allowedOrigins"},
+			},
 		},
 	}
 }

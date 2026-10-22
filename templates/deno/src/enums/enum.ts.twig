@@ -1,6 +1,0 @@
-export enum {{ enum.title | caseUcfirst | overrideIdentifier }} {
-    {%~ for value in enum.enum %}
-    {%~ set key = enum.enumKeys is empty ? value : enum.enumKeys[loop.index0] %}
-    {{ key | caseEnumKey }} = '{{ value }}',
-    {%~ endfor %}
-}

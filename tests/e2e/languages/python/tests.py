@@ -126,6 +126,16 @@ response = general.create_players([
 ])
 print(response.result)
 
+preset = general.get_preset()
+print(f"preset: name={preset.name}, count={preset.count:g}, enabled={str(preset.enabled).lower()}")
+for item in general.list_presets().presets:
+    print(f"preset: name={item.name}, count={item.count:g}, enabled={str(item.enabled).lower()}")
+print(f"empty presets: {len(general.list_empty_presets().presets)}")
+print(f"preset verified: {'null' if preset.verified is None else preset.verified}")
+print(f"preset scopes: {','.join(scope.value for scope in (preset.scopes or []))}")
+print(f"preset tier: {preset.tier}")
+print(f"preset settings: options={len(general.get_preset_settings().options)}")
+
 try:
     response = general.error400()
 except AppwriteException as e:
@@ -242,6 +252,47 @@ print(Query.elem_match("friends", [
     Query.equal("name", "Alice"),
     Query.greater_than("age", 18)
 ]))
+print(Query.relationship("comments", [
+    Query.equal("approved", True),
+    Query.limit(2)
+]))
+query_transport = general.list_rows([
+    Query.count("*", "total"),
+    Query.join("orders", "$id", "customerId"),
+    Query.group_by(["status"]),
+    Query.distinct(),
+    Query.covers("location", [1, 2]),
+    Query.count_distinct("year", "uniqueYears"),
+    Query.sum("price", "total"),
+    Query.avg("price", "avgPrice"),
+    Query.min("price", "lowest"),
+    Query.max("price", "highest"),
+    Query.stddev("price", "sd"),
+    Query.stddev_pop("price", "sdp"),
+    Query.stddev_samp("price", "sds"),
+    Query.variance("price", "var"),
+    Query.var_pop("price", "vp"),
+    Query.var_samp("price", "vs"),
+    Query.bit_and("flags", "band"),
+    Query.bit_or("flags", "bor"),
+    Query.bit_xor("flags", "bxor"),
+    Query.having([Query.greater_than("total", 1)]),
+    Query.left_join("orders", "$id", "customerId", "=", "ord"),
+    Query.right_join("orders", "$id", "customerId"),
+    Query.full_outer_join("orders", "$id", "customerId"),
+    Query.cross_join("orders", "ord"),
+    Query.on("$id", "customerId"),
+    Query.left_join("orders", "ord", [
+        Query.on("$id", "customerId"),
+        Query.equal("ord.status", "paid"),
+    ]),
+    Query.not_covers("location", [1, 2]),
+    Query.spatial_equals("location", [1, 2]),
+    Query.not_spatial_equals("location", [1, 2]),
+    *Query.page(2, 10),
+    Query.builder().limit(1),
+])
+print(query_transport.result)
 
 # Permission & Role helper tests
 print(Permission.read(Role.any()))
@@ -262,17 +313,13 @@ print(ID.custom('custom_id'))
 # Topic helper tests
 print(Topic.path(['user', '123', 'notification']))
 print(Topic.path(['org', '42', 'user', '123']).path(['notification']))
-print(Topic.path(['user']).any().path(['notification']))
-print(Topic.path(['chat']).any().any().path(['message']))
-print(Topic.path(['org']).any().path(['logs']).all())
-print(Topic.any().path(['notification']))
-print(Topic.all())
 for name, levels in [
     ('empty path', []),
     ('empty level', ['user', '']),
     ('slash', ['user/123']),
     ('plus', ['user', 'a+b']),
     ('hash', ['user', '#']),
+    ('nul', ['user', 'a\0b']),
 ]:
     try:
         Topic.path(levels)

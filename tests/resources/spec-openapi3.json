@@ -1649,6 +1649,28 @@
                         "type": "string"
                       }
                     ]
+                  },
+                  "kind": {
+                    "description": "Mock kind encoded as a oneOf of string enums.",
+                    "example": "alpha",
+                    "title": "MockKind",
+                    "type": "string",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "alpha"
+                        ],
+                        "title": "alpha"
+                      },
+                      {
+                        "type": "string",
+                        "enum": [
+                          "beta"
+                        ],
+                        "title": "beta"
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -1862,6 +1884,16 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          },
           "500": {
             "description": "File"
           }
@@ -1897,6 +1929,14 @@
                     "description": "Sample string param",
                     "default": "",
                     "example": "[OPTIONAL]"
+                  },
+                  "nullableInteger": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Optional nullable integer param",
+                    "default": null,
+                    "example": 1,
+                    "nullable": true
                   }
                 },
                 "required": [
@@ -2147,6 +2187,74 @@
             "schema": {
               "type": "string",
               "nullable": true
+            }
+          }
+        ]
+      }
+    },
+    "\/mock\/tests\/general\/query": {
+      "get": {
+        "summary": "Query Param",
+        "operationId": "generalGetQuery",
+        "tags": [
+          "general"
+        ],
+        "description": "",
+        "x-appwrite": {
+          "demo": "general\/get-query.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mock",
+            "content": {
+              "application\/json": {
+                "schema": {
+                  "$ref": "#\/components\/schemas\/mock"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "value",
+            "description": "Query value.",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "a&b"
+            }
+          },
+          {
+            "name": "values",
+            "description": "Query values.",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         ]
@@ -2663,6 +2771,255 @@
             }
           }
         ]
+      }
+    },
+    "\/mock\/tests\/general\/preset": {
+      "get": {
+        "summary": "Get Preset",
+        "operationId": "generalGetPreset",
+        "tags": [
+          "general"
+        ],
+        "description": "Return a preset that omits the fields its spec defaults cover.",
+        "x-appwrite": {
+          "demo": "general\/get-preset.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "parameters": [
+            {
+                "name": "quality",
+                "description": "Preset quality. Its default is not the first value.",
+                "required": false,
+                "schema": {
+                    "type": "string",
+                    "title": "PresetQuality",
+                    "example": "medium",
+                    "oneOf": [
+                        {
+                            "type": "string",
+                            "enum": [
+                                "low"
+                            ],
+                            "title": "low"
+                        },
+                        {
+                            "type": "string",
+                            "enum": [
+                                "medium"
+                            ],
+                            "title": "medium"
+                        },
+                        {
+                            "type": "string",
+                            "enum": [
+                                "high"
+                            ],
+                            "title": "high"
+                        }
+                    ],
+                    "default": "medium"
+                },
+                "in": "query"
+            }
+        ],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/preset"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/preset\/settings": {
+      "get": {
+        "summary": "Get Preset Settings",
+        "operationId": "generalGetPresetSettings",
+        "tags": [
+          "general"
+        ],
+        "description": "Return preset settings that omit a required map field.",
+        "x-appwrite": {
+          "demo": "general\/get-preset-settings.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/presetSettings"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/preset\/profile": {
+      "get": {
+        "summary": "Get Preset Profile",
+        "operationId": "generalGetPresetProfile",
+        "tags": [
+          "general"
+        ],
+        "description": "Return a preset profile that omits its required preferences model.",
+        "x-appwrite": {
+          "demo": "general\/get-preset-profile.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "parameters": [],
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/presetProfile"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/presets": {
+      "get": {
+        "summary": "List Presets",
+        "operationId": "generalListPresets",
+        "tags": [
+          "general"
+        ],
+        "description": "Return presets whose items omit the fields their spec defaults cover.",
+        "x-appwrite": {
+          "demo": "general\/list-presets.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset list",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/presetList"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "\/mock\/tests\/general\/presets\/empty": {
+      "get": {
+        "summary": "List Empty Presets",
+        "operationId": "generalListEmptyPresets",
+        "tags": [
+          "general"
+        ],
+        "description": "Return a preset list that omits its required presets collection.",
+        "x-appwrite": {
+          "demo": "general\/list-empty-presets.md",
+          "rate-limit": 0,
+          "rate-time": 3600,
+          "rate-key": "url:{url},ip:{ip}",
+          "scope": "public",
+          "platforms": [
+            "client",
+            "server"
+          ],
+          "packaging": false,
+          "auth": {
+            "Project": []
+          }
+        },
+        "security": [
+          {
+            "Project": [],
+            "Key": [],
+            "JWT": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preset list",
+            "content": {
+              "application\/json": {
+                "schema": {"$ref": "#\/components\/schemas\/presetList"}
+              }
+            }
+          }
+        }
       }
     },
     "\/mock\/tests\/union": {
@@ -3276,6 +3633,16 @@
               {"type": "string", "enum": ["cancelled"], "title": "cancelled"}
             ]
           },
+          "kind": {
+            "description": "Mock kind encoded as a oneOf of string enums.",
+            "example": "alpha",
+            "title": "MockKind",
+            "type": "string",
+            "oneOf": [
+              {"type": "string", "enum": ["alpha"], "title": "alpha"},
+              {"type": "string", "enum": ["beta"], "title": "beta"}
+            ]
+          },
           "localizedStatus": {
             "title": "LocalizedStatus",
             "type": "string",
@@ -3318,6 +3685,46 @@
         "required": [
           "result"
         ]
+      },
+      "preset": {
+        "description": "Preset",
+        "type": "object",
+        "properties": {
+          "name": {"type": "string", "description": "Preset name.", "example": "guest", "default": "guest"},
+          "count": {"type": "integer", "description": "Preset count.", "example": 25, "default": 25},
+          "enabled": {"type": "boolean", "description": "Whether the preset is enabled.", "example": true, "default": true},
+          "tier": {"title": "PresetTier", "type": "string", "description": "Preset tier.", "example": "free", "enum": ["free", "pro"], "default": "free"},
+          "verified": {"type": "boolean", "description": "Whether the preset is verified. Null when it has never been checked.", "example": true, "nullable": true},
+          "scopes": {"type": "array", "description": "Preset scopes.", "items": {"type": "string", "oneOf": [{"type": "string", "enum": ["read"], "title": "read"}, {"type": "string", "enum": ["write"], "title": "write"}]}, "example": ["read"]},
+          "tags": {"type": "array", "description": "Preset tags.", "items": {"type": "string"}, "example": ["vip"], "default": []},
+          "settings": {"type": "object", "additionalProperties": true, "description": "Preset settings.", "example": {"theme": "dark"}, "default": {}}
+        },
+        "required": ["name", "count", "enabled", "tier", "tags", "settings"]
+      },
+      "presetSettings": {
+        "description": "Preset Settings",
+        "type": "object",
+        "properties": {
+          "options": {"type": "object", "additionalProperties": true, "description": "Preset options as a key-value object.", "example": {"mode": "fast"}, "default": {}}
+        },
+        "required": ["options"]
+      },
+      "presetProfile": {
+        "description": "Preset Profile",
+        "type": "object",
+        "properties": {
+          "prefs": {"$ref": "#/components/schemas/preferences", "description": "Preset preferences."}
+        },
+        "required": ["prefs"]
+      },
+      "presetList": {
+        "description": "Preset list",
+        "type": "object",
+        "properties": {
+          "total": {"type": "integer", "description": "Total number of presets.", "example": 2},
+          "presets": {"type": "array", "description": "List of presets.", "items": {"$ref": "#\/components\/schemas\/preset"}}
+        },
+        "required": ["total", "presets"]
       },
       "zznullablescalars": {
         "description": "Nullable scalar response fields",

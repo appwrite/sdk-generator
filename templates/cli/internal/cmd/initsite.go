@@ -313,10 +313,6 @@ func siteEntryRequiresBuildCommand(entry SiteEntry) bool {
 }
 
 // downloadSiteTemplate fetches the framework's starter into the site directory.
-//
-// The clone is built by hand rather than with `git clone` because the template
-// lives at a tag in a subdirectory of a shared repository: a sparse checkout of
-// one directory at one tag is cheaper than cloning the whole thing.
 func downloadSiteTemplate(
 	out interface{ Write([]byte) (int, error) },
 	template *siteTemplate,
@@ -330,7 +326,7 @@ func downloadSiteTemplate(
 		return fmt.Errorf("No starter template found for framework %s", framework)
 	}
 
-	root := template.Frameworks[0].ProviderRootDirectory
+	root := strings.Trim(strings.TrimPrefix(template.Frameworks[0].ProviderRootDirectory, "./"), "/")
 
 	if err := os.MkdirAll(siteFolder, 0o777); err != nil {
 		return err
@@ -340,48 +336,38 @@ func downloadSiteTemplate(
 	}
 	defer os.RemoveAll(templatesDir)
 
-	repo := fmt.Sprintf("https://github.com/%s/%s",
+	repository := fmt.Sprintf("https://github.com/%s/%s",
 		template.ProviderOwner, template.ProviderRepositoryID)
-
-	setup := []string{
-		"git init",
-		"git remote add origin " + repo,
-		"git config --global init.defaultBranch main",
-	}
-
-	if root != "./" {
-		sparse := strings.TrimPrefix(root, "./")
-		setup = append(setup,
-			"git config core.sparseCheckout true",
-			fmt.Sprintf("echo %q >> .git/info/sparse-checkout", sparse),
-			"git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'",
-			"git config remote.origin.tagopt --no-tags",
-		)
-	}
 
 	output.Log(out, "Fetching site code ...")
 
-	// The tag is resolved remotely and the LAST match taken, which is how a
-	// version like "0.1.*" picks its newest release.
-	setup = append(setup,
-		fmt.Sprintf("git fetch --depth=1 origin refs/tags/$(git ls-remote --tags "+
-			"origin %q | tail -n 1 | awk -F '/' '{print $3}')", template.ProviderVersion),
-		"git checkout FETCH_HEAD",
-	)
-
-	if err := runGit(templatesDir, strings.Join(setup, "\n")); err != nil {
+	tag, err := resolveGitTag(templatesDir, repository, template.ProviderVersion)
+	if err != nil {
 		return err
+	}
+
+	cloneArguments := []string{"clone", "--single-branch", "--depth", "1"}
+	if tag != "" {
+		cloneArguments = append(cloneArguments, "--branch", tag)
+	}
+	if root != "" {
+		cloneArguments = append(cloneArguments, "--sparse")
+	}
+	cloneArguments = append(cloneArguments, repository, ".")
+	if err := runGitCommand(templatesDir, cloneArguments...); err != nil {
+		return err
+	}
+	if root != "" {
+		if err := runGitCommand(templatesDir, "sparse-checkout", "add", root); err != nil {
+			return err
+		}
 	}
 
 	if err := os.RemoveAll(filepath.Join(templatesDir, ".git")); err != nil {
 		return err
 	}
 
-	source := templatesDir
-	if root != "./" {
-		source = filepath.Join(templatesDir, root)
-	}
-	if err := copyTree(source, siteDir); err != nil {
+	if err := copyTree(filepath.Join(templatesDir, filepath.FromSlash(root)), siteDir); err != nil {
 		return err
 	}
 

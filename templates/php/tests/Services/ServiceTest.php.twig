@@ -15,7 +15,7 @@
 {%- elseif (parameter | schemaType) == 'file' -%}
 InputFile::withData('', 'image/png')
 {%- elseif (parameter | schemaType) == 'boolean' -%}
-true
+{{ parameter.location.value == 'path' ? 'true' : 'false' }}
 {%- elseif (parameter | schemaType) == 'string' -%}
 {#- The service rejects an empty required path string, so fall back to the parameter name. -#}
 "{{ ((parameter | schemaExample) is not empty ? (parameter | schemaExample) : parameter.name) | escapeDollarSign }}"
@@ -27,6 +27,16 @@ true
 {{ (parameter | schemaExample) }}
 {%- endif -%}
 {%- endmacro %}
+{% macro pathValue(parameter, method) -%}
+{%- if (parameter | configKey(method)) or not parameter.required -%}
+{%- elseif (parameter | enumValues) is not empty -%}
+{{ (parameter | enumValues)[0] | raw }}
+{%- elseif (parameter | schemaType) in ['integer', 'number', 'boolean'] -%}
+1
+{%- else -%}
+{{ ((parameter | schemaExample) is not empty ? (parameter | schemaExample) : parameter.name) | raw }}
+{%- endif -%}
+{%- endmacro %}
 <?php
 
 declare(strict_types=1);
@@ -35,20 +45,21 @@ namespace {{ namespace | caseNamespace }}\Services;
 
 use {{ namespace | caseNamespace }}\Client;
 use Mockery;
+use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use Mockery\MockInterface;
 use PHPUnit\Framework\TestCase;
 {% set added = [] %}
 {% for method in (service | operations) %}
 {% for parameter in (method | parameters('all')) %}
-{% if parameter.required and (parameter | schemaType) == 'file' and 'InputFile' not in added %}
+{% if (parameter | schemaType) == 'file' and 'InputFile' not in added %}
 use {{ namespace | caseNamespace }}\InputFile;
 {% set added = added|merge(['InputFile']) %}
 {% endif %}
-{% if parameter.required and (parameter | schemaModel) is not empty and (parameter | schemaType) != 'array' and (parameter | schemaModel) not in added %}
+{% if (parameter | schemaModel) is not empty and (parameter | schemaType) != 'array' and (parameter | schemaModel) not in added %}
 use {{ namespace | caseNamespace }}\Models\{{ (parameter | schemaModel) | caseUcfirst | overrideIdentifier }};
 {% set added = added|merge([(parameter | schemaModel)]) %}
 {% endif %}
-{% if parameter.required and (parameter | enumName) is not empty and (parameter | enumName) not in added %}
+{% if (parameter | enumName) is not empty and (parameter | enumName) not in added %}
 use {{ namespace | caseNamespace }}\Enums\{{ (parameter | enumName) | caseUcfirst }};
 {% set added = added|merge([(parameter | enumName)]) %}
 {% endif %}
@@ -57,6 +68,8 @@ use {{ namespace | caseNamespace }}\Enums\{{ (parameter | enumName) | caseUcfirs
 
 final class {{ service.name | caseUcfirst }}Test extends TestCase
 {
+    use MockeryPHPUnitIntegration;
+
     private Client&MockInterface $client;
     private {{ service.name | caseUcfirst }} ${{ service.name | caseCamel }};
 
@@ -86,7 +99,7 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 {% elseif (method | responseModel) and (method | responseModel) != 'any' %}
 {% set responseDefinitionName = (method | responseModel) %}
 {% endif %}
-{% set requiredParameters = (method | parameters('all')) | filter((param) => param.required) %}
+{% set parameters = method | parameters('all') %}
     public function testMethod{{ (method | methodName) | caseUcfirst }}(): void
     {
 {% if responseModels | length > 0 %}
@@ -108,17 +121,44 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
         $data = '';
 {% endif %}
 
+{% set path = method.path %}
+{% for parameter in (method | parameters('path')) %}
+{% set path = path | replace({('{' ~ parameter.name ~ '}'): helper.pathValue(parameter, method)}) %}
+{% endfor %}
+{% for security in (method | securityQueries) %}
+{% set path = path ~ (loop.first ? '?' : '&') ~ security.name ~ '=' %}
+{% endfor %}
+{% set comparedParameters = parameters | filter((param) => (param | schemaType) != 'file' and ((param | schemaModel) is empty or (param | schemaType) == 'array')) %}
         $this->client
-            ->allows()->call(Mockery::any(), Mockery::any(), Mockery::any(), Mockery::any(){% if (method | methodType) == 'webAuth' %}, Mockery::any(){% endif %})
+            ->expects()->call(
+                '{{ method.method.value | caseUpper }}',
+                '{{ path | replace({'\\': '\\\\', "'": "\\'"}) | raw }}',
+                Mockery::any(),
+                Mockery::on(function (array $params): bool {
+                    $this->assertSame([{% for parameter in parameters %}'{{ parameter.name }}'{{ loop.last ? '' : ', ' }}{% endfor %}], array_keys($params));
+{% if comparedParameters is not empty %}
+                    $expected = [
+{% for parameter in comparedParameters %}
+                        '{{ parameter.name }}' => {{ helper.mockParameterValue(parameter, spec) }},
+{% endfor %}
+                    ];
+                    $this->assertSame($expected, array_intersect_key($params, $expected));
+{% endif %}
+
+                    return true;
+                }){% if (method | methodType) == 'webAuth' %},
+                'location'{% endif %}
+
+            )
             ->andReturn($data);
         $this->client
             ->allows()->getConfig(Mockery::any())
             ->andReturn('');
 
-{% if requiredParameters | length > 0 %}
+{% if parameters | length > 0 %}
         $response = $this->{{ service.name | caseCamel }}->{{ (method | methodName) | caseCamel }}(
-{% for parameter in requiredParameters %}
-            {{ helper.mockParameterValue(parameter, spec) }}{{ loop.last ? '' : ',' }}
+{% for parameter in parameters %}
+            {% if not parameter.required %}{{ parameter.name | caseCamel | escapeKeyword }}: {% endif %}{{ helper.mockParameterValue(parameter, spec) }}{{ loop.last ? '' : ',' }}
 {% endfor %}
         );
 {% else %}

@@ -38,7 +38,7 @@ final class Config
     public const string TITLE = 'Appwrite';
     public const string DESCRIPTION = 'Appwrite backend as a service';
     public const string LICENSE_NAME = 'BSD-3-Clause';
-    public const string LICENSE_URL = 'https://raw.githubusercontent.com/appwrite/appwrite/master/LICENSE';
+    public const string LICENSE_URL = 'https://raw.githubusercontent.com/appwrite/appwrite/main/LICENSE';
     public const string COVER_IMAGE = 'https://github.com/appwrite/appwrite/raw/main/public/images/github.png';
     public const string TWITTER = 'appwrite';
     public const string DISCORD_CHANNEL = '564160730845151244';
@@ -82,13 +82,11 @@ try {
             ],
         ];
 
-        // Deep-merge exclude services so overrides add to defaults rather than replacing
-        if (isset($overrides['exclude']['services']) && isset($defaults['exclude']['services'])) {
-            $overrides['exclude']['services'] = [
-                ...$defaults['exclude']['services'],
-                ...$overrides['exclude']['services'],
-            ];
+        $exclude = $defaults['exclude'];
+        foreach ($overrides['exclude'] ?? [] as $kind => $rules) {
+            $exclude[$kind] = [...($exclude[$kind] ?? []), ...$rules];
         }
+        $overrides['exclude'] = $exclude;
 
         $config = [...$defaults, ...$overrides];
 
@@ -232,7 +230,9 @@ try {
 
     // Web
     if (!$requestedSdk || $requestedSdk === 'web') {
-        $sdk  = new SDK(new Web(), buildSpecification($spec));
+        $web = new Web();
+        $web->setCdnPath('web');
+        $sdk  = new SDK($web, buildSpecification($spec));
         configureSDK($sdk, ['platform' => $platform]);
         $sdk->generate(__DIR__ . '/examples/web');
     }
@@ -262,38 +262,35 @@ try {
   \_/ \_/ .__/| .__/ \_/\_/ |_|  |_|\__\___| \____/\____/\____/
         |_|   |_|                                                ";
 
-    $cliExcludes = [
-        'methods' => [
-            // Passkeys are not in the released Go SDK yet
-            ['service' => 'account', 'name' => 'listPasskeys'],
-            ['service' => 'account', 'name' => 'createPasskey'],
-            ['service' => 'account', 'name' => 'getPasskey'],
-            ['service' => 'account', 'name' => 'updatePasskey'],
-            ['service' => 'account', 'name' => 'deletePasskey'],
-            ['service' => 'account', 'name' => 'updatePasskeyVerification'],
-            ['service' => 'account', 'name' => 'createPasskeyToken'],
-            ['service' => 'account', 'name' => 'updatePasskeyToken'],
-            ['service' => 'project', 'name' => 'updatePasskeyPolicy'],
-            ['service' => 'users', 'name' => 'listPasskeys'],
-            ['service' => 'users', 'name' => 'getPasskey'],
-            ['service' => 'users', 'name' => 'updatePasskey'],
-            ['service' => 'users', 'name' => 'deletePasskey'],
-        ],
-    ];
-
     // CLI
     if (!$requestedSdk || $requestedSdk === 'cli') {
+        // CLI go.mod replace-pins github.com/appwrite/sdk-for-go/v7 to ../go.
+        $go = new SDK(new Go(), buildSpecification($spec));
+        configureSDK($go, [
+            'platform' => 'server',
+            'gitUserName' => 'appwrite',
+            'gitRepoName' => 'sdk-for-go',
+            'version' => '7.2.0-rc.3',
+        ]);
+        $go->generate(__DIR__ . '/examples/go');
+
         $language = new CLI();
         $language->setExecutableName('appwrite');
         $language->setLogo($cliLogo);
         $language->setLogoUnescaped($cliLogoUnescaped);
         $language->setNPMPackage('appwrite-cli');
+        $language->setSdkPath('../go');
 
         $sdk = new SDK($language, buildSpecification($spec));
         $sdk->setTest(false);
         configureSDK($sdk, [
             'platform' => 'server',
-            'exclude' => $cliExcludes,
+            'exclude' => [
+                'methods' => [
+                    // sdk-for-go v7.14.0 takes a required rpId; this spec's optional rpId and origins are newer.
+                    ['service' => 'project', 'name' => 'updatePasskeyPolicy'],
+                ],
+            ],
         ]);
 
         $sdk->generate(__DIR__ . '/examples/cli');
@@ -346,11 +343,11 @@ try {
     if (!$requestedSdk || $requestedSdk === 'go') {
         $sdk  = new SDK(new Go(), buildSpecification($spec));
         // The version decides the major-version suffix Go requires from v2 on,
-        // so examples/go declares `sdk-for-go/v6` like the published module.
+        // so examples/go declares `sdk-for-go/v7` like the published module.
         configureSDK($sdk, [
             'gitUserName' => 'appwrite',
             'gitRepoName' => 'sdk-for-go',
-            'version' => '6.2.0',
+            'version' => '7.2.0-rc.3',
         ]);
         $sdk->generate(__DIR__ . '/examples/go');
     }

@@ -76,6 +76,7 @@ func pushActions(logs bool) []pushAction {
 		{Value: "teams", Label: "Teams (Auth)", Run: simple("team")},
 		{Value: "webhooks", Label: "Webhooks (Project)", Run: simple("webhook")},
 		{Value: "messages", Label: "Topics (Messaging)", Run: simple("topic")},
+		{Value: "analytics", Label: "Properties (Analytics)", Run: simple("analytics")},
 		{Value: "functions", Label: "Functions (Deployment)", Run: deployableNamed("function")},
 		{Value: "sites", Label: "Sites (Deployment)", Run: deployableNamed("site")},
 		{
@@ -100,7 +101,7 @@ func pushActions(logs bool) []pushAction {
 // and that shows up here rather than in a user's terminal.
 var promptOrder = []string{
 	"settings", "functions", "tables", "buckets",
-	"teams", "webhooks", "messages", "collections",
+	"teams", "webhooks", "messages", "analytics", "collections",
 }
 
 func newPushAllCommand() *cobra.Command {
@@ -163,6 +164,10 @@ func runPushActions(command *cobra.Command, actions []pushAction, everything boo
 				continue
 			}
 			if err := action.Run(command); err != nil {
+				if skipsConsoleOnly(command, action.Value, "push", err) {
+					continue
+				}
+
 				return err
 			}
 		}

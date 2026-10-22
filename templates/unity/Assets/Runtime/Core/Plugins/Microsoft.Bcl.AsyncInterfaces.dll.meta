@@ -47,6 +47,11 @@ PluginImporter:
     second:
       enabled: 1
       settings: {}
+  - first:
+      WebGL: WebGL
+    second:
+      enabled: 1
+      settings: {}
   userData:
   assetBundleName:
   assetBundleVariant:
