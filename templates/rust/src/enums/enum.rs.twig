@@ -11,7 +11,7 @@ impl {{ enum.title | caseUcfirst | overrideIdentifier }} {
 {% else %}
 use serde::{Deserialize, Serialize};
 
-{% if enum.description %}/// {{ enum.description }}
+{% if enum.description %}/// {{ enum.description | escapeComment | replace({'\n': '\n/// '}) }}
 {% endif %}#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum {{ enum.title | caseUcfirst | overrideIdentifier }} {
 {% set defaultValue = enum.default in enum.enum ? enum.default : enum.enum | first %}

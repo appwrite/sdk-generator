@@ -182,7 +182,7 @@ impl Client {
     /// Set {{headerKey | caseUcfirst}}
 {% if header.description %}
     ///
-    /// {{header.description}}
+    /// {{ header.description | escapeComment | replace({'\n': '\n    /// '}) }}
 {% endif %}
     pub fn set_{{headerKey | caseSnake}}<S: Into<String>>(&self, value: S) -> Self {
         let value = value.into();

@@ -50,7 +50,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
 
 {% for headerKey, header in globalHeaders %}
 {% if header.description %}
-  /// {{ header.description }}
+  /// {{ header.description | escapeComment | replace({'\n': '\n  /// '}) }}
 {% endif %}
   @override
   ClientBrowser set{{ headerKey | caseUcfirst }}(value) {

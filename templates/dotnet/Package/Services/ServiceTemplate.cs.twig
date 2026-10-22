@@ -21,7 +21,7 @@ namespace {{ spec.info.title | caseUcfirst }}.Services
         {%~ for method in (service | operations) %}
         {%~ if method.description %}
         /// <para>
-        {{~ method.description | wrap(75, '        /// ') }}
+        {{~ method.description | escapeComment | wrap(75, '        /// ') }}
         /// </para>
         {%~ endif %}
         /// </summary>
