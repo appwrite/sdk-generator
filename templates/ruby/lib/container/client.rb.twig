@@ -320,14 +320,15 @@ module {{ spec.info.title | caseUcfirst }}
 
             params.compact!
 
-            @boundary = "----A30#3ad1"
             if method != "GET"
                 case headers[:'content-type']
                 when 'application/json'
                     payload = params.to_json
                 when 'multipart/form-data'
-                    payload = encode_form_data(params) + "--#{@boundary}--\r\n"
-                    headers[:'content-type'] = "multipart/form-data; boundary=#{@boundary}"
+                    # A fixed boundary lets file content end its part and add fields.
+                    boundary = "----#{SecureRandom.hex(16)}"
+                    payload = encode_form_data(params, boundary) + "--#{boundary}--\r\n"
+                    headers[:'content-type'] = "multipart/form-data; boundary=#{boundary}"
                 else
                     payload = encode(params)
                 end
@@ -401,32 +402,38 @@ module {{ spec.info.title | caseUcfirst }}
             String.new(response.body.to_s, encoding: encoding).encode(Encoding::UTF_8)
         end
 
-        def encode_form_data(value, key = nil)
+        def encode_form_data(value, boundary, key = nil)
             case value
             when Hash
-                return encode_form_data(value.to_json, key) unless key.nil?
+                return encode_form_data(value.to_json, boundary, key) unless key.nil?
 
-                value.map { |k, v| encode_form_data(v, k) }.join
+                value.map { |k, v| encode_form_data(v, boundary, k) }.join
             when Array
-                value.map { |v| encode_form_data(v, "#{key}[]") }.join
+                value.map { |v| encode_form_data(v, boundary, "#{key}[]") }.join
             when nil
                 ''
             else
                 post_body = []
                 if value.instance_of? InputFile
-                    post_body << "--#{@boundary}"
-                    post_body << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{value.filename}\""
-                    post_body << "Content-Type: #{value.mime_type}"
+                    post_body << "--#{boundary}"
+                    post_body << "Content-Disposition: form-data; name=\"#{escape_form_data_name(key)}\"; filename=\"#{escape_form_data_name(value.filename)}\""
+                    post_body << "Content-Type: #{value.mime_type.to_s.delete("\r\n")}"
                     post_body << ""
                     post_body << value.data
                 else
-                    post_body << "--#{@boundary}"
-                    post_body << "Content-Disposition: form-data; name=\"#{key}\""
+                    post_body << "--#{boundary}"
+                    post_body << "Content-Disposition: form-data; name=\"#{escape_form_data_name(key)}\""
                     post_body << ""
                     post_body << value.to_s
                 end
                 post_body.join("\r\n") + "\r\n"
             end
+        end
+
+        # Field and file names are quoted in the part headers; escape what would
+        # end the quoted string or the header line, as browsers do.
+        def escape_form_data_name(name)
+            name.to_s.gsub("\r", '%0D').gsub("\n", '%0A').gsub('"', '%22')
         end
 
         def encode(value, key = nil)

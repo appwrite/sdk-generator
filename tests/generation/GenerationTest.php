@@ -1022,6 +1022,20 @@ final class GenerationTest extends TestCase
         $this->assertDoesNotMatchRegularExpression("/^require 'cgi'$/m", $client, 'Ruby 4.0 removed the cgi library; only cgi/escape ships with it');
     }
 
+    /**
+     * File content must not be able to end its part and add form fields such
+     * as permissions, so the boundary is random for every request and field
+     * and file names cannot close their quotes or header line.
+     */
+    public function testRubyMultipartCannotBeForged(): void
+    {
+        $client = $this->generate('ruby', 'server')['lib/appwrite/client.rb'];
+
+        $this->assertStringNotContainsString('a30#3ad1', $client);
+        $this->assertStringContainsString('boundary = "----#{securerandom.hex(16)}"', $client);
+        $this->assertStringContainsString('name=\\"#{escape_form_data_name(key)}\\"; filename=\\"#{escape_form_data_name(value.filename)}\\"', $client);
+    }
+
     public function testDotNetKeepsDateTimeStringsAsStrings(): void
     {
         $converter = $this->generate('dotnet', 'server')['Appwrite/Converters/ObjectToInferredTypesConverter.cs'];
