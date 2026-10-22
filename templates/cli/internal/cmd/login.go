@@ -106,15 +106,12 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 		return err
 	}
 
-	selfSigned := global.CurrentBool(config.PreferenceSelfSigned)
-	if options.SelfSigned != nil {
-		selfSigned, err = strconv.ParseBool(*options.SelfSigned)
-		if err != nil {
-			return fmt.Errorf("--self-signed must be true or false: %w", err)
-		}
-	}
-
 	configEndpoint := resolveLoginEndpoint(options.Endpoint)
+
+	selfSigned, err := loginSelfSigned(global, configEndpoint, options.SelfSigned)
+	if err != nil {
+		return err
+	}
 
 	if options.Endpoint != "" && config.IsRegionalCloudEndpoint(options.Endpoint) {
 		output.Warn(out, "Regional Cloud endpoints are for project API calls, so "+
@@ -170,6 +167,29 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 // whether anyone is signed in, but `login --switch` needs the reason -- reporting
 // a locked keyring or an unreachable endpoint as a dead session sends the user to
 // re-authenticate against a problem re-authenticating does not fix.
+// loginSelfSigned decides whether a login skips certificate verification.
+//
+// Trust in a self-signed certificate was given for one server. Inherited by a
+// login to another endpoint, the password went to a host whose certificate no
+// one had agreed to skip, and the new session stored that trust. A session with
+// no endpoint yet -- `client --self-signed true` before the first login -- has
+// not been tied to a server, so its preference still applies.
+func loginSelfSigned(global *config.Global, endpoint string, flag *string) (bool, error) {
+	if flag != nil {
+		selfSigned, err := strconv.ParseBool(*flag)
+		if err != nil {
+			return false, fmt.Errorf("--self-signed must be true or false: %w", err)
+		}
+
+		return selfSigned, nil
+	}
+
+	current := global.CurrentValue(config.PreferenceEndpoint)
+
+	return (current == "" || config.EndpointsMatch(current, endpoint)) &&
+		global.CurrentBool(config.PreferenceSelfSigned), nil
+}
+
 func currentAccount() (*jsonx.Object, error) {
 	api, _, err := consoleClient()
 	if err != nil {
