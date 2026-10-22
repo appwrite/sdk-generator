@@ -1368,6 +1368,9 @@ final class GenerationTest extends TestCase
         yield 'python path' => ['python', 'server', 'appwrite/services/general.py', "api_path = api_path.replace('{pathid}', self._encode_path(path_id))"];
         yield 'python encoder' => ['python', 'server', 'appwrite/service.py', "return quote(str(self._normalize_value(value)), safe=\"!*'()\")"];
         yield 'python resume' => ['python', 'server', 'appwrite/client.py', "self.call('get', path + '/' + quote(upload_id, safe=\"!*'()\"), headers)"];
+        yield 'ruby path' => ['ruby', 'server', 'lib/appwrite/services/general.rb', ".gsub('{pathid}', @client.encode_path(path_id))"];
+        yield 'ruby encoder' => ['ruby', 'server', 'lib/appwrite/client.rb', "value.to_s.b.gsub(/[^a-za-z0-9\\-_.!~*'()]/n)"];
+        yield 'ruby resume' => ['ruby', 'server', 'lib/appwrite/client.rb', 'path: "#{path}/#{encode_path(upload_id)}",'];
     }
 
     /**
