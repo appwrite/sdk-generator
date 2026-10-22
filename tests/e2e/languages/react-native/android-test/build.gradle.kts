@@ -23,8 +23,8 @@ android {
 }
 
 dependencies {
-    implementation("com.hivemq:hivemq-mqtt-client:1.4.1")
-    implementation("androidx.core:core-ktx:1.19.1")
+    implementation("com.hivemq:hivemq-mqtt-client:1.3.6")
+    implementation("androidx.core:core-ktx:1.13.1")
     implementation("com.facebook.react:react-android:0.88.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.test.ext:junit-ktx:1.3.0")

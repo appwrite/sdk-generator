@@ -284,6 +284,12 @@
       "skipArtifactsUpdate": true
     },
     {
+      "description": "Keep native React Native test dependencies aligned with the versions shipped by its SDK template.",
+      "matchFileNames": ["tests/e2e/languages/react-native/android-test/build.gradle.kts"],
+      "matchDepNames": ["com.hivemq:hivemq-mqtt-client", "androidx.core:core-ktx"],
+      "enabled": false
+    },
+    {
       "matchManagers": ["pub"],
       "groupName": "dart and flutter sdk template dependencies"
     },
