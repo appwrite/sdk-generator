@@ -153,6 +153,13 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		fmt.Printf("general.GetPath => error %v", err)
 	}
 	fmt.Printf("%s\n", pathResponse.Result)
+	for _, id := range []string{"../grant?special=id#x y%", "unique()"} {
+		pathResponse, err = general.GetPath(id)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(pathResponse.Result)
+	}
 
 	zone, err := appwrite.NewPlaintext(client).GetZone()
 	if err != nil {

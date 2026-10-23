@@ -1469,6 +1469,7 @@ final class GenerationTest extends TestCase
     /** @return Iterator<string, array{string, string, string, string}> */
     public static function pathSegmentEncoders(): Iterator
     {
+        yield 'go resume' => ['go', 'server', 'client/client.go', 'resp, err := client.call("get", url+"/"+encodepath(uploadid), nil, nil)'];
         yield 'python path' => ['python', 'server', 'appwrite/services/general.py', "api_path = api_path.replace('{pathid}', self._encode_path(path_id))"];
         yield 'python encoder' => ['python', 'server', 'appwrite/service.py', "return quote(str(self._normalize_value(value)), safe=\"!*'()\")"];
         yield 'python resume' => ['python', 'server', 'appwrite/client.py', "self.call('get', path + '/' + quote(upload_id, safe=\"!*'()\"), headers)"];

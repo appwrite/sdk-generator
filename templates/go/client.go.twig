@@ -297,7 +297,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 	}
 	var currentChunk int64 = 0
 	if uploadId != "" {
-		resp, err := client.Call("GET", url+"/"+uploadId, nil, nil)
+		resp, err := client.Call("GET", url+"/"+EncodePath(uploadId), nil, nil)
 		if err == nil {
 			result = resp
 			var result map[string]interface{}
