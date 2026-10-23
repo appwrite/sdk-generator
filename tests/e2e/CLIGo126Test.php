@@ -53,6 +53,7 @@ final class CLIGo126Test extends Base
         'CLI_TYPES_DEPENDENCIES:passed',
         'CLI_INIT_APNS:passed',
         'CLI_INIT_APNS_APPLE:passed',
+        'CLI_UNICODE_IGNORE_DEPLOYMENT:passed',
         'CLI_CONFORMANCE:passed',
     ];
 

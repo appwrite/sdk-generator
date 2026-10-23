@@ -3,6 +3,7 @@ package ignore
 import (
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 // Implements the `ignore` npm package (7.x), which decides which files reach a
@@ -194,14 +195,18 @@ func translate(pattern string) string {
 			// An escape carries the next character through literally.
 			if index+1 < len(pattern) {
 				index++
-				out.WriteString(regexp.QuoteMeta(string(pattern[index])))
+				_, size := utf8.DecodeRuneInString(pattern[index:])
+				out.WriteString(regexp.QuoteMeta(pattern[index : index+size]))
+				index += size - 1
 
 				continue
 			}
 
 			out.WriteString(`\\`)
 		default:
-			out.WriteString(regexp.QuoteMeta(string(character)))
+			_, size := utf8.DecodeRuneInString(pattern[index:])
+			out.WriteString(regexp.QuoteMeta(pattern[index : index+size]))
+			index += size - 1
 		}
 	}
 
