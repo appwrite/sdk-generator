@@ -52,8 +52,13 @@ puts response.result
 
 # General
 
-response = general.redirect()
-puts response["result"]
+# A redirect is reported as an error, not followed with the API key.
+begin
+    general.redirect()
+    raise 'A redirect was followed'
+rescue Appwrite::Exception => error
+    puts "#{error.code}:#{error.message}"
+end
 
 [['', '0'], ['0', '']].each do |id, plain|
     begin
