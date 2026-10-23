@@ -459,10 +459,11 @@ abstract class Language
     }
 
     /** Whether an optional string example should leave the field unset. */
-    public function shouldOmitExample(Schema|Parameter $value): bool
+    public function shouldOmitExample(Schema|Parameter $value, ?bool $required = null): bool
     {
-        return $value instanceof Parameter
-            && !$value->required
+        $required ??= $value instanceof Parameter ? $value->required : true;
+
+        return !$required
             && $this->getSchemaType($value) === self::TYPE_STRING
             && !$this->isStringEnum($value)
             && \in_array($this->getSchemaExample($value), [null, ''], true);

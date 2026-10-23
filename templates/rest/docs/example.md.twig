@@ -14,7 +14,7 @@ Host: {{ ((spec | endpoint) | split('/'))[2] }}
 {% for key, header in (method | methodHeaders) %}
 {% if (key | caseLower) == 'content-type' and header == 'application/json' %}
 
-{% if ((method | parameters('body')) | filter(parameter => not (parameter | omitExample))) %}
+{% if (method | parameters('body')) %}
 {
 {% for parameter in ((method | parameters('body')) | filter(parameter => not (parameter | omitExample))) %}
   "{{ parameter.name }}": {{ parameter | paramExample }}{% if not loop.last %},{% endif ~%}

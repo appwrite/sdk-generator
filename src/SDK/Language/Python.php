@@ -546,7 +546,11 @@ class Python extends Language
         }
 
         $arguments = [];
-        foreach ($model->properties as $property) {
+        foreach ($model->properties as $name => $property) {
+            if ($this->shouldOmitExample($property, \in_array($name, $model->required, true))) {
+                continue;
+            }
+
             $arguments[] = $this->getModelFieldName($property, $model->properties)
                 . ' = ' . $this->getRequestModelPropertyExample($property, $spec, $serviceName);
         }

@@ -244,6 +244,15 @@ final class GenerationTest extends TestCase
         $this->removeDirectory($dir);
 
         $document = \json_decode((string) \file_get_contents(self::FIXTURE), flags: JSON_THROW_ON_ERROR);
+        if ($variant === '-optional-examples') {
+            $properties = $document->components->schemas->player->properties;
+            $properties->zznestedmissing = (object) ['type' => 'string'];
+            $properties->zznestedempty = (object) ['type' => 'string', 'example' => ''];
+            $properties->zznestedzero = (object) ['type' => 'string', 'example' => '0'];
+            $body = $document->paths->{'/mock/tests/general/zzexamples'}->post->requestBody->content->{'application/json'}->schema;
+            $body->required = [];
+            $body->properties = (object) ['zzmissing' => (object) ['type' => 'string']];
+        }
         if ($unionVariant !== '') {
             $union = $document->paths->{'/mock/tests/compound'}->get->responses->{'200'}->content->{'application/json'}->schema;
             foreach ($union->anyOf as $branch) {
@@ -706,6 +715,22 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('required-value', $cli);
         $this->assertStringNotContainsString('--zzmissing', $cli);
         $this->assertStringNotContainsString('--zzempty', $cli);
+    }
+
+    public function testOptionalExamplesPreserveRequiredBodiesAndNestedModels(): void
+    {
+        $python = $this->generate('python', 'server', variant: '-optional-examples');
+        foreach (['create-player', 'create-players'] as $method) {
+            $example = $python["docs/examples/general/{$method}.md"];
+            $this->assertStringNotContainsString('zznestedmissing', $example);
+            $this->assertStringNotContainsString('zznestedempty', $example);
+            $this->assertStringContainsString("zznestedzero = '0'", $example);
+            $this->assertStringContainsString("id = 'player123'", $example);
+        }
+
+        $rest = $this->generate('rest', 'client', variant: '-optional-examples')['docs/examples/general/zzexamples.md'];
+        $this->assertStringNotContainsString('zzmissing', $rest);
+        $this->assertMatchesRegularExpression('/\{\s*\}\s*```/', $rest);
     }
 
     /**
