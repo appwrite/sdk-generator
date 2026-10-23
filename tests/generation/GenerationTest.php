@@ -1504,6 +1504,31 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A server SDK sends the API key with every call, so it must not follow a
+     * redirect, which may point at another host, and must not keep cookies,
+     * which would carry one caller's session into the next call. The first
+     * fragment must be in the client, the second must not.
+     */
+    #[DataProvider('serverClientTransports')]
+    public function testServerClientsNeitherFollowRedirectsNorKeepCookies(string $name, string $file, string $present, string $absent): void
+    {
+        $client = $this->generate($name, 'server')[$file] ?? '';
+
+        $this->assertStringContainsString($present, $client);
+        if ($absent !== '') {
+            $this->assertStringNotContainsString($absent, $client);
+        }
+    }
+
+    /** @return Iterator<string, array{string, string, string, string}> */
+    public static function serverClientTransports(): Iterator
+    {
+        yield 'go redirects' => ['go', 'client/client.go', "checkredirect: func(*http.request, []*http.request) error {\n\t\t\treturn http.erruselastresponse", ''];
+        yield 'go redirect error' => ['go', 'client/client.go', 'message:    "redirect to " + resp.header.get("location") + " not followed",', ''];
+        yield 'go cookies' => ['go', 'client/client.go', 'timeout: timeout,', 'cookiejar'];
+    }
+
+    /**
      * PHP resumes a chunked upload from its service method: it asks for the
      * chunks already uploaded at the path plus the upload ID, which fills
      * one segment like any path parameter.

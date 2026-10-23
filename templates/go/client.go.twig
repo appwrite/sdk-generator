@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"reflect"
@@ -134,14 +133,15 @@ func (client *Client) String() string {
 	return fmt.Sprintf("%s\n%v\n%v", client.Endpoint, names, client.Timeout)
 }
 
+// GetDefaultClient returns an HTTP client for API calls. It keeps no cookies,
+// so a session one response sets is never sent with a later call, and it does
+// not follow redirects, which would carry the API key to wherever they point.
 func GetDefaultClient(timeout time.Duration) (*http.Client, error) {
-	jar, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
-	}
 	return &http.Client{
-		Jar:     jar,
 		Timeout: timeout,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}, nil
 }
 
@@ -620,6 +620,15 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 	responseData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
+	}
+
+	// The API answers calls without redirecting; a redirect is reported, not followed.
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		return nil, &{{ spec.info.title | caseUcfirst }}Error{
+			statusCode: resp.StatusCode,
+			message:    "Redirect to " + resp.Header.Get("location") + " not followed",
+			response:   string(responseData),
+		}
 	}
 
 	contentType := resp.Header.Get("content-type")

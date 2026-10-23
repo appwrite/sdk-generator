@@ -110,11 +110,28 @@ func testBarService(client client.Client, stringInArray []string) {
 func testGeneralService(client client.Client, stringInArray []string) {
 	general := appwrite.NewGeneral(client)
 	// General Service
-	response, err := general.Redirect()
-	if err != nil {
-		fmt.Printf("general.Redirect => error %v", err)
+	// A redirect is reported as an error, not followed with the API key.
+	_, err := general.Redirect()
+	redirect, ok := err.(interface {
+		GetStatusCode() int
+		GetMessage() string
+	})
+	if !ok {
+		panic(fmt.Sprintf("general.Redirect was followed or failed otherwise: %v", err))
 	}
-	fmt.Printf("%s\n", (*response).(map[string]interface{})["result"].(string))
+	fmt.Printf("%d:%s\n", redirect.GetStatusCode(), redirect.GetMessage())
+
+	// The client keeps no cookies, so the one set-cookie sets is not sent back.
+	setCookie, err := general.SetCookie()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(setCookie.Result)
+	if _, err := general.GetCookie(); err != nil {
+		fmt.Println(err)
+	} else {
+		panic("A cookie from an earlier response was sent")
+	}
 
 	for _, ids := range [][2]string{{"", "0"}, {"0", ""}} {
 		if _, err := general.ValidatePath(ids[1], ids[0]); err != nil {
