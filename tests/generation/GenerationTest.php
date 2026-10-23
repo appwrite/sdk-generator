@@ -1534,6 +1534,8 @@ final class GenerationTest extends TestCase
         yield 'dotnet redirect error' => ['dotnet', 'Appwrite/Client.cs', 'throw new appwriteexception($"redirect to {location} not followed", code, "", body);', ''];
         yield 'kotlin redirects' => ['kotlin', 'src/main/kotlin/io/appwrite/Client.kt', ".newbuilder()\n            .followredirects(false)\n            .followsslredirects(false)", ''];
         yield 'kotlin redirect error' => ['kotlin', 'src/main/kotlin/io/appwrite/Client.kt', 'it.cancel(appwriteexception("redirect to $location not followed", response.code, "", body))', ''];
+        yield 'swift redirects' => ['swift', 'Sources/Appwrite/Client.swift', 'redirectconfiguration: httpclient.configuration.redirectconfiguration = .disallow,', 'request.adddomaincookies()'];
+        yield 'swift redirect error' => ['swift', 'Sources/Appwrite/Client.swift', "case 300..<400:\n            let location = response.headers[\"location\"].first ?? \"\"", ''];
         yield 'ruby redirects' => ['ruby', 'lib/appwrite/client.rb', 'raise appwrite::exception.new("redirect to #{location} not followed", response.code, nil, response.body)', 'return fetch(method, uri'];
     }
 
