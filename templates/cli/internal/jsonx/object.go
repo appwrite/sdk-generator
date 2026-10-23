@@ -223,7 +223,11 @@ func (o *Object) UnmarshalJSON(data []byte) error {
 	o.keys = nil
 	o.values = map[string]any{}
 
-	return o.decodeInto(decoder)
+	if err := o.decodeInto(decoder); err != nil {
+		return err
+	}
+
+	return requireEnd(decoder)
 }
 
 func (o *Object) decodeInto(decoder *json.Decoder) error {
@@ -244,12 +248,30 @@ func (o *Object) decodeInto(decoder *json.Decoder) error {
 		o.Set(key, value)
 	}
 
-	// Consume the closing brace.
-	if _, err := decoder.Token(); err != nil && err != io.EOF {
+	// A truncated object is not an empty or complete one.
+	token, err := decoder.Token()
+	if err != nil {
 		return err
+	}
+	if token != json.Delim('}') {
+		return fmt.Errorf("jsonx: expected closing brace, got %v", token)
 	}
 
 	return nil
+}
+
+// A config or response body contains one complete JSON value. Ignoring a suffix
+// can discard resource definitions when the decoded document is written back.
+func requireEnd(decoder *json.Decoder) error {
+	token, err := decoder.Token()
+	if err == io.EOF {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	return fmt.Errorf("jsonx: unexpected token after JSON value: %v", token)
 }
 
 func decodeValue(decoder *json.Decoder) (any, error) {
@@ -367,7 +389,15 @@ func DecodeValue(payload []byte) (any, error) {
 	decoder := json.NewDecoder(bytes.NewReader(trimmed))
 	decoder.UseNumber()
 
-	return decodeValue(decoder)
+	value, err := decodeValue(decoder)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireEnd(decoder); err != nil {
+		return nil, err
+	}
+
+	return value, nil
 }
 
 // Marshal renders the object the way config files are written: four-space

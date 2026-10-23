@@ -50,6 +50,7 @@ final class CLIGo126Test extends Base
         ...Base::UPLOAD_RESPONSE,
         ...Base::UPLOAD_RESPONSE,
         ...Base::CLI_HEADERS_RESPONSES,
+        'CLI_CONFIG_VALIDATION:passed',
         'CLI_TYPES_DEPENDENCIES:passed',
         'CLI_INIT_APNS:passed',
         'CLI_INIT_APNS_APPLE:passed',
