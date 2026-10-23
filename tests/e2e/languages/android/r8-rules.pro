@@ -3,5 +3,6 @@
 -keep class <1> { *; }
 -keep class io.appwrite.E2EPushReceiver { <init>(); }
 -keep class io.appwrite.TestPayload { *; }
+-keep class io.appwrite.IsolationPayload { *; }
 -dontwarn android.content.pm.**
 -dontwarn android.app.IActivityManager**
