@@ -201,7 +201,7 @@ php example.php zed-extension
 
 | Target | Argument | Supported Versions | Coding Standards | Package Manager | Output |
 |--------|----------|--------------------|------------------|-----------------|--------|
-| CLI | `cli` | Go 1.26.5 | [Effective Go] | Go modules, native binaries, NPM | `examples/cli/` |
+| CLI | `cli` | Go 1.26.10 | [Effective Go] | Go modules, native binaries, NPM | `examples/cli/` |
 | REST examples | `rest` | N/A | Markdown | N/A | `examples/REST/` |
 | GraphQL | `graphql` | N/A | GraphQL | N/A | `examples/graphql/` |
 | Skills | `skills` | N/A | Markdown | N/A | `examples/skills/` |
