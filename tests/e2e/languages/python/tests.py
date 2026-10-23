@@ -65,8 +65,12 @@ print(response.result)
 
 # General Tests
 
-response = general.redirect()
-print(response['result'])
+# A redirect is reported as an error, not followed with the API key.
+try:
+    general.redirect()
+    raise AssertionError('A redirect was followed')
+except AppwriteException as error:
+    print(f'{error.code}:{error.message}')
 
 for id, plain in [('', '0'), ('0', '')]:
     try:
