@@ -340,6 +340,23 @@ namespace AppwriteTests
             mock = await general.SetCookie();
             LogResult(mock.Result);
 
+            var secureCookieRejected = false;
+            try
+            {
+                await general.GetCookie();
+            }
+            catch (AppwriteException error)
+            {
+                Assert.AreEqual(400, error.Code);
+                Assert.AreEqual("general_mock", error.Type);
+                secureCookieRejected = true;
+            }
+            Assert.IsTrue(secureCookieRejected, "A Secure cookie must not reach the HTTP mock server, even with selfSigned enabled.");
+            Assert.AreEqual("cookiename=cookieValue", client.CookieContainer.GetCookieHeader(new System.Uri("https://mockapi/v1")),
+                "Omitting a Secure cookie on HTTP must not remove it from the container.");
+
+            // A non-Secure replacement remains usable on the same HTTP endpoint.
+            client.CookieContainer.ParseSetCookieHeader("cookiename=cookieValue; Path=/", "mockapi");
             mock = await general.GetCookie();
             LogResult(mock.Result);
 
