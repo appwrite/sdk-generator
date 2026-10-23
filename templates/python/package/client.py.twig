@@ -115,10 +115,17 @@ class Client:
                 files=files,
                 headers=headers,
                 verify=(not self._self_signed),
-                allow_redirects=False if response_type == 'location' else True,
+                # A redirect would carry the API key to wherever it points, possibly another host.
+                allow_redirects=False,
             )
 
             response.raise_for_status()
+
+            if response_type != 'location' and 300 <= response.status_code < 400:
+                location = response.headers.get('Location', '')
+                raise {{spec.info.title | caseUcfirst}}Exception(
+                    f'Redirect to {location} not followed', response.status_code, None, response.text
+                )
 
             warnings = response.headers.get('x-{{ spec.info.title | lower }}-warning')
             if warnings:
@@ -137,6 +144,8 @@ class Client:
                 return response.json()
 
             return response._content
+        except {{spec.info.title | caseUcfirst}}Exception:
+            raise
         except Exception as e:
             if response != None:
                 content_type = response.headers['Content-Type']

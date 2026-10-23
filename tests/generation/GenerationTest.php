@@ -1488,6 +1488,8 @@ final class GenerationTest extends TestCase
         yield 'go redirects' => ['go', 'client/client.go', "checkredirect: func(*http.request, []*http.request) error {\n\t\t\treturn http.erruselastresponse", ''];
         yield 'go redirect error' => ['go', 'client/client.go', 'message:    "redirect to " + resp.header.get("location") + " not followed",', ''];
         yield 'go cookies' => ['go', 'client/client.go', 'timeout: timeout,', 'cookiejar'];
+        yield 'python redirects' => ['python', 'appwrite/client.py', "allow_redirects=false,\n", "allow_redirects=false if"];
+        yield 'python redirect error' => ['python', 'appwrite/client.py', "if response_type != 'location' and 300 <= response.status_code < 400:", ''];
     }
 
     /**
