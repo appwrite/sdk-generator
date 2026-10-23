@@ -19,6 +19,11 @@ open class Client {
     public static var chunkSize = 5 * 1024 * 1024  // 5MB
     public static var maxConcurrentUploads = 8
 
+    /// Characters a path segment keeps as they are: letters, digits and -_.!~*'(), as encodeURIComponent.
+    private static let pathSegmentAllowed = CharacterSet(
+        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()"
+    )
+
     open var endPoint = "{{(spec | endpoint)}}"
 
     open var endPointRealtime: String? = nil
@@ -103,6 +108,17 @@ open class Client {
         } catch {
             FileHandle.standardError.write(Data("\(error)\n".utf8))
         }
+    }
+
+    ///
+    /// Encodes a value as one path segment, so it fills exactly the segment it replaces
+    ///
+    /// @param String value
+    ///
+    /// @return String
+    ///
+    internal static func encodePath(_ value: String) -> String {
+        return value.addingPercentEncoding(withAllowedCharacters: pathSegmentAllowed) ?? ""
     }
 
     {%~ for headerKey, header in globalHeaders %}
@@ -510,7 +526,7 @@ open class Client {
             do {
                 let map = try await call(
                     method: "GET",
-                    path: path + "/" + uploadId,
+                    path: path + "/" + Client.encodePath(uploadId),
                     headers: headers,
                     params: [:],
                     converter: { return $0 as! [String: Any] }
