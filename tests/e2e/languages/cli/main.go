@@ -97,6 +97,9 @@ func main() {
 		}
 	}
 
+	harness.configValidation()
+	fmt.Println("CLI_CONFIG_VALIDATION:passed")
+
 	harness.typesDependencies()
 	fmt.Println("CLI_TYPES_DEPENDENCIES:passed")
 	harness.initApns()
@@ -119,6 +122,98 @@ func (h *harness) command(args ...string) *exec.Cmd {
 	)
 
 	return command
+}
+
+// Config rewrites must reject malformed documents before changing either the
+// project file or any included resource file.
+func (h *harness) configValidation() {
+	cli, err := filepath.Abs(binary)
+	if err != nil {
+		fail(err)
+	}
+
+	cases := []struct {
+		name     string
+		document string
+		included bool
+	}{
+		{"stray-brace", `{"projectId":"before","functions":[]},"tables":[{"$id":"orders"}]}`, false},
+		{"trailing-text", `{"projectId":"before"} trailing`, false},
+		{"second-object", `{"projectId":"before"} {"tables":[]}`, false},
+		{"open-object", `{`, false},
+		{"missing-brace", `{"projectId":"before"`, false},
+		{"missing-nested-brace", `{"projectId":"before","custom":{"keep":1}`, false},
+		{"missing-array-close", `{"tables":[{"$id":"orders"}`, false},
+		{"mismatched-close", `{"tables":[{"$id":"orders"}] ]`, false},
+		{"include-trailing-text", `[{"$id":"orders"}] trailing`, true},
+		{"include-second-array", `[{"$id":"orders"}] [{"$id":"lost"}]`, true},
+		{"include-missing-close", `[{"$id":"orders"}`, true},
+		{"include-missing-nested-close", `[{"$id":"orders","custom":{"keep":1}]`, true},
+	}
+	for _, test := range cases {
+		directory := filepath.Join(h.home, "config-validation", test.name)
+		if err := os.MkdirAll(directory, 0o700); err != nil {
+			fail(err)
+		}
+		files := map[string]string{"appwrite.config.json": test.document}
+		want := "failed to read config file"
+		if test.included {
+			files["appwrite.config.json"] = `{"projectId":"before","includes":{"tables":"tables.json"}}`
+			files["tables.json"] = test.document
+			want = "failed to read included config"
+		}
+		for name, contents := range files {
+			if err := os.WriteFile(filepath.Join(directory, name), []byte(contents), 0o600); err != nil {
+				fail(err)
+			}
+		}
+		command := h.command("client", "--project-id", "after")
+		command.Path, command.Dir = cli, directory
+		output, err := command.CombinedOutput()
+		if err == nil || !strings.Contains(string(output), want) {
+			fail(fmt.Errorf("config %s: expected %q and failure, got %v: %s", test.name, want, err, output))
+		}
+		for name, before := range files {
+			after, err := os.ReadFile(filepath.Join(directory, name))
+			if err != nil || string(after) != before {
+				fail(fmt.Errorf("config %s: %s changed after rejection: %v\n%s", test.name, name, err, after))
+			}
+		}
+	}
+
+	// Whitespace after a complete value is valid, including for included arrays.
+	directory := filepath.Join(h.home, "config-validation", "valid")
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		fail(err)
+	}
+	files := map[string]string{
+		"appwrite.config.json": "{\"projectId\":\"before\",\"custom\":{\"keep\":9007199254740993},\"includes\":{\"tables\":\"tables.json\"}} \n\t",
+		"tables.json":          "[{\"$id\":\"orders\",\"name\":\"Orders\",\"databaseId\":\"main\",\"columns\":[]}] \n\t",
+	}
+	for name, contents := range files {
+		if err := os.WriteFile(filepath.Join(directory, name), []byte(contents), 0o600); err != nil {
+			fail(err)
+		}
+	}
+	command := h.command("client", "--project-id", "after")
+	command.Path, command.Dir = cli, directory
+	if output, err := command.CombinedOutput(); err != nil {
+		fail(fmt.Errorf("valid config rewrite failed: %w\n%s", err, output))
+	}
+	for name, want := range map[string][]string{
+		"appwrite.config.json": {`"projectId": "after"`, `"keep": 9007199254740993`, `"tables": "tables.json"`},
+		"tables.json":          {`"$id": "orders"`, `"name": "Orders"`, `"databaseId": "main"`},
+	} {
+		contents, err := os.ReadFile(filepath.Join(directory, name))
+		if err != nil {
+			fail(err)
+		}
+		for _, expected := range want {
+			if !strings.Contains(string(contents), expected) {
+				fail(fmt.Errorf("valid config rewrite lost %s in %s: %s", expected, name, contents))
+			}
+		}
+	}
 }
 
 // typesDependencies runs from a monorepo root, not the nested output directory.
