@@ -188,7 +188,7 @@ internal class RealtimeConnection(private val client: Client) : CoroutineScope {
             val queryParams = "project=$encodedProject"
             val url = "${client.endpointRealtime}/realtime?$queryParams"
             val requestBuilder = Request.Builder().url(url)
-            val jwt = client.config["jwt"]
+            val jwt = client.headers["x-{{ spec.info.title | caseLower }}-jwt"]
             if (!jwt.isNullOrEmpty()) {
                 requestBuilder.addHeader("x-{{ spec.info.title | caseLower }}-jwt", jwt)
             }

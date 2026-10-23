@@ -66,10 +66,10 @@ object RealtimeIsolationScenarios {
                 try {
                     subscribe(realtimeA, eventsA)
                     expect(eventsA, "a", "first backend")
-                    assertHandshake(serverA, "project-a", "jwt-a")
 
                     subscribe(realtimeB, eventsB)
                     expect(eventsB, "b", "second backend must receive its own subscription")
+                    assertHandshake(serverA, "project-a", "jwt-a")
                     assertHandshake(serverB, "project-b", "jwt-b")
 
                     // The same endpoint and project still need distinct connections for different clients.
