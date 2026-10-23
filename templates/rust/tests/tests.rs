@@ -107,12 +107,9 @@ async fn test_bar_service(client: &Client, string_in_array: &[String]) -> Result
 async fn test_general_service(client: &Client, string_in_array: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     let general = General::new(&client);
 
-    // redirect returns ()
-    // and client follows redirect automatically
-    match general.redirected().await {
-        Ok(response) => println!("{}", response.result),
-        Err(e) => eprintln!("general.redirected => error {}", e),
-    }
+    // A redirect is reported as an error, not followed with the API key.
+    let error = general.redirect().await.unwrap_err();
+    println!("{}:{}", error.code, error.message);
 
     for (id, plain) in [("", "0"), ("0", "")] {
         let error = general.validate_path(plain, Some(id)).await.unwrap_err();
