@@ -171,8 +171,13 @@ echo $response->result . "\n";
 $response = $bar->delete('string', 123, ['string in array']);
 echo $response->result . "\n";
 
-$response = $general->redirect();
-echo $response['result'] . "\n";
+// A redirect is reported as an error, not followed with the API key.
+try {
+    $general->redirect();
+    throw new RuntimeException('A redirect was followed');
+} catch (AppwriteException $error) {
+    echo $error->getCode() . ':' . $error->getMessage() . "\n";
+}
 
 foreach ([['', '0'], ['0', '']] as [$id, $plain]) {
     try {
