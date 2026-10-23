@@ -345,8 +345,10 @@ namespace AppwriteTests
             {
                 await general.GetCookie();
             }
-            catch (AppwriteException)
+            catch (AppwriteException error)
             {
+                Assert.AreEqual(400, error.Code);
+                Assert.AreEqual("general_mock", error.Type);
                 secureCookieRejected = true;
             }
             Assert.IsTrue(secureCookieRejected, "A Secure cookie must not reach the HTTP mock server, even with selfSigned enabled.");
