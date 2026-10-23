@@ -88,7 +88,8 @@ class Tests: XCTestCase {
         // The client keeps no cookies: neither the one set-cookie sets nor one left in the
         // process-wide defaults for the endpoint's host is sent back.
         print(try await general.setCookie().result)
-        UserDefaults.standard.set(["cookieName=cookieValue"], forKey: "mockapi")
+        // The mock reads cookie names lowercased, as Swoole stores them.
+        UserDefaults.standard.set(["cookiename=cookieValue"], forKey: "mockapi")
         do {
             _ = try await general.getCookie()
             XCTFail("A stored cookie was sent")
