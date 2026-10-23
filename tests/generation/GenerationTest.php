@@ -249,6 +249,8 @@ final class GenerationTest extends TestCase
             $properties->zznestedmissing = (object) ['type' => 'string'];
             $properties->zznestedempty = (object) ['type' => 'string', 'example' => ''];
             $properties->zznestedzero = (object) ['type' => 'string', 'example' => '0'];
+            $properties->zznestedrequired = (object) ['type' => 'string'];
+            $document->components->schemas->player->required[] = 'zznestedrequired';
             $body = $document->paths->{'/mock/tests/general/zzexamples'}->post->requestBody->content->{'application/json'}->schema;
             $body->required = [];
             $body->properties = (object) ['zzmissing' => (object) ['type' => 'string']];
@@ -726,6 +728,7 @@ final class GenerationTest extends TestCase
             $this->assertStringNotContainsString('zznestedempty', $example);
             $this->assertStringContainsString("zznestedzero = '0'", $example);
             $this->assertStringContainsString("id = 'player123'", $example);
+            $this->assertStringContainsString("zznestedrequired = ''", $example);
         }
 
         $rest = $this->generate('rest', 'client', variant: '-optional-examples')['docs/examples/general/zzexamples.md'];
