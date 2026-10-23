@@ -26,7 +26,7 @@ final class Android5Java17Test extends Base
     protected array $build = [
         'mkdir -p tests/e2e/sdks/android/library/src/test/java',
         'cp tests/e2e/languages/android/Tests.kt tests/e2e/sdks/android/library/src/test/java/Tests.kt',
-        'cp tests/e2e/languages/android/RealtimeIsolation.kt tests/e2e/sdks/android/library/src/test/java/RealtimeIsolation.kt',
+        'cp tests/e2e/languages/android/RealtimeIsolationTest.kt tests/e2e/sdks/android/library/src/test/java/RealtimeIsolationTest.kt',
         'cat tests/e2e/languages/android/realtime.gradle.kts >> tests/e2e/sdks/android/library/build.gradle.kts',
         'mkdir -p tests/e2e/sdks/android/library/src/test/java/io/appwrite',
         'cp tests/e2e/languages/kotlin/JavaInterop.java tests/e2e/sdks/android/library/src/test/java/io/appwrite/JavaInterop.java',
@@ -61,7 +61,6 @@ final class Android5Java17Test extends Base
         ...Base::ENUM_ARRAY_MODEL_RESPONSES,
         ...Base::EXCEPTION_RESPONSES,
         ...Base::REALTIME_RESPONSES,
-        'Realtime client isolation:passed',
         // ...Base::COOKIE_RESPONSES,
         ...Base::QUERY_HELPER_RESPONSES,
         Base::QUERY_TRANSPORT_RESPONSE,

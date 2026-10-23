@@ -1,15 +1,29 @@
 package io.appwrite
 
 import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
 import io.appwrite.services.Realtime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.LinkedBlockingQueue
@@ -22,8 +36,23 @@ data class IsolationPayload(
 )
 
 /** Exercises the public API against independent WebSocket backends. */
-object RealtimeIsolationScenarios {
-    fun run(context: Context) {
+@Config(manifest = Config.NONE)
+@RunWith(AndroidJUnit4::class)
+@OptIn(ExperimentalCoroutinesApi::class)
+class RealtimeIsolationTest {
+    @Before
+    fun setUpDispatcher() {
+        Dispatchers.setMain(Dispatchers.Unconfined)
+    }
+
+    @After
+    fun resetDispatcher() {
+        Dispatchers.resetMain()
+    }
+
+    @Test
+    fun isolatesClientConnectionsAndLifecycle() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
         MockWebServer().use { serverA ->
             MockWebServer().use { serverB ->
                 serverA.start()
@@ -80,8 +109,8 @@ object RealtimeIsolationScenarios {
                     // Wrappers around the same Client retain one shared connection.
                     subscribe(sharedA, sharedEventsA)
                     expect(sharedEventsA, "a", "same-client wrapper")
-                    check(serverA.requestCount == 2) { "same Client opened another socket" }
-                    check(serverB.requestCount == 1) { "unexpected second-backend socket" }
+                    assertEquals("same Client opened another socket", 2, serverA.requestCount)
+                    assertEquals("unexpected second-backend socket", 1, serverB.requestCount)
 
                     realtimeA.upsertPresence("online", "presence-a")
                     realtimeB.upsertPresence("online", "presence-b")
@@ -91,27 +120,28 @@ object RealtimeIsolationScenarios {
                     expect(backendC.presences, "presence-c", "same-endpoint client presence")
 
                     backendB.error()
-                    check(errorsB.poll(10, TimeUnit.SECONDS) == 400) { "missing second-client error" }
-                    check(errorsA.isEmpty() && errorsC.isEmpty()) { "error leaked across clients" }
+                    assertEquals("missing second-client error", 400, errorsB.poll(10, TimeUnit.SECONDS))
+                    assertTrue("error leaked across clients", errorsA.isEmpty() && errorsC.isEmpty())
 
                     backendB.closeForReconnect()
-                    check(closeB.await(10, TimeUnit.SECONDS)) { "missing second-client close callback" }
+                    assertTrue("missing second-client close callback", closeB.await(10, TimeUnit.SECONDS))
                     expect(eventsB, "b-reconnected", "reconnect must stay on the second backend")
                     assertHandshake(serverB, "project-b", "jwt-b")
-                    check(closesA.get() == 0 && closesC.get() == 0) { "close leaked across clients" }
+                    assertEquals("close leaked to first client", 0, closesA.get())
+                    assertEquals("close leaked to same-endpoint client", 0, closesC.get())
 
                     realtimeB.disconnect()
-                    check(reconnectB.closed.await(10, TimeUnit.SECONDS)) { "second client did not disconnect" }
+                    assertTrue("second client did not disconnect", reconnectB.closed.await(10, TimeUnit.SECONDS))
                     backendA.emit("a-after-b-disconnect")
                     expect(eventsA, "a-after-b-disconnect", "first client after second-client disconnect")
                     expect(sharedEventsA, "a-after-b-disconnect", "same-client subscription remains active")
 
                     realtimeA.cancel()
                     realtimeA.disconnect()
-                    check(backendA.closed.await(10, TimeUnit.SECONDS)) { "first client did not disconnect" }
+                    assertTrue("first client did not disconnect", backendA.closed.await(10, TimeUnit.SECONDS))
                     backendC.emit("c-after-a-disconnect")
                     expect(eventsC, "c-after-a-disconnect", "same-endpoint client after first-client disconnect")
-                    check(eventsB.isEmpty()) { "disconnected client received another client's event" }
+                    assertTrue("disconnected client received another client's event", eventsB.isEmpty())
 
                     // Cancelling a public wrapper must not poison later wrappers for its Client.
                     serverA.enqueue(upgrade(Backend("a-recreated")))
@@ -157,7 +187,7 @@ object RealtimeIsolationScenarios {
         context: String,
     ) {
         val actual = events.poll(10, TimeUnit.SECONDS)
-        check(actual == expected) { "$context: expected $expected, got $actual" }
+        assertEquals(context, expected, actual)
     }
 
     private fun assertHandshake(
@@ -165,9 +195,10 @@ object RealtimeIsolationScenarios {
         project: String,
         jwt: String,
     ) {
-        val request = checkNotNull(server.takeRequest(10, TimeUnit.SECONDS)) { "missing WebSocket handshake" }
-        check(request.url.queryParameter("project") == project) { "wrong project in handshake" }
-        check(request.headers["x-appwrite-jwt"] == jwt) { "wrong credentials in handshake" }
+        val request = server.takeRequest(10, TimeUnit.SECONDS)
+        assertNotNull("missing WebSocket handshake", request)
+        assertEquals("wrong project in handshake", project, request!!.url.queryParameter("project"))
+        assertEquals("wrong credentials in handshake", jwt, request.headers["x-appwrite-jwt"])
     }
 
     private fun upgrade(listener: WebSocketListener): MockResponse = MockResponse.Builder().webSocketUpgrade(listener).build()
@@ -218,7 +249,8 @@ object RealtimeIsolationScenarios {
             id: String,
             channels: List<String>,
         ) {
-            check(
+            assertTrue(
+                "could not emit test event",
                 socket.get().send(
                     mapOf(
                         "type" to "event",
@@ -232,7 +264,7 @@ object RealtimeIsolationScenarios {
                             ),
                     ).toJson(),
                 ),
-            ) { "could not emit test event" }
+            )
         }
 
         fun error() {
@@ -240,7 +272,7 @@ object RealtimeIsolationScenarios {
         }
 
         fun closeForReconnect() {
-            check(socket.get().close(1011, "reconnect this client"))
+            assertTrue("could not close test socket", socket.get().close(1011, "reconnect this client"))
         }
 
         override fun onClosing(
