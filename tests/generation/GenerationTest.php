@@ -1540,6 +1540,8 @@ final class GenerationTest extends TestCase
         yield 'dart redirect error' => ['dart', 'lib/src/client_mixin.dart', "if (res.statuscode >= 300 && res.statuscode < 400) {", ''];
         yield 'node redirects' => ['node', 'src/client.ts', "const response = await fetch(uri, {\n            ...options,\n            redirect: 'manual',\n        });\n\n        const warnings", ''];
         yield 'node redirect error' => ['node', 'src/client.ts', '`redirect to ${location} not followed`,', ''];
+        yield 'rust redirects' => ['rust', 'src/client.rs', "fn build_http_client(config: &config) -> httpclient {\n        let mut builder = httpclient::builder()\n            .redirect(reqwest::redirect::policy::none())", ''];
+        yield 'rust redirect error' => ['rust', 'src/client.rs', 'format!("redirect to {} not followed", location),', ''];
         yield 'ruby redirects' => ['ruby', 'lib/appwrite/client.rb', 'raise appwrite::exception.new("redirect to #{location} not followed", response.code, nil, response.body)', 'return fetch(method, uri'];
     }
 
