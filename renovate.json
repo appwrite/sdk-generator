@@ -13,7 +13,8 @@
     "node_modules/**"
   ],
   "vulnerabilityAlerts": {
-    "enabled": false
+    "enabled": true,
+    "labels": ["security"]
   },
   "lockFileMaintenance": {
     "enabled": true,
