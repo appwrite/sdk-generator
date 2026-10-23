@@ -1392,6 +1392,11 @@ final class GenerationTest extends TestCase
         yield 'rust path' => ['rust', 'server', 'src/services/general.rs', '.replace("{pathid}", &client::encode_path(&path_id))'];
         yield 'rust encoder' => ['rust', 'server', 'src/client.rs', "if byte.is_ascii_alphanumeric() || b\"-_.!~*'()\".contains(&byte) {"];
         yield 'rust resume' => ['rust', 'server', 'src/client.rs', 'let resume_path = format!("{}/{}", path, self::encode_path(id));'];
+        foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
+            yield "{$name} path" => [$name, $platform, 'lib/services/general.dart', "'/mock/tests/general/path/{pathid}'.replaceall(\n      '{pathid}',\n      uri.encodecomponent(pathid),"];
+            yield "{$name} resume io" => [$name, $platform, 'lib/src/client_io.dart', "path: '\$path/\${uri.encodecomponent(params[idparamname].tostring())}',"];
+            yield "{$name} resume browser" => [$name, $platform, 'lib/src/client_browser.dart', "path: '\$path/\${uri.encodecomponent(params[idparamname].tostring())}',"];
+        }
     }
 
     /**
@@ -1465,7 +1470,7 @@ final class GenerationTest extends TestCase
         yield 'python params' => ['python', 'server', 'test/services/test_foo.py', "m.request(\n            'put',\n            requests_mock.any,"];
         yield 'python body' => ['python', 'server', 'test/services/test_foo.py', "sent = json.loads(request.body or '{}')\n        self.assertequal(\n            sent,\n            {\n                'x': '[]',\n                'y': 1,\n                'z': [],\n            },\n        )"];
         foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
-            yield "{$name} path" => [$name, $platform, 'test/services/general_test.dart', "verify(\n        client.call(\n          httpmethod.get,\n          path: \"/mock/tests/general/path/grant/special&id\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),"];
+            yield "{$name} path" => [$name, $platform, 'test/services/general_test.dart', "verify(\n        client.call(\n          httpmethod.get,\n          path: \"/mock/tests/general/path/grant%2fspecial%26id\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),"];
             yield "{$name} params" => [$name, $platform, 'test/services/foo_test.dart', "client.call(\n          httpmethod.put,\n          path: \"/mock/tests/foo\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),\n          responsetype: anynamed('responsetype'),\n        ),\n      ).captured.single;\n      expect(params, {\n        \"x\": \"[]\",\n        \"y\": 1,\n        \"z\": isa<list>(),\n      });"];
         }
     }
