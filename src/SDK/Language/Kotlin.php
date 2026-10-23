@@ -185,7 +185,7 @@ class Kotlin extends Language
 
         $output = '';
 
-        if (empty($example) && $example !== 0 && $example !== false) {
+        if ($example === null || $example === '') {
             switch ($type) {
                 case self::TYPE_FILE:
                     $output .= 'InputFile.fromPath("file.png")';
@@ -198,7 +198,7 @@ class Kotlin extends Language
                     $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"\"";
+                    $output .= $this->shouldOmitExample($param) ? 'null' : "\"\"";
                     break;
                 case self::TYPE_OBJECT:
                     $output .= $lang === 'java'

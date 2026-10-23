@@ -225,7 +225,7 @@ class DotNet extends Language
 
         $output = '';
 
-        if (empty($example) && $example !== 0 && $example !== false) {
+        if ($example === null || $example === '') {
             switch ($type) {
                 case self::TYPE_FILE:
                     $output .= 'InputFile.FromPath("./path-to-files/image.jpg")';
@@ -238,7 +238,7 @@ class DotNet extends Language
                     $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= '""';
+                    $output .= $this->shouldOmitExample($param) ? 'null' : '""';
                     break;
                 case self::TYPE_OBJECT:
                     $output .= '[object]';

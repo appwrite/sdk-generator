@@ -32,7 +32,7 @@ class REST extends HTTP
         $type       = $this->getSchemaType($param);
         $example    = $this->getSchemaExample($param);
 
-        $hasExample = !empty($example) || $example === 0 || $example === false;
+        $hasExample = $example !== null && $example !== '';
 
         if (!$hasExample) {
             return match ($type) {

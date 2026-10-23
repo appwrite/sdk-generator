@@ -255,7 +255,7 @@ class Ruby extends Language
 
         $output = '';
 
-        if (empty($example) && $example !== 0 && $example !== false) {
+        if ($example === null || $example === '') {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -263,7 +263,7 @@ class Ruby extends Language
                     $output .= 'nil';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "''";
+                    $output .= $this->shouldOmitExample($param) ? 'nil' : "''";
                     break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';

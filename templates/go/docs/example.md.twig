@@ -1,5 +1,6 @@
+{% set exampleParameters = (method | parameters('all')) | filter(parameter => not (parameter | omitExample)) %}
 ```go
-{% set requireFilesPkg = (method | parameters('all')) | filter(parameter => (parameter | schemaType) == 'file') | length > 0 -%}
+{% set requireFilesPkg = exampleParameters | filter(parameter => (parameter | schemaType) == 'file') | length > 0 -%}
 {%- set packagePath = sdk | goPackagePath -%}
 {%- set imports = [packagePath ~ '/appwrite', packagePath ~ '/' ~ (service.name | caseLower)] -%}
 {%- if requireFilesPkg -%}
@@ -29,11 +30,11 @@ func main() {
 
 	service := {{ service.name | caseLower }}.New(client)
 
-{% if (method | parameters('all')) | length == 0 %}
+{% if exampleParameters | length == 0 %}
 	response, err := service.{{ (method | methodName) | caseUcfirst }}()
 {% else %}
 	response, err := service.{{ (method | methodName) | caseUcfirst }}(
-{% for parameter in (method | parameters('all')) %}
+{% for parameter in exampleParameters %}
 {% if parameter.required %}
 		{{ parameter | paramExample }},
 {% else %}

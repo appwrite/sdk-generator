@@ -333,7 +333,7 @@ class Rust extends Language
 
         $output = "";
 
-        if (empty($example) && $example !== 0 && $example !== false) {
+        if ($example === null || $example === '') {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -540,6 +540,10 @@ class Rust extends Language
             new TwigFilter("returnType", fn(Operation $method, Specification $spec, string $namespace, string $generic = "serde_json::Value"): string => $this->getReturnType($method, $spec)),
             new TwigFilter("caseEnumKey", fn(string $value): string => $this->toPascalCase($value)),
             new TwigFilter("docsArgumentExample", function (Schema|Parameter $param, string $crateName): string {
+                if ($this->shouldOmitExample($param)) {
+                    return 'None';
+                }
+
                 if ($this->getSchemaType($param) === self::TYPE_FILE) {
                     $value = $this->toCaseSnake($param instanceof Parameter ? $param->name : 'file');
                     if (isset($this->getIdentifierOverrides()[$value])) {

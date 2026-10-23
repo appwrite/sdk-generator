@@ -255,7 +255,7 @@ class Go extends Language
 
         $output = '';
 
-        if (empty($example) && $example !== 0 && $example !== false) {
+        if ($example === null || $example === '') {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
