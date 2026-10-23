@@ -1500,6 +1500,8 @@ final class GenerationTest extends TestCase
         yield 'swift redirect error' => ['swift', 'Sources/Appwrite/Client.swift', "case 300..<400:\n            let location = response.headers[\"location\"].first ?? \"\"", ''];
         yield 'dart redirects' => ['dart', 'lib/src/client_io.dart', "params: params,\n    );\n    // not followed: a redirect would carry the api key wherever it points.\n    request.followredirects = false;", ''];
         yield 'dart redirect error' => ['dart', 'lib/src/client_mixin.dart', "if (res.statuscode >= 300 && res.statuscode < 400) {", ''];
+        yield 'node redirects' => ['node', 'src/client.ts', "const response = await fetch(uri, {\n            ...options,\n            redirect: 'manual',\n        });\n\n        const warnings", ''];
+        yield 'node redirect error' => ['node', 'src/client.ts', '`redirect to ${location} not followed`,', ''];
         yield 'ruby redirects' => ['ruby', 'lib/appwrite/client.rb', 'raise appwrite::exception.new("redirect to #{location} not followed", response.code, nil, response.body)', 'return fetch(method, uri'];
     }
 
