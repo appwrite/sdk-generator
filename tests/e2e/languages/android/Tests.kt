@@ -372,6 +372,9 @@ class ServiceTest {
                 writeToFile("Realtime disconnect:failed")
             }
 
+            RealtimeIsolationScenarios.run(ApplicationProvider.getApplicationContext())
+            writeToFile("Realtime client isolation:passed")
+
             // mock = general.setCookie()
             // writeToFile(mock.result)
 

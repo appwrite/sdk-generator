@@ -11,6 +11,7 @@ import {{ sdk.namespace | caseDot }}.extensions.toJsonRequestBody
 import {{ sdk.namespace | caseDot }}.extensions.toJsonWithNulls
 import {{ sdk.namespace | caseDot }}.models.InputFile
 import {{ sdk.namespace | caseDot }}.models.UploadProgress
+import {{ sdk.namespace | caseDot }}.services.RealtimeConnection
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -73,6 +74,8 @@ class Client @JvmOverloads constructor(
     private val job = Job()
 
     internal lateinit var http: OkHttpClient
+
+    internal val realtime by lazy { RealtimeConnection(this) }
 
     internal val headers: MutableMap<String, String>
 
