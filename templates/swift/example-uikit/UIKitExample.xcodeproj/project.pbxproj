@@ -37,7 +37,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		1D53246626CA414A00D5382C /* apple */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "apple"; path = "../../../examples/apple"; sourceTree = "<group>"; };
+		1D53246626CA414A00D5382C /* apple */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "apple"; path = ..; sourceTree = "<group>"; };
 		1D8C054626E603A200646CFC /* ImagePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePicker.swift; sourceTree = "<group>"; };
 		4B1151B0FC3E5D1AD1405D6D /* UIKitExampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UIKitExampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4B115317377938CDB4FF518B /* UIKitExampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitExampleTests.swift; sourceTree = "<group>"; };
@@ -219,6 +219,9 @@
 				Base,
 			);
 			mainGroup = 4B11584FFD11E0EC8AE1D05E;
+			packageReferences = (
+				E192876B2D5D29A1006EAB01 /* XCLocalSwiftPackageReference ".." */,
+			);
 			productRefGroup = 4B115EA639EF1F575013EFA6 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -580,6 +583,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		E192876B2D5D29A1006EAB01 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		1D05AC7326F1E3C70018CE49 /* Appwrite */ = {
