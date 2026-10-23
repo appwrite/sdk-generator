@@ -1488,6 +1488,11 @@ final class GenerationTest extends TestCase
         yield 'android path' => ['android', 'client', 'library/src/main/java/io/appwrite/services/General.kt', '.replace("{pathid}", client.encodepath(pathid))'];
         yield 'android encoder' => ['android', 'client', 'library/src/main/java/io/appwrite/Client.kt', "urlencoder\n                .encode(value, \"utf-8\")\n                .replace(\"+\", \"%20\")"];
         yield 'android resume' => ['android', 'client', 'library/src/main/java/io/appwrite/Client.kt', 'path = "$path/${encodepath(provideduploadid)}",'];
+        foreach (['swift' => 'server', 'apple' => 'client'] as $name => $platform) {
+            yield "{$name} path" => [$name, $platform, 'Sources/Appwrite/Services/General.swift', '.replacingoccurrences(of: "{pathid}", with: client.encodepath(pathid))'];
+            yield "{$name} encoder" => [$name, $platform, 'Sources/Appwrite/Client.swift', "charactersin: \"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()\""];
+            yield "{$name} resume" => [$name, $platform, 'Sources/Appwrite/Client.swift', 'path: path + "/" + client.encodepath(uploadid),'];
+        }
     }
 
     /**

@@ -147,6 +147,11 @@ class Tests: XCTestCase {
         }
         print(try await general.validatePath(plain: "0", id: "0").result)
         print(try await general.validatePath(plain: "0", id: nil).result)
+        // The mock routes are registered at the encoded paths, so each call only reaches
+        // its route if the ID is escaped as one segment.
+        print(try await general.getPath(pathId: "grant/special&id").result)
+        print(try await general.getPath(pathId: "../grant?special=id#x y%").result)
+        print(try await general.getPath(pathId: "unique()").result)
         print(try await general.getQuery(value: "a&b+c#d=e%f", values: ["a&b", "c+d#e"]).result)
 
         let zone: String = try await Plaintext(client).getZone()
