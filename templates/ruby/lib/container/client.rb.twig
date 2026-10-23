@@ -321,11 +321,8 @@ module {{ spec.info.title | caseUcfirst }}
             uri,
             headers,
             params,
-            response_type = nil,
-            limit = 5
+            response_type = nil
         )
-            raise ArgumentError, 'Too Many HTTP Redirects' if limit == 0
-
             http = Net::HTTP.new(uri.host, uri.port)
             http.use_ssl = uri.scheme == 'https'
             http.verify_mode = OpenSSL::SSL::VERIFY_NONE if @self_signed
@@ -367,10 +364,10 @@ module {{ spec.info.title | caseUcfirst }}
                 return location
             end
 
-            # Handle Redirects
-            if (response.class == Net::HTTPRedirection || response.class == Net::HTTPMovedPermanently)
-                uri = URI.parse(uri.scheme + "://" + uri.host + "" + location)
-                return fetch(method, uri, headers, {}, response_type, limit - 1)
+            # A redirect is reported, not followed: it would carry the API key to
+            # wherever it points, possibly another host.
+            if response.is_a?(Net::HTTPRedirection)
+                raise {{spec.info.title | caseUcfirst}}::Exception.new("Redirect to #{location} not followed", response.code, nil, response.body)
             end
 
             if response.content_type == 'application/json'
