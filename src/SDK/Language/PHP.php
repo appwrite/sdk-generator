@@ -390,7 +390,7 @@ class PHP extends Language
 
         $output = '';
 
-        if (empty($example) && $example !== 0 && $example !== false) {
+        if ($example === null || $example === '') {
             switch ($type) {
                 case self::TYPE_NUMBER:
                 case self::TYPE_INTEGER:
@@ -398,7 +398,7 @@ class PHP extends Language
                     $output .= 'null';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "''";
+                    $output .= $this->shouldOmitExample($param) ? 'null' : "''";
                     break;
                 case self::TYPE_ARRAY:
                 case self::TYPE_OBJECT:

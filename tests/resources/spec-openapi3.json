@@ -24,6 +24,171 @@
     }
   ],
   "paths": {
+    "/mock/tests/general/zzexamples": {
+      "post": {
+        "summary": "Optional string example fixture",
+        "description": "Exercise optional example omission and explicit values.",
+        "operationId": "generalZzexamples",
+        "tags": [
+          "general"
+        ],
+        "x-appwrite": {
+          "platforms": [
+            "client",
+            "server",
+            "console"
+          ]
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "zzrequired"
+                ],
+                "properties": {
+                  "zzrequired": {
+                      "description": "Example fixture value.",
+                    "type": "string",
+                    "example": "required-value"
+                  },
+                  "zzmissing": {
+                      "description": "Example fixture value.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "zzempty": {
+                      "description": "Example fixture value.",
+                    "type": "string",
+                    "minLength": 1,
+                    "example": ""
+                  },
+                  "zzzero": {
+                      "description": "Example fixture value.",
+                    "type": "string",
+                    "example": "0"
+                  },
+                  "zzvalue": {
+                      "description": "Example fixture value.",
+                    "type": "string",
+                    "example": "kept-value"
+                  },
+                  "zzcount": {
+                      "description": "Example fixture value.",
+                    "type": "integer",
+                    "example": 0
+                  },
+                  "zzenabled": {
+                      "description": "Example fixture value.",
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/any"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mock/tests/general/zzmultipart": {
+      "post": {
+        "summary": "Optional string example fixture",
+        "description": "Exercise optional example omission and explicit values.",
+        "operationId": "generalZzmultipart",
+        "tags": [
+          "general"
+        ],
+        "x-appwrite": {
+          "platforms": [
+            "client",
+            "server",
+            "console"
+          ]
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "zzrequired"
+                ],
+                "properties": {
+                  "zzfile": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "File example."
+                  },
+                  "zzrequired": {
+                      "description": "Example fixture value.",
+                    "type": "string",
+                    "example": "required-value"
+                  },
+                  "zzmissing": {
+                      "description": "Example fixture value.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "zzempty": {
+                      "description": "Example fixture value.",
+                    "type": "string",
+                    "minLength": 1,
+                    "example": ""
+                  },
+                  "zzzero": {
+                      "description": "Example fixture value.",
+                    "type": "string",
+                    "example": "0"
+                  },
+                  "zzvalue": {
+                      "description": "Example fixture value.",
+                    "type": "string",
+                    "example": "kept-value"
+                  },
+                  "zzcount": {
+                      "description": "Example fixture value.",
+                    "type": "integer",
+                    "example": 0
+                  },
+                  "zzenabled": {
+                      "description": "Example fixture value.",
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Any",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/any"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "\/ping": {
       "get": {
         "summary": "Ping",

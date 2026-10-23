@@ -14,9 +14,9 @@ Host: {{ ((spec | endpoint) | split('/'))[2] }}
 {% for key, header in (method | methodHeaders) %}
 {% if (key | caseLower) == 'content-type' and header == 'application/json' %}
 
-{% if (method | parameters('body')) %}
+{% if ((method | parameters('body')) | filter(parameter => not (parameter | omitExample))) %}
 {
-{% for parameter in (method | parameters('body')) %}
+{% for parameter in ((method | parameters('body')) | filter(parameter => not (parameter | omitExample))) %}
   "{{ parameter.name }}": {{ parameter | paramExample }}{% if not loop.last %},{% endif ~%}
 {% endfor %}
 }
@@ -25,7 +25,7 @@ Host: {{ ((spec | endpoint) | split('/'))[2] }}
 {% if (key | caseLower) == 'content-type' and header == 'multipart/form-data' %}
 Content-Length: *Length of your entity body in bytes*
 
-{% for parameter in (method | parameters('body')) %}
+{% for parameter in ((method | parameters('body')) | filter(parameter => not (parameter | omitExample))) %}
 --{{boundary}}
 Content-Disposition: form-data; name="{{parameter.name}}{% if (parameter | schemaType) == "array" %}[]{% endif %}"
 

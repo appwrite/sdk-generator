@@ -458,6 +458,16 @@ abstract class Language
         return $items instanceof ReferenceSchema ? $this->normalizeSchemaReference($items->reference) : null;
     }
 
+    /** Whether an optional string example should leave the field unset. */
+    public function shouldOmitExample(Schema|Parameter $value): bool
+    {
+        return $value instanceof Parameter
+            && !$value->required
+            && $this->getSchemaType($value) === self::TYPE_STRING
+            && !$this->isStringEnum($value)
+            && \in_array($this->getSchemaExample($value), [null, ''], true);
+    }
+
     protected function getSchemaExample(Schema|Parameter $value): mixed
     {
         $schema = $this->getSchema($value);

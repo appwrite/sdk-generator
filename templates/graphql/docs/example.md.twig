@@ -1,3 +1,4 @@
+{% set exampleParameters = (method | parameters('all')) | filter(parameter => not (parameter | omitExample)) %}
 ```graphql
 {% macro getProperty(definitions, responseModel, depth) %}
         {%~ for definitionName, definition in definitions %}
@@ -36,16 +37,16 @@ Content-Length: *Length of your entity body in bytes*
 --{{boundary}}
 Content-Disposition: form-data; name="operations"
 
-{ "query": "mutation { {{ service.name | caseCamel }}{{ (method | methodName) | caseCamel | caseUcfirst }}({% for parameter in (method | parameters('all'))  %}{{ parameter.name | caseCamel }}: ${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}) { id }" }, "variables": { {% for parameter in (method | parameters('all'))  %}"{{ parameter.name | caseCamel }}": {{ parameter | paramExample }}{% if not loop.last %}, {% endif %}{% endfor %} } }
+{ "query": "mutation { {{ service.name | caseCamel }}{{ (method | methodName) | caseCamel | caseUcfirst }}({% for parameter in exampleParameters  %}{{ parameter.name | caseCamel }}: ${{ parameter.name | caseCamel }}{% if not loop.last %}, {% endif %}{% endfor %}) { id }" }, "variables": { {% for parameter in exampleParameters  %}"{{ parameter.name | caseCamel }}": {{ parameter | paramExample }}{% if not loop.last %}, {% endif %}{% endfor %} } }
 
 --{{boundary}}
 Content-Disposition: form-data; name="map"
 
 {% set counter = 0 %}
-{ {% for parameter in (method | parameters('all'))  %}{% if (parameter | schemaType) == 'file' %}"{{ counter }}": ["variables.{{ parameter.name | caseCamel }}"]{% if not loop.last %}, {% endif %}{% set counter = counter + 1 %}{% endif %}{% endfor %} }
+{ {% for parameter in exampleParameters  %}{% if (parameter | schemaType) == 'file' %}"{{ counter }}": ["variables.{{ parameter.name | caseCamel }}"]{% if not loop.last %}, {% endif %}{% set counter = counter + 1 %}{% endif %}{% endfor %} }
 
 {% set counter = 0 %}
-{% for parameter in (method | parameters('all'))  %}
+{% for parameter in exampleParameters  %}
 {% if (parameter | schemaType) == 'file' %}
 --{{ boundary }}
 Content-Disposition: form-data; name="{{ counter }}"; filename="{{ parameter.name }}.ext"
@@ -62,8 +63,8 @@ query {
 {%~ else %}
 mutation {
 {%~ endif %}
-    {{ service.name | caseCamel }}{{ (method | methodName) | caseCamel | caseUcfirst }}{% if (method | parameters('all'))  | length == 0 %} {{ '{' }}{% else %}(
-        {%~ for parameter in (method | parameters('all'))  %}
+    {{ service.name | caseCamel }}{{ (method | methodName) | caseCamel | caseUcfirst }}{% if exampleParameters  | length == 0 %} {{ '{' }}{% else %}(
+        {%~ for parameter in exampleParameters  %}
         {{ parameter.name | caseCamel }}: {{ parameter | paramExample }}{% if not loop.last %},{% endif %}
 
         {%~ endfor %}

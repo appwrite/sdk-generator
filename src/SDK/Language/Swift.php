@@ -375,7 +375,7 @@ class Swift extends Language
 
         $output = '';
 
-        if (empty($example) && $example !== 0 && $example !== false) {
+        if ($example === null || $example === '') {
             switch ($type) {
                 case self::TYPE_FILE:
                     $output .= 'InputFile.fromPath("file.png")';
@@ -388,7 +388,7 @@ class Swift extends Language
                     $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= '""';
+                    $output .= $this->shouldOmitExample($param) ? 'nil' : '""';
                     break;
                 case self::TYPE_ARRAY:
                     $output .= '[]';

@@ -327,7 +327,7 @@ class Web extends JS
         $type       = $this->getSchemaType($param);
         $example    = $this->getSchemaExample($param);
 
-        $hasExample = !empty($example) || $example === 0 || $example === false;
+        $hasExample = $example !== null && $example !== '';
 
         if (!$hasExample) {
             return match ($type) {
@@ -335,7 +335,7 @@ class Web extends JS
                 self::TYPE_FILE => $this->getFileExample(),
                 self::TYPE_INTEGER, self::TYPE_NUMBER, self::TYPE_BOOLEAN => $this->getScalarExampleFallback($param),
                 self::TYPE_OBJECT => '{}',
-                self::TYPE_STRING => "''",
+                self::TYPE_STRING => $this->shouldOmitExample($param) ? 'undefined' : "''",
             };
         }
 

@@ -194,7 +194,7 @@ class Dart extends Language
         $type       = $this->getSchemaType($param);
         $example    = $this->getSchemaExample($param);
 
-        $hasExample = !empty($example) || $example === 0 || $example === false;
+        $hasExample = $example !== null && $example !== '';
 
         if (!$hasExample) {
             return match ($type) {
@@ -203,7 +203,7 @@ class Dart extends Language
                 self::TYPE_BOOLEAN => 'false',
                 self::TYPE_FILE => 'InputFile(path: \'./path-to-files/image.jpg\', filename: \'image.jpg\')',
                 self::TYPE_INTEGER, self::TYPE_NUMBER => '0',
-                self::TYPE_STRING => "''",
+                self::TYPE_STRING => $this->shouldOmitExample($param) ? 'null' : "''",
             };
         }
 

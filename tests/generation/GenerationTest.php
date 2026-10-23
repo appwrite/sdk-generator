@@ -647,6 +647,68 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * Missing optional strings must stay unset; explicit examples, including
+     * the string "0", numeric zero and false, must remain usable arguments.
+     */
+    public function testOptionalStringExamplesStayUnset(): void
+    {
+        $examples = [
+            ['web', 'client', '', 'zzmissing: undefined', "zzzero: '0'", 'zzcount: 0', 'zzenabled: false'],
+            ['node', 'server', '', 'zzmissing: undefined', "zzzero: '0'", 'zzcount: 0', 'zzenabled: false'],
+            ['react-native', 'client', '', 'zzmissing: undefined', "zzzero: '0'", 'zzcount: 0', 'zzenabled: false'],
+            ['dart', 'server', '', 'zzmissing: null', "zzzero: '0'", 'zzcount: 0', 'zzenabled: false'],
+            ['flutter', 'client', '', 'zzmissing: null', "zzzero: '0'", 'zzcount: 0', 'zzenabled: false'],
+            ['php', 'server', '', 'zzmissing: null', "zzzero: '0'", 'zzcount: 0', 'zzenabled: false'],
+            ['python', 'server', '', 'zzmissing = none', "zzzero = '0'", 'zzcount = 0', 'zzenabled = false'],
+            ['ruby', 'server', '', 'zzmissing: nil', "zzzero: '0'", 'zzcount: 0', 'zzenabled: false'],
+            ['dotnet', 'server', '', 'zzmissing: null', 'zzzero: "0"', 'zzcount: 0', 'zzenabled: false'],
+            ['unity', 'client', '', 'zzmissing: null', 'zzzero: "0"', 'zzcount: 0', 'zzenabled: false'],
+            ['swift', 'server', '', 'zzmissing: nil', 'zzzero: "0"', 'zzcount: 0', 'zzenabled: false'],
+            ['apple', 'client', '', 'zzmissing: nil', 'zzzero: "0"', 'zzcount: 0', 'zzenabled: false'],
+            ['kotlin', 'server', 'kotlin/', 'zzmissing = null', 'zzzero = "0"', 'zzcount = 0', 'zzenabled = false'],
+            ['android', 'client', 'kotlin/', 'zzmissing = null', 'zzzero = "0"', 'zzcount = 0', 'zzenabled = false'],
+            ['kotlin', 'server', 'java/', 'null, // zzmissing', '"0", // zzzero', '0l, // zzcount', 'false, // zzenabled'],
+            ['android', 'client', 'java/', 'null, // zzmissing', '"0", // zzzero', '0l, // zzcount', 'false, // zzenabled'],
+            ['go', 'server', '', null, 'withzzexampleszzzero("0")', 'withzzexampleszzcount(0)', 'withzzexampleszzenabled(false)'],
+            ['rust', 'server', '', 'none, // optional', 'some("0")', 'some(0)', 'some(false)'],
+            ['rest', 'client', '', null, '"zzzero": "0"', '"zzcount": 0', '"zzenabled": false'],
+            ['graphql', 'client', '', null, 'zzzero: "0"', 'zzcount: 0', 'zzenabled: false'],
+        ];
+
+        foreach ($examples as [$name, $platform, $directory, $missing, $zero, $count, $enabled]) {
+            $files = $this->generate($name, $platform);
+            $root = $name === 'unity' ? 'docs~' : 'docs';
+            $path = "{$root}/examples/{$directory}general/zzexamples.md";
+            $this->assertArrayHasKey($path, $files, $name);
+            $example = $files[$path];
+            foreach ([$zero, $count, $enabled, 'required-value', 'kept-value'] as $value) {
+                $this->assertStringContainsString($value, $example, $name);
+            }
+            if ($missing !== null) {
+                if ($name === 'rust') {
+                    $this->assertSame(2, \substr_count($example, $missing));
+                }
+                $this->assertStringContainsString($missing, $example, $name);
+                $this->assertStringContainsString(\str_replace('zzmissing', 'zzempty', $missing), $example, $name);
+            } else {
+                $this->assertStringNotContainsString('zzmissing', $example, $name);
+                $this->assertStringNotContainsString('zzempty', $example, $name);
+            }
+            $this->assertDoesNotMatchRegularExpression('/(?:zzmissing|zzempty)[^\n]*[\'\"][\'\"]/', $example, $name);
+        }
+
+        $rest = $this->generate('rest', 'client')['docs/examples/general/zzmultipart.md'];
+        $this->assertStringNotContainsString('name="zzmissing"', $rest);
+        $this->assertStringNotContainsString('name="zzempty"', $rest);
+        $this->assertStringContainsString('name="zzvalue"', $rest);
+
+        $cli = $this->generate('cli', 'console')['docs/examples/general/zzexamples.md'];
+        $this->assertStringContainsString('required-value', $cli);
+        $this->assertStringNotContainsString('--zzmissing', $cli);
+        $this->assertStringNotContainsString('--zzempty', $cli);
+    }
+
+    /**
      * A canonical document keys `x-appwrite.auth` by platform. The fixture's
      * platform-auth operation lists `Project` for client and `Project, Key` for
      * server plus an optional Session, and the server alias variant lists

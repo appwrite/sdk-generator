@@ -399,7 +399,7 @@ class Python extends Language
         $type = $this->getSchemaType($param);
         $example = $this->getSchemaExample($param);
 
-        $hasExample = !empty($example) || $example === 0 || $example === false;
+        $hasExample = $example !== null && $example !== '';
 
         if (!$hasExample) {
             return match ($type) {
@@ -407,7 +407,7 @@ class Python extends Language
                 self::TYPE_FILE => 'InputFile.from_path(\'file.png\')',
                 self::TYPE_INTEGER, self::TYPE_NUMBER , self::TYPE_BOOLEAN => 'None',
                 self::TYPE_OBJECT => '{}',
-                self::TYPE_STRING => "''",
+                self::TYPE_STRING => $this->shouldOmitExample($param) ? 'None' : "''",
             };
         }
 
