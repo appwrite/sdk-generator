@@ -64,8 +64,13 @@ void main() async {
 
   // General Tests
 
-  final res = await general.redirect();
-  print(res['result']);
+  // A redirect is reported as an error, not followed with the API key.
+  try {
+    await general.redirect();
+    throw StateError('A redirect was followed');
+  } on AppwriteException catch (e) {
+    print('${e.code}:${e.message}');
+  }
 
   for (final ids in [['', '0'], ['0', '']]) {
     try {
