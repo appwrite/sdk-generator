@@ -1104,6 +1104,21 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testAppleUIKitExampleResolvesTheGeneratedSdkLocally(): void
+    {
+        $files = $this->generate('apple', 'client');
+        $project = $files['example-uikit/UIKitExample.xcodeproj/project.pbxproj'];
+        $this->assertSame(1, \preg_match('/(?<id>[a-f0-9]{24}) \/\*[^\n]*\*\/ = \{\s*isa = xclocalswiftpackagereference;\s*relativepath = (?<path>[^;]+);/', $project, $reference));
+        $this->assertSame(1, \preg_match('/packagereferences = \((?<references>[^)]*)\);/', $project, $registered));
+        $this->assertStringContainsString($reference['id'], $registered['references']);
+        $relativePath = \trim($reference['path'], " \t\n\r\0\x0B\"");
+        $this->assertSame(
+            \realpath(self::OUTPUT . '/apple/client/Package.swift'),
+            \realpath(self::OUTPUT . '/apple/client/example-uikit/' . $relativePath . '/Package.swift'),
+        );
+        $this->assertStringNotContainsString('../../../examples/apple', $project);
+    }
+
     /**
      * Twig autoescapes to HTML, so a description that reaches a template through
      * an unsafe filter arrives as `&quot;` rather than `"`. Go doc comments are
