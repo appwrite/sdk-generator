@@ -1631,6 +1631,33 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testGoStringArraysKeepTheirSchemaTypeWhenDescriptionsMentionAttributes(): void
+    {
+        foreach (['List of attributes to export.', 'Collection attributes to export.'] as $description) {
+            $document = [
+                'openapi' => '3.0.0',
+                'info' => ['title' => 'test', 'version' => '1.0.0'],
+                'tags' => [['name' => 'migrations']],
+                'paths' => ['/exports' => ['post' => [
+                    'operationId' => 'migrationsCreateExport',
+                    'tags' => ['migrations'],
+                    'requestBody' => ['content' => ['application/json' => ['schema' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'columns' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => $description],
+                            'definitions' => ['type' => 'array', 'items' => ['type' => 'object'], 'description' => 'Collection attributes'],
+                        ],
+                    ]]]],
+                    'responses' => ['200' => ['description' => 'ok']],
+                ]]],
+            ];
+            $files = $this->generateDocument($document, 'go', 'export-columns');
+            $service = $files['migrations/migrations.go'];
+            $this->assertStringContainsString('WithCreateExportColumns(v []string)', $service);
+            $this->assertStringContainsString('WithCreateExportDefinitions(v []map[string]any)', $service);
+        }
+    }
+
     public function testGoModelCommentsAreNotHtmlEscaped(): void
     {
         $models = \array_filter($this->generate('go', 'server'), static fn(string $path): bool => \str_starts_with($path, 'models/') && \str_ends_with($path, '.go'), ARRAY_FILTER_USE_KEY);

@@ -6,6 +6,7 @@ use Utopia\OpenAPI\Model\ArraySchema;
 use Utopia\OpenAPI\Model\Operation;
 use Utopia\OpenAPI\Model\Parameter;
 use Utopia\OpenAPI\Model\Schema;
+use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
@@ -217,7 +218,10 @@ class Go extends Language
 
     public function getTypeName(Schema|Parameter $parameter, ?Specification $spec = null): string
     {
-        if (\str_contains($parameter->description, 'Collection attributes') || \str_contains($parameter->description, 'List of attributes')) {
+        if (
+            !$this->getArraySchema($parameter) instanceof StringSchema
+            && (\str_contains($parameter->description, 'Collection attributes') || \str_contains($parameter->description, 'List of attributes'))
+        ) {
             return '[]map[string]any';
         }
 
