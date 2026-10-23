@@ -133,12 +133,15 @@ class Client @JvmOverloads constructor(
     fun setSelfSigned(status: Boolean): Client {
         selfSigned = status
 
+        // Calls follow no redirects: one would carry the API key to wherever it points.
         val builder = OkHttpClient()
             .newBuilder()
+            .followRedirects(false)
+            .followSslRedirects(false)
 
         if (!selfSigned) {
             http = builder.build()
-            httpForRedirect = builder.followRedirects(false).build()
+            httpForRedirect = builder.build()
             return this
         }
 
@@ -665,6 +668,17 @@ class Client @JvmOverloads constructor(
 
             @Suppress("UNCHECKED_CAST")
             override fun onResponse(call: Call, response: Response) {
+                if (response.code in 300..399) {
+                    val body = response.body!!
+                        .charStream()
+                        .buffered()
+                        .use(BufferedReader::readText)
+                    val location = response.header("location").orEmpty()
+
+                    it.cancel({{ spec.info.title | caseUcfirst }}Exception("Redirect to $location not followed", response.code, "", body))
+                    return
+                }
+
                 if (!response.isSuccessful) {
                     val body = response.body!!
                         .charStream()

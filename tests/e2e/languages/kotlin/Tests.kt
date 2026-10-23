@@ -100,8 +100,13 @@ class ServiceTest {
             writeToFile(mock.result)
 
             // General Tests
-            val result = general.redirect()
-            writeToFile((result as Map<String, Any>)["result"] as String)
+            // A redirect is reported as an error, not followed with the API key.
+            try {
+                general.redirect()
+                error("A redirect was followed")
+            } catch (e: AppwriteException) {
+                writeToFile("${e.code}:${e.message}")
+            }
 
             for ((id, plain) in listOf("" to "0", "0" to "")) {
                 try {
