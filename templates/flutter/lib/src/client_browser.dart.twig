@@ -180,7 +180,7 @@ class ClientBrowser extends ClientBase with ClientMixin {
       try {
         res = await call(
           HttpMethod.get,
-          path: '$path/${params[idParamName]}',
+          path: '$path/${Uri.encodeComponent(params[idParamName].toString())}',
           headers: headers,
         );
         final int chunksUploaded = res.data['chunksUploaded'] as int;
