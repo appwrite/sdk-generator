@@ -116,9 +116,24 @@ namespace {{ spec.info.title | caseUcfirst }}
         }
 
         /// <summary>
-        /// Get cookies for a specific domain and path
+        /// Get non-Secure cookies for a domain and path. Use the URI overload when transport is known.
         /// </summary>
-        public List<Cookie> GetCookies(string domain, string path = "/")
+        public List<Cookie> GetCookies(string domain, string path = "/") =>
+            GetCookies(domain, path, false);
+
+        /// <summary>
+        /// Get cookies for an absolute request URI. Secure cookies require HTTPS.
+        /// </summary>
+        public List<Cookie> GetCookies(Uri requestUri)
+        {
+            if (requestUri == null) throw new ArgumentNullException(nameof(requestUri));
+            if (!requestUri.IsAbsoluteUri) throw new ArgumentException("An absolute request URI is required.", nameof(requestUri));
+
+            return GetCookies(requestUri.Host, requestUri.AbsolutePath,
+                string.Equals(requestUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private List<Cookie> GetCookies(string domain, string path, bool secureTransport)
         {
             lock (_lock)
             {
@@ -126,6 +141,7 @@ namespace {{ spec.info.title | caseUcfirst }}
                 var list = _cookies.Where(c =>
                     c.MatchesDomain(domain) &&
                     c.MatchesPath(path) &&
+                    (!c.Secure || secureTransport) &&
                     !c.IsExpired).ToList();
                 Debug.Log($"[CookieContainer] GetCookies for domain={domain} path={path} => {list.Count}");
                 return list;
@@ -133,10 +149,17 @@ namespace {{ spec.info.title | caseUcfirst }}
         }
 
         /// <summary>
-        /// Get cookie header string for request
+        /// Get a non-Secure cookie header. Use the URI overload when transport is known.
         /// </summary>
         public string GetCookieHeader(string domain, string path = "/") =>
             string.Join("; ", GetCookies(domain, path)
+                .Select(c => $"{c.Name}={c.Value}"));
+
+        /// <summary>
+        /// Get a cookie header for an absolute request URI, enforcing Secure transport.
+        /// </summary>
+        public string GetCookieHeader(Uri requestUri) =>
+            string.Join("; ", GetCookies(requestUri)
                 .Select(c => $"{c.Name}={c.Value}"));
 
         /// <summary>

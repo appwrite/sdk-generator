@@ -522,7 +522,7 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             // Add cookies
             var uri = new Uri(url);
-            var cookieHeader = _cookieContainer.GetCookieHeader(uri.Host, uri.AbsolutePath);
+            var cookieHeader = _cookieContainer.GetCookieHeader(uri);
 #if !(UNITY_WEBGL && !UNITY_EDITOR)
             if (!string.IsNullOrEmpty(cookieHeader))
             {

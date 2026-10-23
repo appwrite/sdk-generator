@@ -376,6 +376,7 @@ jobs:
                 exit 1
               fi
               dotnet format whitespace --folder --verify-no-changes
+              dotnet test ../../tests/e2e/languages/unity/CookieTransport/CookieTransport.csproj -p:UnitySdkPath="$PWD"
               ;;
             rust)
               cargo generate-lockfile

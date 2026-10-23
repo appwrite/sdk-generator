@@ -26,6 +26,7 @@ final class Unity2021Test extends Base
     protected array $build = [
         'mkdir -p tests/e2e/sdks/unity/Assets/Tests',
         'cp tests/e2e/languages/unity/Tests.cs tests/e2e/sdks/unity/Assets/Tests/Tests.cs',
+        'cp tests/e2e/languages/unity/CookieTransportTests.cs tests/e2e/sdks/unity/Assets/Tests/CookieTransportTests.cs',
         'cp tests/e2e/languages/unity/Tests.asmdef tests/e2e/sdks/unity/Assets/Tests/Tests.asmdef',
     ];
 
