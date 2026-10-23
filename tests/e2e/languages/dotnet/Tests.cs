@@ -71,8 +71,28 @@ namespace AppwriteTests
             TestContext.WriteLine(mock.Result);
 
             // General Tests
-            var result = await general.Redirect();
-            TestContext.WriteLine((result as Dictionary<string, object>)["result"]);
+            // A redirect is reported as an error, not followed with the API key.
+            try
+            {
+                await general.Redirect();
+                throw new System.Exception("A redirect was followed");
+            }
+            catch (AppwriteException e)
+            {
+                TestContext.WriteLine($"{e.Code}:{e.Message}");
+            }
+
+            // The client keeps no cookies, so the one set-cookie sets is not sent back.
+            TestContext.WriteLine((await general.SetCookie()).Result);
+            try
+            {
+                await general.GetCookie();
+                throw new System.Exception("A cookie from an earlier response was sent");
+            }
+            catch (AppwriteException e)
+            {
+                TestContext.WriteLine(e.Message);
+            }
 
             foreach (var ids in new[] { new[] { "", "0" }, new[] { "0", "" } })
             {

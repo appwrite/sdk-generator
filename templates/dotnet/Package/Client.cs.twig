@@ -81,13 +81,9 @@ namespace {{ spec.info.title | caseUcfirst }}
             HttpClient? httpForRedirect = null)
         {
             _endpoint = endpoint;
-            _http = http ?? new HttpClient();
+            _http = http ?? new HttpClient(CreateHandler());
 
-            _httpForRedirect = httpForRedirect ?? new HttpClient(
-                new HttpClientHandler()
-                {
-                    AllowAutoRedirect = false
-                });
+            _httpForRedirect = httpForRedirect ?? new HttpClient(CreateHandler());
 
             _headers = new Dictionary<string, string>()
             {
@@ -113,16 +109,29 @@ namespace {{ spec.info.title | caseUcfirst }}
 
         public Client SetSelfSigned(bool selfSigned)
         {
-            var handler = new HttpClientHandler()
+            var handler = CreateHandler();
+            if (selfSigned)
             {
-                ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true
-            };
+                handler.ServerCertificateCustomValidationCallback = (request, cert, chain, errors) => true;
+            }
 
-            _http = selfSigned
-                ? new HttpClient(handler)
-                : new HttpClient();
+            _http = new HttpClient(handler);
 
             return this;
+        }
+
+        /// <summary>
+        /// Calls follow no redirects, which would carry the API key to wherever
+        /// they point, and keep no cookies, which would carry one caller's
+        /// session into the next call made on this client.
+        /// </summary>
+        private static HttpClientHandler CreateHandler()
+        {
+            return new HttpClientHandler()
+            {
+                AllowAutoRedirect = false,
+                UseCookies = false
+            };
         }
 
         public Client SetEndpoint(string endpoint)
@@ -348,6 +357,14 @@ namespace {{ spec.info.title | caseUcfirst }}
             }
 
             var isJson = contentType.Contains("application/json");
+
+            if (code >= 300 && code < 400)
+            {
+                var location = response.Headers.Location?.OriginalString ?? "";
+                var body = await response.Content.ReadAsStringAsync();
+
+                throw new {{spec.info.title | caseUcfirst}}Exception($"Redirect to {location} not followed", code, "", body);
+            }
 
             if (code >= 400)
             {

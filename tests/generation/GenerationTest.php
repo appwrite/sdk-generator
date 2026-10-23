@@ -1530,6 +1530,8 @@ final class GenerationTest extends TestCase
         yield 'python redirect error' => ['python', 'appwrite/client.py', "if response_type != 'location' and 300 <= response.status_code < 400:", ''];
         yield 'php redirects' => ['php', 'src/Appwrite/Client.php', 'new httpclient($adapter)->withfollowredirects(false);', 'httpclientnoredirect'];
         yield 'php redirect error' => ['php', 'src/Appwrite/Client.php', "throw new appwriteexception('redirect to ' . \$location . ' not followed', \$responsestatus, '', \$responsebody);", ''];
+        yield 'dotnet handler' => ['dotnet', 'Appwrite/Client.cs', "allowautoredirect = false,\n                usecookies = false", '_http = http ?? new httpclient();'];
+        yield 'dotnet redirect error' => ['dotnet', 'Appwrite/Client.cs', 'throw new appwriteexception($"redirect to {location} not followed", code, "", body);', ''];
         yield 'ruby redirects' => ['ruby', 'lib/appwrite/client.rb', 'raise appwrite::exception.new("redirect to #{location} not followed", response.code, nil, response.body)', 'return fetch(method, uri'];
     }
 
