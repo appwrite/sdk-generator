@@ -30,9 +30,11 @@ import kotlin.coroutines.CoroutineContext
 class Realtime(client: Client) : Service(client), CoroutineScope {
 
     private val connection = client.realtime
+    private val job = Job()
 
+    // Cancelling one wrapper must not cancel the client's shared connection scope.
     override val coroutineContext: CoroutineContext
-        get() = connection.coroutineContext
+        get() = Dispatchers.Main + job
 
     fun onError(callback: (error: Throwable?, statusCode: Int?) -> Unit) {
         connection.onError(callback)

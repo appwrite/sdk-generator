@@ -4,6 +4,7 @@ import android.content.Context
 import io.appwrite.extensions.fromJson
 import io.appwrite.extensions.toJson
 import io.appwrite.services.Realtime
+import kotlinx.coroutines.cancel
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import okhttp3.Response
@@ -16,7 +17,9 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
-data class IsolationPayload(val source: String)
+data class IsolationPayload(
+    val source: String,
+)
 
 /** Exercises the public API against independent WebSocket backends. */
 object RealtimeIsolationScenarios {
@@ -51,6 +54,7 @@ object RealtimeIsolationScenarios {
                 val closesA = AtomicInteger()
                 val closesC = AtomicInteger()
                 val closeB = CountDownLatch(1)
+                var recreatedA: Realtime? = null
 
                 realtimeA.onError { _, code -> errorsA.offer(code ?: -1) }
                 realtimeB.onError { _, code -> errorsB.offer(code ?: -1) }
@@ -102,12 +106,23 @@ object RealtimeIsolationScenarios {
                     expect(eventsA, "a-after-b-disconnect", "first client after second-client disconnect")
                     expect(sharedEventsA, "a-after-b-disconnect", "same-client subscription remains active")
 
+                    realtimeA.cancel()
                     realtimeA.disconnect()
                     check(backendA.closed.await(10, TimeUnit.SECONDS)) { "first client did not disconnect" }
                     backendC.emit("c-after-a-disconnect")
                     expect(eventsC, "c-after-a-disconnect", "same-endpoint client after first-client disconnect")
                     check(eventsB.isEmpty()) { "disconnected client received another client's event" }
+
+                    // Cancelling a public wrapper must not poison later wrappers for its Client.
+                    serverA.enqueue(upgrade(Backend("a-recreated")))
+                    val replacement = Realtime(clientA)
+                    recreatedA = replacement
+                    val replacementEvents = LinkedBlockingQueue<String>()
+                    subscribe(replacement, replacementEvents)
+                    expect(replacementEvents, "a-recreated", "new wrapper after cancellation and disconnect")
+                    assertHandshake(serverA, "project-a", "jwt-a")
                 } finally {
+                    recreatedA?.disconnect()
                     realtimeA.disconnect()
                     realtimeB.disconnect()
                     realtimeC.disconnect()
@@ -116,44 +131,67 @@ object RealtimeIsolationScenarios {
         }
     }
 
-    private fun client(context: Context, server: MockWebServer, project: String, jwt: String): Client =
+    private fun client(
+        context: Context,
+        server: MockWebServer,
+        project: String,
+        jwt: String,
+    ): Client =
         Client(context)
             .setEndpointRealtime(server.url("/v1").toString().replaceFirst("http", "ws"))
             .setProject(project)
             .setJWT(jwt)
 
-    private fun subscribe(realtime: Realtime, events: LinkedBlockingQueue<String>) {
+    private fun subscribe(
+        realtime: Realtime,
+        events: LinkedBlockingQueue<String>,
+    ) {
         realtime.subscribe("tests", payloadType = IsolationPayload::class.java) {
             events.offer(it.payload.source)
         }
     }
 
-    private fun expect(events: LinkedBlockingQueue<String>, expected: String, context: String) {
+    private fun expect(
+        events: LinkedBlockingQueue<String>,
+        expected: String,
+        context: String,
+    ) {
         val actual = events.poll(10, TimeUnit.SECONDS)
         check(actual == expected) { "$context: expected $expected, got $actual" }
     }
 
-    private fun assertHandshake(server: MockWebServer, project: String, jwt: String) {
+    private fun assertHandshake(
+        server: MockWebServer,
+        project: String,
+        jwt: String,
+    ) {
         val request = checkNotNull(server.takeRequest(10, TimeUnit.SECONDS)) { "missing WebSocket handshake" }
         check(request.url.queryParameter("project") == project) { "wrong project in handshake" }
         check(request.headers["x-appwrite-jwt"] == jwt) { "wrong credentials in handshake" }
     }
 
-    private fun upgrade(listener: WebSocketListener): MockResponse =
-        MockResponse.Builder().webSocketUpgrade(listener).build()
+    private fun upgrade(listener: WebSocketListener): MockResponse = MockResponse.Builder().webSocketUpgrade(listener).build()
 
-    private class Backend(private val source: String) : WebSocketListener() {
+    private class Backend(
+        private val source: String,
+    ) : WebSocketListener() {
         private val socket = AtomicReference<WebSocket>()
         private val subscriptions = ConcurrentHashMap<String, List<String>>()
         val closed = CountDownLatch(1)
         val presences = LinkedBlockingQueue<String>()
 
-        override fun onOpen(webSocket: WebSocket, response: Response) {
+        override fun onOpen(
+            webSocket: WebSocket,
+            response: Response,
+        ) {
             socket.set(webSocket)
             webSocket.send(mapOf("type" to "connected", "data" to emptyMap<String, Any>()).toJson())
         }
 
-        override fun onMessage(webSocket: WebSocket, text: String) {
+        override fun onMessage(
+            webSocket: WebSocket,
+            text: String,
+        ) {
             val frame = text.fromJson<Map<String, Any?>>()
             if (frame["type"] == "presence") {
                 val presence = frame["data"] as Map<*, *>
@@ -175,19 +213,26 @@ object RealtimeIsolationScenarios {
             subscriptions.forEach { (id, channels) -> emit(source, id, channels) }
         }
 
-        private fun emit(source: String, id: String, channels: List<String>) {
-            check(socket.get().send(
-                mapOf(
-                    "type" to "event",
-                    "data" to mapOf(
-                        "events" to listOf("tests.update"),
-                        "channels" to channels,
-                        "timestamp" to "2026-01-01T00:00:00.000Z",
-                        "subscriptions" to listOf(id),
-                        "payload" to mapOf("source" to source),
-                    ),
-                ).toJson()
-            )) { "could not emit test event" }
+        private fun emit(
+            source: String,
+            id: String,
+            channels: List<String>,
+        ) {
+            check(
+                socket.get().send(
+                    mapOf(
+                        "type" to "event",
+                        "data" to
+                            mapOf(
+                                "events" to listOf("tests.update"),
+                                "channels" to channels,
+                                "timestamp" to "2026-01-01T00:00:00.000Z",
+                                "subscriptions" to listOf(id),
+                                "payload" to mapOf("source" to source),
+                            ),
+                    ).toJson(),
+                ),
+            ) { "could not emit test event" }
         }
 
         fun error() {
@@ -198,11 +243,19 @@ object RealtimeIsolationScenarios {
             check(socket.get().close(1011, "reconnect this client"))
         }
 
-        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+        override fun onClosing(
+            webSocket: WebSocket,
+            code: Int,
+            reason: String,
+        ) {
             webSocket.close(code, reason)
         }
 
-        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+        override fun onClosed(
+            webSocket: WebSocket,
+            code: Int,
+            reason: String,
+        ) {
             closed.countDown()
         }
     }
