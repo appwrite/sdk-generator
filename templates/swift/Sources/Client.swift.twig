@@ -62,7 +62,8 @@ open class Client {
 
     private static func createHTTP(
         selfSigned: Bool = false,
-        redirectConfiguration: HTTPClient.Configuration.RedirectConfiguration = .follow(max: 5, allowCycles: false),
+        // Calls follow no redirects: one would carry the API key to wherever it points.
+        redirectConfiguration: HTTPClient.Configuration.RedirectConfiguration = .disallow,
         connectTimeout: TimeAmount = .seconds(30),
         readTimeout: TimeAmount = .seconds(30)
     ) -> HTTPClient {
@@ -361,8 +362,6 @@ open class Client {
             request.headers.add(name: "accept-encoding", value: "gzip")
         }
 
-        request.addDomainCookies()
-
         if "GET" != method {
             try buildBody(for: &request, with: validParams)
         }
@@ -399,7 +398,16 @@ open class Client {
         var data = try await response.body.collect(upTo: Int.max)
 
         switch response.status.code {
-        case 0..<400:
+        case 300..<400:
+            let location = response.headers["location"].first ?? ""
+
+            throw {{ spec.info.title | caseUcfirst }}Error(
+                message: "Redirect to \(location) not followed",
+                code: Int(response.status.code),
+                type: "",
+                response: String(decoding: data.readableBytesView, as: UTF8.self)
+            )
+        case 0..<300:
             switch T.self {
             case is Bool.Type:
                 return true as! T
