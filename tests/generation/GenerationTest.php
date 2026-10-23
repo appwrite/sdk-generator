@@ -1532,6 +1532,8 @@ final class GenerationTest extends TestCase
         yield 'php redirect error' => ['php', 'src/Appwrite/Client.php', "throw new appwriteexception('redirect to ' . \$location . ' not followed', \$responsestatus, '', \$responsebody);", ''];
         yield 'dotnet handler' => ['dotnet', 'Appwrite/Client.cs', "allowautoredirect = false,\n                usecookies = false", '_http = http ?? new httpclient();'];
         yield 'dotnet redirect error' => ['dotnet', 'Appwrite/Client.cs', 'throw new appwriteexception($"redirect to {location} not followed", code, "", body);', ''];
+        yield 'kotlin redirects' => ['kotlin', 'src/main/kotlin/io/appwrite/Client.kt', ".newbuilder()\n            .followredirects(false)\n            .followsslredirects(false)", ''];
+        yield 'kotlin redirect error' => ['kotlin', 'src/main/kotlin/io/appwrite/Client.kt', 'it.cancel(appwriteexception("redirect to $location not followed", response.code, "", body))', ''];
         yield 'ruby redirects' => ['ruby', 'lib/appwrite/client.rb', 'raise appwrite::exception.new("redirect to #{location} not followed", response.code, nil, response.body)', 'return fetch(method, uri'];
     }
 
