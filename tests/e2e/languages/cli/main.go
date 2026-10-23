@@ -16,17 +16,25 @@
 package main
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
+	"sort"
 	"strings"
 )
 
@@ -106,6 +114,8 @@ func main() {
 	fmt.Println("CLI_INIT_APNS:passed")
 	harness.initApnsApple()
 	fmt.Println("CLI_INIT_APNS_APPLE:passed")
+	harness.unicodeIgnoreDeployment()
+	fmt.Println("CLI_UNICODE_IGNORE_DEPLOYMENT:passed")
 	fmt.Println("CLI_CONFORMANCE:passed")
 }
 
@@ -533,4 +543,123 @@ func expectOutput(output string, want ...string) {
 func fail(err error) {
 	fmt.Fprintln(os.Stderr, "conformance harness:", err)
 	os.Exit(1)
+}
+
+// Inspect the multipart upload received by the API, so the same assertion
+// covers pattern matching, directory traversal and deployment packaging.
+func (h *harness) unicodeIgnoreDeployment() {
+	cli, err := filepath.Abs(binary)
+	if err != nil {
+		fail(err)
+	}
+
+	type uploadedArchive struct {
+		names []string
+		err   error
+	}
+	uploaded := make(chan uploadedArchive, 1)
+	function := `{"$id":"unicode","name":"Unicode","runtime":"node-22","entrypoint":"index.js"}`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/health/version":
+			fmt.Fprint(w, `{"version":"1.8.0"}`)
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/functions/unicode":
+			fmt.Fprint(w, function)
+		case r.Method == http.MethodPut && r.URL.Path == "/v1/functions/unicode":
+			fmt.Fprint(w, function)
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/proxy/rules":
+			fmt.Fprint(w, `{"total":1,"rules":[{"domain":"example.test"}]}`)
+		case r.Method == http.MethodPost && r.URL.Path == "/v1/functions/unicode/deployments":
+			file, _, err := r.FormFile("code")
+			if err != nil {
+				uploaded <- uploadedArchive{err: err}
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			defer file.Close()
+			compressed, err := gzip.NewReader(file)
+			if err != nil {
+				uploaded <- uploadedArchive{err: err}
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			defer compressed.Close()
+			archive := tar.NewReader(compressed)
+			var names []string
+			for {
+				header, err := archive.Next()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					uploaded <- uploadedArchive{err: err}
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
+				if header.Typeflag == tar.TypeReg {
+					names = append(names, header.Name)
+				}
+			}
+			uploaded <- uploadedArchive{names: names}
+			fmt.Fprint(w, `{"$id":"deployment","status":"ready"}`)
+		default:
+			http.Error(w, r.Method+" "+r.URL.Path, http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+	h.run("client", "--endpoint", server.URL+"/v1", "--key", "dummy")
+
+	patterns := []string{"données/", "secret-é.env", "*.café", "日本/**/*.key", `\é.env`, "secret-e.env", "[é].txt", "*.log", "!résumé.log", "src/*.tmp"}
+	for _, source := range []string{"gitignore", "config"} {
+		directory := filepath.Join(h.home, "unicode-ignore", source)
+		files := []string{"index.js", "données/prod.env", "secret-é.env", "x.café", "日本/a/b.key", "é.env", "secret-e.env", "é.txt", "résumé.log", "src/visible-é.js", "src/temp-é.tmp"}
+		for _, name := range files {
+			path := filepath.Join(directory, "fn", filepath.FromSlash(name))
+			if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+				fail(err)
+			}
+			if err := os.WriteFile(path, []byte("dummy verification content"), 0o600); err != nil {
+				fail(err)
+			}
+		}
+
+		entry := map[string]any{"$id": "unicode", "name": "Unicode", "runtime": "node-22", "entrypoint": "index.js", "path": "fn"}
+		expected := []string{"index.js", "résumé.log", "src/visible-é.js"}
+		if source == "gitignore" {
+			if err := os.WriteFile(filepath.Join(directory, "fn", ".gitignore"), []byte(strings.Join(patterns, "\n")+"\n"), 0o600); err != nil {
+				fail(err)
+			}
+			expected = append(expected, ".gitignore")
+		} else {
+			entry["ignore"] = patterns
+		}
+		config, err := json.Marshal(map[string]any{"projectId": "unicode", "endpoint": server.URL + "/v1", "functions": []any{entry}})
+		if err != nil {
+			fail(err)
+		}
+		if err := os.WriteFile(filepath.Join(directory, "appwrite.config.json"), config, 0o600); err != nil {
+			fail(err)
+		}
+
+		command := h.command("push", "function", "--function-id", "unicode", "--activate=false", "--async", "--force")
+		command.Path = cli
+		command.Dir = directory
+		if output, err := command.CombinedOutput(); err != nil {
+			fail(fmt.Errorf("push with Unicode %s rules: %w\n%s", source, err, output))
+		}
+		select {
+		case archive := <-uploaded:
+			if archive.err != nil {
+				fail(archive.err)
+			}
+			sort.Strings(archive.names)
+			sort.Strings(expected)
+			if !slices.Equal(archive.names, expected) {
+				fail(fmt.Errorf("uploaded files with Unicode %s rules = %q, want %q", source, archive.names, expected))
+			}
+		default:
+			fail(fmt.Errorf("push with Unicode %s rules did not upload code", source))
+		}
+	}
 }
