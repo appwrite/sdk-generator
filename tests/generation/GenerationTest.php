@@ -1389,6 +1389,9 @@ final class GenerationTest extends TestCase
             yield "{$name} encoder" => [$name, $platform, 'Sources/Appwrite/Client.swift', "charactersin: \"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()\""];
             yield "{$name} resume" => [$name, $platform, 'Sources/Appwrite/Client.swift', 'path: path + "/" + client.encodepath(uploadid),'];
         }
+        yield 'rust path' => ['rust', 'server', 'src/services/general.rs', '.replace("{pathid}", &client::encode_path(&path_id))'];
+        yield 'rust encoder' => ['rust', 'server', 'src/client.rs', "if byte.is_ascii_alphanumeric() || b\"-_.!~*'()\".contains(&byte) {"];
+        yield 'rust resume' => ['rust', 'server', 'src/client.rs', 'let resume_path = format!("{}/{}", path, self::encode_path(id));'];
     }
 
     /**

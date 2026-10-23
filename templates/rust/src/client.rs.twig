@@ -287,6 +287,25 @@ impl Client {
         state.config.endpoint.clone()
     }
 
+    /// Encode a value as one path segment
+    ///
+    /// Every byte but letters, digits and `-_.!~*'()` is escaped, as
+    /// encodeURIComponent does, so a value fills exactly the segment it replaces.
+    pub(crate) fn encode_path(value: &str) -> String {
+        const HEX: &[u8; 16] = b"0123456789ABCDEF";
+        let mut encoded = String::with_capacity(value.len());
+        for &byte in value.as_bytes() {
+            if byte.is_ascii_alphanumeric() || b"-_.!~*'()".contains(&byte) {
+                encoded.push(byte as char);
+            } else {
+                encoded.push('%');
+                encoded.push(HEX[usize::from(byte >> 4)] as char);
+                encoded.push(HEX[usize::from(byte & 0x0F)] as char);
+            }
+        }
+        encoded
+    }
+
     /// Serialize primitive parameter value to string
     fn serialize_param_value(value: &Value) -> String {
         match value {
@@ -929,8 +948,9 @@ impl Client {
         let mut start_chunk = 0u64;
         let mut last_response = None;
         if let Some(ref id) = current_upload_id {
+            let resume_path = format!("{}/{}", path, Self::encode_path(id));
             if let Ok(response) = self
-                .call::<Value>(Method::GET, &format!("{}/{}", path, id), None, None)
+                .call::<Value>(Method::GET, &resume_path, None, None)
                 .await
             {
                 if let Some(chunks_uploaded) =
@@ -1278,6 +1298,16 @@ mod tests {
     fn test_client_creation() {
         let client = Client::new();
         assert_eq!(client.endpoint(), "{{ (spec | endpoint) }}");
+    }
+
+    #[test]
+    fn test_encode_path_fills_one_segment() {
+        assert_eq!(
+            Client::encode_path("../grant?special=id#x y%"),
+            "..%2Fgrant%3Fspecial%3Did%23x%20y%25"
+        );
+        assert_eq!(Client::encode_path("unique()"), "unique()");
+        assert_eq!(Client::encode_path("é"), "%C3%A9");
     }
 
     #[test]

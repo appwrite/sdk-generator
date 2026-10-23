@@ -122,6 +122,12 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     println!("{}", general.validate_path("0", Some("0")).await?.result);
     println!("{}", general.validate_path("0", None).await?.result);
 
+    // The mock routes are registered at the encoded paths, so each call only reaches
+    // its route if the ID is escaped as one segment.
+    println!("{}", general.get_path("grant/special&id").await?.result);
+    println!("{}", general.get_path("../grant?special=id#x y%").await?.result);
+    println!("{}", general.get_path("unique()").await?.result);
+
     let zone: String = Plaintext::new(&client).get_zone().await?;
     println!("{}", zone);
     println!("{}", general.get_mixed().await?.result);
