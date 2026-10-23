@@ -198,7 +198,7 @@ class Kotlin extends Language
                     $output .= 'false';
                     break;
                 case self::TYPE_STRING:
-                    $output .= "\"\"";
+                    $output .= $param instanceof Parameter && !$param->required ? 'null' : "\"\"";
                     break;
                 case self::TYPE_OBJECT:
                     $output .= $lang === 'java'
