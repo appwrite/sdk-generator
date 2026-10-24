@@ -145,14 +145,22 @@ final class GenerationTest extends TestCase
         ],
         'python' => [
             'setup.py' => [
-                "'Programming Language :: Python :: 3.9'",
+                "python_requires='>=3.10'",
+                "'requests>=2.34.2,<3'",
+                "'urllib3>=2.8.0,<3'",
                 "'Programming Language :: Python :: 3.10'",
                 "'Programming Language :: Python :: 3.11'",
                 "'Programming Language :: Python :: 3.12'",
                 "'Programming Language :: Python :: 3.13'",
             ],
+            'requirements.txt' => [
+                'requests>=2.34.2,<3',
+                'urllib3>=2.8.0,<3',
+            ],
             'pyproject.toml' => [
-                '"Programming Language :: Python :: 3.9"',
+                'requires-python = ">=3.10"',
+                '"requests>=2.34.2,<3"',
+                '"urllib3>=2.8.0,<3"',
                 '"Programming Language :: Python :: 3.10"',
                 '"Programming Language :: Python :: 3.11"',
                 '"Programming Language :: Python :: 3.12"',
