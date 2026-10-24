@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Generation;
 
 use Exception;
+use Closure;
 use Iterator;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\Language\Android;
@@ -41,6 +42,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
+use UnexpectedValueException;
 
 /**
  * What the generator emits, for every language and platform, from the shared
@@ -111,6 +113,24 @@ final class GenerationTest extends TestCase
         'unity' => ['Runtime/Core/Enums/WebhookEvent.cs', 'public const string UserCreated', 'Runtime/Core/Enums/LocalizedStatus.cs', 'public static LocalizedStatus Value1', 'Runtime/Core/Enums/ProvinceType.cs', 'public static ProvinceType Capital'],
         'rust' => ['src/enums/webhook_event.rs', 'pub const UserCreated', 'src/enums/localized_status.rs', 'Value1,', 'src/enums/province_type.rs', 'Capital,'],
     ];
+
+    /**
+     * Replaces every `description` and `summary` in the fixture: prose that
+     * tries to close the doc comment it is printed in and continue as code.
+     */
+    private const string PROSE = "zzprose */ zzbreak(); /* zzprose \"\"\" zzbreak() \\\nzzbreak(); zzprose\rzzbreak(); zzprose\u{85}zzbreak(); zzprose\u{2028}zzbreak(); zzprose";
+
+    /**
+     * Generated source extensions whose doc comments are C-style blocks, where
+     * prose must never close the block or open a nested one.
+     */
+    private const array BLOCK_COMMENT_SOURCES = ['ts', 'js', 'mjs', 'php', 'kt', 'kts', 'java'];
+
+    /**
+     * Generated source extensions whose doc comments are line comments, where
+     * every line of prose must still start with the comment marker.
+     */
+    private const array LINE_COMMENT_SOURCES = ['dart', 'swift', 'cs', 'rs', 'go', 'rb'];
 
     /**
      * Targets that ship Agent Skills, whose `SKILL.md` frontmatter name must
@@ -308,6 +328,161 @@ final class GenerationTest extends TestCase
         $this->generate('php', 'server');
         $this->expectException(Exception::class);
         $this->generate('php', 'server', '-boolean');
+    }
+
+    /**
+     * Output paths interpolate spec names and generator settings, and some
+     * filters keep `.` and `/`. A package name made of parent directories
+     * fails generation instead of writing beside the SDK.
+     */
+    public function testDestinationsStayInsideTheSdk(): void
+    {
+        $language = new Dart();
+        $language->setPackageName('../../../zzescape');
+        $escaped = self::OUTPUT . '/zzescape.dart';
+        @\unlink($escaped);
+
+        try {
+            $this->generate('dart', 'server', language: $language, variant: '-escape');
+            $this->fail('A package named ../../../zzescape generated an SDK');
+        } catch (Exception $exception) {
+            $this->assertStringContainsString('outside the SDK directory', $exception->getMessage());
+        }
+
+        $this->assertFileDoesNotExist($escaped);
+    }
+
+    /**
+     * Templates print spec names as identifiers and spec values between
+     * quotes without escaping them, so a name or value that could end the
+     * identifier or the string is refused before anything is generated.
+     */
+    #[DataProvider('unsafeSpecs')]
+    public function testUnsafeNamesAndValuesAreRefused(Closure $mutate): void
+    {
+        $document = $mutate(\json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR));
+
+        $this->expectException(UnexpectedValueException::class);
+        $this->expectExceptionMessage('is not safe to generate');
+        new SDK($this->language('web'), Parser::parse($document));
+    }
+
+    /** @return iterable<string, array{Closure(array): array}> */
+    public static function unsafeSpecs(): iterable
+    {
+        $property = static function (array $document, string $name, array $schema = ['type' => 'string']): array {
+            $model = \array_key_first($document['components']['schemas']);
+            $document['components']['schemas'][$model]['properties'][$name] = $schema;
+
+            return $document;
+        };
+        $operation = static function (array $document, callable $change): array {
+            $path = \array_key_first($document['paths']);
+            $method = \array_key_first($document['paths'][$path]);
+            $document['paths'][$path][$method] = $change($document['paths'][$path][$method]);
+
+            return $document;
+        };
+
+        yield 'title' => [static fn(array $document): array => ['info' => ['title' => 'App"write'] + $document['info']] + $document];
+        yield 'server URL with a quote' => [static fn(array $document): array => ['servers' => [['url' => 'https://example.com/v1"']]] + $document];
+        yield 'server URL with interpolation' => [static fn(array $document): array => ['servers' => [['url' => 'https://example.com/${x}']]] + $document];
+        yield 'tag' => [static fn(array $document): array => ['tags' => [['name' => '../zz']]] + $document];
+        yield 'header name' => [static function (array $document): array {
+            $document['components']['securitySchemes']['Project']['name'] = 'X-Appwrite-"Project';
+
+            return $document;
+        }];
+        yield 'schema name' => [static function (array $document): array {
+            $document['components']['schemas']['zz"model'] = ['type' => 'object', 'properties' => []];
+
+            return $document;
+        }];
+        yield 'property name' => [static fn(array $document): array => $property($document, 'zz"; evil(); "')];
+        yield 'enum value with a quote' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ["a'b"]])];
+        yield 'enum value with interpolation' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a${b}']])];
+        yield 'enum value with a backslash' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a\(b)']])];
+        yield 'enum value with a line break' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ["a\u{2028}b"]])];
+        yield 'path' => [static function (array $document): array {
+            $document['paths']["/zz'" . 'path'] = \reset($document['paths']);
+
+            return $document;
+        }];
+        yield 'operation ID' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['operationId' => 'zz get'] + $method)];
+        yield 'parameter name' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['parameters' => [
+            ['name' => 'zz\\x', 'in' => 'query', 'schema' => ['type' => 'string']],
+        ]] + $method)];
+    }
+
+    /**
+     * Prose from the spec is printed into doc comments. Whatever it contains,
+     * the generated source keeps it inside the comment.
+     */
+    #[DataProvider('languages')]
+    public function testProseStaysInsideDocComments(string $name): void
+    {
+        foreach (['client', 'server'] as $platform) {
+            $files = $this->generateWithProse($name, $platform);
+            $this->assertNotEmpty($files, "{$name} {$platform}: nothing generated");
+            foreach ($files as $path => $contents) {
+                $extension = \pathinfo((string) $path, PATHINFO_EXTENSION);
+                if (\in_array($extension, self::BLOCK_COMMENT_SOURCES, true)) {
+                    $this->assertStringNotContainsString('*/ zzbreak', $contents, "{$name} {$platform}: prose closes a comment in {$path}");
+                    $this->assertStringNotContainsString('/* zzprose', $contents, "{$name} {$platform}: prose opens a comment in {$path}");
+                }
+                if ($extension === 'py') {
+                    // Docstrings are string literals: `"""` ends one, and a
+                    // backslash escapes whatever follows it.
+                    $this->assertStringNotContainsString('""" zzbreak', $contents, "{$name} {$platform}: prose closes a docstring in {$path}");
+                    $this->assertStringNotContainsString("zzbreak() \\\n", $contents, "{$name} {$platform}: prose escapes a docstring line break in {$path}");
+                }
+                if (\in_array($extension, self::LINE_COMMENT_SOURCES, true)) {
+                    // C# also ends a line at U+0085, U+2028 and U+2029.
+                    $breaks = $extension === 'cs' ? '/\r\n|\r|\n|\x{85}|\x{2028}|\x{2029}/u' : '/\r\n|\r|\n/';
+                    $lines = (array) \preg_split($breaks, $contents);
+                    $code = \array_filter($lines, static fn(string $line): bool => \str_starts_with(\ltrim($line), 'zzbreak'));
+                    $this->assertSame([], $code, "{$name} {$platform}: prose continues as code in {$path}");
+                }
+            }
+        }
+    }
+
+    /**
+     * The generated tree for the fixture with every description and summary
+     * replaced by PROSE.
+     *
+     * @return array<string, string>
+     */
+    private function generateWithProse(string $name, string $platform): array
+    {
+        $dir = self::OUTPUT . '/' . $name . '/prose-' . $platform;
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR);
+        \array_walk_recursive($document, function (mixed &$value, int|string $key): void {
+            if (($key === 'description' || $key === 'summary') && \is_string($value)) {
+                $value = self::PROSE;
+            }
+        });
+
+        $sdk = new SDK($this->language($name), Parser::parse($document));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform($platform)
+            ->setNamespace(\in_array($name, ['android', 'kotlin'], true) ? 'io.appwrite' : 'appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $files[\substr((string) $file->getPathname(), \strlen($dir) + 1)] = (string) \file_get_contents($file->getPathname());
+            }
+        }
+
+        return $files;
     }
 
     private function removeDirectory(string $dir): void
@@ -937,6 +1112,48 @@ final class GenerationTest extends TestCase
         $this->assertDoesNotMatchRegularExpression("/^require 'cgi'$/m", $client, 'Ruby 4.0 removed the cgi library; only cgi/escape ships with it');
     }
 
+    /**
+     * File content must not be able to end its part and add form fields such
+     * as permissions, so the boundary is random for every request and field
+     * and file names cannot close their quotes or header line.
+     */
+    public function testRubyMultipartCannotBeForged(): void
+    {
+        $client = $this->generate('ruby', 'server')['lib/appwrite/client.rb'];
+
+        $this->assertStringNotContainsString('a30#3ad1', $client);
+        $this->assertStringContainsString('boundary = "----#{securerandom.hex(16)}"', $client);
+        $this->assertStringContainsString('name=\\"#{escape_form_data_name(key)}\\"; filename=\\"#{escape_form_data_name(value.filename)}\\"', $client);
+    }
+
+    /**
+     * A cookie's value is the session secret, and device logs are readable by
+     * crash reporters and anyone with a debug connection.
+     */
+    public function testCookieValuesAreNotLogged(): void
+    {
+        $android = $this->generate('android', 'client')['library/src/main/java/io/appwrite/cookies/stores/SharedPreferencesCookieStore.kt'] ?? null;
+        $unity = $this->generate('unity', 'client')['Runtime/Core/CookieContainer.cs'];
+
+        $this->assertNotNull($android);
+        $this->assertStringNotContainsString('value = $value', $android);
+        $this->assertDoesNotMatchRegularExpression('/debug\.log\([^;]*\{(cookie|c)\}/', $unity);
+    }
+
+    /**
+     * The installer checks the download against its checksum and later copies
+     * it with sudo. Between the two, a file in a directory other users can
+     * write can be replaced, so the download goes into a private directory.
+     */
+    public function testCliInstallerDownloadsIntoAPrivateDirectory(): void
+    {
+        $installer = $this->generate('cli', 'console')['install.sh'];
+
+        $this->assertStringContainsString('appwrite_temp_dir=$(mktemp -d)', $installer);
+        $this->assertStringContainsString('appwrite_temp_name="$appwrite_temp_dir/', $installer);
+        $this->assertStringNotContainsString('temp-$(date', $installer);
+    }
+
     public function testDotNetKeepsDateTimeStringsAsStrings(): void
     {
         $converter = $this->generate('dotnet', 'server')['Appwrite/Converters/ObjectToInferredTypesConverter.cs'];
@@ -1344,6 +1561,134 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A path parameter fills exactly one segment: a `/`, `?`, `#` or `..` in
+     * an ID must not reach another endpoint. The fragment is the encoding at
+     * the substitution site (getPath) or where a chunked upload resumes.
+     */
+    #[DataProvider('pathSegmentEncoders')]
+    public function testPathParametersFillOneSegment(string $name, string $platform, string $file, string $fragment): void
+    {
+        $this->assertStringContainsString($fragment, $this->generate($name, $platform)[$file] ?? '');
+    }
+
+    /** @return Iterator<string, array{string, string, string, string}> */
+    public static function pathSegmentEncoders(): Iterator
+    {
+        yield 'go resume' => ['go', 'server', 'client/client.go', 'resp, err := client.call("get", url+"/"+encodepath(uploadid), nil, nil)'];
+        yield 'python path' => ['python', 'server', 'appwrite/services/general.py', "api_path = api_path.replace('{pathid}', self._encode_path(path_id))"];
+        yield 'python encoder' => ['python', 'server', 'appwrite/service.py', "return quote(str(self._normalize_value(value)), safe=\"!*'()\")"];
+        yield 'python resume' => ['python', 'server', 'appwrite/client.py', "self.call('get', path + '/' + quote(upload_id, safe=\"!*'()\"), headers)"];
+        yield 'ruby path' => ['ruby', 'server', 'lib/appwrite/services/general.rb', ".gsub('{pathid}', @client.encode_path(path_id))"];
+        yield 'ruby encoder' => ['ruby', 'server', 'lib/appwrite/client.rb', "value.to_s.b.gsub(/[^a-za-z0-9\\-_.!~*'()]/n)"];
+        yield 'ruby resume' => ['ruby', 'server', 'lib/appwrite/client.rb', 'path: "#{path}/#{encode_path(upload_id)}",'];
+        yield 'php path' => ['php', 'server', 'src/Appwrite/Services/General.php', "['{pathid}'],\n            [self::encodepath(\$pathid)],"];
+        yield 'php encoder' => ['php', 'server', 'src/Appwrite/Service.php', "return strtr(rawurlencode((string) \$value), ["];
+        yield 'dotnet path' => ['dotnet', 'server', 'Appwrite/Services/General.cs', '.replace("{pathid}", client.encodepath(pathid));'];
+        yield 'dotnet encoder' => ['dotnet', 'server', 'Appwrite/Client.cs', "return uri.escapedatastring(value ?? string.empty)\n                .replace(\"%21\", \"!\")"];
+        yield 'dotnet resume' => ['dotnet', 'server', 'Appwrite/Client.cs', 'path: $"{path}/{encodepath(uploadid)}",'];
+        yield 'unity path' => ['unity', 'client', 'Runtime/Core/Services/General.cs', '.replace("{pathid}", client.encodepath(pathid));'];
+        yield 'unity resume' => ['unity', 'client', 'Runtime/Core/Client.cs', 'path: $"{path}/{encodepath(parameters[idparamname!]?.tostring())}",'];
+        yield 'kotlin path' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/services/General.kt', '.replace("{pathid}", client.encodepath(pathid))'];
+        yield 'kotlin encoder' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/Client.kt', "urlencoder\n                .encode(value, \"utf-8\")\n                .replace(\"+\", \"%20\")"];
+        yield 'kotlin resume' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/Client.kt', 'path = "$path/${encodepath(provideduploadid)}",'];
+        yield 'android path' => ['android', 'client', 'library/src/main/java/io/appwrite/services/General.kt', '.replace("{pathid}", client.encodepath(pathid))'];
+        yield 'android encoder' => ['android', 'client', 'library/src/main/java/io/appwrite/Client.kt', "urlencoder\n                .encode(value, \"utf-8\")\n                .replace(\"+\", \"%20\")"];
+        yield 'android resume' => ['android', 'client', 'library/src/main/java/io/appwrite/Client.kt', 'path = "$path/${encodepath(provideduploadid)}",'];
+        foreach (['swift' => 'server', 'apple' => 'client'] as $name => $platform) {
+            yield "{$name} path" => [$name, $platform, 'Sources/Appwrite/Services/General.swift', '.replacingoccurrences(of: "{pathid}", with: client.encodepath(pathid))'];
+            yield "{$name} encoder" => [$name, $platform, 'Sources/Appwrite/Client.swift', "charactersin: \"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()\""];
+            yield "{$name} resume" => [$name, $platform, 'Sources/Appwrite/Client.swift', 'path: path + "/" + client.encodepath(uploadid),'];
+        }
+        yield 'rust path' => ['rust', 'server', 'src/services/general.rs', '.replace("{pathid}", &client::encode_path(&path_id))'];
+        yield 'rust encoder' => ['rust', 'server', 'src/client.rs', "if byte.is_ascii_alphanumeric() || b\"-_.!~*'()\".contains(&byte) {"];
+        yield 'rust resume' => ['rust', 'server', 'src/client.rs', 'let resume_path = format!("{}/{}", path, self::encode_path(id));'];
+        foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
+            yield "{$name} path" => [$name, $platform, 'lib/services/general.dart', "'/mock/tests/general/path/{pathid}'.replaceall(\n      '{pathid}',\n      uri.encodecomponent(pathid),"];
+            yield "{$name} resume io" => [$name, $platform, 'lib/src/client_io.dart', "path: '\$path/\${uri.encodecomponent(params[idparamname].tostring())}',"];
+            yield "{$name} resume browser" => [$name, $platform, 'lib/src/client_browser.dart', "path: '\$path/\${uri.encodecomponent(params[idparamname].tostring())}',"];
+        }
+    }
+
+    /**
+     * A server SDK sends the API key with every call, so it must not follow a
+     * redirect, which may point at another host, and must not keep cookies,
+     * which would carry one caller's session into the next call. The first
+     * fragment must be in the client, the second must not.
+     */
+    #[DataProvider('serverClientTransports')]
+    public function testServerClientsNeitherFollowRedirectsNorKeepCookies(string $name, string $file, string $present, string $absent): void
+    {
+        $client = $this->generate($name, 'server')[$file] ?? '';
+
+        $this->assertStringContainsString($present, $client);
+        if ($absent !== '') {
+            $this->assertStringNotContainsString($absent, $client);
+        }
+    }
+
+    /** @return Iterator<string, array{string, string, string, string}> */
+    public static function serverClientTransports(): Iterator
+    {
+        yield 'go redirects' => ['go', 'client/client.go', "checkredirect: func(*http.request, []*http.request) error {\n\t\t\treturn http.erruselastresponse", ''];
+        yield 'go redirect error' => ['go', 'client/client.go', 'message:    "redirect to " + resp.header.get("location") + " not followed",', ''];
+        yield 'go cookies' => ['go', 'client/client.go', 'timeout: timeout,', 'cookiejar'];
+        yield 'python redirects' => ['python', 'appwrite/client.py', "allow_redirects=false,\n", "allow_redirects=false if"];
+        yield 'python redirect error' => ['python', 'appwrite/client.py', "if response_type != 'location' and 300 <= response.status_code < 400:", ''];
+        yield 'php redirects' => ['php', 'src/Appwrite/Client.php', 'new httpclient($adapter)->withfollowredirects(false);', 'httpclientnoredirect'];
+        yield 'php redirect error' => ['php', 'src/Appwrite/Client.php', "throw new appwriteexception('redirect to ' . \$location . ' not followed', \$responsestatus, '', \$responsebody);", ''];
+        yield 'dotnet handler' => ['dotnet', 'Appwrite/Client.cs', "allowautoredirect = false,\n                usecookies = false", '_http = http ?? new httpclient();'];
+        yield 'dotnet redirect error' => ['dotnet', 'Appwrite/Client.cs', 'throw new appwriteexception($"redirect to {location} not followed", code, "", body);', ''];
+        yield 'kotlin redirects' => ['kotlin', 'src/main/kotlin/io/appwrite/Client.kt', ".newbuilder()\n            .followredirects(false)\n            .followsslredirects(false)", ''];
+        yield 'kotlin redirect error' => ['kotlin', 'src/main/kotlin/io/appwrite/Client.kt', 'it.cancel(appwriteexception("redirect to $location not followed", response.code, "", body))', ''];
+        yield 'swift redirects' => ['swift', 'Sources/Appwrite/Client.swift', 'redirectconfiguration: httpclient.configuration.redirectconfiguration = .disallow,', 'request.adddomaincookies()'];
+        yield 'swift redirect error' => ['swift', 'Sources/Appwrite/Client.swift', "case 300..<400:\n            let location = response.headers[\"location\"].first ?? \"\"", ''];
+        yield 'dart redirects' => ['dart', 'lib/src/client_io.dart', "params: params,\n    );\n    // not followed: a redirect would carry the api key wherever it points.\n    request.followredirects = false;", ''];
+        yield 'dart redirect error' => ['dart', 'lib/src/client_mixin.dart', "if (res.statuscode >= 300 && res.statuscode < 400) {", ''];
+        yield 'node redirects' => ['node', 'src/client.ts', "const response = await fetch(uri, {\n            ...options,\n            redirect: 'manual',\n        });\n\n        const warnings", ''];
+        yield 'node redirect error' => ['node', 'src/client.ts', '`redirect to ${location} not followed`,', ''];
+        yield 'rust redirects' => ['rust', 'src/client.rs', "fn build_http_client(config: &config) -> httpclient {\n        let mut builder = httpclient::builder()\n            .redirect(reqwest::redirect::policy::none())", ''];
+        yield 'rust redirect error' => ['rust', 'src/client.rs', 'format!("redirect to {} not followed", location),', ''];
+        yield 'ruby redirects' => ['ruby', 'lib/appwrite/client.rb', 'raise appwrite::exception.new("redirect to #{location} not followed", response.code, nil, response.body)', 'return fetch(method, uri'];
+    }
+
+    /**
+     * PHP resumes a chunked upload from its service method: it asks for the
+     * chunks already uploaded at the path plus the upload ID, which fills
+     * one segment like any path parameter.
+     */
+    public function testPhpUploadResumeFillsOneSegment(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'storage']],
+            'paths' => ['/storage/buckets/{bucketId}/files' => ['post' => [
+                'operationId' => 'storageCreateFile',
+                'tags' => ['storage'],
+                'summary' => 'Create file',
+                'description' => 'Create file.',
+                'parameters' => [
+                    ['name' => 'bucketId', 'in' => 'path', 'required' => true, 'description' => 'Bucket ID.', 'schema' => ['type' => 'string']],
+                ],
+                'requestBody' => ['content' => ['multipart/form-data' => ['schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'fileId' => ['type' => 'string', 'description' => 'File ID.'],
+                        'file' => ['type' => 'string', 'format' => 'binary', 'description' => 'File.'],
+                    ],
+                    'required' => ['fileId', 'file'],
+                ]]]],
+                'responses' => ['204' => ['description' => 'ok']],
+            ]]],
+        ];
+
+        $service = $this->generateDocument($document, 'php', 'upload-resume')['src/Appwrite/Services/Storage.php'];
+
+        $this->assertStringContainsString("Client::METHOD_GET, \$apiPath . '/' . self::encodePath(\$fileId));", $service);
+        $this->assertStringNotContainsString("\$apiPath . '/' . \$fileId", $service);
+    }
+
+    /**
      * An upload whose only parameter is the file still takes the progress
      * callback as its second positional argument.
      */
@@ -1371,13 +1716,13 @@ final class GenerationTest extends TestCase
     /** @return Iterator<string, array{string, string, string, string}> */
     public static function serviceTestRequests(): Iterator
     {
-        yield 'php path' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "->expects()->call(\n                'get',\n                '/mock/tests/general/path/grant/special&id',"];
+        yield 'php path' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "->expects()->call(\n                'get',\n                '/mock/tests/general/path/grant%2fspecial%26id',"];
         yield 'php params' => ['php', 'server', 'tests/Appwrite/Services/FooTest.php', "->expects()->call(\n                'put',\n                '/mock/tests/foo',\n                mockery::any(),\n                mockery::on(function (array \$params): bool {\n                    \$this->assertsame(['x', 'y', 'z'], array_keys(\$params));"];
         yield 'python path' => ['python', 'server', 'test/services/test_general.py', "response = self.general.get_path(\n            'grant/special&id',\n        )\n        request = m.last_request\n        url = urlsplit(request.url)\n        self.assertequal(\n            unquote(url.path),\n            '/v1/mock/tests/general/path/grant/special&id',\n        )"];
         yield 'python params' => ['python', 'server', 'test/services/test_foo.py', "m.request(\n            'put',\n            requests_mock.any,"];
         yield 'python body' => ['python', 'server', 'test/services/test_foo.py', "sent = json.loads(request.body or '{}')\n        self.assertequal(\n            sent,\n            {\n                'x': '[]',\n                'y': 1,\n                'z': [],\n            },\n        )"];
         foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
-            yield "{$name} path" => [$name, $platform, 'test/services/general_test.dart', "verify(\n        client.call(\n          httpmethod.get,\n          path: \"/mock/tests/general/path/grant/special&id\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),"];
+            yield "{$name} path" => [$name, $platform, 'test/services/general_test.dart', "verify(\n        client.call(\n          httpmethod.get,\n          path: \"/mock/tests/general/path/grant%2fspecial%26id\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),"];
             yield "{$name} params" => [$name, $platform, 'test/services/foo_test.dart', "client.call(\n          httpmethod.put,\n          path: \"/mock/tests/foo\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),\n          responsetype: anynamed('responsetype'),\n        ),\n      ).captured.single;\n      expect(params, {\n        \"x\": \"[]\",\n        \"y\": 1,\n        \"z\": isa<list>(),\n      });"];
         }
     }

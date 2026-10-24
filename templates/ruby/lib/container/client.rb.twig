@@ -29,7 +29,7 @@ module {{ spec.info.title | caseUcfirst }}
         # Set {{headerKey | caseUcfirst}}
         #
 {% if header.description %}
-        # {{header.description}}
+        # {{ header.description | escapeComment | replace({'\n': '\n        # '}) }}
         #
 {% endif %}
         # @param [String] value The value to set for the {{ headerKey }} header
@@ -92,6 +92,18 @@ module {{ spec.info.title | caseUcfirst }}
         # @return [Hash]
         def get_headers
             @headers.dup
+        end
+
+        # Encode a value as one path segment.
+        #
+        # Every byte but letters, digits and -_.!~*'() is escaped, as
+        # encodeURIComponent does, so a value fills exactly the segment it replaces.
+        #
+        # @param [String] value The path parameter value
+        #
+        # @return [String]
+        def encode_path(value)
+            value.to_s.b.gsub(/[^A-Za-z0-9\-_.!~*'()]/n) { |byte| format('%%%02X', byte.ord) }
         end
 
         # Send the HTTP request.
@@ -173,7 +185,7 @@ module {{ spec.info.title | caseUcfirst }}
                 begin
                     current = call(
                         method: "GET",
-                        path: "#{path}/#{params[id_param_name]}",
+                        path: "#{path}/#{encode_path(upload_id)}",
                         headers: headers,
                         params: {}
                     )
@@ -306,27 +318,26 @@ module {{ spec.info.title | caseUcfirst }}
             uri,
             headers,
             params,
-            response_type = nil,
-            limit = 5
+            response_type = nil
         )
-            raise ArgumentError, 'Too Many HTTP Redirects' if limit == 0
-
             http = Net::HTTP.new(uri.host, uri.port)
-            http.use_ssl = !@self_signed
+            http.use_ssl = uri.scheme == 'https'
+            http.verify_mode = OpenSSL::SSL::VERIFY_NONE if @self_signed
             payload = ''
 
             headers = @headers.merge(headers)
 
             params.compact!
 
-            @boundary = "----A30#3ad1"
             if method != "GET"
                 case headers[:'content-type']
                 when 'application/json'
                     payload = params.to_json
                 when 'multipart/form-data'
-                    payload = encode_form_data(params) + "--#{@boundary}--\r\n"
-                    headers[:'content-type'] = "multipart/form-data; boundary=#{@boundary}"
+                    # A fixed boundary lets file content end its part and add fields.
+                    boundary = "----#{SecureRandom.hex(16)}"
+                    payload = encode_form_data(params, boundary) + "--#{boundary}--\r\n"
+                    headers[:'content-type'] = "multipart/form-data; boundary=#{boundary}"
                 else
                     payload = encode(params)
                 end
@@ -350,10 +361,10 @@ module {{ spec.info.title | caseUcfirst }}
                 return location
             end
 
-            # Handle Redirects
-            if (response.class == Net::HTTPRedirection || response.class == Net::HTTPMovedPermanently)
-                uri = URI.parse(uri.scheme + "://" + uri.host + "" + location)
-                return fetch(method, uri, headers, {}, response_type, limit - 1)
+            # A redirect is reported, not followed: it would carry the API key to
+            # wherever it points, possibly another host.
+            if response.is_a?(Net::HTTPRedirection)
+                raise {{spec.info.title | caseUcfirst}}::Exception.new("Redirect to #{location} not followed", response.code, nil, response.body)
             end
 
             if response.content_type == 'application/json'
@@ -400,32 +411,38 @@ module {{ spec.info.title | caseUcfirst }}
             String.new(response.body.to_s, encoding: encoding).encode(Encoding::UTF_8)
         end
 
-        def encode_form_data(value, key = nil)
+        def encode_form_data(value, boundary, key = nil)
             case value
             when Hash
-                return encode_form_data(value.to_json, key) unless key.nil?
+                return encode_form_data(value.to_json, boundary, key) unless key.nil?
 
-                value.map { |k, v| encode_form_data(v, k) }.join
+                value.map { |k, v| encode_form_data(v, boundary, k) }.join
             when Array
-                value.map { |v| encode_form_data(v, "#{key}[]") }.join
+                value.map { |v| encode_form_data(v, boundary, "#{key}[]") }.join
             when nil
                 ''
             else
                 post_body = []
                 if value.instance_of? InputFile
-                    post_body << "--#{@boundary}"
-                    post_body << "Content-Disposition: form-data; name=\"#{key}\"; filename=\"#{value.filename}\""
-                    post_body << "Content-Type: #{value.mime_type}"
+                    post_body << "--#{boundary}"
+                    post_body << "Content-Disposition: form-data; name=\"#{escape_form_data_name(key)}\"; filename=\"#{escape_form_data_name(value.filename)}\""
+                    post_body << "Content-Type: #{value.mime_type.to_s.delete("\r\n")}"
                     post_body << ""
                     post_body << value.data
                 else
-                    post_body << "--#{@boundary}"
-                    post_body << "Content-Disposition: form-data; name=\"#{key}\""
+                    post_body << "--#{boundary}"
+                    post_body << "Content-Disposition: form-data; name=\"#{escape_form_data_name(key)}\""
                     post_body << ""
                     post_body << value.to_s
                 end
                 post_body.join("\r\n") + "\r\n"
             end
+        end
+
+        # Field and file names are quoted in the part headers; escape what would
+        # end the quoted string or the header line, as browsers do.
+        def escape_form_data_name(name)
+            name.to_s.gsub("\r", '%0D').gsub("\n", '%0A').gsub('"', '%22')
         end
 
         def encode(value, key = nil)

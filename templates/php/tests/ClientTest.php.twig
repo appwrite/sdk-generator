@@ -123,17 +123,13 @@ final class ClientTest extends TestCase
         $client = new Client();
         $client->setEndpoint('https://example.com/v1');
 
-        $first = $this->httpClient($client, true);
+        $first = $this->httpClient($client);
         $this->assertInstanceOf(HttpClient::class, $first);
-        $this->assertSame($first, $this->httpClient($client, true));
-
-        $noRedirect = $this->httpClient($client, false);
-        $this->assertInstanceOf(HttpClient::class, $noRedirect);
-        $this->assertNotSame($first, $noRedirect);
+        $this->assertSame($first, $this->httpClient($client));
 
         $client->setTimeout(5);
         $this->assertNull(new ReflectionProperty(Client::class, 'httpClient')->getValue($client));
-        $rebuilt = $this->httpClient($client, true);
+        $rebuilt = $this->httpClient($client);
         $this->assertInstanceOf(HttpClient::class, $rebuilt);
         $this->assertNotSame($first, $rebuilt);
     }
@@ -141,14 +137,14 @@ final class ClientTest extends TestCase
     public function testSelfSignedAndConnectTimeoutResetHttpClient(): void
     {
         $client = new Client();
-        $original = $this->httpClient($client, true);
+        $original = $this->httpClient($client);
 
         $client->setSelfSigned(true);
-        $this->assertNotSame($original, $this->httpClient($client, true));
+        $this->assertNotSame($original, $this->httpClient($client));
 
-        $afterSelfSigned = $this->httpClient($client, true);
+        $afterSelfSigned = $this->httpClient($client);
         $client->setConnectTimeout(2);
-        $this->assertNotSame($afterSelfSigned, $this->httpClient($client, true));
+        $this->assertNotSame($afterSelfSigned, $this->httpClient($client));
     }
 
     public function testInjectedTransportReceivesEncodedRequests(): void
@@ -173,6 +169,20 @@ final class ClientTest extends TestCase
         $this->assertSame('https://example.com/v1/items', (string) $received[0]->getUri());
         $this->assertSame(['name' => 'item'], json_decode((string) $received[0]->getBody(), true));
         $this->assertSame('injected', $received[0]->getHeaderLine('x-test'));
+    }
+
+    public function testHeaderLineBreaksAreRefused(): void
+    {
+        $transport = $this->createMock(ClientInterface::class);
+        $transport->expects($this->never())->method('sendRequest');
+
+        $client = new Client($transport)
+            ->setEndpoint('https://example.com/v1')
+            ->addHeader('x-test', "value\r\nx-injected: 1");
+
+        $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
+        $this->expectExceptionMessage('Header contains a line break: x-test');
+        $client->call(Client::METHOD_GET, '/items');
     }
 
     public function testInjectedTransportReceivesFlattenedParams(): void
@@ -234,8 +244,7 @@ final class ClientTest extends TestCase
         $this->assertInstanceOf({{ namespace | split('\\') | last | caseUcfirst }}Exception::class, $failure);
         $this->assertSame(503, $failure->getCode());
         $this->assertSame(['https://first.example/fail', 'https://second.example/next?project=project-1'], $received);
-        $this->assertSame($transport, $this->httpClient($client, true));
-        $this->assertSame($transport, $this->httpClient($client, false));
+        $this->assertSame($transport, $this->httpClient($client));
     }
 
     public function testLocationResponseUsesInjectedTransport(): void
@@ -253,10 +262,27 @@ final class ClientTest extends TestCase
         $this->assertSame('https://storage.example/file', $client->call(Client::METHOD_GET, '/redirect', responseType: 'location'));
     }
 
-    private function httpClient(Client $client, bool $followRedirects): ClientInterface
+    public function testRedirectIsReportedNotFollowed(): void
+    {
+        $transport = $this->createMock(ClientInterface::class);
+        $transport->expects($this->once())->method('sendRequest')
+            ->willReturn(new Response(301)->withHeader('location', 'https://other.example/v1/users'));
+
+        $client = new Client($transport)->setEndpoint('https://example.com/v1');
+
+        try {
+            $client->call(Client::METHOD_GET, '/users');
+            $this->fail('A redirect answered the call');
+        } catch ({{ namespace | split('\\') | last | caseUcfirst }}Exception $error) {
+            $this->assertSame(301, $error->getCode());
+            $this->assertSame('Redirect to https://other.example/v1/users not followed', $error->getMessage());
+        }
+    }
+
+    private function httpClient(Client $client): ClientInterface
     {
         $method = new ReflectionMethod(Client::class, 'getHttpClient');
 
-        return $method->invoke($client, $followRedirects);
+        return $method->invoke($client);
     }
 }

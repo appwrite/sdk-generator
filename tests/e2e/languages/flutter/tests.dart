@@ -149,6 +149,11 @@ void main() async {
   }
   print((await general.validatePath(id: '0', plain: '0')).result);
   print((await general.validatePath(id: null, plain: '0')).result);
+  // The mock routes are registered at the encoded paths, so each call only reaches
+  // its route if the ID is escaped as one segment.
+  print((await general.getPath(pathId: 'grant/special&id')).result);
+  print((await general.getPath(pathId: '../grant?special=id#x y%')).result);
+  print((await general.getPath(pathId: 'unique()')).result);
 
   final String zone = await Plaintext(client).getZone();
   print(zone);

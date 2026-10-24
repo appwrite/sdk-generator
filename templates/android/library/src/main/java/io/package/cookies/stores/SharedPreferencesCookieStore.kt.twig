@@ -26,7 +26,7 @@ open class SharedPreferencesCookieStore(
                 } catch (exception: Throwable) {
                     Log.e(
                         javaClass.simpleName,
-                        "Error while loading key = $key, value = $value from cookie store",
+                        "Error while loading key = $key from cookie store",
                         exception
                     )
                 }

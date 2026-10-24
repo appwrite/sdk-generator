@@ -155,7 +155,7 @@ func (srv *{{ service.name | caseUcfirst }}) {{ ((method | methodName) ~ 'Params
 
 {% endif %}
 {% if method.description %}
-{{ (((method | methodName) | caseUcfirst) ~ ' ' ~ method.description | caseLcfirst) | godocComment }}
+{{ (((method | methodName) | caseUcfirst) ~ ' ' ~ method.description | escapeComment | caseLcfirst) | godocComment }}
 {% else %}
 // {{ (method | methodName) | caseUcfirst }}
 {% endif %}
@@ -199,7 +199,7 @@ func (srv *{{ service.name | caseUcfirst }}) {{ (method | methodName) | caseUcfi
 {% if (method | methodType) == 'location' %}
 {{ "\n" -}}
 {% if method.description %}
-{{ (((method | methodName) | caseUcfirst) ~ 'URL ' ~ method.description | caseLcfirst) | godocComment }}
+{{ (((method | methodName) | caseUcfirst) ~ 'URL ' ~ method.description | escapeComment | caseLcfirst) | godocComment }}
 {% else %}
 // {{ (method | methodName) | caseUcfirst }}URL
 {% endif %}

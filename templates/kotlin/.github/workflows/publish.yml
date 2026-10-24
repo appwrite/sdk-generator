@@ -37,10 +37,10 @@ jobs:
       - name: Publish Release Version to MavenCentral
         run: |
           if ${{ contains(github.event.release.tag_name, '-rc') }}; then
-            echo "Publising Snapshot Version ${{ github.event.release.tag_name}} to Snapshot repository"
+            echo "Publishing Snapshot Version $SDK_VERSION to Snapshot repository"
             ./gradlew publishToSonatype
           else
-            echo "Publising Release Version ${{ github.event.release.tag_name}} to Staging repository"
+            echo "Publishing Release Version $SDK_VERSION to Staging repository"
             ./gradlew publishToSonatype --max-workers 1 closeAndReleaseSonatypeStagingRepository
           fi
         env:

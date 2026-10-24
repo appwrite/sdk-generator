@@ -52,7 +52,7 @@
 {% macro expected_path(method) -%}
     {%- set path = method.path -%}
     {%- for parameter in (method | parameters('path')) -%}
-        {%- set path = path | replace({('{' ~ parameter.name ~ '}'): _self.path_value(parameter, method)}) -%}
+        {%- set path = path | replace({('{' ~ parameter.name ~ '}'): _self.path_value(parameter, method) | url_encode | replace({'%21': '!', '%2A': '*', '%27': "'", '%28': '(', '%29': ')'})}) -%}
     {%- endfor -%}
     {%- for security in (method | securityQueries) -%}
         {%- set path = path ~ (loop.first ? '?' : '&') ~ security.name ~ '=' ~ ((security.name | caseCamel) == 'project' ? 'testproject' : '') -%}

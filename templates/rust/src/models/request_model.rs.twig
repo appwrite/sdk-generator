@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-{{ requestModel.description | rustdocComment }}
+{{ requestModel.description | escapeComment | rustdocComment }}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(test, derive(Default))]
 pub struct {{ requestModelName | caseUcfirst | overrideIdentifier }} {
@@ -10,7 +10,7 @@ pub struct {{ requestModelName | caseUcfirst | overrideIdentifier }} {
 {% set propertyName = (property | schemaName) %}
 {% set fieldName = propertyName matches '/^_?[A-Z_]+$/' ? propertyName | lower | trim('_') : propertyName | caseSnake %}
 {% set fieldName = fieldName | overrideIdentifier %}
-    {{ property.description | rustdocComment(4) }}
+    {{ property.description | escapeComment | rustdocComment(4) }}
     #[serde(rename = "{{ (property | schemaName) }}")]
 {% if (property | schemaRequired) and not (property | schemaNullable) %}
     pub {{ fieldName }}: {{ property | propertyType(spec) | rustType }},

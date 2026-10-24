@@ -69,7 +69,7 @@ abstract class Client {
   /// Set {{headerKey | caseUcfirst}}.
 {% if header.description %}
   ///
-  /// {{header.description}}.
+  /// {{ header.description | escapeComment | replace({'\n': '\n  /// '}) }}.
 {% endif %}
   Client set{{headerKey | caseUcfirst}}(String value);
 
@@ -82,7 +82,7 @@ abstract class Client {
 
 {% for clientMethodName, clientMethods in clientMethods %}
 {% for clientMethod in clientMethods %}
-  /// {{ clientMethod.description | replace({'\n': '\n  /// '}) | raw }}
+  /// {{ clientMethod.description | escapeComment | replace({'\n': '\n  /// '}) | raw }}
   Future<String> {{ clientMethodName | caseCamel }}();
 
 {% endfor %}

@@ -143,7 +143,7 @@ open class Realtime: Service {
         reconnect = true
         socketClient = WebSocketClient(
             url,
-            tlsEnabled: !client.selfSigned,
+            selfSigned: client.selfSigned,
             headers: headers,
             delegate: self
         )

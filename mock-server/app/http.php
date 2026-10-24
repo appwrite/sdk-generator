@@ -616,6 +616,22 @@ App::get('/v1/mock/tests/general/path/grant%2Fspecial%26id')
     ->action(function () {
     });
 
+// Further getPath values, registered as the segment that must arrive. A `..`, `/`, `?` or `#`
+// left raw would reach another route; `unique()` stays literal because the API reads path
+// values without decoding them.
+foreach (['..%2Fgrant%3Fspecial%3Did%23x%20y%25', 'unique()'] as $segment) {
+    App::get('/v1/mock/tests/general/path/' . $segment)
+        ->desc('Path Param')
+        ->groups(['mock'])
+        ->label('scope', 'public')
+        ->label('sdk.response.code', Response::STATUS_CODE_OK)
+        ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+        ->label('sdk.response.model', Response::MODEL_MOCK)
+        ->label('sdk.mock', true)
+        ->action(function () {
+        });
+}
+
 // Query values must arrive intact: a raw `&`, `+` or `#` splits, decodes to a space or truncates them.
 App::get('/v1/mock/tests/general/query')
     ->desc('Query Param')
@@ -672,7 +688,9 @@ App::get('/v1/mock/tests/general/set-cookie')
     ->inject('response')
     ->inject('request')
     ->action(function (UtopiaSwooleResponse $response, Request $request) {
-        $response->addCookie('cookiename', 'cookieValue', \time() + 31536000, '/', $request->getHostname(), true, true, '');
+        // Not Secure: the mock is plain HTTP, and a cookie jar honouring Secure would never send
+        // the cookie back, so a server SDK keeping one could not be told apart from one that does not.
+        $response->addCookie('cookiename', 'cookieValue', \time() + 31536000, '/', $request->getHostname(), false, true, '');
     });
 
 App::get('/v1/mock/tests/general/get-cookie')

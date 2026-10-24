@@ -35,8 +35,10 @@ final class PHP85Test extends Base
     protected array $expectedOutput = [
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
-        ...Base::GENERAL_RESPONSES,
+        ...Base::SERVER_REDIRECT_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
+        ...Base::PATH_PARAM_RESPONSES,
+        ...Base::PATH_SEGMENT_RESPONSES,
         ...Base::TEXT_RESPONSES,
         ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::UNION_RESPONSES,

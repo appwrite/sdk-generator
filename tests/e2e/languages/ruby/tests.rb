@@ -4,7 +4,6 @@ include Appwrite
 include Appwrite::Enums
 
 client = Client.new
-client.set_self_signed(true)
 client.add_header('Origin', 'http://localhost')
 client.set_project('console')
 
@@ -53,8 +52,13 @@ puts response.result
 
 # General
 
-response = general.redirect()
-puts response["result"]
+# A redirect is reported as an error, not followed with the API key.
+begin
+    general.redirect()
+    raise 'A redirect was followed'
+rescue Appwrite::Exception => error
+    puts "#{error.code}:#{error.message}"
+end
 
 [['', '0'], ['0', '']].each do |id, plain|
     begin
@@ -65,6 +69,12 @@ puts response["result"]
     end
 end
 puts general.validate_path(id: '0', plain: '0').result
+
+# The mock routes are registered at the encoded paths, so each call only reaches its route
+# if the ID is escaped as one segment.
+puts general.get_path(path_id: 'grant/special&id').result
+puts general.get_path(path_id: '../grant?special=id#x y%').result
+puts general.get_path(path_id: 'unique()').result
 
 zone = Plaintext.new(client).get_zone
 raise "Expected zone text as String, got #{zone.class}" unless zone.is_a?(String)

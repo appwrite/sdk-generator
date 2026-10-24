@@ -17,7 +17,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
 
 /**
- *{{ (' ' ~ service.description) | replace({"\n": "\n * "}) | kotlinDoc }}
+ *{{ (' ' ~ service.description | escapeComment) | replace({"\n": "\n * "}) | kotlinDoc }}
  */
 class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% for method in (service | operations) %}
@@ -26,10 +26,10 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
 {% set pathParameters = (method | parameters('path')) %}
 {% set securityQueries = (method | securityQueries) %}
     /**
-     *{{ (' ' ~ method.description) | replace({"\n": "\n     * "}) | kotlinDoc }}
+     *{{ (' ' ~ method.description | escapeComment) | replace({"\n": "\n     * "}) | kotlinDoc }}
      *
     {%~ for parameter in (method | parameters('all')) %}
-     * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description | escapeComment | raw }}
     {%~ endfor %}
      * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
      */
@@ -73,7 +73,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ endfor %}
         val apiPath = {% if pathParameters is empty and securityQueries is empty %}"{{ method.path }}"{% else %}("{{ method.path }}"
         {%~ for parameter in pathParameters %}
-            .replace("{{ '{' ~ parameter.name ~ '}' }}", {% if (parameter | configKey(method)) %}client.config["{{ (parameter | configKey(method)) | caseCamel }}"].orEmpty(){% else %}{{ parameter.name | caseCamel }}{% if (parameter | enumValues) is not empty %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %}.toString(){% endif %}{% endif %})
+            .replace("{{ '{' ~ parameter.name ~ '}' }}", Client.encodePath({% if (parameter | configKey(method)) %}client.config["{{ (parameter | configKey(method)) | caseCamel }}"].orEmpty(){% else %}{{ parameter.name | caseCamel }}{% if (parameter | enumValues) is not empty %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %}.toString(){% endif %}{% endif %}))
         {%~ endfor %}
             {%~ for security in securityQueries %}
             + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${java.net.URLEncoder.encode(client.config.get("{{ security.name | caseCamel }}").orEmpty(), "UTF-8")}"
@@ -140,10 +140,10 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ if (method | responseModel) | hasGenericType(spec) %}
 
     /**
-     *{{ (' ' ~ method.description) | replace({"\n": "\n     * "}) | kotlinDoc }}
+     *{{ (' ' ~ method.description | escapeComment) | replace({"\n": "\n     * "}) | kotlinDoc }}
      *
     {%~ for parameter in (method | parameters('all')) %}
-     * @param {{ parameter.name | caseCamel }} {{ parameter.description | raw }}
+     * @param {{ parameter.name | caseCamel }} {{ parameter.description | escapeComment | raw }}
     {%~ endfor %}
      * @return [{{ method | returnType(spec, sdk.namespace | caseDot) | raw }}]
      */

@@ -123,7 +123,7 @@ final class {{ service.name | caseUcfirst }}Test extends TestCase
 
 {% set path = method.path %}
 {% for parameter in (method | parameters('path')) %}
-{% set path = path | replace({('{' ~ parameter.name ~ '}'): helper.pathValue(parameter, method)}) %}
+{% set path = path | replace({('{' ~ parameter.name ~ '}'): helper.pathValue(parameter, method) | url_encode | replace({'%21': '!', '%2A': '*', '%27': "'", '%28': '(', '%29': ')'})}) %}
 {% endfor %}
 {% for security in (method | securityQueries) %}
 {% set path = path ~ (loop.first ? '?' : '&') ~ security.name ~ '=' %}
