@@ -188,7 +188,7 @@ php example.php zed-extension
 |--------|----------|--------------------|------------------|-----------------|--------|
 | Node.js | `node` | Node.js 20 in CI | [NPM Coding Style] | NPM | `examples/node/` |
 | PHP | `php` | PHP >=8.2 | [PHP FIG] | Composer | `examples/php/` |
-| Python | `python` | Python >=3.9 | [PEP8] | pip | `examples/python/` |
+| Python | `python` | Python >=3.10 | [PEP8] | pip | `examples/python/` |
 | Ruby | `ruby` | Ruby 3.1 in CI | [Ruby Style Guide] | RubyGems, Bundler | `examples/ruby/` |
 | Dart | `dart` | Dart >=2.17 <4 | [Effective Dart] | pub | `examples/dart/` |
 | Go | `go` | Go 1.26.10 | [Effective Go] | Go modules | `examples/go/` |

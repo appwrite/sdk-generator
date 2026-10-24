@@ -7,7 +7,7 @@ name = "{{ language.params.pipPackage }}"
 version = "{{ sdk.version }}"
 description = "{{ sdk.shortDescription }}"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "{{ spec.info.license.name }}" }
 authors = [
   { name = "{{ spec.info.contact.name }}", email = "{{ spec.info.contact.email }}" }
@@ -16,7 +16,8 @@ maintainers = [
   { name = "{{ spec.info.contact.name }}", email = "{{ spec.info.contact.email }}" }
 ]
 dependencies = [
-  "requests",
+  "requests>=2.34.2,<3",
+  "urllib3>=2.8.0,<3",
   "pydantic>=2,<3",
 ]
 classifiers = [
@@ -26,7 +27,6 @@ classifiers = [
   "Topic :: Software Development",
   "License :: OSI Approved :: {{ sdk.license }}",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -46,7 +46,7 @@ Repository = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}"
 [tool.black]
 line-length = 120
 skip-string-normalization = true
-target-version = ['py39']
+target-version = ['py310']
 
 [tool.setuptools.packages.find]
 include = ["{{ namespace | caseSnake }}*"]
