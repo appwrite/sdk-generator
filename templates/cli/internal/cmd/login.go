@@ -161,12 +161,6 @@ func runLogin(command *cobra.Command, options loginOptions) error {
 	return loginWithDevice(command, configEndpoint)
 }
 
-// currentAccount reads the signed-in account.
-//
-// The error is returned rather than folded into a nil account: `login` only asks
-// whether anyone is signed in, but `login --switch` needs the reason -- reporting
-// a locked keyring or an unreachable endpoint as a dead session sends the user to
-// re-authenticate against a problem re-authenticating does not fix.
 // loginSelfSigned decides whether a login skips certificate verification.
 //
 // Trust in a self-signed certificate was given for one server. Inherited by a
@@ -190,6 +184,12 @@ func loginSelfSigned(global *config.Global, endpoint string, flag *string) (bool
 		global.CurrentBool(config.PreferenceSelfSigned), nil
 }
 
+// currentAccount reads the signed-in account.
+//
+// The error is returned rather than folded into a nil account: `login` only asks
+// whether anyone is signed in, but `login --switch` needs the reason -- reporting
+// a locked keyring or an unreachable endpoint as a dead session sends the user to
+// re-authenticate against a problem re-authenticating does not fix.
 func currentAccount() (*jsonx.Object, error) {
 	api, _, err := consoleClient()
 	if err != nil {

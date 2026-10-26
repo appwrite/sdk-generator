@@ -26,9 +26,6 @@ func TestLoginOffersEveryOption(t *testing.T) {
 	}
 }
 
-// Two ways to spell "not the current account" that mean different things:
-// --switch moves to one already signed in, --new signs in again. Asking for
-// both is a contradiction, not a preference.
 // Trust in a self-signed certificate stays with the server it was given for.
 func TestLoginSelfSignedFollowsTheEndpoint(t *testing.T) {
 	global := preferencesWith(t, `{"current": "self", "self": {"endpoint": "https://self.hosted/v1", "selfSigned": true}}`)
@@ -45,6 +42,9 @@ func TestLoginSelfSignedFollowsTheEndpoint(t *testing.T) {
 	}
 }
 
+// Two ways to spell "not the current account" that mean different things:
+// --switch moves to one already signed in, --new signs in again. Asking for
+// both is a contradiction, not a preference.
 func TestLoginRejectsSwitchWithNew(t *testing.T) {
 	err := runLogin(newLoginCommand(), loginOptions{Switch: true, New: true})
 
