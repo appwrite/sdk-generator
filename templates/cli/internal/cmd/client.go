@@ -86,6 +86,9 @@ func newClientCommand() *cobra.Command {
 			// accept -- so the first command someone with a self-signed
 			// certificate runs could never succeed.
 			trustSelfSigned := global.CurrentBool(config.PreferenceSelfSigned)
+			if flags.Changed("endpoint") {
+				trustSelfSigned = endpointSelfSigned(global, previous, endpoint)
+			}
 			if flags.Changed("self-signed") {
 				parsed, err := strconv.ParseBool(selfSigned)
 				if err != nil {
@@ -151,6 +154,45 @@ func newClientCommand() *cobra.Command {
 	return command
 }
 
+// sessionChoice is which session a newly configured endpoint is served by.
+type sessionChoice int
+
+const (
+	// sessionCurrent keeps the current session, already on the endpoint.
+	sessionCurrent sessionChoice = iota
+	// sessionSignedIn switches to a stored signed-in session for the endpoint.
+	sessionSignedIn
+	// sessionStub switches to a stored endpoint-only session for the endpoint.
+	sessionStub
+	// sessionRepointed moves the current endpoint-only stub to the endpoint.
+	sessionRepointed
+	// sessionNew starts a session for the endpoint.
+	sessionNew
+)
+
+// chooseSessionForEndpoint decides which session serves a newly configured
+// endpoint, and returns its ID unless a new one is needed.
+func chooseSessionForEndpoint(global *config.Global, previous string, endpoint string) (string, sessionChoice) {
+	authenticated, endpointOnly := findSessionForEndpoint(global, endpoint)
+
+	switch {
+	// Already on the best session for this endpoint.
+	case previous != "" &&
+		config.EndpointsMatch(sessionEndpoint(global, previous), endpoint) &&
+		(isAuthenticatedSession(global, previous) || authenticated == ""):
+		return previous, sessionCurrent
+	case authenticated != "":
+		return authenticated, sessionSignedIn
+	case endpointOnly != "":
+		return endpointOnly, sessionStub
+	// An endpoint-only stub is repointed rather than multiplied.
+	case previous != "" && !isAuthenticatedSession(global, previous):
+		return previous, sessionRepointed
+	default:
+		return "", sessionNew
+	}
+}
+
 // selectSessionForEndpoint points the CLI at the stored session belonging to a
 // newly configured endpoint. Setting the endpoint on whatever session happened
 // to be current re-pointed a signed-in session at a different instance, sending
@@ -162,29 +204,29 @@ func selectSessionForEndpoint(
 	endpoint string,
 ) {
 	out := command.OutOrStdout()
-	authenticated, endpointOnly := findSessionForEndpoint(global, endpoint)
+	id, choice := chooseSessionForEndpoint(global, previous, endpoint)
 
-	switch {
-	// Already on the best session for this endpoint. Rewriting the value keeps
-	// a regional host as the user typed it.
-	case previous != "" &&
-		config.EndpointsMatch(sessionEndpoint(global, previous), endpoint) &&
-		(isAuthenticatedSession(global, previous) || authenticated == ""):
+	switch choice {
+	// Rewriting the value keeps a regional host as the user typed it.
+	case sessionCurrent:
 
-	case authenticated != "":
-		global.SetCurrentSessionID(authenticated)
-		if email := sessionEmail(global, authenticated); email != "" {
+	case sessionSignedIn:
+		global.SetCurrentSessionID(id)
+		if email := sessionEmail(global, id); email != "" {
 			output.Log(out, "Using signed-in account %s", email)
 		}
 
-	case endpointOnly != "":
-		global.SetCurrentSessionID(endpointOnly)
+	case sessionStub:
+		global.SetCurrentSessionID(id)
 		warnDetachedSession(out, global, previous)
 
-	// An endpoint-only stub is repointed rather than multiplied.
-	case previous != "" && !isAuthenticatedSession(global, previous):
+	// Self-signed trust given for the stub's old server does not follow it.
+	case sessionRepointed:
+		if !inheritedSelfSigned(global, endpoint) {
+			global.SetCurrentValue(config.PreferenceSelfSigned, false)
+		}
 
-	default:
+	case sessionNew:
 		id := strconv.FormatInt(time.Now().UnixMilli(), 10)
 		global.AddSession(id, config.NewObject())
 		global.SetCurrentSessionID(id)
@@ -192,6 +234,34 @@ func selectSessionForEndpoint(
 	}
 
 	global.SetCurrentValue(config.PreferenceEndpoint, endpoint)
+}
+
+// inheritedSelfSigned reports whether the current session's self-signed trust
+// applies to endpoint: only when that session belongs to the same server or to
+// none yet.
+func inheritedSelfSigned(global *config.Global, endpoint string) bool {
+	current := global.CurrentValue(config.PreferenceEndpoint)
+
+	return (current == "" || config.EndpointsMatch(current, endpoint)) &&
+		global.CurrentBool(config.PreferenceSelfSigned)
+}
+
+// endpointSelfSigned decides how a newly configured endpoint is verified: with
+// the trust of the session that will serve it, never a session for another
+// server.
+func endpointSelfSigned(global *config.Global, previous string, endpoint string) bool {
+	id, choice := chooseSessionForEndpoint(global, previous, endpoint)
+
+	switch choice {
+	case sessionCurrent, sessionSignedIn, sessionStub:
+		session := global.SessionData(id)
+
+		return session != nil && session.GetBool(config.PreferenceSelfSigned)
+	case sessionRepointed:
+		return inheritedSelfSigned(global, endpoint)
+	default:
+		return false
+	}
 }
 
 // findSessionForEndpoint returns the first signed-in session for an endpoint

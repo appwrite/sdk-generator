@@ -178,10 +178,7 @@ func loginSelfSigned(global *config.Global, endpoint string, flag *string) (bool
 		return selfSigned, nil
 	}
 
-	current := global.CurrentValue(config.PreferenceEndpoint)
-
-	return (current == "" || config.EndpointsMatch(current, endpoint)) &&
-		global.CurrentBool(config.PreferenceSelfSigned), nil
+	return inheritedSelfSigned(global, endpoint), nil
 }
 
 // currentAccount reads the signed-in account.

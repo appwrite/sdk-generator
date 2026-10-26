@@ -292,6 +292,55 @@ func TestEndpointChangeLeavesAnAPIKeyBehind(t *testing.T) {
 	}
 }
 
+// Self-signed trust set on a stub for one server is not carried to another
+// when the stub is repointed, or a later login would skip verifying it.
+func TestEndpointChangeDropsTheStubsSelfSignedTrust(t *testing.T) {
+	global := preferencesWith(t, `{"current": "default", "default": {"endpoint": "https://one/v1", "selfSigned": true}}`)
+
+	command, _ := captureCommand()
+	selectSessionForEndpoint(command, global, "default", "https://two/v1")
+
+	if global.CurrentBool(config.PreferenceSelfSigned) {
+		t.Error("the stub repointed at https://two/v1 kept the trust given for https://one/v1")
+	}
+}
+
+// A stub with no endpoint yet has not been tied to a server, so
+// `client --self-signed true` before the first endpoint still applies.
+func TestEndpointChangeKeepsTrustSetBeforeAnyEndpoint(t *testing.T) {
+	global := preferencesWith(t, `{"current": "default", "default": {"selfSigned": true}}`)
+
+	command, _ := captureCommand()
+	selectSessionForEndpoint(command, global, "default", "https://two/v1")
+
+	if !global.CurrentBool(config.PreferenceSelfSigned) {
+		t.Error("dropped the trust set before any endpoint was configured")
+	}
+}
+
+// A self-signed server with a saved session is verified with that session's
+// trust, not the trust of whichever session is current.
+func TestEndpointChangeVerifiesWithTheSavedSessionsTrust(t *testing.T) {
+	global := preferencesWith(t, `{"current": "one", "one": {"endpoint": "https://one/v1"}, "two": {"endpoint": "https://two/v1", "cookie": "zzcookie", "selfSigned": true}}`)
+
+	if !endpointSelfSigned(global, "one", "https://two/v1") {
+		t.Error("verified https://two/v1 without the trust its saved session holds")
+	}
+	if endpointSelfSigned(global, "one", "https://three/v1") {
+		t.Error("trusted an endpoint no session has agreed to")
+	}
+}
+
+// The signed-in session the CLI switches to is the one whose trust applies,
+// not a stub's for the same server.
+func TestEndpointChangeVerifiesWithTheSessionItSwitchesTo(t *testing.T) {
+	global := preferencesWith(t, `{"current": "stub", "stub": {"endpoint": "https://two/v1", "selfSigned": true}, "two": {"endpoint": "https://two/v1", "cookie": "zzcookie"}}`)
+
+	if endpointSelfSigned(global, "stub", "https://two/v1") {
+		t.Error("verified with the stub's trust although the signed-in session will be used")
+	}
+}
+
 func captureCommand() (*cobra.Command, *bytes.Buffer) {
 	out := &bytes.Buffer{}
 	command := &cobra.Command{Use: "client"}
