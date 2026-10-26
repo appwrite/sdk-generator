@@ -124,7 +124,7 @@ func New(optionalSetters ...ClientOption) Client {
 
 // String describes the client by header name only: the values hold the API
 // key, JWT and session, and String is what %v and %s print.
-func (client *Client) String() string {
+func (client Client) String() string {
 	names := make([]string, 0, len(client.Headers))
 	for name := range client.Headers {
 		names = append(names, name)

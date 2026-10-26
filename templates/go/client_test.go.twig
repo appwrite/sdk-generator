@@ -4,6 +4,7 @@ package client
 import (
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -37,6 +38,9 @@ func TestStringOmitsHeaderValues(t *testing.T) {
 	c.AddHeader("x-appwrite-key", "zzsecret")
 	if s := c.String(); strings.Contains(s, "zzsecret") || !strings.Contains(s, "x-appwrite-key") {
 		t.Errorf("String() must name headers without their values, got %q", s)
+	}
+	if s := fmt.Sprintf("%v %v", c, &c); strings.Contains(s, "zzsecret") {
+		t.Errorf("formatting a Client must not print header values, got %q", s)
 	}
 }
 
