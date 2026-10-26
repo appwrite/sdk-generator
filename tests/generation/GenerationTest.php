@@ -508,6 +508,49 @@ final class GenerationTest extends TestCase
         $this->assertInstanceOf(SDK::class, new SDK($this->language('web'), Parser::parse($document)));
     }
 
+    /**
+     * A parameter name may start with `$`, which Kotlin interpolates inside
+     * a string literal, so the request key is escaped rather than read as a
+     * reference to the argument of the same name.
+     */
+    public function testKotlinParameterKeysKeepTheirDollarSign(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'zzdollar']],
+            'paths' => ['/zzdollar' => [
+                'get' => [
+                    'operationId' => 'zzdollarGet',
+                    'tags' => ['zzdollar'],
+                    'summary' => 'Get',
+                    'description' => 'Get.',
+                    'parameters' => [['name' => '$zzfield', 'in' => 'query', 'required' => true, 'description' => 'Field.', 'schema' => ['type' => 'string']]],
+                    'responses' => ['204' => ['description' => 'ok']],
+                ],
+                'post' => [
+                    'operationId' => 'zzdollarUpload',
+                    'tags' => ['zzdollar'],
+                    'summary' => 'Upload',
+                    'description' => 'Upload.',
+                    'requestBody' => ['required' => true, 'content' => ['multipart/form-data' => ['schema' => [
+                        'type' => 'object',
+                        'required' => ['$zzupload'],
+                        'properties' => ['$zzupload' => ['type' => 'string', 'format' => 'binary', 'description' => 'File.']],
+                    ]]]],
+                    'responses' => ['204' => ['description' => 'ok']],
+                ],
+            ]],
+        ];
+
+        foreach (['kotlin' => 'src/main/kotlin/appwrite/services/Zzdollar.kt', 'android' => 'library/src/main/java/appwrite/services/Zzdollar.kt'] as $name => $file) {
+            $service = $this->generateDocument($document, $name, 'dollar')[$file] ?? '';
+
+            $this->assertStringContainsString('"\\$zzfield" to ', $service, $name);
+            $this->assertStringContainsString('val paramName = "\\$zzupload"', $service, $name);
+        }
+    }
+
     private function removeDirectory(string $dir): void
     {
         if (!\is_dir($dir)) {
