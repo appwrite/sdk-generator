@@ -277,11 +277,14 @@ func TestEndpointChangeReusesAnEndpointOnlyStub(t *testing.T) {
 func TestEndpointChangeLeavesAnAPIKeyBehind(t *testing.T) {
 	global := preferencesWith(t, `{"current": "default", "default": {"endpoint": "https://one/v1", "key": "zzkey", "selfSigned": true}}`)
 
-	command, _ := captureCommand()
+	command, out := captureCommand()
 	selectSessionForEndpoint(command, global, "default", "https://two/v1")
 
 	if got := global.CurrentSessionID(); got == "default" {
 		t.Fatal("repointed the session holding the key")
+	}
+	if strings.Contains(out.String(), "--switch") {
+		t.Errorf("suggested login --switch, which cannot return to a key-only session: %q", out.String())
 	}
 	if got := sessionEndpoint(global, "default"); got != "https://one/v1" {
 		t.Errorf("key session endpoint = %q, want it left on https://one/v1", got)

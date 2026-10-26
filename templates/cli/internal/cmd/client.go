@@ -295,13 +295,21 @@ func findSessionForEndpoint(global *config.Global, endpoint string) (string, str
 // stub was repointed at the new endpoint and sent the old server's key there.
 func isAuthenticatedSession(global *config.Global, id string) bool {
 	session := global.SessionData(id)
+
+	return isSignedInSession(global, id) ||
+		(session != nil && session.GetString(config.PreferenceKey) != "")
+}
+
+// isSignedInSession reports whether a session holds an account login, which
+// `login --switch` can return to. A key-only session cannot be switched to.
+func isSignedInSession(global *config.Global, id string) bool {
+	session := global.SessionData(id)
 	if session == nil {
 		return false
 	}
 
 	return session.GetString(config.PreferenceAccessToken) != "" ||
-		session.GetString(config.PreferenceCookie) != "" ||
-		session.GetString(config.PreferenceKey) != ""
+		session.GetString(config.PreferenceCookie) != ""
 }
 
 func sessionEndpoint(global *config.Global, id string) string {
@@ -325,7 +333,7 @@ func sessionEmail(global *config.Global, id string) string {
 // warnDetachedSession says that a signed-in account is still stored but is no
 // longer the active one, so the user is not left wondering where it went.
 func warnDetachedSession(out io.Writer, global *config.Global, previous string) {
-	if previous == "" || !isAuthenticatedSession(global, previous) {
+	if previous == "" || !isSignedInSession(global, previous) {
 		return
 	}
 
