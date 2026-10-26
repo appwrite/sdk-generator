@@ -491,19 +491,27 @@ final class GenerationTest extends TestCase
         yield 'parameter name' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['parameters' => [
             ['name' => 'zz\\x', 'in' => 'query', 'schema' => ['type' => 'string']],
         ]] + $method)];
+        yield 'media type' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['responses' => ['200' => [
+            'description' => 'ok',
+            'content' => ['application/json"; evil(); "' => ['schema' => ['type' => 'string']]],
+        ]]] + $method)];
         yield 'enum title' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'title' => "Zz]\nsystem('id')\n#", 'enum' => ['a']])];
     }
 
     /**
      * The production spec titles enums with punctuation, such as `teams.read`
-     * and `Côte d'Ivoire`; only a line break is refused in an enum name.
+     * and `Côte d'Ivoire`, and media types may carry parameters; neither is
+     * refused.
      */
-    public function testPunctuatedEnumNamesAreAccepted(): void
+    public function testPunctuatedNamesAreAccepted(): void
     {
         $document = \json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR);
         $model = \array_key_first($document['components']['schemas']);
         $document['components']['schemas'][$model]['properties']['zzscope'] = ['type' => 'string', 'title' => 'teams.read', 'enum' => ['a']];
         $document['components']['schemas'][$model]['properties']['zzcountry'] = ['type' => 'string', 'title' => "Côte d'Ivoire", 'enum' => ['b']];
+        $path = \array_key_first($document['paths']);
+        $method = \array_key_first($document['paths'][$path]);
+        $document['paths'][$path][$method]['responses']['200']['content']['application/json; charset=utf-8'] = ['schema' => ['type' => 'string']];
 
         $this->assertInstanceOf(SDK::class, new SDK($this->language('web'), Parser::parse($document)));
     }

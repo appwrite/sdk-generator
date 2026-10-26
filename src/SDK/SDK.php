@@ -59,6 +59,7 @@ class SDK
         'url' => '/^https?:\/\/[^\s"\'`\\\\$\p{Cc}\x{2028}\x{2029}]+$/u',
         'title' => '/^[A-Za-z0-9 _-]+$/',
         'version' => '/^[A-Za-z0-9.+_-]*$/',
+        'media' => '/^(?:[A-Za-z0-9.+_*-]+\/[A-Za-z0-9.+_*-]+(?: *; *[A-Za-z0-9.+_-]+=[A-Za-z0-9.+_-]+)*)?$/',
     ];
 
     /** Characters an enum value may not contain, for the same reason. */
@@ -1811,13 +1812,16 @@ class SDK
                 foreach ($operation->parameters as $parameter) {
                     $this->validateParameter($parameter);
                 }
-                $media = \array_values($operation->requestBody?->content ?? []);
+                $media = [$operation->requestBody?->content ?? []];
                 foreach ($operation->responses as $response) {
-                    \array_push($media, ...\array_values($response->content));
+                    $media[] = $response->content;
                 }
-                foreach ($media as $type) {
-                    if ($type->schema !== null) {
-                        $this->validateSchema($type->schema);
+                foreach ($media as $content) {
+                    foreach ($content as $name => $type) {
+                        $this->assertSafe('media', 'media type', (string) $name);
+                        if ($type->schema !== null) {
+                            $this->validateSchema($type->schema);
+                        }
                     }
                 }
                 $aliases = $operation->extensions[Extension::APPWRITE->value][Appwrite::METHODS->value] ?? [];
