@@ -64,6 +64,14 @@ class SDK
     /** Characters an enum value may not contain, for the same reason. */
     private const string UNSAFE_ENUM_VALUE = '/["\'`\\\\$]|[\p{Cc}\x{2028}\x{2029}]/u';
 
+    /**
+     * Enum names are cased into type names, but some templates also print them
+     * raw inside line comments, so they may not hold a line break. The spec
+     * uses titles such as `teams.read` and `Côte d'Ivoire`, so nothing else
+     * is refused.
+     */
+    private const string UNSAFE_ENUM_NAME = '/[\p{Cc}\x{2028}\x{2029}]/u';
+
     protected ?Environment $twig = null;
 
     protected array $defaultHeaders = [];
@@ -1837,6 +1845,13 @@ class SDK
         foreach ($schema->enum as $value) {
             if (\is_string($value) && \preg_match(self::UNSAFE_ENUM_VALUE, $value)) {
                 throw new UnexpectedValueException('Spec enum value is not safe to generate: ' . \json_encode($value));
+            }
+        }
+        if ($schema->enum !== []) {
+            foreach ([$schema instanceof StringSchema ? $schema->enumName : null, $schema->title] as $enumName) {
+                if ($enumName !== null && \preg_match(self::UNSAFE_ENUM_NAME, $enumName)) {
+                    throw new UnexpectedValueException('Spec enum name is not safe to generate: ' . \json_encode($enumName));
+                }
             }
         }
         if ($schema instanceof ObjectSchema) {

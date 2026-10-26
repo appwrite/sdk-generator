@@ -491,9 +491,22 @@ final class GenerationTest extends TestCase
         yield 'parameter name' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['parameters' => [
             ['name' => 'zz\\x', 'in' => 'query', 'schema' => ['type' => 'string']],
         ]] + $method)];
+        yield 'enum title' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'title' => "Zz]\nsystem('id')\n#", 'enum' => ['a']])];
     }
 
+    /**
+     * The production spec titles enums with punctuation, such as `teams.read`
+     * and `Côte d'Ivoire`; only a line break is refused in an enum name.
+     */
+    public function testPunctuatedEnumNamesAreAccepted(): void
+    {
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR);
+        $model = \array_key_first($document['components']['schemas']);
+        $document['components']['schemas'][$model]['properties']['zzscope'] = ['type' => 'string', 'title' => 'teams.read', 'enum' => ['a']];
+        $document['components']['schemas'][$model]['properties']['zzcountry'] = ['type' => 'string', 'title' => "Côte d'Ivoire", 'enum' => ['b']];
 
+        $this->assertInstanceOf(SDK::class, new SDK($this->language('web'), Parser::parse($document)));
+    }
 
     private function removeDirectory(string $dir): void
     {
