@@ -1797,7 +1797,7 @@ final class GenerationTest extends TestCase
         yield 'go redirect error' => ['go', 'client/client.go', 'message:    "redirect to " + resp.header.get("location") + " not followed",', ''];
         yield 'go cookies' => ['go', 'client/client.go', 'timeout: timeout,', 'cookiejar'];
         yield 'python redirects' => ['python', 'appwrite/client.py', "allow_redirects=false,\n", "allow_redirects=false if"];
-        yield 'python redirect error' => ['python', 'appwrite/client.py', "if response_type != 'location' and 300 <= response.status_code < 400 and response.status_code != 304:", ''];
+        yield 'python redirect error' => ['python', 'appwrite/client.py', "if (\n                response_type != 'location'\n                and 300 <= response.status_code < 400\n                and response.status_code != 304\n            ):", ''];
         yield 'php redirects' => ['php', 'src/Appwrite/Client.php', 'new httpclient($adapter)->withfollowredirects(false);', 'httpclientnoredirect'];
         yield 'php redirect error' => ['php', 'src/Appwrite/Client.php', "throw new appwriteexception('redirect to ' . \$location . ' not followed', \$responsestatus, '', \$responsebody);", ''];
         yield 'dotnet handler' => ['dotnet', 'Appwrite/Client.cs', "allowautoredirect = false,\n                usecookies = false", '_http = http ?? new httpclient();'];
