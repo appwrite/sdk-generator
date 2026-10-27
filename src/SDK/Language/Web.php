@@ -83,6 +83,12 @@ class Web extends JS
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'src/tracker.ts',
+                'requires'      => 'analytics',
+                'template'      => 'web/src/tracker.ts.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'src/models.ts',
                 'template'      => 'web/src/models.ts.twig',
             ],
