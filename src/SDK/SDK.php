@@ -55,11 +55,11 @@ class SDK
     private const array SAFE = [
         'name' => '/^[A-Za-z0-9_-]+$/',
         'field' => '/^\$?[A-Za-z0-9_-]+$/',
-        'path' => '/^\/[A-Za-z0-9_\/{}.-]*$/',
+        'path' => '/^\/[A-Za-z0-9_\/{}.~:@!()+,;=-]*$/',
         'url' => '/^https?:\/\/[^\s"\'`\\\\$\p{Cc}\x{2028}\x{2029}]+$/u',
         'title' => '/^[A-Za-z0-9 _-]+$/',
         'version' => '/^[A-Za-z0-9.+_-]*$/',
-        'media' => '/^(?:[A-Za-z0-9.+_*-]+\/[A-Za-z0-9.+_*-]+(?: *; *[A-Za-z0-9.+_-]+=[A-Za-z0-9.+_-]+)*)?$/',
+        'media' => '/^(?:[A-Za-z0-9!#&*+.^_|~-]+\/[A-Za-z0-9!#&*+.^_|~-]+(?: *; *[A-Za-z0-9!#&*+.^_|~-]+=[A-Za-z0-9!#&*+.^_|~-]+)*)?$/',
     ];
 
     /** Characters an enum value may not contain, for the same reason. */

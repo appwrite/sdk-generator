@@ -512,6 +512,8 @@ final class GenerationTest extends TestCase
         $path = \array_key_first($document['paths']);
         $method = \array_key_first($document['paths'][$path]);
         $document['paths'][$path][$method]['responses']['200']['content']['application/json; charset=utf-8'] = ['schema' => ['type' => 'string']];
+        $document['paths'][$path][$method]['responses']['200']['content']['application/vnd.zz+json; profile=zz!zz'] = ['schema' => ['type' => 'string']];
+        $document['paths']['/zzcolon/{zzid}:activate'] = $document['paths'][$path];
 
         $this->assertInstanceOf(SDK::class, new SDK($this->language('web'), Parser::parse($document)));
     }
