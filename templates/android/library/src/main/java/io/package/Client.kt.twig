@@ -530,17 +530,23 @@ class Client @JvmOverloads constructor(
         val providedUploadId = idParamName?.let { params[it]?.toString() }
         if (!providedUploadId.isNullOrEmpty()) {
             // Make a request to check if a file already exists
-            val current = call(
-                method = "GET",
-                path = "$path/${encodePath(providedUploadId)}",
-                headers = headers,
-                params = emptyMap(),
-                responseType = Map::class.java,
-            )
-            val chunksUploaded = current["chunksUploaded"] as Long
-            offset = chunksUploaded * CHUNK_SIZE
-            uploadId = providedUploadId
-            result = current
+            try {
+                val current = call(
+                    method = "GET",
+                    path = "$path/${encodePath(providedUploadId)}",
+                    headers = headers,
+                    params = emptyMap(),
+                    responseType = Map::class.java,
+                )
+                val chunksUploaded = current["chunksUploaded"] as Long
+                offset = chunksUploaded * CHUNK_SIZE
+                uploadId = providedUploadId
+                result = current
+            } catch (exception: {{ spec.info.title | caseUcfirst }}Exception) {
+                if (exception.code != 404) {
+                    throw exception
+                }
+            }
         }
 
         fun readChunk(start: Long, end: Long): ByteArray {

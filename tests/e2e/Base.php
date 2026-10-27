@@ -240,6 +240,10 @@ abstract class Base extends TestCase
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
+    protected const UPLOAD_WITH_ID_RESPONSES = [
+        'POST:/v1/mock/tests/general/upload-with-id:passed',
+    ];
+
     protected const LARGE_FILE_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];

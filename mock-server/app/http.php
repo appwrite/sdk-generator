@@ -487,6 +487,79 @@ App::post('/v1/mock/tests/general/upload')
         }
     });
 
+App::get('/v1/mock/tests/general/upload-with-id/:fileId')
+    ->desc('Get Upload')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.mock', true)
+    ->param('fileId', '', new Text(100), 'Upload ID')
+    ->action(function (string $fileId) {
+        throw new Exception(Exception::STORAGE_FILE_NOT_FOUND);
+    });
+
+App::post('/v1/mock/tests/general/upload-with-id')
+    ->desc('Upload File With ID')
+    ->groups(['mock'])
+    ->label('scope', 'public')
+    ->label('sdk.auth', [APP_AUTH_TYPE_SESSION, APP_AUTH_TYPE_KEY, APP_AUTH_TYPE_JWT])
+    ->label('sdk.namespace', 'general')
+    ->label('sdk.method', 'uploadWithId')
+    ->label('sdk.description', 'Mock a chunked upload under a new caller-chosen ID.')
+    ->label('sdk.request.type', 'multipart/form-data')
+    ->label('sdk.response.code', Response::STATUS_CODE_OK)
+    ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
+    ->label('sdk.response.model', Response::MODEL_MOCK)
+    ->label('sdk.mock', true)
+    ->param('fileId', '', new Text(100), 'Upload ID')
+    ->param('file', [], new File(), 'Sample file param', skipValidation: true)
+    ->inject('request')
+    ->inject('response')
+    ->action(function (string $fileId, mixed $file, Request $request, UtopiaSwooleResponse $response) {
+        $contentRange = $request->getHeaderLine('content-range');
+
+        if (empty($contentRange)) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Expected a chunked upload');
+        }
+
+        $start = $request->getContentRangeStart();
+        $end = $request->getContentRangeEnd();
+        $size = $request->getContentRangeSize();
+        $id = $request->getHeaderLine('x-appwrite-id', '');
+        $chunkSize = 5 * 1024 * 1024;
+
+        if (is_null($start) || is_null($end) || is_null($size) || $start > $end || $end >= $size) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Invalid content-range header');
+        }
+
+        if ($start === 0 && !empty($id)) {
+            throw new Exception(Exception::GENERAL_MOCK, 'A new upload must start without an id header');
+        }
+
+        if ($start !== 0 && $id !== $fileId) {
+            throw new Exception(Exception::GENERAL_MOCK, 'Later chunks must carry the upload ID');
+        }
+
+        $chunksTotal = (int) ceil($size / $chunkSize);
+
+        if ($end !== $size - 1) {
+            $response->json([
+                '$id' => $fileId,
+                'chunksTotal' => $chunksTotal,
+                'chunksUploaded' => intdiv($start, $chunkSize) + 1,
+            ]);
+
+            return;
+        }
+
+        $response->json([
+            '$id' => $fileId,
+            'chunksTotal' => $chunksTotal,
+            'chunksUploaded' => $chunksTotal,
+            'result' => 'POST:/v1/mock/tests/general/upload-with-id:passed',
+        ]);
+    });
+
 App::post('/v1/mock/tests/general/optional-upload')
     ->desc('Send an optional attachment')
     ->groups(['mock'])
