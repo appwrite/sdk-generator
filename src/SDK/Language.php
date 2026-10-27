@@ -340,7 +340,13 @@ abstract class Language
             return $value;
         }
 
-        return $this->toCamelCase($value);
+        $prefix = \str_starts_with($value, '$') ? '$' : '';
+        $identifier = $this->toCamelCase(\ltrim($value, '$'));
+        if ($identifier === '' || \ctype_digit($identifier[0])) {
+            $identifier = 'x' . \ucfirst($identifier);
+        }
+
+        return $prefix . $identifier;
     }
 
     public function isPermissionString(string $string): bool

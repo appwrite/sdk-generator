@@ -593,8 +593,11 @@ final class GenerationTest extends TestCase
             ]]],
             'components' => ['schemas' => ['zzreport' => [
                 'type' => 'object',
-                'required' => ['zz-field'],
-                'properties' => ['zz-field' => ['type' => 'integer', 'description' => 'Field.']],
+                'required' => ['zz-field', '1-zzfield'],
+                'properties' => [
+                    'zz-field' => ['type' => 'integer', 'description' => 'Field.'],
+                    '1-zzfield' => ['type' => 'integer', 'description' => 'Field.'],
+                ],
             ]]],
         ];
 
@@ -604,12 +607,17 @@ final class GenerationTest extends TestCase
 
             $this->assertStringContainsString('zzField', $model, $name);
             $this->assertStringContainsString('"zz-field"', $model, $name);
-            $this->assertDoesNotMatchRegularExpression('/(val|let|case|self\.) zz-field/', $model, $name);
+            $this->assertStringContainsString('x1Zzfield', $model, $name);
+            $this->assertDoesNotMatchRegularExpression('/(val|let|case|self\.) (zz-field|1)/', $model, $name);
         }
+
+        $document['components']['schemas']['zzreport']['properties']['$zz-field'] = ['type' => 'integer', 'description' => 'Field.'];
 
         foreach (['dart', 'flutter'] as $name) {
             $files = $this->generateDocument($document, $name, 'ident');
             $enum = $files['lib/src/enums/zzresource.dart'] ?? '';
+
+            $this->assertStringContainsString('final int? $zzField;', $files['lib/src/models/zzreport.dart'] ?? '', $name);
 
             $this->assertStringContainsString('xIndex2(value: "index")', $enum, $name);
             $this->assertStringContainsString('xIndex(value: "xIndex")', $enum, $name);
