@@ -668,7 +668,7 @@ abstract class JS extends Language
 
             return "[\n" . \implode("\n", $items) . $closing . ']';
         }
-        if ($value instanceof stdClass || (\is_array($value) && $value !== [])) {
+        if ((array) $value !== [] && ($value instanceof stdClass || \is_array($value))) {
             $members = [];
             foreach ((array) $value as $key => $member) {
                 $key = $this->getObjectKeyLiteral((string) $key);
