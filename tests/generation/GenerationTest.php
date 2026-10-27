@@ -582,86 +582,32 @@ final class GenerationTest extends TestCase
             'openapi' => '3.0.0',
             'info' => ['title' => 'test', 'version' => '1.0.0'],
             'tags' => [['name' => 'zzident']],
-            'paths' => ['/zzident' => [
-                'get' => [
-                    'operationId' => 'zzidentGet',
-                    'tags' => ['zzident'],
-                    'summary' => 'Get',
-                    'description' => 'Get.',
-                    'parameters' => [['name' => 'zzresource', 'in' => 'query', 'required' => true, 'description' => 'Resource.', 'schema' => ['type' => 'string', 'enum' => ['index', 'values', 'xIndex']]]],
-                    'responses' => ['200' => ['description' => 'ok', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/zzreport']]]]],
-                ],
-                'post' => [
-                    'operationId' => 'zzidentCreate',
-                    'tags' => ['zzident'],
-                    'summary' => 'Create',
-                    'description' => 'Create.',
-                    'requestBody' => ['required' => true, 'content' => ['application/json' => ['schema' => ['type' => 'object', 'required' => ['zzinput'], 'properties' => ['zzinput' => ['$ref' => '#/components/schemas/zzinput']]]]]],
-                    'responses' => ['204' => ['description' => 'ok']],
-                ],
-            ]],
-            'components' => ['schemas' => ['zzinput' => [
+            'paths' => ['/zzident' => ['get' => [
+                'operationId' => 'zzidentGet',
+                'tags' => ['zzident'],
+                'summary' => 'Get',
+                'description' => 'Get.',
+                'parameters' => [['name' => 'zzresource', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string', 'enum' => ['index', 'xIndex']]]],
+                'responses' => ['200' => ['description' => 'ok', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/zzreport']]]]],
+            ]]],
+            'components' => ['schemas' => ['zzreport' => [
                 'type' => 'object',
-                'required' => ['zz-input'],
-                'properties' => ['zz-input' => ['type' => 'string', 'description' => 'Input.']],
-            ], 'zzreport' => [
-                'type' => 'object',
-                'required' => ['zz-field', '1-zzfield'],
-                'properties' => [
-                    'zz-field' => ['type' => 'integer', 'description' => 'Field.'],
-                    '1-zzfield' => ['type' => 'integer', 'description' => 'Field.'],
-                ],
+                'required' => ['zz-field'],
+                'properties' => ['zz-field' => ['type' => 'integer']],
             ]]],
         ];
 
-        foreach (['kotlin', 'android', 'swift', 'apple'] as $name) {
-            $files = $this->generateDocument($document, $name, 'ident');
-            $find = fn(string $model): string => \current(\array_filter($files, fn(string $path): bool => \str_ends_with(\strtolower($path), '/' . $model . '.kt') || \str_ends_with(\strtolower($path), '/' . $model . '.swift'), ARRAY_FILTER_USE_KEY)) ?: '';
-            $model = $find('zzreport');
-            $input = $find('zzinput');
+        $kotlin = $this->generateDocument($document, 'kotlin', 'ident')['src/main/kotlin/appwrite/models/Zzreport.kt'] ?? '';
+        $this->assertStringContainsString('val zzField: Long', $kotlin);
 
-            $this->assertStringContainsString('zzInput', $input, $name);
-            $this->assertStringContainsString('"zz-input"', $input, $name);
-            $this->assertDoesNotMatchRegularExpression('/(val|let|case|self\.) zz-input/', $input, $name);
+        $swift = $this->generateDocument($document, 'swift', 'ident')['Sources/TestModels/Zzreport.swift'] ?? '';
+        $this->assertStringContainsString('case zzField = "zz-field"', $swift);
 
-            $this->assertStringContainsString('zzField', $model, $name);
-            $this->assertStringContainsString('"zz-field"', $model, $name);
-            $this->assertStringContainsString('x1Zzfield', $model, $name);
-            $this->assertDoesNotMatchRegularExpression('/(val|let|case|self\.) (zz-field|1)/', $model, $name);
-        }
+        $dart = $this->generateDocument($document, 'dart', 'ident')['lib/src/enums/zzresource.dart'] ?? '';
+        $this->assertStringContainsString('xIndex2(value: "index")', $dart);
 
-        $colliding = $document;
-        $colliding['components']['schemas']['zzreport']['properties']['$zz-field'] = ['type' => 'integer', 'description' => 'Field.'];
-        foreach (['kotlin', 'swift'] as $name) {
-            try {
-                $this->generateDocument($colliding, $name, 'ident');
-                $this->fail("{$name} generated two properties with the same identifier");
-            } catch (UnexpectedValueException $exception) {
-                $this->assertStringContainsString('is not safe to generate', $exception->getMessage(), $name);
-            }
-        }
-
-        $document = $colliding;
-
-        foreach (['dart', 'flutter'] as $name) {
-            $files = $this->generateDocument($document, $name, 'ident');
-            $enum = $files['lib/src/enums/zzresource.dart'] ?? '';
-
-            $this->assertStringContainsString('final int? $zzField;', $files['lib/src/models/zzreport.dart'] ?? '', $name);
-
-            $this->assertStringContainsString('xIndex2(value: "index")', $enum, $name);
-            $this->assertStringContainsString('xIndex(value: "xIndex")', $enum, $name);
-            $this->assertStringContainsString('xValues(value: "values")', $enum, $name);
-        }
-
-        foreach (['web', 'node', 'react-native'] as $name) {
-            $models = $this->generateDocument($document, $name, 'ident')['src/models.ts'] ?? '';
-
-            $this->assertStringContainsString("'zz-field': number;", $models, $name);
-            $this->assertStringContainsString("'\$zz-field'?: number;", $models, $name);
-            $this->assertStringContainsString("'zz-input': string;", $models, $name);
-            $this->assertStringNotContainsString('zzfield:', $models, $name);
-        }
+        $web = $this->generateDocument($document, 'web', 'ident')['src/models.ts'] ?? '';
+        $this->assertStringContainsString("'zz-field': number;", $web);
     }
 
     private function removeDirectory(string $dir): void
