@@ -1838,7 +1838,7 @@ class SDK
 
     protected function validateParameter(Parameter $parameter): void
     {
-        $this->assertSafe('field', 'parameter', $parameter->name);
+        $this->assertSafe($parameter->location === ParameterLocation::HEADER ? 'name' : 'field', 'parameter', $parameter->name);
         if ($parameter->schema instanceof Schema) {
             $this->validateSchema($parameter->schema);
         }

@@ -491,6 +491,9 @@ final class GenerationTest extends TestCase
         yield 'parameter name' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['parameters' => [
             ['name' => 'zz\\x', 'in' => 'query', 'schema' => ['type' => 'string']],
         ]] + $method)];
+        yield 'header parameter name with a dollar sign' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['parameters' => [
+            ['name' => '$zzheader', 'in' => 'header', 'schema' => ['type' => 'string']],
+        ]] + $method)];
         yield 'media type' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['responses' => ['200' => [
             'description' => 'ok',
             'content' => ['application/json"; evil(); "' => ['schema' => ['type' => 'string']]],
