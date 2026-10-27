@@ -1712,9 +1712,9 @@ final class GenerationTest extends TestCase
         yield 'php encoder' => ['php', 'server', 'src/Appwrite/Service.php', "return strtr(rawurlencode(\$segment), ["];
         yield 'dotnet path' => ['dotnet', 'server', 'Appwrite/Services/General.cs', '.replace("{pathid}", client.encodepath(pathid));'];
         yield 'dotnet encoder' => ['dotnet', 'server', 'Appwrite/Client.cs', "return uri.escapedatastring(value ?? string.empty)\n                .replace(\"%21\", \"!\")"];
-        yield 'dotnet resume' => ['dotnet', 'server', 'Appwrite/Client.cs', 'path: $"{path}/{encodepath(uploadid)}",'];
+        yield 'dotnet resume' => ['dotnet', 'server', 'Appwrite/Client.cs', 'var uploadpath = encodepath(uploadid);'];
         yield 'unity path' => ['unity', 'client', 'Runtime/Core/Services/General.cs', '.replace("{pathid}", client.encodepath(pathid));'];
-        yield 'unity resume' => ['unity', 'client', 'Runtime/Core/Client.cs', 'path: $"{path}/{encodepath(parameters[idparamname!]?.tostring())}",'];
+        yield 'unity resume' => ['unity', 'client', 'Runtime/Core/Client.cs', 'var uploadpath = encodepath(parameters[idparamname!]?.tostring());'];
         yield 'kotlin path' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/services/General.kt', '.replace("{pathid}", client.encodepath(pathid))'];
         yield 'kotlin encoder' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/Client.kt', "urlencoder\n                .encode(value, \"utf-8\")\n                .replace(\"+\", \"%20\")"];
         yield 'kotlin resume' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/Client.kt', 'path = "$path/${encodepath(provideduploadid)}",'];
@@ -1724,15 +1724,15 @@ final class GenerationTest extends TestCase
         foreach (['swift' => 'server', 'apple' => 'client'] as $name => $platform) {
             yield "{$name} path" => [$name, $platform, 'Sources/Appwrite/Services/General.swift', '.replacingoccurrences(of: "{pathid}", with: try client.encodepath(pathid))'];
             yield "{$name} encoder" => [$name, $platform, 'Sources/Appwrite/Client.swift', "charactersin: \"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()\""];
-            yield "{$name} resume" => [$name, $platform, 'Sources/Appwrite/Client.swift', 'path: path + "/" + client.encodepath(uploadid),'];
+            yield "{$name} resume" => [$name, $platform, 'Sources/Appwrite/Client.swift', 'let uploadpath = try client.encodepath(uploadid)'];
         }
         yield 'rust path' => ['rust', 'server', 'src/services/general.rs', '.replace("{pathid}", &client::encode_path(&path_id))'];
         yield 'rust encoder' => ['rust', 'server', 'src/client.rs', "if byte.is_ascii_alphanumeric() || b\"-_.!~*'()\".contains(&byte) {"];
         yield 'rust resume' => ['rust', 'server', 'src/client.rs', 'let resume_path = format!("{}/{}", path, self::encode_path(id));'];
         foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
             yield "{$name} path" => [$name, $platform, 'lib/services/general.dart', "'/mock/tests/general/path/{pathid}'.replaceall(\n      '{pathid}',\n      _encodepath(pathid),"];
-            yield "{$name} resume io" => [$name, $platform, 'lib/src/client_io.dart', "path: '\$path/\${uri.encodecomponent(params[idparamname].tostring())}',"];
-            yield "{$name} resume browser" => [$name, $platform, 'lib/src/client_browser.dart', "path: '\$path/\${uri.encodecomponent(params[idparamname].tostring())}',"];
+            yield "{$name} resume io" => [$name, $platform, 'lib/src/client_io.dart', "if (idvalue == '.' || idvalue == '..') {"];
+            yield "{$name} resume browser" => [$name, $platform, 'lib/src/client_browser.dart', "if (idvalue == '.' || idvalue == '..') {"];
         }
     }
 
@@ -1807,7 +1807,7 @@ final class GenerationTest extends TestCase
         yield 'swift redirects' => ['swift', 'Sources/Appwrite/Client.swift', 'redirectconfiguration: httpclient.configuration.redirectconfiguration = .disallow,', 'request.adddomaincookies()'];
         yield 'swift redirect error' => ['swift', 'Sources/Appwrite/Client.swift', "case 300..<304, 305..<400:\n            let location = response.headers[\"location\"].first ?? \"\"", ''];
         yield 'dart redirects' => ['dart', 'lib/src/client_io.dart', "params: params,\n    );\n    // not followed: a redirect would carry the api key wherever it points.\n    request.followredirects = false;", ''];
-        yield 'dart redirect error' => ['dart', 'lib/src/client_mixin.dart', "if (res.statuscode >= 300 && res.statuscode < 400 && res.statuscode != 304) {", ''];
+        yield 'dart redirect error' => ['dart', 'lib/src/client_mixin.dart', "if (res.statuscode >= 300 &&\n        res.statuscode < 400 &&\n        res.statuscode != 304) {", ''];
         yield 'node redirects' => ['node', 'src/client.ts', "const response = await fetch(uri, {\n            ...options,\n            redirect: 'manual',\n        });\n\n        const warnings", ''];
         yield 'node redirect error' => ['node', 'src/client.ts', '`redirect to ${location} not followed`,', ''];
         yield 'rust redirects' => ['rust', 'src/client.rs', "fn build_http_client(config: &config) -> httpclient {\n        let mut builder = httpclient::builder()\n            .redirect(reqwest::redirect::policy::none())", ''];

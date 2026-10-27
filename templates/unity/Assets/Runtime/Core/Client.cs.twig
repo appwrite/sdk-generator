@@ -869,12 +869,13 @@ namespace {{ spec.info.title | caseUcfirst }}
 
                 if (!string.IsNullOrEmpty(idParamName))
                 {
+                    var uploadPath = EncodePath(parameters[idParamName!]?.ToString());
                     try
                     {
                         // Make a request to check if a file already exists
                         var current = await Call<Dictionary<string, object?>>(
                             method: "GET",
-                            path: $"{path}/{EncodePath(parameters[idParamName!]?.ToString())}",
+                            path: $"{path}/{uploadPath}",
                             new Dictionary<string, string> { { "Content-Type", "application/json" } },
                             parameters: new Dictionary<string, object?>()
                         );

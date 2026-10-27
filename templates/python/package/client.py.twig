@@ -193,6 +193,8 @@ class Client:
         counter = 0
 
         if upload_id:
+            if upload_id in ('.', '..'):
+                raise {{spec.info.title | caseUcfirst}}Exception('Path parameter cannot be "." or ".."')
             try:
                 result = self.call('get', path + '/' + quote(upload_id, safe="!*'()"), headers)
                 counter = result['chunksUploaded']

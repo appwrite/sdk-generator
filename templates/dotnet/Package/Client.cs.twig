@@ -533,12 +533,13 @@ namespace {{ spec.info.title | caseUcfirst }}
                 && uploadIdValue != null)
             {
                 uploadId = uploadIdValue.ToString() ?? string.Empty;
+                var uploadPath = EncodePath(uploadId);
                 try
                 {
                     // Make a request to check if a file already exists
                     var current = await Call<Dictionary<string, object?>>(
                         method: "GET",
-                        path: $"{path}/{EncodePath(uploadId)}",
+                        path: $"{path}/{uploadPath}",
                         new Dictionary<string, string> { { "content-type", "application/json" } },
                         parameters: new Dictionary<string, object?>()
                     );
