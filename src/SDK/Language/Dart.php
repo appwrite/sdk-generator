@@ -157,16 +157,19 @@ class Dart extends Language
     {
         $keys = parent::resolveEnumKeys($value);
         $used = [];
-        foreach ($keys as $key) {
-            $used[$this->toCamelCase($key)] = true;
-        }
-
+        $pending = [];
         foreach ($keys as $index => $key) {
-            if (!\in_array($this->toCamelCase($key), self::ENUM_MEMBERS, true)) {
+            $identifier = $this->toCamelCase($key);
+            if (\in_array($identifier, self::ENUM_MEMBERS, true) || isset($used[$identifier])) {
+                $pending[] = $index;
                 continue;
             }
+            $used[$identifier] = true;
+        }
 
-            $base = 'x' . \ucfirst($this->toCamelCase($key));
+        foreach ($pending as $index) {
+            $identifier = $this->toCamelCase($keys[$index]);
+            $base = \in_array($identifier, self::ENUM_MEMBERS, true) ? 'x' . \ucfirst($identifier) : $identifier;
             $candidate = $base;
             $suffix = 2;
             while (isset($used[$candidate])) {

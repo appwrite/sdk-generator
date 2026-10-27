@@ -478,7 +478,6 @@ final class GenerationTest extends TestCase
             return $document;
         }];
         yield 'property name' => [static fn(array $document): array => $property($document, 'zz"; evil(); "')];
-        yield 'properties that generate the same identifier' => [static fn(array $document): array => $property($property($document, 'zz-dup'), 'zzDup')];
         yield 'enum value with a quote' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ["a'b"]])];
         yield 'enum value with interpolation' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a${b}']])];
         yield 'enum value with a backslash' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a\(b)']])];
@@ -583,15 +582,29 @@ final class GenerationTest extends TestCase
             'openapi' => '3.0.0',
             'info' => ['title' => 'test', 'version' => '1.0.0'],
             'tags' => [['name' => 'zzident']],
-            'paths' => ['/zzident' => ['get' => [
-                'operationId' => 'zzidentGet',
-                'tags' => ['zzident'],
-                'summary' => 'Get',
-                'description' => 'Get.',
-                'parameters' => [['name' => 'zzresource', 'in' => 'query', 'required' => true, 'description' => 'Resource.', 'schema' => ['type' => 'string', 'enum' => ['index', 'values', 'xIndex']]]],
-                'responses' => ['200' => ['description' => 'ok', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/zzreport']]]]],
-            ]]],
-            'components' => ['schemas' => ['zzreport' => [
+            'paths' => ['/zzident' => [
+                'get' => [
+                    'operationId' => 'zzidentGet',
+                    'tags' => ['zzident'],
+                    'summary' => 'Get',
+                    'description' => 'Get.',
+                    'parameters' => [['name' => 'zzresource', 'in' => 'query', 'required' => true, 'description' => 'Resource.', 'schema' => ['type' => 'string', 'enum' => ['index', 'values', 'xIndex']]]],
+                    'responses' => ['200' => ['description' => 'ok', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/zzreport']]]]],
+                ],
+                'post' => [
+                    'operationId' => 'zzidentCreate',
+                    'tags' => ['zzident'],
+                    'summary' => 'Create',
+                    'description' => 'Create.',
+                    'requestBody' => ['required' => true, 'content' => ['application/json' => ['schema' => ['type' => 'object', 'required' => ['zzinput'], 'properties' => ['zzinput' => ['$ref' => '#/components/schemas/zzinput']]]]]],
+                    'responses' => ['204' => ['description' => 'ok']],
+                ],
+            ]],
+            'components' => ['schemas' => ['zzinput' => [
+                'type' => 'object',
+                'required' => ['zz-input'],
+                'properties' => ['zz-input' => ['type' => 'string', 'description' => 'Input.']],
+            ], 'zzreport' => [
                 'type' => 'object',
                 'required' => ['zz-field', '1-zzfield'],
                 'properties' => [
@@ -603,7 +616,13 @@ final class GenerationTest extends TestCase
 
         foreach (['kotlin', 'android', 'swift', 'apple'] as $name) {
             $files = $this->generateDocument($document, $name, 'ident');
-            $model = \current(\array_filter($files, fn(string $path): bool => \str_ends_with(\strtolower($path), '/zzreport.kt') || \str_ends_with(\strtolower($path), '/zzreport.swift'), ARRAY_FILTER_USE_KEY)) ?: '';
+            $find = fn(string $model): string => \current(\array_filter($files, fn(string $path): bool => \str_ends_with(\strtolower($path), '/' . $model . '.kt') || \str_ends_with(\strtolower($path), '/' . $model . '.swift'), ARRAY_FILTER_USE_KEY)) ?: '';
+            $model = $find('zzreport');
+            $input = $find('zzinput');
+
+            $this->assertStringContainsString('zzInput', $input, $name);
+            $this->assertStringContainsString('"zz-input"', $input, $name);
+            $this->assertDoesNotMatchRegularExpression('/(val|let|case|self\.) zz-input/', $input, $name);
 
             $this->assertStringContainsString('zzField', $model, $name);
             $this->assertStringContainsString('"zz-field"', $model, $name);
@@ -611,7 +630,18 @@ final class GenerationTest extends TestCase
             $this->assertDoesNotMatchRegularExpression('/(val|let|case|self\.) (zz-field|1)/', $model, $name);
         }
 
-        $document['components']['schemas']['zzreport']['properties']['$zz-field'] = ['type' => 'integer', 'description' => 'Field.'];
+        $colliding = $document;
+        $colliding['components']['schemas']['zzreport']['properties']['$zz-field'] = ['type' => 'integer', 'description' => 'Field.'];
+        foreach (['kotlin', 'swift'] as $name) {
+            try {
+                $this->generateDocument($colliding, $name, 'ident');
+                $this->fail("{$name} generated two properties with the same identifier");
+            } catch (UnexpectedValueException $exception) {
+                $this->assertStringContainsString('is not safe to generate', $exception->getMessage(), $name);
+            }
+        }
+
+        $document = $colliding;
 
         foreach (['dart', 'flutter'] as $name) {
             $files = $this->generateDocument($document, $name, 'ident');

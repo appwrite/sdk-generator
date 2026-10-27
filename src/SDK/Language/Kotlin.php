@@ -20,6 +20,12 @@ class Kotlin extends Language
         return 'Kotlin';
     }
 
+    #[Override]
+    public function getPropertyIdentifier(string $name): ?string
+    {
+        return \str_replace('$', '', $this->toIdentifier($name));
+    }
+
     /**
      * Get Language Keywords List
      */

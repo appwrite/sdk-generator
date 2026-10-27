@@ -349,6 +349,11 @@ abstract class Language
         return $prefix . $identifier;
     }
 
+    public function getPropertyIdentifier(string $name): ?string
+    {
+        return null;
+    }
+
     public function isPermissionString(string $string): bool
     {
         $permissions = \json_decode($string, true);

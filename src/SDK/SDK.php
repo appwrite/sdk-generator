@@ -1863,11 +1863,13 @@ class SDK
             $identifiers = [];
             foreach ($schema->properties as $name => $property) {
                 $this->assertSafe('field', 'property', (string) $name);
-                $identifier = $this->language->toIdentifier((string) $name);
-                if (isset($identifiers[$identifier])) {
+                $identifier = $this->language->getPropertyIdentifier((string) $name);
+                if ($identifier !== null && isset($identifiers[$identifier])) {
                     throw new UnexpectedValueException('Spec property is not safe to generate: ' . \json_encode((string) $name) . ' has the same identifier as ' . \json_encode($identifiers[$identifier]));
                 }
-                $identifiers[$identifier] = (string) $name;
+                if ($identifier !== null) {
+                    $identifiers[$identifier] = (string) $name;
+                }
                 $this->validateSchema($property);
             }
             if ($schema->additionalProperties instanceof Schema) {
