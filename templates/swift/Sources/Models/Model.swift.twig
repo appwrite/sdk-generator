@@ -126,7 +126,7 @@ open class {{ definition | modelType(spec) | raw }}: Codable {
         return {{ definitionName | caseUcfirst }}(
             {%~ for property in definition.properties %}
             {%~ set isDocument = definitionName | lower == 'document' %}{# Temporary Fix until BE is fixed to return all attributes #}
-            {{ (property | schemaName) | identifier | removeDollarSign }}: {% if (property | schemaModel) -%}
+            {{ (property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign }}: {% if (property | schemaModel) -%}
                 {%- if (property | schemaType) == 'array' -%}
                     (map["{{(property | schemaName) }}"] as{% if isDocument %}?{% else %}{% if (property | schemaRequired) %}!{% else %}?{% endif %}{% endif %} [[String: Any]]{% if isDocument %} ?? []{% elseif not (property | schemaRequired) %} ?? []{% endif %}).map { {{(property | schemaModel) | caseUcfirst}}.from(map: $0) }
                 {%- else -%}

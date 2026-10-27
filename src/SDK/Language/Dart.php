@@ -13,6 +13,8 @@ use Twig\TwigFilter;
 
 class Dart extends Language
 {
+    private const array ENUM_MEMBERS = ['hashCode', 'index', 'noSuchMethod', 'runtimeType', 'toString', 'values'];
+
     /**
      * @var array
      */
@@ -150,11 +152,33 @@ class Dart extends Language
         return $prefix . parent::escapeKeyword($value);
     }
 
-    public function getEnumKey(string $value): string
+    #[Override]
+    public function resolveEnumKeys(Schema|Parameter $value): array
     {
-        $key = $this->toCamelCase($value);
+        $keys = parent::resolveEnumKeys($value);
+        $used = [];
+        foreach ($keys as $key) {
+            $used[$this->toCamelCase($key)] = true;
+        }
 
-        return \in_array($key, ['hashCode', 'index', 'noSuchMethod', 'runtimeType', 'toString', 'values'], true) ? 'x' . \ucfirst($key) : $key;
+        foreach ($keys as $index => $key) {
+            if (!\in_array($this->toCamelCase($key), self::ENUM_MEMBERS, true)) {
+                continue;
+            }
+
+            $base = 'x' . \ucfirst($this->toCamelCase($key));
+            $candidate = $base;
+            $suffix = 2;
+            while (isset($used[$candidate])) {
+                $candidate = $base . $suffix;
+                $suffix++;
+            }
+
+            $keys[$index] = $candidate;
+            $used[$candidate] = true;
+        }
+
+        return $keys;
     }
 
     public function getStringQuote(): string
@@ -583,7 +607,7 @@ class Dart extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('caseEnumKey', fn(string $value): string => $this->getEnumKey($value)),
+            new TwigFilter('caseEnumKey', fn(string $value): string => $this->toCamelCase($value)),
             new TwigFilter('dartString', fn(?string $value): string => $this->getDartStringLiteral($value ?? ''), ['is_safe' => ['html']]),
             new TwigFilter('dartDefault', fn(Schema $property): string => $this->getDartDefault($property), ['is_safe' => ['html']]),
             new TwigFilter('trimLines', fn(string $value): string => preg_replace('/[ \t]+$/m', '', $value) ?? $value),
@@ -603,13 +627,13 @@ class Dart extends Language
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
-                        return $this->escapeKeyword($this->getEnumKey($enumKeys[$index]));
+                        return $this->escapeKeyword($this->toCamelCase($enumKeys[$index]));
                     }
                     if ($index !== false && isset($enumValues[$index])) {
-                        return $this->escapeKeyword($this->getEnumKey($enumValues[$index]));
+                        return $this->escapeKeyword($this->toCamelCase($enumValues[$index]));
                     }
                     $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
-                    return $this->escapeKeyword($this->getEnumKey((string)$fallback));
+                    return $this->escapeKeyword($this->toCamelCase((string)$fallback));
                 };
 
                 if ($isArray) {
