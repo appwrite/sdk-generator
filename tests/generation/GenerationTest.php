@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Generation;
 
 use Exception;
+use Closure;
 use Iterator;
 use Appwrite\SDK\Language;
 use Appwrite\SDK\Language\Android;
@@ -41,6 +42,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Parser;
+use UnexpectedValueException;
 
 /**
  * What the generator emits, for every language and platform, from the shared
@@ -405,6 +407,173 @@ final class GenerationTest extends TestCase
         }
 
         return $files;
+    }
+
+    /**
+     * Output paths interpolate spec names and generator settings, and some
+     * filters keep `.` and `/`. A package name made of parent directories
+     * fails generation instead of writing beside the SDK.
+     */
+    public function testDestinationsStayInsideTheSdk(): void
+    {
+        $language = new Dart();
+        $language->setPackageName('../../../zzescape');
+        $escaped = self::OUTPUT . '/zzescape.dart';
+        @\unlink($escaped);
+
+        try {
+            $this->generate('dart', 'server', language: $language, variant: '-escape');
+            $this->fail('A package named ../../../zzescape generated an SDK');
+        } catch (Exception $exception) {
+            $this->assertStringContainsString('outside the SDK directory', $exception->getMessage());
+        }
+
+        $this->assertFileDoesNotExist($escaped);
+    }
+
+    /**
+     * Templates print spec names as identifiers and spec values between
+     * quotes without escaping them, so a name or value that could end the
+     * identifier or the string is refused before anything is generated.
+     */
+    #[DataProvider('unsafeSpecs')]
+    public function testUnsafeNamesAndValuesAreRefused(Closure $mutate): void
+    {
+        $document = $mutate(\json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR));
+
+        $this->expectException(UnexpectedValueException::class);
+        $this->expectExceptionMessage('is not safe to generate');
+        new SDK($this->language('web'), Parser::parse($document));
+    }
+
+    /** @return iterable<string, array{Closure(array): array}> */
+    public static function unsafeSpecs(): iterable
+    {
+        $property = static function (array $document, string $name, array $schema = ['type' => 'string']): array {
+            $model = \array_key_first($document['components']['schemas']);
+            $document['components']['schemas'][$model]['properties'][$name] = $schema;
+
+            return $document;
+        };
+        $operation = static function (array $document, callable $change): array {
+            $path = \array_key_first($document['paths']);
+            $method = \array_key_first($document['paths'][$path]);
+            $document['paths'][$path][$method] = $change($document['paths'][$path][$method]);
+
+            return $document;
+        };
+
+        yield 'title' => [static fn(array $document): array => ['info' => ['title' => 'App"write'] + $document['info']] + $document];
+        yield 'server URL with a quote' => [static fn(array $document): array => ['servers' => [['url' => 'https://example.com/v1"']]] + $document];
+        yield 'server URL with interpolation' => [static fn(array $document): array => ['servers' => [['url' => 'https://example.com/${x}']]] + $document];
+        yield 'tag' => [static fn(array $document): array => ['tags' => [['name' => '../zz']]] + $document];
+        yield 'header name' => [static function (array $document): array {
+            $document['components']['securitySchemes']['Project']['name'] = 'X-Appwrite-"Project';
+
+            return $document;
+        }];
+        yield 'schema name' => [static function (array $document): array {
+            $document['components']['schemas']['zz"model'] = ['type' => 'object', 'properties' => []];
+
+            return $document;
+        }];
+        yield 'property name' => [static fn(array $document): array => $property($document, 'zz"; evil(); "')];
+        yield 'enum value with a quote' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ["a'b"]])];
+        yield 'enum value with interpolation' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a${b}']])];
+        yield 'enum value with a backslash' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a\(b)']])];
+        yield 'enum value with a line break' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ["a\u{2028}b"]])];
+        yield 'path' => [static function (array $document): array {
+            $document['paths']["/zz'" . 'path'] = \reset($document['paths']);
+
+            return $document;
+        }];
+        yield 'operation ID' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['operationId' => 'zz get'] + $method)];
+        yield 'parameter name' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['parameters' => [
+            ['name' => 'zz\\x', 'in' => 'query', 'schema' => ['type' => 'string']],
+        ]] + $method)];
+        yield 'header parameter name with a dollar sign' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['parameters' => [
+            ['name' => '$zzheader', 'in' => 'header', 'schema' => ['type' => 'string']],
+        ]] + $method)];
+        yield 'media type' => [static fn(array $document): array => $operation($document, static fn(array $method): array => ['responses' => ['200' => [
+            'description' => 'ok',
+            'content' => ['application/json"; evil(); "' => ['schema' => ['type' => 'string']]],
+        ]]] + $method)];
+        yield 'enum title' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'title' => "Zz]\nsystem('id')\n#", 'enum' => ['a']])];
+    }
+
+    /**
+     * The production spec titles enums with punctuation, such as `teams.read`
+     * and `Côte d'Ivoire`, and media types may carry parameters; neither is
+     * refused.
+     */
+    public function testPunctuatedNamesAreAccepted(): void
+    {
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR);
+        $model = \array_key_first($document['components']['schemas']);
+        $document['components']['schemas'][$model]['properties']['zzscope'] = ['type' => 'string', 'title' => 'teams.read', 'enum' => ['a']];
+        $document['components']['schemas'][$model]['properties']['zzcountry'] = ['type' => 'string', 'title' => "Côte d'Ivoire", 'enum' => ['b']];
+        $path = \array_key_first($document['paths']);
+        $method = \array_key_first($document['paths'][$path]);
+        $document['paths'][$path][$method]['responses']['200']['content']['application/json; charset=utf-8'] = ['schema' => ['type' => 'string']];
+        $document['paths'][$path][$method]['responses']['200']['content']['application/vnd.zz+json; profile=zz!zz'] = ['schema' => ['type' => 'string']];
+        $document['paths']['/zzcolon/{zzid}:activate'] = $document['paths'][$path];
+
+        $this->assertInstanceOf(SDK::class, new SDK($this->language('web'), Parser::parse($document)));
+    }
+
+    /**
+     * A parameter name may start with `$`. Kotlin and Dart interpolate it
+     * inside a string literal, so the request key is escaped rather than read
+     * as a reference to the argument of the same name; Ruby cannot write it as
+     * a bare hash label, so the key is quoted.
+     */
+    public function testParameterKeysKeepTheirDollarSign(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'zzdollar']],
+            'paths' => ['/zzdollar' => [
+                'get' => [
+                    'operationId' => 'zzdollarGet',
+                    'tags' => ['zzdollar'],
+                    'summary' => 'Get',
+                    'description' => 'Get.',
+                    'parameters' => [['name' => '$zzfield', 'in' => 'query', 'required' => true, 'description' => 'Field.', 'schema' => ['type' => 'string']]],
+                    'responses' => ['204' => ['description' => 'ok']],
+                ],
+                'post' => [
+                    'operationId' => 'zzdollarUpload',
+                    'tags' => ['zzdollar'],
+                    'summary' => 'Upload',
+                    'description' => 'Upload.',
+                    'requestBody' => ['required' => true, 'content' => ['multipart/form-data' => ['schema' => [
+                        'type' => 'object',
+                        'required' => ['$zzupload'],
+                        'properties' => ['$zzupload' => ['type' => 'string', 'format' => 'binary', 'description' => 'File.']],
+                    ]]]],
+                    'responses' => ['204' => ['description' => 'ok']],
+                ],
+            ]],
+        ];
+
+        foreach (['kotlin' => 'src/main/kotlin/appwrite/services/Zzdollar.kt', 'android' => 'library/src/main/java/appwrite/services/Zzdollar.kt'] as $name => $file) {
+            $service = $this->generateDocument($document, $name, 'dollar')[$file] ?? '';
+
+            $this->assertStringContainsString('"\\$zzfield" to ', $service, $name);
+            $this->assertStringContainsString('val paramName = "\\$zzupload"', $service, $name);
+        }
+
+        foreach (['dart', 'flutter'] as $name) {
+            $service = $this->generateDocument($document, $name, 'dollar')['lib/services/zzdollar.dart'] ?? '';
+
+            $this->assertStringContainsString('\'\\$zzfield\': zzfield,', $service, $name);
+            $this->assertStringContainsString('final paramName = \'\\$zzupload\';', $service, $name);
+        }
+
+        $service = $this->generateDocument($document, 'ruby', 'dollar')['lib/test/services/zzdollar.rb'] ?? '';
+
+        $this->assertStringContainsString('\'$zzfield\': zzfield,', $service);
     }
 
     private function removeDirectory(string $dir): void

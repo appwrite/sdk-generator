@@ -16,12 +16,12 @@
     String idParamName = '';
 {% for parameter in (method | parameters('all')) %}
 {% if (parameter | schemaType) == 'file' %}
-    final paramName = '{{ parameter.name }}';
+    final paramName = '{{ parameter.name | escapeDollarSign }}';
 {% endif %}
 {% endfor %}
 {% set uploadIdParameter = method | uploadIdParameter %}
 {% if uploadIdParameter %}
-    idParamName = '{{ uploadIdParameter.name }}';
+    idParamName = '{{ uploadIdParameter.name | escapeDollarSign }}';
 {% endif %}
     final res = await client.chunkedUpload(
       path: apiPath,

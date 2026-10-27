@@ -23,7 +23,7 @@
 {% else %}
             api_params = {
 {% for parameter in requestParams %}
-                {{ parameter.name }}: {{ parameter.name | caseSnake | escapeKeyword }},
+                {% if parameter.name starts with '$' %}'{{ parameter.name }}'{% else %}{{ parameter.name }}{% endif %}: {{ parameter.name | caseSnake | escapeKeyword }},
 {% endfor %}
             }
 {% endif %}

@@ -83,7 +83,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
     {%~ endfor %}
         val apiPath = {% if pathParameters is empty and securityQueries is empty %}"{{ method.path }}"{% else %}("{{ method.path }}"
         {%~ for parameter in pathParameters %}
-            .replace("{{ '{' ~ parameter.name ~ '}' }}", Client.encodePath({% if (parameter | configKey(method)) %}client.config["{{ (parameter | configKey(method)) | caseCamel }}"].orEmpty(){% else %}{{ parameter.name | caseCamel }}{% if (parameter | enumValues) is not empty %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %}.toString(){% endif %}{% endif %}))
+            .replace("{{ ('{' ~ parameter.name ~ '}') | escapeDollarSign }}", Client.encodePath({% if (parameter | configKey(method)) %}client.config["{{ (parameter | configKey(method)) | caseCamel }}"].orEmpty(){% else %}{{ parameter.name | caseCamel }}{% if (parameter | enumValues) is not empty %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | schemaType) == 'string' and (parameter | enumValues) is empty %}.toString(){% endif %}{% endif %}))
         {%~ endfor %}
             {%~ for security in securityQueries %}
             + "{% if loop.first %}?{% else %}&{% endif %}{{ security.name }}=${java.net.URLEncoder.encode(client.config.get("{{ security.name | caseCamel }}").orEmpty(), "UTF-8")}"
@@ -95,7 +95,7 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ else %}
         val apiParams = mutableMapOf<String, Any?>(
         {%~ for parameter in apiParameters %}
-            "{{ parameter.name }}" to {{ parameter.name | caseCamel }},
+            "{{ parameter.name | escapeDollarSign }}" to {{ parameter.name | caseCamel }},
         {%~ endfor %}
         {%~ if (method | methodType) == 'webAuth' %}
         {%~ if [(method | locationSchemes)] | length > 0 %}
@@ -214,11 +214,11 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
         {%~ endif %}
         {%~ if 'multipart/form-data' in (method | consumes) %}
 {% set uploadIdParameter = method | uploadIdParameter %}
-        val idParamName: String? = {% if uploadIdParameter %}"{{ uploadIdParameter.name }}"{% else %}null{% endif %}
+        val idParamName: String? = {% if uploadIdParameter %}"{{ uploadIdParameter.name | escapeDollarSign }}"{% else %}null{% endif %}
 
         {%~ for parameter in (method | parameters('all')) %}
         {%~ if (parameter | schemaType) == 'file' %}
-        val paramName = "{{ parameter.name }}"
+        val paramName = "{{ parameter.name | escapeDollarSign }}"
         {%~ endif %}
         {%~ endfor %}
         return client.chunkedUpload(

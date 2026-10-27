@@ -4,8 +4,12 @@ include_once __DIR__ . '/vendor/autoload.php';
 
 use Appwrite\SDK\Language\GraphQL;
 use Appwrite\SDK\SDK;
+use Utopia\Client\Adapter\Curl\Client as Curl;
+use Utopia\Client\Client;
 use Utopia\OpenAPI\Parser;
 use Utopia\OpenAPI\Specification;
+use Utopia\Psr7\Method;
+use Utopia\Psr7\Request\Factory as RequestFactory;
 use Appwrite\SDK\Language\Web;
 use Appwrite\SDK\Language\Node;
 use Appwrite\SDK\Language\CLI;
@@ -47,14 +51,16 @@ final class Config
 
 try {
 
-    function getSSLPage(string $url): bool|string {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_HEADER, false);
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        return curl_exec($ch);
+    function fetch(string $url): string {
+        $client = new Client(new Curl());
+        $response = $client->sendRequest(new RequestFactory()->createRequest(Method::GET, $url));
+        $status = $response->getStatusCode();
+
+        if ($status >= 400) {
+            throw new Exception("Failed to fetch {$url}: HTTP {$status}");
+        }
+
+        return (string) $response->getBody();
     }
 
     function configureSDK(SDK $sdk, array $overrides = []): SDK {
@@ -194,7 +200,7 @@ try {
             $spec = file_get_contents($specFile);
         } else {
             // OpenAPI 3 ships one canonical document per version; the generator selects the platform from it.
-            $spec = getSSLPage($specFormat === 'swagger2'
+            $spec = fetch($specFormat === 'swagger2'
                 ? Config::SPECS_URL . "/{$version}/swagger2-{$version}-{$platform}.json"
                 : Config::SPECS_URL . "/{$version}/open-api3-{$version}.json");
         }
