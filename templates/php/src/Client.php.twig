@@ -330,7 +330,7 @@ class Client
         $responseContentType = $response->getHeaderLine('content-type');
         $responseBody = (string) $response->getBody();
 
-        if ($responseType !== 'location' && $responseStatus >= 300 && $responseStatus < 400 && $responseStatus !== 304) {
+        if ($responseType !== 'location' && $responseStatus >= 300 && $responseStatus < 400) {
             $location = $response->getHeaderLine('location');
             throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception('Redirect to ' . $location . ' not followed', $responseStatus, '', $responseBody);
         }

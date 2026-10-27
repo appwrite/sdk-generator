@@ -121,11 +121,7 @@ class Client:
 
             response.raise_for_status()
 
-            if (
-                response_type != 'location'
-                and 300 <= response.status_code < 400
-                and response.status_code != 304
-            ):
+            if response_type != 'location' and 300 <= response.status_code < 400:
                 location = response.headers.get('Location', '')
                 raise {{spec.info.title | caseUcfirst}}Exception(
                     f'Redirect to {location} not followed', response.status_code, None, response.text

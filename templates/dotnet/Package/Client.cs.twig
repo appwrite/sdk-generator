@@ -363,7 +363,7 @@ namespace {{ spec.info.title | caseUcfirst }}
 
             var isJson = contentType.Contains("application/json");
 
-            if (code >= 300 && code < 400 && code != 304)
+            if (code >= 300 && code < 400)
             {
                 var location = response.Headers.Location?.OriginalString ?? "";
                 var body = await response.Content.ReadAsStringAsync();

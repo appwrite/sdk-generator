@@ -770,11 +770,7 @@ class Client {
                 );
         }
 
-        if (
-            300 <= response.status &&
-            response.status < 400 &&
-            response.status !== 304
-        ) {
+        if (300 <= response.status && response.status < 400) {
             const location = response.headers.get('location') || '';
             throw new {{spec.info.title | caseUcfirst}}Exception(
                 `Redirect to ${location} not followed`,

@@ -198,14 +198,14 @@ final class ClientTest extends TestCase
         $client->call(Client::METHOD_GET, '/items');
     }
 
-    public function testNotModifiedIsNotARedirect(): void
+    public function testListHeadersAreChecked(): void
     {
         $transport = $this->createMock(ClientInterface::class);
         $transport->expects($this->once())->method('sendRequest')
             ->willReturnCallback(function (RequestInterface $request): ResponseInterface {
                 $this->assertSame(['a', 'b'], $request->getHeader('x-many'));
 
-                return new Response(304);
+                return new Response(body: new Stream('{}'))->withHeader('content-type', 'application/json');
             });
 
         $client = new Client($transport)->setEndpoint('https://example.com/v1');
