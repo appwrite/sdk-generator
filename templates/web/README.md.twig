@@ -65,6 +65,21 @@ Add the script before any code that uses the SDK. It exposes every export on the
 </script>
 ```
 
+{% if services['analytics'] is defined %}
+#### Analytics tracker
+
+`tracker.js` is a single self-contained file that configures itself from its own script tag, so a page needs no JavaScript to send pageviews, outbound links, scroll depth and engagement time:
+
+```html
+<script defer src="{{ cdnURL }}tracker.js"
+        data-endpoint="{{ (spec | endpoint) }}"
+        data-project="<PROJECT_ID>"
+        data-property="<PROPERTY_ID>"></script>
+```
+
+Add `data-respect-dnt="false"` to track regardless of `navigator.doNotTrack`, or `data-track-downloads="true"` to also track file downloads. The tracker is published on `window.__{{ spec.info.title | caseLower }}Tracker` for custom events, and `{{ spec.info.title | caseUcfirst }}.startTracking()` wires up a second property by hand. To drive tracking from an ES module instead, import `Tracking` from `{{ cdnURL }}analytics-tracking.js`.
+
+{% endif %}
 #### Subresource integrity
 
 `integrity.json` in the same directory maps each `.js` file to its `sha384-` hash. An `integrity` attribute checks only the file it is set on. `sdk.min.js` is a single file, so its hash as the `integrity` attribute, together with `crossorigin="anonymous"`, covers the whole SDK. ES modules import other modules and shared chunks, so supply their hashes through the `integrity` field of an import map to cover those too.

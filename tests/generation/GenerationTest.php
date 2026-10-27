@@ -524,7 +524,7 @@ final class GenerationTest extends TestCase
     {
         $companions = [
             'flutter' => ['lib/src/tracking.dart', 'lib/src/tracking_observer.dart'],
-            'web' => ['src/services/analytics-tracking.ts'],
+            'web' => ['src/services/analytics-tracking.ts', 'src/tracker.ts'],
         ];
         $entrypoints = [
             'flutter' => ['lib/packageName.dart', 'src/tracking'],
