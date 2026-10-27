@@ -133,14 +133,14 @@
         $response = null;
 {% if uploadIdParameter.required %}
         try {
-            $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ uploadIdParameter.name }});
+            $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . self::encodePath(${{ uploadIdParameter.name }}));
             $counter = $response['chunksUploaded'] ?? 0;
         } catch (\Exception) {
         }
 {% else %}
         if (!empty(${{ uploadIdParameter.name }})) {
             try {
-                $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ uploadIdParameter.name }});
+                $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . self::encodePath(${{ uploadIdParameter.name }}));
                 $counter = $response['chunksUploaded'] ?? 0;
             } catch (\Exception) {
             }

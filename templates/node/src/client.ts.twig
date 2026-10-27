@@ -191,6 +191,14 @@ function getUserAgent() {
     return ua;
 }
 
+export function encodePath(value: unknown): string {
+    const segment = String(value);
+    if (segment === '.' || segment === '..') {
+        throw new {{spec.info.title | caseUcfirst}}Exception('Path parameter cannot be "." or ".."');
+    }
+    return encodeURIComponent(segment);
+}
+
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
     private selfSignedAgent?: Agent;

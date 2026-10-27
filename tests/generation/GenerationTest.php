@@ -1380,6 +1380,92 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A path parameter fills exactly one segment: a `/`, `?`, `#` or `..` in
+     * an ID must not reach another endpoint. The fragment is the encoding at
+     * the substitution site (getPath) or where a chunked upload resumes.
+     */
+    #[DataProvider('pathSegmentEncoders')]
+    public function testPathParametersFillOneSegment(string $name, string $platform, string $file, string $fragment): void
+    {
+        $this->assertStringContainsString($fragment, $this->generate($name, $platform)[$file] ?? '');
+    }
+
+    /** @return Iterator<string, array{string, string, string, string}> */
+    public static function pathSegmentEncoders(): Iterator
+    {
+        yield 'go resume' => ['go', 'server', 'client/client.go', 'resp, err := client.call("get", url+"/"+encodepath(uploadid), nil, nil)'];
+        yield 'python path' => ['python', 'server', 'appwrite/services/general.py', "api_path = api_path.replace('{pathid}', self._encode_path(path_id))"];
+        yield 'python encoder' => ['python', 'server', 'appwrite/service.py', "return quote(segment, safe=\"!*'()\")"];
+        yield 'python resume' => ['python', 'server', 'appwrite/client.py', "self.call('get', path + '/' + quote(upload_id, safe=\"!*'()\"), headers)"];
+        yield 'ruby path' => ['ruby', 'server', 'lib/appwrite/services/general.rb', ".gsub('{pathid}', @client.encode_path(path_id))"];
+        yield 'ruby encoder' => ['ruby', 'server', 'lib/appwrite/client.rb', "segment.b.gsub(/[^a-za-z0-9\\-_.!~*'()]/n)"];
+        yield 'ruby resume' => ['ruby', 'server', 'lib/appwrite/client.rb', 'path: "#{path}/#{encode_path(upload_id)}",'];
+        yield 'php path' => ['php', 'server', 'src/Appwrite/Services/General.php', "['{pathid}'],\n            [self::encodepath(\$pathid)],"];
+        yield 'php encoder' => ['php', 'server', 'src/Appwrite/Service.php', "return strtr(rawurlencode(\$segment), ["];
+        yield 'dotnet path' => ['dotnet', 'server', 'Appwrite/Services/General.cs', '.replace("{pathid}", client.encodepath(pathid));'];
+        yield 'dotnet encoder' => ['dotnet', 'server', 'Appwrite/Client.cs', "return uri.escapedatastring(value ?? string.empty)\n                .replace(\"%21\", \"!\")"];
+        yield 'dotnet resume' => ['dotnet', 'server', 'Appwrite/Client.cs', 'path: $"{path}/{encodepath(uploadid)}",'];
+        yield 'unity path' => ['unity', 'client', 'Runtime/Core/Services/General.cs', '.replace("{pathid}", client.encodepath(pathid));'];
+        yield 'unity resume' => ['unity', 'client', 'Runtime/Core/Client.cs', 'path: $"{path}/{encodepath(parameters[idparamname!]?.tostring())}",'];
+        yield 'kotlin path' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/services/General.kt', '.replace("{pathid}", client.encodepath(pathid))'];
+        yield 'kotlin encoder' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/Client.kt', "urlencoder\n                .encode(value, \"utf-8\")\n                .replace(\"+\", \"%20\")"];
+        yield 'kotlin resume' => ['kotlin', 'server', 'src/main/kotlin/io/appwrite/Client.kt', 'path = "$path/${encodepath(provideduploadid)}",'];
+        yield 'android path' => ['android', 'client', 'library/src/main/java/io/appwrite/services/General.kt', '.replace("{pathid}", client.encodepath(pathid))'];
+        yield 'android encoder' => ['android', 'client', 'library/src/main/java/io/appwrite/Client.kt', "urlencoder\n                .encode(value, \"utf-8\")\n                .replace(\"+\", \"%20\")"];
+        yield 'android resume' => ['android', 'client', 'library/src/main/java/io/appwrite/Client.kt', 'path = "$path/${encodepath(provideduploadid)}",'];
+        foreach (['swift' => 'server', 'apple' => 'client'] as $name => $platform) {
+            yield "{$name} path" => [$name, $platform, 'Sources/Appwrite/Services/General.swift', '.replacingoccurrences(of: "{pathid}", with: try client.encodepath(pathid))'];
+            yield "{$name} encoder" => [$name, $platform, 'Sources/Appwrite/Client.swift', "charactersin: \"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()\""];
+            yield "{$name} resume" => [$name, $platform, 'Sources/Appwrite/Client.swift', 'path: path + "/" + client.encodepath(uploadid),'];
+        }
+        yield 'rust path' => ['rust', 'server', 'src/services/general.rs', '.replace("{pathid}", &client::encode_path(&path_id))'];
+        yield 'rust encoder' => ['rust', 'server', 'src/client.rs', "if byte.is_ascii_alphanumeric() || b\"-_.!~*'()\".contains(&byte) {"];
+        yield 'rust resume' => ['rust', 'server', 'src/client.rs', 'let resume_path = format!("{}/{}", path, self::encode_path(id));'];
+        foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
+            yield "{$name} path" => [$name, $platform, 'lib/services/general.dart', "'/mock/tests/general/path/{pathid}'.replaceall(\n      '{pathid}',\n      _encodepath(pathid),"];
+            yield "{$name} resume io" => [$name, $platform, 'lib/src/client_io.dart', "path: '\$path/\${uri.encodecomponent(params[idparamname].tostring())}',"];
+            yield "{$name} resume browser" => [$name, $platform, 'lib/src/client_browser.dart', "path: '\$path/\${uri.encodecomponent(params[idparamname].tostring())}',"];
+        }
+    }
+
+    /**
+     * PHP resumes a chunked upload from its service method: it asks for the
+     * chunks already uploaded at the path plus the upload ID, which fills
+     * one segment like any path parameter.
+     */
+    public function testPhpUploadResumeFillsOneSegment(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'storage']],
+            'paths' => ['/storage/buckets/{bucketId}/files' => ['post' => [
+                'operationId' => 'storageCreateFile',
+                'tags' => ['storage'],
+                'summary' => 'Create file',
+                'description' => 'Create file.',
+                'parameters' => [
+                    ['name' => 'bucketId', 'in' => 'path', 'required' => true, 'description' => 'Bucket ID.', 'schema' => ['type' => 'string']],
+                ],
+                'requestBody' => ['content' => ['multipart/form-data' => ['schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'fileId' => ['type' => 'string', 'description' => 'File ID.'],
+                        'file' => ['type' => 'string', 'format' => 'binary', 'description' => 'File.'],
+                    ],
+                    'required' => ['fileId', 'file'],
+                ]]]],
+                'responses' => ['204' => ['description' => 'ok']],
+            ]]],
+        ];
+
+        $service = $this->generateDocument($document, 'php', 'upload-resume')['src/Appwrite/Services/Storage.php'];
+
+        $this->assertStringContainsString("Client::METHOD_GET, \$apiPath . '/' . self::encodePath(\$fileId));", $service);
+        $this->assertStringNotContainsString("\$apiPath . '/' . \$fileId", $service);
+    }
+
+    /**
      * An upload whose only parameter is the file still takes the progress
      * callback as its second positional argument.
      */
@@ -1407,13 +1493,13 @@ final class GenerationTest extends TestCase
     /** @return Iterator<string, array{string, string, string, string}> */
     public static function serviceTestRequests(): Iterator
     {
-        yield 'php path' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "->expects()->call(\n                'get',\n                '/mock/tests/general/path/grant/special&id',"];
+        yield 'php path' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "->expects()->call(\n                'get',\n                '/mock/tests/general/path/grant%2fspecial%26id',"];
         yield 'php params' => ['php', 'server', 'tests/Appwrite/Services/FooTest.php', "->expects()->call(\n                'put',\n                '/mock/tests/foo',\n                mockery::any(),\n                mockery::on(function (array \$params): bool {\n                    \$this->assertsame(['x', 'y', 'z'], array_keys(\$params));"];
         yield 'python path' => ['python', 'server', 'test/services/test_general.py', "response = self.general.get_path(\n            'grant/special&id',\n        )\n        request = m.last_request\n        url = urlsplit(request.url)\n        self.assertequal(\n            unquote(url.path),\n            '/v1/mock/tests/general/path/grant/special&id',\n        )"];
         yield 'python params' => ['python', 'server', 'test/services/test_foo.py', "m.request(\n            'put',\n            requests_mock.any,"];
         yield 'python body' => ['python', 'server', 'test/services/test_foo.py', "sent = json.loads(request.body or '{}')\n        self.assertequal(\n            sent,\n            {\n                'x': '[]',\n                'y': 1,\n                'z': [],\n            },\n        )"];
         foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
-            yield "{$name} path" => [$name, $platform, 'test/services/general_test.dart', "verify(\n        client.call(\n          httpmethod.get,\n          path: \"/mock/tests/general/path/grant/special&id\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),"];
+            yield "{$name} path" => [$name, $platform, 'test/services/general_test.dart', "verify(\n        client.call(\n          httpmethod.get,\n          path: \"/mock/tests/general/path/grant%2fspecial%26id\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),"];
             yield "{$name} params" => [$name, $platform, 'test/services/foo_test.dart', "client.call(\n          httpmethod.put,\n          path: \"/mock/tests/foo\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),\n          responsetype: anynamed('responsetype'),\n        ),\n      ).captured.single;\n      expect(params, {\n        \"x\": \"[]\",\n        \"y\": 1,\n        \"z\": isa<list>(),\n      });"];
         }
     }

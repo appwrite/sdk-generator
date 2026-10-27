@@ -46,3 +46,10 @@ part 'operator.dart';
 {% for service in services %}
 part 'services/{{service.name | caseSnake}}.dart';
 {% endfor %}
+
+String _encodePath(String value) {
+  if (value == '.' || value == '..') {
+    throw {{spec.info.title | caseUcfirst}}Exception('Path parameter cannot be "." or ".."');
+  }
+  return Uri.encodeComponent(value);
+}

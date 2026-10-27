@@ -136,6 +136,20 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		fmt.Printf("general.GetPath => error %v", err)
 	}
 	fmt.Printf("%s\n", pathResponse.Result)
+	for _, id := range []string{"../grant?special=id#x y%", "unique()"} {
+		pathResponse, err = general.GetPath(id)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(pathResponse.Result)
+	}
+	for _, id := range []string{".", ".."} {
+		if _, err := general.GetPath(id); err != nil {
+			fmt.Println(err)
+		} else {
+			panic("Dot path segment was accepted")
+		}
+	}
 
 	zone, err := appwrite.NewPlaintext(client).GetZone()
 	if err != nil {

@@ -87,6 +87,23 @@ namespace AppwriteTests
                 }
             }
             TestContext.WriteLine((await general.ValidatePath("0", "0")).Result);
+            // The mock routes are registered at the encoded paths, so each call only reaches
+            // its route if the ID is escaped as one segment.
+            TestContext.WriteLine((await general.GetPath("grant/special&id")).Result);
+            TestContext.WriteLine((await general.GetPath("../grant?special=id#x y%")).Result);
+            TestContext.WriteLine((await general.GetPath("unique()")).Result);
+            foreach (var id in new[] { ".", ".." })
+            {
+                try
+                {
+                    await general.GetPath(id);
+                    throw new System.Exception("Dot path segment was accepted");
+                }
+                catch (AppwriteException e)
+                {
+                    TestContext.WriteLine(e.Message);
+                }
+            }
             TestContext.WriteLine((await general.GetQuery("a&b+c#d=e%f", new List<string>() { "a&b", "c+d#e" })).Result);
 
             string zone = await new Plaintext(client).GetZone();

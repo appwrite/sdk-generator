@@ -65,6 +65,20 @@ puts response["result"]
 end
 puts general.validate_path(id: '0', plain: '0').result
 
+# The mock routes are registered at the encoded paths, so each call only reaches its route
+# if the ID is escaped as one segment.
+puts general.get_path(path_id: 'grant/special&id').result
+puts general.get_path(path_id: '../grant?special=id#x y%').result
+puts general.get_path(path_id: 'unique()').result
+['.', '..'].each do |id|
+    begin
+        general.get_path(path_id: id)
+        raise 'Dot path segment was accepted'
+    rescue Appwrite::Exception => error
+        puts error.message
+    end
+end
+
 zone = Plaintext.new(client).get_zone
 raise "Expected zone text as String, got #{zone.class}" unless zone.is_a?(String)
 print zone, "\n"

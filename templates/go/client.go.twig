@@ -297,7 +297,7 @@ func (client *Client) FileUpload(url string, headers map[string]interface{}, par
 	}
 	var currentChunk int64 = 0
 	if uploadId != "" {
-		resp, err := client.Call("GET", url+"/"+uploadId, nil, nil)
+		resp, err := client.Call("GET", url+"/"+EncodePath(uploadId), nil, nil)
 		if err == nil {
 			result = resp
 			var result map[string]interface{}
@@ -513,6 +513,12 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 		httpClient, err = withSelfSigned(httpClient)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	for _, segment := range strings.Split(strings.SplitN(path, "?", 2)[0], "/") {
+		if segment == "." || segment == ".." {
+			return nil, errors.New(`Path parameter cannot be "." or ".."`)
 		}
 	}
 
