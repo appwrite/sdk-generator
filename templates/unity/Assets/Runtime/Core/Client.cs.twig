@@ -37,6 +37,11 @@ namespace {{ spec.info.title | caseUcfirst }}
         /// </summary>
         internal static string EncodePath(string? value)
         {
+            if (value == "." || value == "..")
+            {
+                throw new {{ spec.info.title | caseUcfirst }}Exception("Path parameter cannot be \".\" or \"..\"");
+            }
+
             return Uri.EscapeDataString(value ?? string.Empty)
                 .Replace("%21", "!")
                 .Replace("%2A", "*")

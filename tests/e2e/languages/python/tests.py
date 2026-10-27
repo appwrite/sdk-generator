@@ -81,6 +81,12 @@ print(general.validate_path('0', '0').result)
 print(general.get_path('grant/special&id').result)
 print(general.get_path('../grant?special=id#x y%').result)
 print(general.get_path('unique()').result)
+for id in ['.', '..']:
+    try:
+        general.get_path(id)
+        raise AssertionError('Dot path segment was accepted')
+    except AppwriteException as error:
+        print(error.message)
 
 zone = Plaintext(client).get_zone()
 if not isinstance(zone, str):

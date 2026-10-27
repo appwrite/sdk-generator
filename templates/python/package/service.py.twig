@@ -33,7 +33,10 @@ class Service:
     def _encode_path(self, value: Any) -> str:
         # Everything but letters, digits and -_.!~*'() is escaped, as encodeURIComponent does,
         # so a value fills exactly the one path segment it replaces.
-        return quote(str(self._normalize_value(value)), safe="!*'()")
+        segment = str(self._normalize_value(value))
+        if segment in ('.', '..'):
+            raise AppwriteException('Path parameter cannot be "." or ".."')
+        return quote(segment, safe="!*'()")
 
     def _parse_response(self, response: Any, model: Optional[Type[ModelType]] = None) -> Any:
         if model is None:

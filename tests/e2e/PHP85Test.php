@@ -39,6 +39,7 @@ final class PHP85Test extends Base
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
         ...Base::PATH_SEGMENT_RESPONSES,
+        ...Base::PATH_DOT_RESPONSES,
         ...Base::TEXT_RESPONSES,
         ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::UNION_RESPONSES,

@@ -95,6 +95,14 @@ class Tests: XCTestCase {
         print(try await general.getPath(pathId: "grant/special&id").result)
         print(try await general.getPath(pathId: "../grant?special=id#x y%").result)
         print(try await general.getPath(pathId: "unique()").result)
+        for id in [".", ".."] {
+            do {
+                _ = try await general.getPath(pathId: id)
+                XCTFail("Dot path segment was accepted")
+            } catch let error as AppwriteError {
+                print(error.message)
+            }
+        }
         print(try await general.getQuery(value: "a&b+c#d=e%f", values: ["a&b", "c+d#e"]).result)
 
         let zone: String = try await Plaintext(client).getZone()

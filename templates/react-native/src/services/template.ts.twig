@@ -3,7 +3,9 @@
 {% set usesModels = false %}
 {% set usesException = false %}
 {% set usesDefaults = false %}
+{% set usesPath = false %}
 {% for method in (service | operations) %}
+{% if (method | parameters('path')) is not empty %}{% set usesPath = true %}{% endif %}
 {% if 'multipart/form-data' not in (method | consumes) and (method | responseDefaults(spec, 8)) is not empty %}{% set usesDefaults = true %}{% endif %}
 {% if 'multipart/form-data' in (method | consumes) %}{% set usesUpload = true %}{% endif %}
 {% if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}{% set usesChunkedUpload = true %}{% endif %}
@@ -17,6 +19,7 @@
 {% if usesException %}{% set clientImports = clientImports | merge([(spec.info.title | caseUcfirst) ~ 'Exception']) %}{% endif %}
 {% set clientImports = clientImports | merge(['Client']) %}
 {% if usesDefaults %}{% set clientImports = clientImports | merge(['applyDefaults']) %}{% endif %}
+{% if usesPath %}{% set clientImports = clientImports | merge(['encodePath']) %}{% endif %}
 import { Service } from '../service';
 {{ clientImports | jsImport('../client') | raw }}
 {% if usesModels %}
@@ -148,7 +151,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
+{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodePath(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ ')']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
         const apiPayload: Payload = {};
 
@@ -540,7 +543,7 @@ export class {{ service.name | caseUcfirst }} extends Service {
 
 {% endif %}
 {% endfor %}
-{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
+{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodePath(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ ')']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
         const apiPayload: Payload = {};
 

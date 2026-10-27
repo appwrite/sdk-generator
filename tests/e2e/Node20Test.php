@@ -45,6 +45,7 @@ final class Node20Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
+        ...Base::PATH_DOT_RESPONSES,
         ...Base::TEXT_RESPONSES,
         ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::OPTIONAL_UPLOAD_RESPONSES,

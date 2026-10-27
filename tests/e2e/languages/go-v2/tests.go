@@ -143,6 +143,13 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		}
 		fmt.Println(pathResponse.Result)
 	}
+	for _, id := range []string{".", ".."} {
+		if _, err := general.GetPath(id); err != nil {
+			fmt.Println(err)
+		} else {
+			panic("Dot path segment was accepted")
+		}
+	}
 
 	zone, err := appwrite.NewPlaintext(client).GetZone()
 	if err != nil {

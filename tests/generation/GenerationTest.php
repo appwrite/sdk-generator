@@ -1367,13 +1367,13 @@ final class GenerationTest extends TestCase
     {
         yield 'go resume' => ['go', 'server', 'client/client.go', 'resp, err := client.call("get", url+"/"+encodepath(uploadid), nil, nil)'];
         yield 'python path' => ['python', 'server', 'appwrite/services/general.py', "api_path = api_path.replace('{pathid}', self._encode_path(path_id))"];
-        yield 'python encoder' => ['python', 'server', 'appwrite/service.py', "return quote(str(self._normalize_value(value)), safe=\"!*'()\")"];
+        yield 'python encoder' => ['python', 'server', 'appwrite/service.py', "return quote(segment, safe=\"!*'()\")"];
         yield 'python resume' => ['python', 'server', 'appwrite/client.py', "self.call('get', path + '/' + quote(upload_id, safe=\"!*'()\"), headers)"];
         yield 'ruby path' => ['ruby', 'server', 'lib/appwrite/services/general.rb', ".gsub('{pathid}', @client.encode_path(path_id))"];
-        yield 'ruby encoder' => ['ruby', 'server', 'lib/appwrite/client.rb', "value.to_s.b.gsub(/[^a-za-z0-9\\-_.!~*'()]/n)"];
+        yield 'ruby encoder' => ['ruby', 'server', 'lib/appwrite/client.rb', "segment.b.gsub(/[^a-za-z0-9\\-_.!~*'()]/n)"];
         yield 'ruby resume' => ['ruby', 'server', 'lib/appwrite/client.rb', 'path: "#{path}/#{encode_path(upload_id)}",'];
         yield 'php path' => ['php', 'server', 'src/Appwrite/Services/General.php', "['{pathid}'],\n            [self::encodepath(\$pathid)],"];
-        yield 'php encoder' => ['php', 'server', 'src/Appwrite/Service.php', "return strtr(rawurlencode((string) \$value), ["];
+        yield 'php encoder' => ['php', 'server', 'src/Appwrite/Service.php', "return strtr(rawurlencode(\$segment), ["];
         yield 'dotnet path' => ['dotnet', 'server', 'Appwrite/Services/General.cs', '.replace("{pathid}", client.encodepath(pathid));'];
         yield 'dotnet encoder' => ['dotnet', 'server', 'Appwrite/Client.cs', "return uri.escapedatastring(value ?? string.empty)\n                .replace(\"%21\", \"!\")"];
         yield 'dotnet resume' => ['dotnet', 'server', 'Appwrite/Client.cs', 'path: $"{path}/{encodepath(uploadid)}",'];
@@ -1386,7 +1386,7 @@ final class GenerationTest extends TestCase
         yield 'android encoder' => ['android', 'client', 'library/src/main/java/io/appwrite/Client.kt', "urlencoder\n                .encode(value, \"utf-8\")\n                .replace(\"+\", \"%20\")"];
         yield 'android resume' => ['android', 'client', 'library/src/main/java/io/appwrite/Client.kt', 'path = "$path/${encodepath(provideduploadid)}",'];
         foreach (['swift' => 'server', 'apple' => 'client'] as $name => $platform) {
-            yield "{$name} path" => [$name, $platform, 'Sources/Appwrite/Services/General.swift', '.replacingoccurrences(of: "{pathid}", with: client.encodepath(pathid))'];
+            yield "{$name} path" => [$name, $platform, 'Sources/Appwrite/Services/General.swift', '.replacingoccurrences(of: "{pathid}", with: try client.encodepath(pathid))'];
             yield "{$name} encoder" => [$name, $platform, 'Sources/Appwrite/Client.swift', "charactersin: \"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()\""];
             yield "{$name} resume" => [$name, $platform, 'Sources/Appwrite/Client.swift', 'path: path + "/" + client.encodepath(uploadid),'];
         }
@@ -1394,7 +1394,7 @@ final class GenerationTest extends TestCase
         yield 'rust encoder' => ['rust', 'server', 'src/client.rs', "if byte.is_ascii_alphanumeric() || b\"-_.!~*'()\".contains(&byte) {"];
         yield 'rust resume' => ['rust', 'server', 'src/client.rs', 'let resume_path = format!("{}/{}", path, self::encode_path(id));'];
         foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
-            yield "{$name} path" => [$name, $platform, 'lib/services/general.dart', "'/mock/tests/general/path/{pathid}'.replaceall(\n      '{pathid}',\n      uri.encodecomponent(pathid),"];
+            yield "{$name} path" => [$name, $platform, 'lib/services/general.dart', "'/mock/tests/general/path/{pathid}'.replaceall(\n      '{pathid}',\n      _encodepath(pathid),"];
             yield "{$name} resume io" => [$name, $platform, 'lib/src/client_io.dart', "path: '\$path/\${uri.encodecomponent(params[idparamname].tostring())}',"];
             yield "{$name} resume browser" => [$name, $platform, 'lib/src/client_browser.dart', "path: '\$path/\${uri.encodecomponent(params[idparamname].tostring())}',"];
         }

@@ -92,6 +92,18 @@ namespace AppwriteTests
             TestContext.WriteLine((await general.GetPath("grant/special&id")).Result);
             TestContext.WriteLine((await general.GetPath("../grant?special=id#x y%")).Result);
             TestContext.WriteLine((await general.GetPath("unique()")).Result);
+            foreach (var id in new[] { ".", ".." })
+            {
+                try
+                {
+                    await general.GetPath(id);
+                    throw new System.Exception("Dot path segment was accepted");
+                }
+                catch (AppwriteException e)
+                {
+                    TestContext.WriteLine(e.Message);
+                }
+            }
             TestContext.WriteLine((await general.GetQuery("a&b+c#d=e%f", new List<string>() { "a&b", "c+d#e" })).Result);
 
             string zone = await new Plaintext(client).GetZone();

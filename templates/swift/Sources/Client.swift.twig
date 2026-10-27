@@ -106,7 +106,10 @@ open class Client {
     ///
     /// @return String
     ///
-    internal static func encodePath(_ value: String) -> String {
+    internal static func encodePath(_ value: String) throws -> String {
+        if value == "." || value == ".." {
+            throw {{ spec.info.title | caseUcfirst }}Error(message: "Path parameter cannot be \".\" or \"..\"")
+        }
         return value.addingPercentEncoding(withAllowedCharacters: pathSegmentAllowed) ?? ""
     }
 

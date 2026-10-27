@@ -306,6 +306,23 @@ impl Client {
         encoded
     }
 
+    /// Join the endpoint and a request path that has no `.` or `..` segment
+    fn url(endpoint: &str, path: &str) -> Result<String> {
+        let route = path.split_once('?').map_or(path, |(route, _)| route);
+        if route
+            .split('/')
+            .any(|segment| segment == "." || segment == "..")
+        {
+            return Err({{ spec.info.title | caseUcfirst }}Error::new(
+                0,
+                "Path parameter cannot be \".\" or \"..\"",
+                None,
+                String::new(),
+            ));
+        }
+        Ok(format!("{endpoint}{path}"))
+    }
+
     /// Serialize primitive parameter value to string
     fn serialize_param_value(value: &Value) -> String {
         match value {
@@ -421,7 +438,7 @@ impl Client {
         format: ResponseFormat,
     ) -> Result<T> {
         let state = self.state.load_full();
-        let url = format!("{}{}", state.config.endpoint, path);
+        let url = Self::url(&state.config.endpoint, path)?;
         let is_multipart = method != Method::GET
             && headers.as_ref().is_some_and(|headers| {
                 headers.iter().any(|(key, value)| {
@@ -486,7 +503,7 @@ impl Client {
         params: Option<HashMap<String, Value>>,
     ) -> Result<String> {
         let state = self.state.load_full();
-        let url = format!("{}{}", state.config.endpoint, path);
+        let url = Self::url(&state.config.endpoint, path)?;
 
         let mut request_builder = state.http_no_redirect.request(method.clone(), &url);
 
@@ -586,7 +603,7 @@ impl Client {
         params: Option<HashMap<String, Value>>,
     ) -> Result<Vec<u8>> {
         let state = self.state.load_full();
-        let url = format!("{}{}", state.config.endpoint, path);
+        let url = Self::url(&state.config.endpoint, path)?;
         let mut request_builder;
 
         if let Some(params) = params {
@@ -733,7 +750,7 @@ impl Client {
         param_name: &str,
         input_file: InputFile,
     ) -> Result<T> {
-        let url = format!("{}{}", self.state.load().config.endpoint, path);
+        let url = Self::url(&self.state.load().config.endpoint, path)?;
 
         self.single_file_upload(
             method,
@@ -770,7 +787,7 @@ impl Client {
         param_name: &str,
         input_file: InputFile,
     ) -> Result<String> {
-        let url = format!("{}{}", self.state.load().config.endpoint, path);
+        let url = Self::url(&self.state.load().config.endpoint, path)?;
 
         self.single_file_upload(
             method,
@@ -831,7 +848,7 @@ impl Client {
 
         if file_size <= chunk_size as u64 {
             let state = self.state.load_full();
-            let url = format!("{}{}", state.config.endpoint, path);
+            let url = Self::url(&state.config.endpoint, path)?;
 
             let result = self
                 .single_file_upload(
@@ -1179,7 +1196,7 @@ impl Client {
             form = form.text(key, value_str);
         }
 
-        let url = format!("{}{}", state.config.endpoint, path);
+        let url = Self::url(&state.config.endpoint, path)?;
         let mut request_builder = state
             .http
             .request(method, url)
@@ -1308,6 +1325,13 @@ mod tests {
         );
         assert_eq!(Client::encode_path("unique()"), "unique()");
         assert_eq!(Client::encode_path("é"), "%C3%A9");
+    }
+
+    #[test]
+    fn test_url_refuses_dot_segments() {
+        assert!(Client::url("https://example.com/v1", "/files/..").is_err());
+        assert!(Client::url("https://example.com/v1", "/files/.?project=x").is_err());
+        assert!(Client::url("https://example.com/v1", "/files/..%2Fx").is_ok());
     }
 
     #[test]

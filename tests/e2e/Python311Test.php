@@ -41,6 +41,7 @@ final class Python311Test extends Base
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
         ...Base::PATH_SEGMENT_RESPONSES,
+        ...Base::PATH_DOT_RESPONSES,
         ...Base::TEXT_RESPONSES,
         ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::OPTIONAL_ATTACHMENT_RESPONSES,

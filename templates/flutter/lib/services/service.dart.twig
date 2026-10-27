@@ -47,7 +47,7 @@ part of '../{{ language.params.packageName }}.dart';
 {% set argumentIndent = chainPath ? '          ' : '      ' %}
     final String apiPath ={% if wrapPath %}{{ "\n" }}        {% else %} {% endif %}'{{ method.path }}'{% if chainPath %}{{ "\n" }}        {% endif %}.replaceAll(
 {{ argumentIndent }}'{{ '{' }}{{ pathParameters|first.name }}{{ '}' }}',
-{{ argumentIndent }}Uri.encodeComponent({% if (pathParameters|first | configKey(method)) %}client.config['{{ (pathParameters|first | configKey(method)) | caseLower }}'] ?? ''{% else %}{{ pathParameters|first.name | caseCamel | overrideIdentifier }}{% if (pathParameters|first | enumValues) | length > 0 %}.value{% endif %}{% if pathParameters|first.required and (pathParameters|first | schemaNullable) and (pathParameters|first | typeName) == 'String' %}.toString(){% endif %}{% endif %}),
+{{ argumentIndent }}_encodePath({% if (pathParameters|first | configKey(method)) %}client.config['{{ (pathParameters|first | configKey(method)) | caseLower }}'] ?? ''{% else %}{{ pathParameters|first.name | caseCamel | overrideIdentifier }}{% if (pathParameters|first | enumValues) | length > 0 %}.value{% endif %}{% if pathParameters|first.required and (pathParameters|first | schemaNullable) and (pathParameters|first | typeName) == 'String' %}.toString(){% endif %}{% endif %}),
 {% if chainPath %}        {% else %}    {% endif %});
 {% else %}
 {% set wrapPath = method.path|length > 51 %}
@@ -55,7 +55,7 @@ part of '../{{ language.params.packageName }}.dart';
 {% for parameter in pathParameters %}
 {% if wrapPath %}            {% else %}        {% endif %}.replaceAll(
 {% if wrapPath %}              {% else %}          {% endif %}'{{ '{' }}{{ parameter.name }}{{ '}' }}',
-{% if wrapPath %}              {% else %}          {% endif %}Uri.encodeComponent({% if (parameter | configKey(method)) %}client.config['{{ (parameter | configKey(method)) | caseLower }}'] ?? ''{% else %}{{ parameter.name | caseCamel | overrideIdentifier }}{% if (parameter | enumValues) | length > 0 %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | typeName) == 'String' %}.toString(){% endif %}{% endif %}),
+{% if wrapPath %}              {% else %}          {% endif %}_encodePath({% if (parameter | configKey(method)) %}client.config['{{ (parameter | configKey(method)) | caseLower }}'] ?? ''{% else %}{{ parameter.name | caseCamel | overrideIdentifier }}{% if (parameter | enumValues) | length > 0 %}.value{% endif %}{% if parameter.required and (parameter | schemaNullable) and (parameter | typeName) == 'String' %}.toString(){% endif %}{% endif %}),
 {% if wrapPath %}            {% else %}        {% endif %}){% if loop.last and securityQueries|length == 0 %};{% endif %}{{ "\n" -}}
 {% endfor %}
 {% for security in securityQueries %}

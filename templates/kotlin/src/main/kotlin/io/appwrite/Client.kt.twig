@@ -54,8 +54,11 @@ class Client @JvmOverloads constructor(
          * and -_.!~*'() is escaped, as encodeURIComponent does, so a value
          * fills exactly the segment it replaces.
          */
-        internal fun encodePath(value: String): String =
-            URLEncoder
+        internal fun encodePath(value: String): String {
+            if (value == "." || value == "..") {
+                throw {{ spec.info.title | caseUcfirst }}Exception("Path parameter cannot be \".\" or \"..\"")
+            }
+            return URLEncoder
                 .encode(value, "UTF-8")
                 .replace("+", "%20")
                 .replace("%21", "!")
@@ -63,6 +66,7 @@ class Client @JvmOverloads constructor(
                 .replace("%28", "(")
                 .replace("%29", ")")
                 .replace("%7E", "~")
+        }
     }
 
     override val coroutineContext: CoroutineContext

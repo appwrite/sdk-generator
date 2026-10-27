@@ -507,6 +507,12 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 		}
 	}
 
+	for _, segment := range strings.Split(strings.SplitN(path, "?", 2)[0], "/") {
+		if segment == "." || segment == ".." {
+			return nil, errors.New(`Path parameter cannot be "." or ".."`)
+		}
+	}
+
 	urlPath := client.Endpoint + path
 	isGet := strings.ToUpper(method) == "GET"
 	isJsonRequest := headers["content-type"] == "application/json"

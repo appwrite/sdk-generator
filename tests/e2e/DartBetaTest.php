@@ -42,6 +42,7 @@ final class DartBetaTest extends Base
         ...Base::NULL_PATH_RESPONSE,
         ...Base::PATH_PARAM_RESPONSES,
         ...Base::PATH_SEGMENT_RESPONSES,
+        ...Base::PATH_DOT_RESPONSES,
         ...Base::TEXT_RESPONSES,
         ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::OPTIONAL_ATTACHMENT_RESPONSES,

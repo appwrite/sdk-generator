@@ -164,6 +164,16 @@ async function start() {
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
 
+    for (const pathId of ['.', '..']) {
+        try {
+            await general.getPath({ pathId });
+            throw new Error('Dot path segment was accepted');
+        } catch (error) {
+            if (!(error instanceof AppwriteException)) throw error;
+            console.log(error.message);
+        }
+    }
+
     const zone = await new Plaintext(client).getZone();
     if (typeof zone !== 'string') {
         throw new Error(`Unexpected zone type: ${typeof zone}`);

@@ -61,6 +61,11 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/path/unique():passed',
     ];
 
+    protected const PATH_DOT_RESPONSES = [
+        'Path parameter cannot be "." or ".."',
+        'Path parameter cannot be "." or ".."',
+    ];
+
     // One behavioral contract, invoked by each SDK's language adapter.
     // The mock never emits these errors: reaching it cannot pass the rejection checks.
     protected const PATH_VALIDATION_RESPONSES = [

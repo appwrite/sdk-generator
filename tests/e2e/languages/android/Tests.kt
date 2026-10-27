@@ -214,6 +214,14 @@ class ServiceTest {
             writeToFile(general.getPath("grant/special&id").result)
             writeToFile(general.getPath("../grant?special=id#x y%").result)
             writeToFile(general.getPath("unique()").result)
+            for (id in listOf(".", "..")) {
+                try {
+                    general.getPath(id)
+                    error("Dot path segment was accepted")
+                } catch (e: AppwriteException) {
+                    writeToFile(e.message ?: "Missing exception message")
+                }
+            }
 
             val zone: String = Plaintext(client).getZone()
             writeToFile(zone)

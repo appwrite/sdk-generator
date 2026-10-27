@@ -19,7 +19,12 @@ abstract class Service
      */
     protected static function encodePath(string|int|float|bool|null $value): string
     {
-        return strtr(rawurlencode((string) $value), [
+        $segment = (string) $value;
+        if ($segment === '.' || $segment === '..') {
+            throw new {{ namespace | split('\\') | last | caseUcfirst }}Exception('Path parameter cannot be "." or ".."');
+        }
+
+        return strtr(rawurlencode($segment), [
             '%21' => '!',
             '%2A' => '*',
             '%27' => "'",

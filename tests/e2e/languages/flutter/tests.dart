@@ -154,6 +154,14 @@ void main() async {
   print((await general.getPath(pathId: 'grant/special&id')).result);
   print((await general.getPath(pathId: '../grant?special=id#x y%')).result);
   print((await general.getPath(pathId: 'unique()')).result);
+  for (final id in ['.', '..']) {
+    try {
+      await general.getPath(pathId: id);
+      throw StateError('Dot path segment was accepted');
+    } on AppwriteException catch (e) {
+      print(e.message);
+    }
+  }
 
   final String zone = await Plaintext(client).getZone();
   print(zone);

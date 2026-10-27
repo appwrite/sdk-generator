@@ -127,6 +127,11 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
     println!("{}", general.get_path("grant/special&id").await?.result);
     println!("{}", general.get_path("../grant?special=id#x y%").await?.result);
     println!("{}", general.get_path("unique()").await?.result);
+    for id in [".", ".."] {
+        let error = general.get_path(id).await.unwrap_err();
+        assert_eq!(error.code, 0);
+        println!("{}", error.message);
+    }
 
     let zone: String = Plaintext::new(&client).get_zone().await?;
     println!("{}", zone);

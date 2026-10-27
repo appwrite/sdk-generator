@@ -189,6 +189,14 @@ echo $general->validatePath('0', '0')->result . "\n";
 echo $general->getPath('grant/special&id')->result . "\n";
 echo $general->getPath('../grant?special=id#x y%')->result . "\n";
 echo $general->getPath('unique()')->result . "\n";
+foreach (['.', '..'] as $id) {
+    try {
+        $general->getPath($id);
+        throw new RuntimeException('Dot path segment was accepted');
+    } catch (AppwriteException $error) {
+        echo $error->getMessage() . "\n";
+    }
+}
 
 $zone = new Plaintext($client)->getZone();
 echo $zone . "\n";
