@@ -13,6 +13,7 @@ use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
 use Appwrite\SDK\Language;
+use Closure;
 use stdClass;
 use Twig\TwigFilter;
 
@@ -549,7 +550,7 @@ abstract class JS extends Language
                     if ($default === [] && !$property instanceof ArraySchema) {
                         $default = new stdClass();
                     }
-                    $models[$name]['defaults'][$key] = $this->getLiteral($default);
+                    $models[$name]['defaults'][$key] = fn(int $indent, int $used): string => $this->getFittedLiteral($default, $indent, $used);
                 }
                 $shape = $this->getDefaultsShape($property, $spec);
                 if ($shape !== null) {
@@ -624,11 +625,60 @@ abstract class JS extends Language
         $padding = \str_repeat(' ', $indent + 4);
         $lines = [];
         foreach ($object as $key => $value) {
-            $value = \is_array($value) ? $this->renderObject($value, $indent + 4) : $value;
-            $lines[] = $padding . $this->getObjectKeyLiteral((string) $key) . ': ' . $value . ',';
+            $key = $this->getObjectKeyLiteral((string) $key);
+            $value = match (true) {
+                $value instanceof Closure => $value($indent + 4, \mb_strlen($key) + 2),
+                \is_array($value) => $this->renderObject($value, $indent + 4),
+                default => $value,
+            };
+            $lines[] = $padding . $key . ': ' . $value . ',';
         }
 
         return "{\n" . \implode("\n", $lines) . "\n" . \str_repeat(' ', $indent) . '}';
+    }
+
+    private function getFittedLiteral(mixed $value, int $indent, int $used): string
+    {
+        $literal = $this->getLiteral($value);
+        if ($indent + $used + \mb_strlen($literal) + 1 <= self::PRINT_WIDTH) {
+            return $literal;
+        }
+
+        $padding = \str_repeat(' ', $indent + 4);
+        $closing = "\n" . \str_repeat(' ', $indent);
+        if (\is_array($value) && \array_is_list($value) && $value !== []) {
+            if (\array_all($value, static fn(mixed $item): bool => \is_int($item) || \is_float($item))) {
+                $lines = [];
+                $line = '';
+                foreach ($value as $item) {
+                    $item = $this->getLiteral($item) . ',';
+                    if ($line !== '' && \mb_strlen($padding . $line . ' ' . $item) > self::PRINT_WIDTH) {
+                        $lines[] = $padding . $line;
+                        $line = $item;
+                        continue;
+                    }
+                    $line = $line === '' ? $item : $line . ' ' . $item;
+                }
+                $lines[] = $padding . $line;
+
+                return "[\n" . \implode("\n", $lines) . $closing . ']';
+            }
+
+            $items = \array_map(fn(mixed $item): string => $padding . $this->getFittedLiteral($item, $indent + 4, 0) . ',', $value);
+
+            return "[\n" . \implode("\n", $items) . $closing . ']';
+        }
+        if ($value instanceof stdClass || (\is_array($value) && $value !== [])) {
+            $members = [];
+            foreach ((array) $value as $key => $member) {
+                $key = $this->getObjectKeyLiteral((string) $key);
+                $members[] = $padding . $key . ': ' . $this->getFittedLiteral($member, $indent + 4, \mb_strlen($key) + 2) . ',';
+            }
+
+            return "{\n" . \implode("\n", $members) . $closing . '}';
+        }
+
+        return $literal;
     }
 
     protected function getLiteral(mixed $value): string

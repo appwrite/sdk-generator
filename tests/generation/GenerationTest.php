@@ -1863,6 +1863,43 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testJavascriptResponseDefaultsFitThePrintWidth(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'zzwidth']],
+            'paths' => ['/zzwidth' => ['get' => [
+                'operationId' => 'zzwidthGet',
+                'tags' => ['zzwidth'],
+                'summary' => 'Get',
+                'description' => 'Get.',
+                'responses' => ['200' => ['description' => 'ok', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/zzwide']]]]],
+            ]]],
+            'components' => ['schemas' => ['zzwide' => [
+                'type' => 'object',
+                'required' => ['zzshort', 'zzstatements', 'zzports'],
+                'properties' => [
+                    'zzshort' => ['type' => 'array', 'items' => ['type' => 'string'], 'default' => ['zza']],
+                    'zzstatements' => ['type' => 'array', 'items' => ['type' => 'string'], 'default' => ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'ALTER', 'CREATE', 'TRUNCATE']],
+                    'zzports' => ['type' => 'array', 'items' => ['type' => 'integer'], 'default' => [8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8088, 8089, 8090, 8091]],
+                ],
+            ]]],
+        ];
+
+        foreach (['web', 'node', 'react-native'] as $name) {
+            $service = $this->generateDocument($document, $name, 'width')['src/services/zzwidth.ts'] ?? '';
+
+            $this->assertStringContainsString("zzshort: ['zza'],", $service, $name);
+            $this->assertStringContainsString("zzstatements: [\n                            'SELECT',\n", $service, $name);
+            $this->assertStringContainsString("'TRUNCATE',\n                        ],", $service, $name);
+            $this->assertStringContainsString("zzports: [\n                            8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087,\n                            8088, 8089, 8090, 8091,\n                        ],", $service, $name);
+            foreach (\explode("\n", $service) as $line) {
+                $this->assertLessThanOrEqual(80, \mb_strlen($line), "{$name}: {$line}");
+            }
+        }
+    }
+
     public function testWebNestedResponseDefaultsAreApplied(): void
     {
         $dir = self::OUTPUT . '/web/defaults';
