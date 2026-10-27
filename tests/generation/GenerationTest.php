@@ -1555,6 +1555,48 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A server SDK sends the API key with every call, so it must not follow a
+     * redirect, which may point at another host, and must not keep cookies,
+     * which would carry one caller's session into the next call. The first
+     * fragment must be in the client, the second must not.
+     */
+    #[DataProvider('serverClientTransports')]
+    public function testServerClientsNeitherFollowRedirectsNorKeepCookies(string $name, string $file, string $present, string $absent): void
+    {
+        $client = $this->generate($name, 'server')[$file] ?? '';
+
+        $this->assertStringContainsString($present, $client);
+        if ($absent !== '') {
+            $this->assertStringNotContainsString($absent, $client);
+        }
+    }
+
+    /** @return Iterator<string, array{string, string, string, string}> */
+    public static function serverClientTransports(): Iterator
+    {
+        yield 'go redirects' => ['go', 'client/client.go', "checkredirect: func(*http.request, []*http.request) error {\n\t\t\treturn http.erruselastresponse", ''];
+        yield 'go redirect error' => ['go', 'client/client.go', 'message:    "redirect to " + resp.header.get("location") + " not followed",', ''];
+        yield 'go cookies' => ['go', 'client/client.go', 'timeout: timeout,', 'cookiejar'];
+        yield 'python redirects' => ['python', 'appwrite/client.py', "allow_redirects=false,\n", "allow_redirects=false if"];
+        yield 'python redirect error' => ['python', 'appwrite/client.py', "if response_type != 'location' and 300 <= response.status_code < 400:", ''];
+        yield 'php redirects' => ['php', 'src/Appwrite/Client.php', 'new httpclient($adapter)->withfollowredirects(false);', 'httpclientnoredirect'];
+        yield 'php redirect error' => ['php', 'src/Appwrite/Client.php', "throw new appwriteexception('redirect to ' . \$location . ' not followed', \$responsestatus, '', \$responsebody);", ''];
+        yield 'dotnet handler' => ['dotnet', 'Appwrite/Client.cs', "allowautoredirect = false,\n                usecookies = false", '_http = http ?? new httpclient();'];
+        yield 'dotnet redirect error' => ['dotnet', 'Appwrite/Client.cs', 'throw new appwriteexception($"redirect to {location} not followed", code, "", body);', ''];
+        yield 'kotlin redirects' => ['kotlin', 'src/main/kotlin/io/appwrite/Client.kt', ".newbuilder()\n            .followredirects(false)\n            .followsslredirects(false)", ''];
+        yield 'kotlin redirect error' => ['kotlin', 'src/main/kotlin/io/appwrite/Client.kt', 'it.cancel(appwriteexception("redirect to $location not followed", response.code, "", body))', ''];
+        yield 'swift redirects' => ['swift', 'Sources/Appwrite/Client.swift', 'redirectconfiguration: httpclient.configuration.redirectconfiguration = .disallow,', 'request.adddomaincookies()'];
+        yield 'swift redirect error' => ['swift', 'Sources/Appwrite/Client.swift', "case 300..<400:\n            let location = response.headers[\"location\"].first ?? \"\"", ''];
+        yield 'dart redirects' => ['dart', 'lib/src/client_io.dart', "params: params,\n    );\n    // not followed: a redirect would carry the api key wherever it points.\n    request.followredirects = false;", ''];
+        yield 'dart redirect error' => ['dart', 'lib/src/client_mixin.dart', "if (res.statuscode >= 300 && res.statuscode < 400) {", ''];
+        yield 'node redirects' => ['node', 'src/client.ts', "const response = await fetch(uri, {\n            ...options,\n            redirect: 'manual',\n        });\n\n        const warnings", ''];
+        yield 'node redirect error' => ['node', 'src/client.ts', '`redirect to ${location} not followed`,', ''];
+        yield 'rust redirects' => ['rust', 'src/client.rs', "fn build_http_client(config: &config) -> httpclient {\n        let mut builder = httpclient::builder()\n            .redirect(reqwest::redirect::policy::none())", ''];
+        yield 'rust redirect error' => ['rust', 'src/client.rs', 'format!("redirect to {} not followed", location),', ''];
+        yield 'ruby redirects' => ['ruby', 'lib/appwrite/client.rb', 'raise appwrite::exception.new("redirect to #{location} not followed", response.code, nil, response.body)', 'return fetch(method, uri'];
+    }
+
+    /**
      * An upload whose only parameter is the file still takes the progress
      * callback as its second positional argument.
      */

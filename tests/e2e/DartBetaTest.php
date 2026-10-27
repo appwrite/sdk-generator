@@ -37,7 +37,7 @@ final class DartBetaTest extends Base
         ...Base::PING_RESPONSE,
         ...Base::FOO_RESPONSES,
         ...Base::BAR_RESPONSES,
-        ...Base::GENERAL_RESPONSES,
+        ...Base::SERVER_REDIRECT_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
         ...Base::PATH_PARAM_RESPONSES,

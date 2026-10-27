@@ -688,7 +688,9 @@ App::get('/v1/mock/tests/general/set-cookie')
     ->inject('response')
     ->inject('request')
     ->action(function (UtopiaSwooleResponse $response, Request $request) {
-        $response->addCookie('cookiename', 'cookieValue', \time() + 31536000, '/', $request->getHostname(), true, true, '');
+        // Not Secure: the mock is plain HTTP, and a cookie jar honouring Secure would never send
+        // the cookie back, so a server SDK keeping one could not be told apart from one that does not.
+        $response->addCookie('cookiename', 'cookieValue', \time() + 31536000, '/', $request->getHostname(), false, true, '');
     });
 
 App::get('/v1/mock/tests/general/get-cookie')

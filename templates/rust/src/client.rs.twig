@@ -137,8 +137,11 @@ impl Client {
         }
     }
 
+    /// Calls follow no redirects: one would carry the API key to wherever it points.
     fn build_http_client(config: &Config) -> HttpClient {
-        let mut builder = HttpClient::builder().timeout(Duration::from_secs(config.timeout_secs));
+        let mut builder = HttpClient::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .timeout(Duration::from_secs(config.timeout_secs));
 
         if config.self_signed {
             builder = builder.danger_accept_invalid_certs(true);
@@ -635,6 +638,9 @@ impl Client {
         }
 
         let response = request_builder.send().await?;
+        if let Some(error) = Self::redirect_error(&response) {
+            return Err(error);
+        }
 
         let status = response.status();
         if status.is_success() {
@@ -1224,11 +1230,35 @@ impl Client {
         self.handle_response(response, ResponseFormat::Json).await
     }
 
+    /// The error for an API call answered with a redirect, which is reported,
+    /// not followed: it would carry the API key to wherever it points.
+    fn redirect_error(response: &Response) -> Option<{{ spec.info.title | caseUcfirst }}Error> {
+        if !response.status().is_redirection() {
+            return None;
+        }
+        let location = response
+            .headers()
+            .get("location")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or_default();
+
+        Some({{ spec.info.title | caseUcfirst }}Error::new(
+            response.status().as_u16(),
+            format!("Redirect to {} not followed", location),
+            None,
+            String::new(),
+        ))
+    }
+
     async fn handle_response<T: DeserializeOwned>(
         &self,
         response: Response,
         format: ResponseFormat,
     ) -> Result<T> {
+        if let Some(error) = Self::redirect_error(&response) {
+            return Err(error);
+        }
+
         let status = response.status();
         let content_type = response
             .headers()

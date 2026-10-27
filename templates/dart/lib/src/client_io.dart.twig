@@ -319,6 +319,8 @@ class ClientIO extends ClientBase with ClientMixin {
       headers: {..._headers!, ...headers},
       params: params,
     );
+    // Not followed: a redirect would carry the API key wherever it points.
+    request.followRedirects = false;
 
     try {
       final streamedResponse = await _httpClient.send(request);
