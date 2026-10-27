@@ -5,11 +5,11 @@
 {% set name = parameter.name | caseCamel | overrideIdentifier %}
 {% set value = _self.parameter_value(parameter) | trim %}
 {% if not parameter.required %}
-{% set line %}      if ({{ name }} != null) '{{ parameter.name }}': {{ value }},{% endset %}
-{% set entry %}        '{{ parameter.name }}': {{ value }},{% endset %}
-{% if line|length > 80 %}      if ({{ name }} != null){{ "\n" }}{% if entry|length > 80 %}        '{{ parameter.name }}':{{ "\n" }}            {{ value }},{% else %}{{ entry }}{% endif %}{% else %}{{ line }}{% endif %}{{ "\n" -}}
+{% set line %}      if ({{ name }} != null) '{{ parameter.name | escapeDollarSign }}': {{ value }},{% endset %}
+{% set entry %}        '{{ parameter.name | escapeDollarSign }}': {{ value }},{% endset %}
+{% if line|length > 80 %}      if ({{ name }} != null){{ "\n" }}{% if entry|length > 80 %}        '{{ parameter.name | escapeDollarSign }}':{{ "\n" }}            {{ value }},{% else %}{{ entry }}{% endif %}{% else %}{{ line }}{% endif %}{{ "\n" -}}
 {% else %}
-      '{{ parameter.name }}': {{ value }},
+      '{{ parameter.name | escapeDollarSign }}': {{ value }},
 {% endif %}
 {% endfor %}
 {% endmacro %}

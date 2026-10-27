@@ -519,11 +519,12 @@ final class GenerationTest extends TestCase
     }
 
     /**
-     * A parameter name may start with `$`, which Kotlin interpolates inside
-     * a string literal, so the request key is escaped rather than read as a
-     * reference to the argument of the same name.
+     * A parameter name may start with `$`. Kotlin and Dart interpolate it
+     * inside a string literal, so the request key is escaped rather than read
+     * as a reference to the argument of the same name; Ruby cannot write it as
+     * a bare hash label, so the key is quoted.
      */
-    public function testKotlinParameterKeysKeepTheirDollarSign(): void
+    public function testParameterKeysKeepTheirDollarSign(): void
     {
         $document = [
             'openapi' => '3.0.0',
@@ -559,6 +560,17 @@ final class GenerationTest extends TestCase
             $this->assertStringContainsString('"\\$zzfield" to ', $service, $name);
             $this->assertStringContainsString('val paramName = "\\$zzupload"', $service, $name);
         }
+
+        foreach (['dart', 'flutter'] as $name) {
+            $service = $this->generateDocument($document, $name, 'dollar')['lib/services/zzdollar.dart'] ?? '';
+
+            $this->assertStringContainsString('\'\\$zzfield\': zzfield,', $service, $name);
+            $this->assertStringContainsString('final paramName = \'\\$zzupload\';', $service, $name);
+        }
+
+        $service = $this->generateDocument($document, 'ruby', 'dollar')['lib/test/services/zzdollar.rb'] ?? '';
+
+        $this->assertStringContainsString('\'$zzfield\': zzfield,', $service);
     }
 
     private function removeDirectory(string $dir): void
