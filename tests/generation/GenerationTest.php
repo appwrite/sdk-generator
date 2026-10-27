@@ -945,6 +945,34 @@ final class GenerationTest extends TestCase
         $this->assertDoesNotMatchRegularExpression("/^require 'cgi'$/m", $client, 'Ruby 4.0 removed the cgi library; only cgi/escape ships with it');
     }
 
+    /**
+     * File content must not be able to end its part and add form fields such
+     * as permissions, so the boundary is random for every request and field
+     * and file names cannot close their quotes or header line.
+     */
+    public function testRubyMultipartCannotBeForged(): void
+    {
+        $client = $this->generate('ruby', 'server')['lib/appwrite/client.rb'];
+
+        $this->assertStringNotContainsString('a30#3ad1', $client);
+        $this->assertStringContainsString('boundary = "----#{securerandom.hex(16)}"', $client);
+        $this->assertStringContainsString('name=\\"#{escape_form_data_name(key)}\\"; filename=\\"#{escape_form_data_name(value.filename)}\\"', $client);
+    }
+
+    /**
+     * A cookie's value is the session secret, and device logs are readable by
+     * crash reporters and anyone with a debug connection.
+     */
+    public function testCookieValuesAreNotLogged(): void
+    {
+        $android = $this->generate('android', 'client')['library/src/main/java/io/appwrite/cookies/stores/SharedPreferencesCookieStore.kt'] ?? null;
+        $unity = $this->generate('unity', 'client')['Runtime/Core/CookieContainer.cs'];
+
+        $this->assertNotNull($android);
+        $this->assertStringNotContainsString('value = $value', $android);
+        $this->assertDoesNotMatchRegularExpression('/debug\.log\([^;]*\{(cookie|c)\}/', $unity);
+    }
+
     public function testDotNetKeepsDateTimeStringsAsStrings(): void
     {
         $converter = $this->generate('dotnet', 'server')['Appwrite/Converters/ObjectToInferredTypesConverter.cs'];

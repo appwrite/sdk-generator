@@ -24,7 +24,6 @@ class Tests: XCTestCase {
         let client = Client()
             .setProject("123456")
             .addHeader(key: "Origin", value: "http://localhost")
-            .setSelfSigned()
         let sdkHeaders = client.getHeaders()
         print("x-sdk-name: \(sdkHeaders["x-sdk-name"] ?? "nil"); x-sdk-platform: \(sdkHeaders["x-sdk-platform"] ?? "nil"); x-sdk-language: \(sdkHeaders["x-sdk-language"] ?? "nil"); x-sdk-version: \(sdkHeaders["x-sdk-version"] ?? "nil")")
 
@@ -36,7 +35,6 @@ class Tests: XCTestCase {
         // reset configs
         client.setProject("console")
         client.setEndpointRealtime("ws://mockapi/v1")
-        // Keep selfSigned=true so WebSocketClient skips TLS for the ws:// mock endpoint.
 
         let foo = Foo(client)
         let bar = Bar(client)
@@ -835,6 +833,12 @@ class Tests: XCTestCase {
                 ? "Push close from callback:passed"
                 : "Push close from callback:failed (callback: \(closedFromCallback.message ?? "none"), reopened: \(reopened), error: \(callbackErrors.message ?? "none"))"
         )
+
+        // Any app or page can open the OAuth callback scheme. With no login in progress the
+        // session it carries must not be stored, and a malformed one must not crash the app.
+        WebAuthComponent.handleIncomingCookie(from: URL(string: "appwrite-callback-123456://?domain=.zzplanted.example&key=a_session_123456&secret=planted")!)
+        WebAuthComponent.handleIncomingCookie(from: URL(string: "appwrite-callback-123456://?domain=&domain=&key=a&key=b&secret=c")!)
+        print(UserDefaults.standard.stringArray(forKey: "zzplanted.example") == nil ? "OAuth callback without a login:passed" : "OAuth callback without a login:failed")
     }
 
     /// A server may write its first frame in the same packet as the 101 response.

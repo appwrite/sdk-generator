@@ -4,7 +4,6 @@ include Appwrite
 include Appwrite::Enums
 
 client = Client.new
-client.set_self_signed(true)
 client.add_header('Origin', 'http://localhost')
 client.set_project('console')
 

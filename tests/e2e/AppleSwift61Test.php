@@ -77,5 +77,6 @@ final class AppleSwift61Test extends Base
         ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
         ...Base::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,
         ...Base::PUSH_CLOSE_FROM_CALLBACK_RESPONSES,
+        'OAuth callback without a login:passed',
     ];
 }
