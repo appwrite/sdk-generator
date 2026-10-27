@@ -157,7 +157,6 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseUcwords', fn($value): string => ucwords((string) $value, " -_")));
         $this->twig->addFilter(new TwigFilter('caseLcfirst', fn($value): string => lcfirst((string)$value)));
         $this->twig->addFilter(new TwigFilter('caseCamel', fn(?string $value): string => $this->helperCamelCase($value)));
-        $this->twig->addFilter(new TwigFilter('removeDash', fn($value): string|array => str_replace('-', '', $value)));
         $this->twig->addFilter(new TwigFilter('caseDash', fn($value): string => str_replace([' ', '_'], '-', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', (string) $value)))));
         $this->twig->addFilter(new TwigFilter('caseKebab', function ($value): string {
             $value = preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s_]|(?<=[A-Z])\d)/', '-$1', (string) $value);

@@ -653,6 +653,15 @@ final class GenerationTest extends TestCase
             $this->assertStringContainsString('xIndex(value: "xIndex")', $enum, $name);
             $this->assertStringContainsString('xValues(value: "values")', $enum, $name);
         }
+
+        foreach (['web', 'node', 'react-native'] as $name) {
+            $models = $this->generateDocument($document, $name, 'ident')['src/models.ts'] ?? '';
+
+            $this->assertStringContainsString("'zz-field': number;", $models, $name);
+            $this->assertStringContainsString("'\$zz-field'?: number;", $models, $name);
+            $this->assertStringContainsString("'zz-input': string;", $models, $name);
+            $this->assertStringNotContainsString('zzfield:', $models, $name);
+        }
     }
 
     private function removeDirectory(string $dir): void

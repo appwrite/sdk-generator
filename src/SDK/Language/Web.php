@@ -1159,6 +1159,7 @@ class Web extends JS
 
                 return $lhs . ' ' . $this->wrapConditionalType($type, $indent);
             }, ['is_safe' => ['html']]),
+            new TwigFilter('tsKey', fn(string $name): string => $this->getObjectKeyLiteral($name)),
             new TwigFilter('tsModelProperty', fn(string $label, string $type, int $indent = 8, bool $nullable = false): string => $this->formatModelProperty($label, $type, $indent, $nullable), ['is_safe' => ['html']]),
             new TwigFilter('tsArgument', fn(Operation $method, ?Parameter $parameter = null): string => $this->formatArgument($method, $parameter), ['is_safe' => ['html']]),
             new TwigFilter('tsRestTuple', fn(Operation $method, Specification $spec): string => $this->formatRestTuple($method, $spec), ['is_safe' => ['html']]),
