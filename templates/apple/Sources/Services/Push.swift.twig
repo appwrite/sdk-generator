@@ -1639,9 +1639,10 @@ extension Push {
             return
         }
         do {
+            let topicPath = try Client.encodePath(topic)
             let _: Any = try await push.client.call(
                 method: "POST",
-                path: "/messaging/topics/\(topic)/subscribers",
+                path: "/messaging/topics/\(topicPath)/subscribers",
                 headers: projectHeaders(push),
                 params: ["subscriberId": Ids.subscriber(targetId: targetId, topic: topic), "targetId": targetId],
                 converter: { $0 }
@@ -1664,9 +1665,11 @@ extension Push {
     private static func unlink(_ push: Push, targetId: String, topic: String) async {
         var unlinked = true
         do {
+            let topicPath = try Client.encodePath(topic)
+            let subscriberPath = try Client.encodePath(Ids.subscriber(targetId: targetId, topic: topic))
             let _: Any = try await push.client.call(
                 method: "DELETE",
-                path: "/messaging/topics/\(topic)/subscribers/\(Ids.subscriber(targetId: targetId, topic: topic))",
+                path: "/messaging/topics/\(topicPath)/subscribers/\(subscriberPath)",
                 headers: projectHeaders(push),
                 converter: { $0 }
             )

@@ -93,6 +93,19 @@ final class ClientTest extends TestCase
         $this->assertSame([['a', 'b']], Client::flatten([['a', 'b']]));
     }
 
+    public function testFlattenSendsEnumValues(): void
+    {
+        $enum = new class () implements \JsonSerializable {
+            public function jsonSerialize(): string
+            {
+                return 'avant';
+            }
+        };
+
+        $this->assertSame('avant', Client::flatten($enum));
+        $this->assertSame(['avant'], Client::flatten([$enum]));
+    }
+
     public function testFlattenBuilderParamBecomesQueryStrings(): void
     {
         $this->assertSame(
@@ -183,6 +196,21 @@ final class ClientTest extends TestCase
         $this->expectException({{ namespace | split('\\') | last | caseUcfirst }}Exception::class);
         $this->expectExceptionMessage('Header contains a line break: x-test');
         $client->call(Client::METHOD_GET, '/items');
+    }
+
+    public function testListHeadersAreChecked(): void
+    {
+        $transport = $this->createMock(ClientInterface::class);
+        $transport->expects($this->once())->method('sendRequest')
+            ->willReturnCallback(function (RequestInterface $request): ResponseInterface {
+                $this->assertSame(['a', 'b'], $request->getHeader('x-many'));
+
+                return new Response(body: new Stream('{}'))->withHeader('content-type', 'application/json');
+            });
+
+        $client = new Client($transport)->setEndpoint('https://example.com/v1');
+
+        $client->call(Client::METHOD_GET, '/items', ['x-many' => ['a', 'b']]);
     }
 
     public function testInjectedTransportReceivesFlattenedParams(): void
