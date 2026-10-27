@@ -150,6 +150,13 @@ class Dart extends Language
         return $prefix . parent::escapeKeyword($value);
     }
 
+    public function getEnumKey(string $value): string
+    {
+        $key = $this->toCamelCase($value);
+
+        return \in_array($key, ['hashCode', 'index', 'noSuchMethod', 'runtimeType', 'toString', 'values'], true) ? 'x' . \ucfirst($key) : $key;
+    }
+
     public function getStringQuote(): string
     {
         return "'";
@@ -576,7 +583,7 @@ class Dart extends Language
     public function getFilters(): array
     {
         return [
-            new TwigFilter('caseEnumKey', fn(string $value): string => $this->toCamelCase($value)),
+            new TwigFilter('caseEnumKey', fn(string $value): string => $this->getEnumKey($value)),
             new TwigFilter('dartString', fn(?string $value): string => $this->getDartStringLiteral($value ?? ''), ['is_safe' => ['html']]),
             new TwigFilter('dartDefault', fn(Schema $property): string => $this->getDartDefault($property), ['is_safe' => ['html']]),
             new TwigFilter('trimLines', fn(string $value): string => preg_replace('/[ \t]+$/m', '', $value) ?? $value),
@@ -596,13 +603,13 @@ class Dart extends Language
                 $resolveKey = function ($value) use ($enumValues, $enumKeys): string {
                     $index = array_search($value, $enumValues, true);
                     if ($index !== false && isset($enumKeys[$index]) && $enumKeys[$index] !== '') {
-                        return $this->escapeKeyword($this->toCamelCase($enumKeys[$index]));
+                        return $this->escapeKeyword($this->getEnumKey($enumKeys[$index]));
                     }
                     if ($index !== false && isset($enumValues[$index])) {
-                        return $this->escapeKeyword($this->toCamelCase($enumValues[$index]));
+                        return $this->escapeKeyword($this->getEnumKey($enumValues[$index]));
                     }
                     $fallback = $enumKeys[0] ?? $enumValues[0] ?? $value;
-                    return $this->escapeKeyword($this->toCamelCase((string)$fallback));
+                    return $this->escapeKeyword($this->getEnumKey((string)$fallback));
                 };
 
                 if ($isArray) {

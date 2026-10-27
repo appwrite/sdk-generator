@@ -576,6 +576,45 @@ final class GenerationTest extends TestCase
         $this->assertStringContainsString('\'$zzfield\': zzfield,', $service);
     }
 
+    public function testIdentifiersStayValidForHyphenatedFieldsAndReservedEnumKeys(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'zzident']],
+            'paths' => ['/zzident' => ['get' => [
+                'operationId' => 'zzidentGet',
+                'tags' => ['zzident'],
+                'summary' => 'Get',
+                'description' => 'Get.',
+                'parameters' => [['name' => 'zzresource', 'in' => 'query', 'required' => true, 'description' => 'Resource.', 'schema' => ['type' => 'string', 'enum' => ['index', 'values']]]],
+                'responses' => ['200' => ['description' => 'ok', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/zzreport']]]]],
+            ]]],
+            'components' => ['schemas' => ['zzreport' => [
+                'type' => 'object',
+                'required' => ['zz-field'],
+                'properties' => ['zz-field' => ['type' => 'integer', 'description' => 'Field.']],
+            ]]],
+        ];
+
+        foreach (['kotlin', 'android', 'swift', 'apple'] as $name) {
+            $files = $this->generateDocument($document, $name, 'ident');
+            $model = \current(\array_filter($files, fn(string $path): bool => \str_ends_with(\strtolower($path), '/zzreport.kt') || \str_ends_with(\strtolower($path), '/zzreport.swift'), ARRAY_FILTER_USE_KEY)) ?: '';
+
+            $this->assertStringContainsString('zzField', $model, $name);
+            $this->assertStringContainsString('"zz-field"', $model, $name);
+            $this->assertDoesNotMatchRegularExpression('/(val|let|case|self\.) zz-field/', $model, $name);
+        }
+
+        foreach (['dart', 'flutter'] as $name) {
+            $files = $this->generateDocument($document, $name, 'ident');
+            $enum = $files['lib/src/enums/zzresource.dart'] ?? '';
+
+            $this->assertStringContainsString('xIndex(value: "index")', $enum, $name);
+            $this->assertStringContainsString('xValues(value: "values")', $enum, $name);
+        }
+    }
+
     private function removeDirectory(string $dir): void
     {
         if (!\is_dir($dir)) {

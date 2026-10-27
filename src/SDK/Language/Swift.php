@@ -525,6 +525,7 @@ class Swift extends Language
 
     public function getModelToMapValue(Schema $property, string $propertyName, bool $required): string
     {
+        $propertyName = $this->toIdentifier($propertyName);
         $name = \in_array($propertyName, $this->getKeywords(), true) ? "`{$propertyName}`" : $propertyName;
         $name = \str_replace('$', '', $name);
         $nullAware = $required ? '' : '?';

@@ -334,6 +334,15 @@ abstract class Language
         return $value;
     }
 
+    public function toIdentifier(string $value): string
+    {
+        if (\preg_match('/^\$?[A-Za-z_]\w*$/', $value)) {
+            return $value;
+        }
+
+        return $this->toCamelCase($value);
+    }
+
     public function isPermissionString(string $string): bool
     {
         $permissions = \json_decode($string, true);

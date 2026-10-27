@@ -12,31 +12,31 @@ open class {{ requestModelName | caseUcfirst }}: Codable {
 
     enum CodingKeys: String, CodingKey {
         {%~ for property in requestModel.properties %}
-        case {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = "{{ (property | schemaName) }}"
+        case {{ (property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign }} = "{{ (property | schemaName) }}"
         {%~ endfor %}
     }
 
     {%~ for property in requestModel.properties %}
     ///{{ (property.description | trim) ? ' ' ~ (property.description | trim | escapeComment | replace({'\n': '\n    /// '})) }}
-    public {% if (property | schemaRequired) %}let{% else %}var{% endif %} {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}?{% endif %}
+    public {% if (property | schemaRequired) %}let{% else %}var{% endif %} {{ (property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}?{% endif %}
 
     {%~ endfor %}
 
     public init(
         {%~ for property in requestModel.properties %}
-        {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw  }}{% if not (property | schemaRequired) %}? = nil{% endif %}{% if not loop.last %},{% endif %}
+        {{ (property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw  }}{% if not (property | schemaRequired) %}? = nil{% endif %}{% if not loop.last %},{% endif %}
 
         {%~ endfor %}
     ) {
         {%~ for property in requestModel.properties %}
-        self.{{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }} = {{ (property | schemaName) | escapeSwiftKeyword | removeDollarSign }}
+        self.{{ (property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign }} = {{ (property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign }}
         {%~ endfor %}
     }
 
     public func toMap() -> [String: Any?] {
         return [
             {%~ for property in requestModel.properties %}
-            "{{ (property | schemaName) }}": {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { $0.toMap() }{% else %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif (property | schemaType) != 'array' and (property | enumValues) is not empty %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.rawValue{% elseif (property | enumValues) %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { $0.rawValue }{% else %}{{(property | schemaName) | escapeSwiftKeyword | removeDollarSign}}{% endif %}{% if not loop.last or requestModel.properties | length > 1 %},{% endif %}
+            "{{ (property | schemaName) }}": {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { $0.toMap() }{% else %}{{(property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif (property | schemaType) != 'array' and (property | enumValues) is not empty %}{{(property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.rawValue{% elseif (property | enumValues) %}{{(property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { $0.rawValue }{% else %}{{(property | schemaName) | identifier | escapeSwiftKeyword | removeDollarSign}}{% endif %}{% if not loop.last or requestModel.properties | length > 1 %},{% endif %}
 
             {%~ endfor %}
         ]

@@ -247,6 +247,7 @@ class SDK
         )));
         $this->twig->addFilter(new TwigFilter('html', fn($value) => $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', fn(string $value): string => $language->escapeKeyword($value), ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('identifier', fn(string $value): string => $language->toIdentifier($value)));
         $this->twig->addFilter(new TwigFilter('caseHTML', fn($value) => $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('removeDollarSign', fn($value): string|array => str_replace('$', '', $value)));
         $this->twig->addFilter(new TwigFilter('unescape', fn($value): string => html_entity_decode((string) $value)));
