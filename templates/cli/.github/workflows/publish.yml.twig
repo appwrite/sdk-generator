@@ -28,6 +28,17 @@ jobs:
       WINDOWS_SIGNING_POLICY_SLUG: {{ '${{ vars.WINDOWS_SIGNING_POLICY_SLUG || \'release-signing\' }}' }}
       WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG: {{ '${{ vars.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG || \'initial\' }}' }}
     steps:
+      # The tag is written into the Homebrew formula's Ruby source, the npm
+      # manifests and the linker flags, so only a version is accepted.
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: {{ '${{ github.event.release.tag_name }}' }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::$RELEASE_TAG is not a semantic version"
+            exit 1
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
