@@ -177,6 +177,12 @@ class ServiceTest {
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
+            try {
+                mock = general.uploadWithId("newfileid", InputFile.fromPath("../../../resources/large_file.mp4"))
+                writeToFile(mock.result)
+            } catch (ex: Exception) {
+                writeToFile(ex.toString())
+            }
 
             val profile = general.uploadGeneric(InputFile.fromPath("../../../resources/file.png"))
             writeToFile(profile.prefs.data["result"] as String)
