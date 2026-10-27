@@ -443,7 +443,7 @@ final class GenerationTest extends TestCase
 
         $this->expectException(UnexpectedValueException::class);
         $this->expectExceptionMessage('is not safe to generate');
-        new SDK($this->language('web'), Parser::parse($document));
+        new SDK($this->language('kotlin'), Parser::parse($document));
     }
 
     /** @return iterable<string, array{Closure(array): array}> */
@@ -478,6 +478,7 @@ final class GenerationTest extends TestCase
             return $document;
         }];
         yield 'property name' => [static fn(array $document): array => $property($document, 'zz"; evil(); "')];
+        yield 'properties that generate the same identifier' => [static fn(array $document): array => $property($property($document, 'zz-dup'), 'zzDup')];
         yield 'enum value with a quote' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ["a'b"]])];
         yield 'enum value with interpolation' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a${b}']])];
         yield 'enum value with a backslash' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a\(b)']])];
@@ -587,7 +588,7 @@ final class GenerationTest extends TestCase
                 'tags' => ['zzident'],
                 'summary' => 'Get',
                 'description' => 'Get.',
-                'parameters' => [['name' => 'zzresource', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string', 'enum' => ['index', 'xIndex']]]],
+                'parameters' => [['name' => 'zzresource', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string', 'enum' => ['index', 'xIndex', 'value']]]],
                 'responses' => ['200' => ['description' => 'ok', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/zzreport']]]]],
             ]]],
             'components' => ['schemas' => ['zzreport' => [
@@ -605,6 +606,7 @@ final class GenerationTest extends TestCase
 
         $dart = $this->generateDocument($document, 'dart', 'ident')['lib/src/enums/zzresource.dart'] ?? '';
         $this->assertStringContainsString('xIndex2(value: "index")', $dart);
+        $this->assertStringContainsString('xValue(value: "value")', $dart);
 
         $web = $this->generateDocument($document, 'web', 'ident')['src/models.ts'] ?? '';
         $this->assertStringContainsString("'zz-field': number;", $web);

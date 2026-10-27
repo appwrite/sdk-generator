@@ -1860,6 +1860,10 @@ class SDK
         }
         if ($schema instanceof ObjectSchema) {
             $identifiers = [];
+            $payload = $schema->additionalProperties ? $this->language->getPropertyIdentifier('data') : null;
+            if ($payload !== null) {
+                $identifiers[$payload] = 'additionalProperties';
+            }
             foreach ($schema->properties as $name => $property) {
                 $this->assertSafe('field', 'property', (string) $name);
                 $identifier = $this->language->getPropertyIdentifier((string) $name);
