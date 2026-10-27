@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 )
 
-{{ ((requestModel.description | caseUcfirst) ~ " Request Model") | godocComment }}
+{{ ((requestModel.description | escapeComment | caseUcfirst) ~ " Request Model") | godocComment }}
 type {{ requestModelName | caseUcfirst }} struct {
 	{%~ for property in requestModel.properties %}
-	{{ (property.description | godocComment | replace({"\n": "\n\t"})) | raw }}
+	{{ (property.description | escapeComment | godocComment | replace({"\n": "\n\t"})) | raw }}
 	{{ (property | schemaName) | caseUcfirst | escapeKeyword }} {{ property | propertyType(spec) }}{% if not (property | schemaRequired) %} `json:"{{ (property | schemaName) }},omitempty"`{% else %} `json:"{{ (property | schemaName) }}"`{% endif %}
 
 	{%~ endfor %}

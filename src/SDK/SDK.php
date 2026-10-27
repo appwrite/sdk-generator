@@ -206,6 +206,16 @@ class SDK
             $value = str_replace('$', '\\$', $value);   // Escape dollar signs
             return $value;
         }, ['is_safe' => ['html']]));
+        // Spec prose printed into a doc comment must not end it. Block comments
+        // end at `*/` (and nest at `/*` in Kotlin and Swift); line comments end
+        // at a line break, which is not always `\n` (Swift, Dart and Python also
+        // break at `\r`, C# at U+0085, U+2028 and U+2029). Every break becomes
+        // `\n`, so a template that prefixes each `\n` keeps every line commented.
+        $this->twig->addFilter(new TwigFilter('escapeComment', fn($value): string => str_replace(
+            ['*/', '/*', "\r\n", "\r", "\u{85}", "\u{2028}", "\u{2029}"],
+            ['*\\/', '/\\*', "\n", "\n", "\n", "\n", "\n"],
+            (string) $value,
+        )));
         $this->twig->addFilter(new TwigFilter('html', fn($value) => $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', fn(string $value): string => $language->escapeKeyword($value), ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('caseHTML', fn($value) => $value, ['is_safe' => ['html']]));

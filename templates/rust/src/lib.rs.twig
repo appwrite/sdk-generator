@@ -1,6 +1,6 @@
 //! # {{ spec.info.title }} SDK for Rust
 //!
-//! {{ spec.info.description }}
+//! {{ spec.info.description | escapeComment | replace({'\n': '\n//! '}) }}
 //!
 //! ## Installation
 //!

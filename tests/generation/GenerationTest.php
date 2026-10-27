@@ -113,6 +113,24 @@ final class GenerationTest extends TestCase
     ];
 
     /**
+     * Replaces every `description` and `summary` in the fixture: prose that
+     * tries to close the doc comment it is printed in and continue as code.
+     */
+    private const string PROSE = "zzprose */ zzbreak(); /* zzprose \"\"\" zzbreak() \\\nzzbreak(); zzprose\rzzbreak(); zzprose\u{85}zzbreak(); zzprose\u{2028}zzbreak(); zzprose";
+
+    /**
+     * Generated source extensions whose doc comments are C-style blocks, where
+     * prose must never close the block or open a nested one.
+     */
+    private const array BLOCK_COMMENT_SOURCES = ['ts', 'js', 'mjs', 'php', 'kt', 'kts', 'java'];
+
+    /**
+     * Generated source extensions whose doc comments are line comments, where
+     * every line of prose must still start with the comment marker.
+     */
+    private const array LINE_COMMENT_SOURCES = ['dart', 'swift', 'cs', 'rs', 'go', 'rb'];
+
+    /**
      * Targets that ship Agent Skills, whose `SKILL.md` frontmatter name must
      * match the directory holding it.
      *
@@ -316,6 +334,77 @@ final class GenerationTest extends TestCase
         $this->generate('php', 'server');
         $this->expectException(Exception::class);
         $this->generate('php', 'server', '-boolean');
+    }
+
+    /**
+     * Prose from the spec is printed into doc comments. Whatever it contains,
+     * the generated source keeps it inside the comment.
+     */
+    #[DataProvider('languages')]
+    public function testProseStaysInsideDocComments(string $name): void
+    {
+        foreach (['client', 'server'] as $platform) {
+            $files = $this->generateWithProse($name, $platform);
+            $this->assertNotEmpty($files, "{$name} {$platform}: nothing generated");
+            foreach ($files as $path => $contents) {
+                $extension = \pathinfo((string) $path, PATHINFO_EXTENSION);
+                if (\in_array($extension, self::BLOCK_COMMENT_SOURCES, true)) {
+                    $this->assertStringNotContainsString('*/ zzbreak', $contents, "{$name} {$platform}: prose closes a comment in {$path}");
+                    $this->assertStringNotContainsString('/* zzprose', $contents, "{$name} {$platform}: prose opens a comment in {$path}");
+                }
+                if ($extension === 'py') {
+                    // Docstrings are string literals: `"""` ends one, and a
+                    // backslash escapes whatever follows it.
+                    $this->assertStringNotContainsString('""" zzbreak', $contents, "{$name} {$platform}: prose closes a docstring in {$path}");
+                    $this->assertStringNotContainsString("zzbreak() \\\n", $contents, "{$name} {$platform}: prose escapes a docstring line break in {$path}");
+                }
+                if (\in_array($extension, self::LINE_COMMENT_SOURCES, true)) {
+                    // C# also ends a line at U+0085, U+2028 and U+2029.
+                    $breaks = $extension === 'cs' ? '/\r\n|\r|\n|\x{85}|\x{2028}|\x{2029}/u' : '/\r\n|\r|\n/';
+                    $lines = (array) \preg_split($breaks, $contents);
+                    $code = \array_filter($lines, static fn(string $line): bool => \str_starts_with(\ltrim($line), 'zzbreak'));
+                    $this->assertSame([], $code, "{$name} {$platform}: prose continues as code in {$path}");
+                }
+            }
+        }
+    }
+
+    /**
+     * The generated tree for the fixture with every description and summary
+     * replaced by PROSE.
+     *
+     * @return array<string, string>
+     */
+    private function generateWithProse(string $name, string $platform): array
+    {
+        $dir = self::OUTPUT . '/' . $name . '/prose-' . $platform;
+        $this->removeDirectory($dir);
+
+        $document = \json_decode((string) \file_get_contents(self::FIXTURE), true, flags: JSON_THROW_ON_ERROR);
+        \array_walk_recursive($document, function (mixed &$value, int|string $key): void {
+            if (($key === 'description' || $key === 'summary') && \is_string($value)) {
+                $value = self::PROSE;
+            }
+        });
+
+        $sdk = new SDK($this->language($name), Parser::parse($document));
+        $sdk
+            ->setName('test')
+            ->setVersion('0.0.1')
+            ->setPlatform($platform)
+            ->setNamespace(\in_array($name, ['android', 'kotlin'], true) ? 'io.appwrite' : 'appwrite')
+            ->setTest('true')
+            ->generate($dir);
+
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $file) {
+            if ($file->isFile()) {
+                $files[\substr((string) $file->getPathname(), \strlen($dir) + 1)] = (string) \file_get_contents($file->getPathname());
+            }
+        }
+
+        return $files;
     }
 
     private function removeDirectory(string $dir): void

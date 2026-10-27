@@ -29,7 +29,7 @@ module {{ spec.info.title | caseUcfirst }}
         # Set {{headerKey | caseUcfirst}}
         #
 {% if header.description %}
-        # {{header.description}}
+        # {{ header.description | escapeComment | replace({'\n': '\n        # '}) }}
         #
 {% endif %}
         # @param [String] value The value to set for the {{ headerKey }} header

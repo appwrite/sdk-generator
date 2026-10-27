@@ -2,12 +2,12 @@
 part of '../../models.dart';
 
 {% if definition.description %}
-/// {{ definition.description }}
+/// {{ definition.description | escapeComment | replace({'\n': '\n/// '}) }}
 {% endif %}
 class {{ definitionName | caseUcfirst | overrideIdentifier }} implements Model {
 {% for property in definition.properties %}
 {% if property.description %}
-  /// {{ property.description | trimLines }}
+  /// {{ property.description | escapeComment | replace({'\n': '\n  /// '}) | trimLines }}
 {% endif %}
   final {% if not (property | schemaRequired) %}{{_self.sub_schema(property)}}? {{ (property | schemaName) | escapeKeyword }}{% else %}{{_self.sub_schema(property)}} {{ (property | schemaName) | escapeKeyword }}{% endif %};
 
