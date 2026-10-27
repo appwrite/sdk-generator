@@ -1611,6 +1611,21 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * A file that fits in one request is sent with the same headers as each
+     * chunk of a larger one. The project header comes from those headers, and
+     * without it a project API key is refused.
+     */
+    public function testPhpSingleRequestUploadSendsTheMethodHeaders(): void
+    {
+        $service = $this->generate('php', 'server')['src/Appwrite/Services/General.php'];
+        $upload = \explode('public function optionalupload(', \explode('public function upload(', $service, 2)[1] ?? '', 2)[0];
+
+        $this->assertStringContainsString("\$apiheaders['x-appwrite-project'] = \$this->client->getconfig('project');", $upload);
+        $this->assertStringContainsString('$response = $this->client->call(client::method_post, $apipath, $apiheaders, $apiparams);', $upload);
+        $this->assertStringNotContainsString('$apipath, [', $service);
+    }
+
+    /**
      * An upload whose only parameter is the file still takes the progress
      * callback as its second positional argument.
      */
