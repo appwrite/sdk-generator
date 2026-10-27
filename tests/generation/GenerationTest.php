@@ -443,7 +443,7 @@ final class GenerationTest extends TestCase
 
         $this->expectException(UnexpectedValueException::class);
         $this->expectExceptionMessage('is not safe to generate');
-        new SDK($this->language('web'), Parser::parse($document));
+        new SDK($this->language('kotlin'), Parser::parse($document));
     }
 
     /** @return iterable<string, array{Closure(array): array}> */
@@ -478,6 +478,7 @@ final class GenerationTest extends TestCase
             return $document;
         }];
         yield 'property name' => [static fn(array $document): array => $property($document, 'zz"; evil(); "')];
+        yield 'properties that generate the same identifier' => [static fn(array $document): array => $property($property($document, 'zz-dup'), 'zzDup')];
         yield 'enum value with a quote' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ["a'b"]])];
         yield 'enum value with interpolation' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a${b}']])];
         yield 'enum value with a backslash' => [static fn(array $document): array => $property($document, 'zzenum', ['type' => 'string', 'enum' => ['a\(b)']])];
@@ -574,6 +575,41 @@ final class GenerationTest extends TestCase
         $service = $this->generateDocument($document, 'ruby', 'dollar')['lib/test/services/zzdollar.rb'] ?? '';
 
         $this->assertStringContainsString('\'$zzfield\': zzfield,', $service);
+    }
+
+    public function testIdentifiersStayValidForHyphenatedFieldsAndReservedEnumKeys(): void
+    {
+        $document = [
+            'openapi' => '3.0.0',
+            'info' => ['title' => 'test', 'version' => '1.0.0'],
+            'tags' => [['name' => 'zzident']],
+            'paths' => ['/zzident' => ['get' => [
+                'operationId' => 'zzidentGet',
+                'tags' => ['zzident'],
+                'summary' => 'Get',
+                'description' => 'Get.',
+                'parameters' => [['name' => 'zzresource', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string', 'enum' => ['index', 'xIndex', 'value']]]],
+                'responses' => ['200' => ['description' => 'ok', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/zzreport']]]]],
+            ]]],
+            'components' => ['schemas' => ['zzreport' => [
+                'type' => 'object',
+                'required' => ['zz-field'],
+                'properties' => ['zz-field' => ['type' => 'integer']],
+            ]]],
+        ];
+
+        $kotlin = $this->generateDocument($document, 'kotlin', 'ident')['src/main/kotlin/appwrite/models/Zzreport.kt'] ?? '';
+        $this->assertStringContainsString('val zzField: Long', $kotlin);
+
+        $swift = $this->generateDocument($document, 'swift', 'ident')['Sources/TestModels/Zzreport.swift'] ?? '';
+        $this->assertStringContainsString('case zzField = "zz-field"', $swift);
+
+        $dart = $this->generateDocument($document, 'dart', 'ident')['lib/src/enums/zzresource.dart'] ?? '';
+        $this->assertStringContainsString('xIndex2(value: "index")', $dart);
+        $this->assertStringContainsString('xValue(value: "value")', $dart);
+
+        $web = $this->generateDocument($document, 'web', 'ident')['src/models.ts'] ?? '';
+        $this->assertStringContainsString("'zz-field': number;", $web);
     }
 
     private function removeDirectory(string $dir): void

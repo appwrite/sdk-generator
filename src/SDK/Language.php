@@ -334,6 +334,26 @@ abstract class Language
         return $value;
     }
 
+    public function toIdentifier(string $value): string
+    {
+        if (\preg_match('/^\$?[A-Za-z_]\w*$/', $value)) {
+            return $value;
+        }
+
+        $prefix = \str_starts_with($value, '$') ? '$' : '';
+        $identifier = $this->toCamelCase(\ltrim($value, '$'));
+        if ($identifier === '' || \ctype_digit($identifier[0])) {
+            $identifier = 'x' . \ucfirst($identifier);
+        }
+
+        return $prefix . $identifier;
+    }
+
+    public function getPropertyIdentifier(string $name): ?string
+    {
+        return null;
+    }
+
     public function isPermissionString(string $string): bool
     {
         $permissions = \json_decode($string, true);

@@ -157,7 +157,6 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseUcwords', fn($value): string => ucwords((string) $value, " -_")));
         $this->twig->addFilter(new TwigFilter('caseLcfirst', fn($value): string => lcfirst((string)$value)));
         $this->twig->addFilter(new TwigFilter('caseCamel', fn(?string $value): string => $this->helperCamelCase($value)));
-        $this->twig->addFilter(new TwigFilter('removeDash', fn($value): string|array => str_replace('-', '', $value)));
         $this->twig->addFilter(new TwigFilter('caseDash', fn($value): string => str_replace([' ', '_'], '-', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', (string) $value)))));
         $this->twig->addFilter(new TwigFilter('caseKebab', function ($value): string {
             $value = preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s_]|(?<=[A-Z])\d)/', '-$1', (string) $value);
@@ -247,6 +246,7 @@ class SDK
         )));
         $this->twig->addFilter(new TwigFilter('html', fn($value) => $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', fn(string $value): string => $language->escapeKeyword($value), ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('identifier', fn(string $value): string => $language->toIdentifier($value)));
         $this->twig->addFilter(new TwigFilter('caseHTML', fn($value) => $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('removeDollarSign', fn($value): string|array => str_replace('$', '', $value)));
         $this->twig->addFilter(new TwigFilter('unescape', fn($value): string => html_entity_decode((string) $value)));
@@ -1859,8 +1859,20 @@ class SDK
             }
         }
         if ($schema instanceof ObjectSchema) {
+            $identifiers = [];
+            $payload = $schema->additionalProperties ? $this->language->getPropertyIdentifier('data') : null;
+            if ($payload !== null) {
+                $identifiers[$payload] = 'additionalProperties';
+            }
             foreach ($schema->properties as $name => $property) {
                 $this->assertSafe('field', 'property', (string) $name);
+                $identifier = $this->language->getPropertyIdentifier((string) $name);
+                if ($identifier !== null && isset($identifiers[$identifier])) {
+                    throw new UnexpectedValueException('Spec property is not safe to generate: ' . \json_encode((string) $name) . ' has the same identifier as ' . \json_encode($identifiers[$identifier]));
+                }
+                if ($identifier !== null) {
+                    $identifiers[$identifier] = (string) $name;
+                }
                 $this->validateSchema($property);
             }
             if ($schema->additionalProperties instanceof Schema) {

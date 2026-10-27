@@ -20,6 +20,12 @@ class Swift extends Language
         return 'Swift';
     }
 
+    #[Override]
+    public function getPropertyIdentifier(string $name): ?string
+    {
+        return \str_replace('$', '', $this->toIdentifier($name));
+    }
+
     /**
      * Get Language Keywords List
      */
@@ -525,6 +531,7 @@ class Swift extends Language
 
     public function getModelToMapValue(Schema $property, string $propertyName, bool $required): string
     {
+        $propertyName = $this->toIdentifier($propertyName);
         $name = \in_array($propertyName, $this->getKeywords(), true) ? "`{$propertyName}`" : $propertyName;
         $name = \str_replace('$', '', $name);
         $nullAware = $required ? '' : '?';
