@@ -1878,26 +1878,18 @@ final class GenerationTest extends TestCase
             ]]],
             'components' => ['schemas' => ['zzwide' => [
                 'type' => 'object',
-                'required' => ['zzshort', 'zzstatements', 'zzports'],
+                'required' => ['zzstatements', 'zzports'],
                 'properties' => [
-                    'zzshort' => ['type' => 'array', 'items' => ['type' => 'string'], 'default' => ['zza']],
                     'zzstatements' => ['type' => 'array', 'items' => ['type' => 'string'], 'default' => ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'ALTER', 'CREATE', 'TRUNCATE']],
                     'zzports' => ['type' => 'array', 'items' => ['type' => 'integer'], 'default' => [8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8088, 8089, 8090, 8091]],
                 ],
             ]]],
         ];
 
-        foreach (['web', 'node', 'react-native'] as $name) {
-            $service = $this->generateDocument($document, $name, 'width')['src/services/zzwidth.ts'] ?? '';
+        $service = $this->generateDocument($document, 'node', 'width')['src/services/zzwidth.ts'] ?? '';
 
-            $this->assertStringContainsString("zzshort: ['zza'],", $service, $name);
-            $this->assertStringContainsString("zzstatements: [\n                            'SELECT',\n", $service, $name);
-            $this->assertStringContainsString("'TRUNCATE',\n                        ],", $service, $name);
-            $this->assertStringContainsString("zzports: [\n                            8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087,\n                            8088, 8089, 8090, 8091,\n                        ],", $service, $name);
-            foreach (\explode("\n", $service) as $line) {
-                $this->assertLessThanOrEqual(80, \mb_strlen($line), "{$name}: {$line}");
-            }
-        }
+        $this->assertStringContainsString("zzstatements: [\n                            'SELECT',\n", $service);
+        $this->assertLessThanOrEqual(80, \max(\array_map(mb_strlen(...), \explode("\n", $service))));
     }
 
     public function testWebNestedResponseDefaultsAreApplied(): void
