@@ -627,7 +627,7 @@ abstract class JS extends Language
         foreach ($object as $key => $value) {
             $key = $this->getObjectKeyLiteral((string) $key);
             $value = match (true) {
-                $value instanceof Closure => $value($indent + 4, \mb_strlen($key) + 2),
+                $value instanceof Closure => $value($indent + 4, \mb_strwidth($key) + 2),
                 \is_array($value) => $this->renderObject($value, $indent + 4),
                 default => $value,
             };
@@ -640,7 +640,7 @@ abstract class JS extends Language
     private function getFittedLiteral(mixed $value, int $indent, int $used): string
     {
         $literal = $this->getLiteral($value);
-        if ($indent + $used + \mb_strlen($literal) + 1 <= self::PRINT_WIDTH) {
+        if ($indent + $used + \mb_strwidth($literal) + 1 <= self::PRINT_WIDTH) {
             return $literal;
         }
 
@@ -652,7 +652,7 @@ abstract class JS extends Language
                 $line = '';
                 foreach ($value as $item) {
                     $item = $this->getLiteral($item) . ',';
-                    if ($line !== '' && \mb_strlen($padding . $line . ' ' . $item) > self::PRINT_WIDTH) {
+                    if ($line !== '' && \mb_strwidth($padding . $line . ' ' . $item) > self::PRINT_WIDTH) {
                         $lines[] = $padding . $line;
                         $line = $item;
                         continue;
@@ -672,7 +672,7 @@ abstract class JS extends Language
             $members = [];
             foreach ((array) $value as $key => $member) {
                 $key = $this->getObjectKeyLiteral((string) $key);
-                $members[] = $padding . $key . ': ' . $this->getFittedLiteral($member, $indent + 4, \mb_strlen($key) + 2) . ',';
+                $members[] = $padding . $key . ': ' . $this->getFittedLiteral($member, $indent + 4, \mb_strwidth($key) + 2) . ',';
             }
 
             return "{\n" . \implode("\n", $members) . $closing . '}';
