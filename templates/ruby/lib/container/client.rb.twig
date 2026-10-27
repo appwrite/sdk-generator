@@ -366,7 +366,7 @@ module {{ spec.info.title | caseUcfirst }}
 
             # A redirect is reported, not followed: it would carry the API key to
             # wherever it points, possibly another host.
-            if response.is_a?(Net::HTTPRedirection)
+            if response.is_a?(Net::HTTPRedirection) && !response.is_a?(Net::HTTPNotModified)
                 raise {{spec.info.title | caseUcfirst}}::Exception.new("Redirect to #{location} not followed", response.code, nil, response.body)
             end
 

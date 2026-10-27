@@ -1233,7 +1233,7 @@ impl Client {
     /// The error for an API call answered with a redirect, which is reported,
     /// not followed: it would carry the API key to wherever it points.
     fn redirect_error(response: &Response) -> Option<{{ spec.info.title | caseUcfirst }}Error> {
-        if !response.status().is_redirection() {
+        if !response.status().is_redirection() || response.status().as_u16() == 304 {
             return None;
         }
         let location = response

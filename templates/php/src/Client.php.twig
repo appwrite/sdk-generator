@@ -282,7 +282,7 @@ class Client
         $headers = array_merge($this->headers, $headers);
         foreach ($headers as $name => $value) {
             // A line break ends the header and starts one of the caller's choosing.
-            if (\strpbrk($name . ':' . $value, "\r\n\0") !== false) {
+            if (\strpbrk($name . ':' . \implode(',', (array) $value), "\r\n\0") !== false) {
                 throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception('Header contains a line break: ' . \strtr($name, "\r\n\0", '   '));
             }
         }
@@ -330,7 +330,7 @@ class Client
         $responseContentType = $response->getHeaderLine('content-type');
         $responseBody = (string) $response->getBody();
 
-        if ($responseType !== 'location' && $responseStatus >= 300 && $responseStatus < 400) {
+        if ($responseType !== 'location' && $responseStatus >= 300 && $responseStatus < 400 && $responseStatus !== 304) {
             $location = $response->getHeaderLine('location');
             throw new {{ namespace | split('\\') | last | caseUcfirst}}Exception('Redirect to ' . $location . ' not followed', $responseStatus, '', $responseBody);
         }
@@ -405,6 +405,9 @@ class Client
         }
         if ($value instanceof Query) {
             return $value->__toString();
+        }
+        if ($value instanceof \JsonSerializable) {
+            return $value->jsonSerialize();
         }
         if (!\is_array($value) || !\array_is_list($value)) {
             return $value;

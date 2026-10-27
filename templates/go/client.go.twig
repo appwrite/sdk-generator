@@ -629,7 +629,7 @@ func (client *Client) Call(method string, path string, headers map[string]interf
 	}
 
 	// The API answers calls without redirecting; a redirect is reported, not followed.
-	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 && resp.StatusCode != http.StatusNotModified {
 		return nil, &{{ spec.info.title | caseUcfirst }}Error{
 			statusCode: resp.StatusCode,
 			message:    "Redirect to " + resp.Header.Get("location") + " not followed",

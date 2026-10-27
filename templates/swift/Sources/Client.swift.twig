@@ -398,7 +398,7 @@ open class Client {
         var data = try await response.body.collect(upTo: Int.max)
 
         switch response.status.code {
-        case 300..<400:
+        case 300..<304, 305..<400:
             let location = response.headers["location"].first ?? ""
 
             throw {{ spec.info.title | caseUcfirst }}Error(

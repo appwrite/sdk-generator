@@ -102,7 +102,7 @@ mixin ClientMixin {
 
     final isJson =
         (res.headers['content-type'] ?? '').contains('application/json');
-    if (res.statusCode >= 300 && res.statusCode < 400) {
+    if (res.statusCode >= 300 && res.statusCode < 400 && res.statusCode != 304) {
       final location = res.headers['location'] ?? '';
       throw {{spec.info.title | caseUcfirst}}Exception(
         'Redirect to $location not followed',

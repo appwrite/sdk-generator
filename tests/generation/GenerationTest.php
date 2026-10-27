@@ -1797,7 +1797,7 @@ final class GenerationTest extends TestCase
         yield 'go redirect error' => ['go', 'client/client.go', 'message:    "redirect to " + resp.header.get("location") + " not followed",', ''];
         yield 'go cookies' => ['go', 'client/client.go', 'timeout: timeout,', 'cookiejar'];
         yield 'python redirects' => ['python', 'appwrite/client.py', "allow_redirects=false,\n", "allow_redirects=false if"];
-        yield 'python redirect error' => ['python', 'appwrite/client.py', "if response_type != 'location' and 300 <= response.status_code < 400:", ''];
+        yield 'python redirect error' => ['python', 'appwrite/client.py', "if response_type != 'location' and 300 <= response.status_code < 400 and response.status_code != 304:", ''];
         yield 'php redirects' => ['php', 'src/Appwrite/Client.php', 'new httpclient($adapter)->withfollowredirects(false);', 'httpclientnoredirect'];
         yield 'php redirect error' => ['php', 'src/Appwrite/Client.php', "throw new appwriteexception('redirect to ' . \$location . ' not followed', \$responsestatus, '', \$responsebody);", ''];
         yield 'dotnet handler' => ['dotnet', 'Appwrite/Client.cs', "allowautoredirect = false,\n                usecookies = false", '_http = http ?? new httpclient();'];
@@ -1805,9 +1805,9 @@ final class GenerationTest extends TestCase
         yield 'kotlin redirects' => ['kotlin', 'src/main/kotlin/io/appwrite/Client.kt', ".newbuilder()\n            .followredirects(false)\n            .followsslredirects(false)", ''];
         yield 'kotlin redirect error' => ['kotlin', 'src/main/kotlin/io/appwrite/Client.kt', 'it.cancel(appwriteexception("redirect to $location not followed", response.code, "", body))', ''];
         yield 'swift redirects' => ['swift', 'Sources/Appwrite/Client.swift', 'redirectconfiguration: httpclient.configuration.redirectconfiguration = .disallow,', 'request.adddomaincookies()'];
-        yield 'swift redirect error' => ['swift', 'Sources/Appwrite/Client.swift', "case 300..<400:\n            let location = response.headers[\"location\"].first ?? \"\"", ''];
+        yield 'swift redirect error' => ['swift', 'Sources/Appwrite/Client.swift', "case 300..<304, 305..<400:\n            let location = response.headers[\"location\"].first ?? \"\"", ''];
         yield 'dart redirects' => ['dart', 'lib/src/client_io.dart', "params: params,\n    );\n    // not followed: a redirect would carry the api key wherever it points.\n    request.followredirects = false;", ''];
-        yield 'dart redirect error' => ['dart', 'lib/src/client_mixin.dart', "if (res.statuscode >= 300 && res.statuscode < 400) {", ''];
+        yield 'dart redirect error' => ['dart', 'lib/src/client_mixin.dart', "if (res.statuscode >= 300 && res.statuscode < 400 && res.statuscode != 304) {", ''];
         yield 'node redirects' => ['node', 'src/client.ts', "const response = await fetch(uri, {\n            ...options,\n            redirect: 'manual',\n        });\n\n        const warnings", ''];
         yield 'node redirect error' => ['node', 'src/client.ts', '`redirect to ${location} not followed`,', ''];
         yield 'rust redirects' => ['rust', 'src/client.rs', "fn build_http_client(config: &config) -> httpclient {\n        let mut builder = httpclient::builder()\n            .redirect(reqwest::redirect::policy::none())", ''];

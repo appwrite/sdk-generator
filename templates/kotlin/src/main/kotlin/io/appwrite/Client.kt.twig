@@ -674,7 +674,7 @@ class Client @JvmOverloads constructor(
 
             @Suppress("UNCHECKED_CAST")
             override fun onResponse(call: Call, response: Response) {
-                if (response.code in 300..399) {
+                if (response.code in 300..399 && response.code != 304) {
                     val body = response.body!!
                         .charStream()
                         .buffered()
