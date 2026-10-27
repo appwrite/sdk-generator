@@ -13,7 +13,7 @@ use Twig\TwigFilter;
 
 class Dart extends Language
 {
-    private const array ENUM_MEMBERS = ['hashCode', 'index', 'noSuchMethod', 'runtimeType', 'toString', 'values'];
+    private const array ENUM_MEMBERS = ['hashCode', 'index', 'noSuchMethod', 'runtimeType', 'toJson', 'toString', 'value', 'values'];
 
     /**
      * @var array
@@ -162,11 +162,12 @@ class Dart extends Language
     public function resolveEnumKeys(Schema|Parameter $value): array
     {
         $keys = parent::resolveEnumKeys($value);
+        $reserved = $this->isOpenStringEnum($value) ? [] : self::ENUM_MEMBERS;
         $used = [];
         $pending = [];
         foreach ($keys as $index => $key) {
             $identifier = $this->escapeKeyword($this->toCamelCase($key));
-            if (\in_array($identifier, self::ENUM_MEMBERS, true) || isset($used[$identifier])) {
+            if (\in_array($identifier, $reserved, true) || isset($used[$identifier])) {
                 $pending[] = $index;
                 continue;
             }
@@ -175,7 +176,7 @@ class Dart extends Language
 
         foreach ($pending as $index) {
             $identifier = $this->escapeKeyword($this->toCamelCase($keys[$index]));
-            $base = \in_array($identifier, self::ENUM_MEMBERS, true) ? 'x' . \ucfirst($identifier) : $identifier;
+            $base = \in_array($identifier, $reserved, true) ? 'x' . \ucfirst($identifier) : $identifier;
             $candidate = $base;
             $suffix = 2;
             while (isset($used[$candidate])) {
