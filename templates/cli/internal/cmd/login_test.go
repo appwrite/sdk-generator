@@ -26,6 +26,22 @@ func TestLoginOffersEveryOption(t *testing.T) {
 	}
 }
 
+// Trust in a self-signed certificate stays with the server it was given for.
+func TestLoginSelfSignedFollowsTheEndpoint(t *testing.T) {
+	global := preferencesWith(t, `{"current": "self", "self": {"endpoint": "https://self.hosted/v1", "selfSigned": true}}`)
+
+	if trusted, _ := loginSelfSigned(global, "https://self.hosted/v1", nil); !trusted {
+		t.Error("dropped the trust for the same server")
+	}
+	if trusted, _ := loginSelfSigned(global, "https://elsewhere.example/v1", nil); trusted {
+		t.Error("carried self-signed trust to another endpoint")
+	}
+	explicit := "true"
+	if trusted, _ := loginSelfSigned(global, "https://elsewhere.example/v1", &explicit); !trusted {
+		t.Error("ignored an explicit --self-signed")
+	}
+}
+
 // Two ways to spell "not the current account" that mean different things:
 // --switch moves to one already signed in, --new signs in again. Asking for
 // both is a contradiction, not a preference.
