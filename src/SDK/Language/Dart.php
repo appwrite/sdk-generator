@@ -153,13 +153,19 @@ class Dart extends Language
     }
 
     #[Override]
+    public function getPropertyIdentifier(string $name): ?string
+    {
+        return $this->escapeKeyword($name);
+    }
+
+    #[Override]
     public function resolveEnumKeys(Schema|Parameter $value): array
     {
         $keys = parent::resolveEnumKeys($value);
         $used = [];
         $pending = [];
         foreach ($keys as $index => $key) {
-            $identifier = $this->toCamelCase($key);
+            $identifier = $this->escapeKeyword($this->toCamelCase($key));
             if (\in_array($identifier, self::ENUM_MEMBERS, true) || isset($used[$identifier])) {
                 $pending[] = $index;
                 continue;
@@ -168,7 +174,7 @@ class Dart extends Language
         }
 
         foreach ($pending as $index) {
-            $identifier = $this->toCamelCase($keys[$index]);
+            $identifier = $this->escapeKeyword($this->toCamelCase($keys[$index]));
             $base = \in_array($identifier, self::ENUM_MEMBERS, true) ? 'x' . \ucfirst($identifier) : $identifier;
             $candidate = $base;
             $suffix = 2;

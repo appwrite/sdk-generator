@@ -23,7 +23,7 @@ class Kotlin extends Language
     #[Override]
     public function getPropertyIdentifier(string $name): ?string
     {
-        return \str_replace('$', '', $this->toIdentifier($name));
+        return \str_replace('$', '', $this->escapeKeyword($this->toIdentifier($name)));
     }
 
     /**
