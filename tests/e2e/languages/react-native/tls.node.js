@@ -8,7 +8,7 @@ import tls from 'tls';
 import { Buffer } from 'buffer';
 import { trust } from 'react-native-tcp-socket';
 import { certificateMatchesHost, createTcpStream } from './src/lib/tcp-stream';
-import { TLS_CA, TLS_KEY, TLS_LOCALHOST, TLS_WRONG_HOST } from './tls-fixtures';
+import { TLS_CA, TLS_KEY, TLS_LOCALHOST, TLS_SAN_ELSEWHERE, TLS_WRONG_HOST } from './tls-fixtures';
 
 const CREDENTIAL = 'CONNECT session-credential';
 
@@ -67,6 +67,14 @@ export async function checkTls() {
         mismatch.error && mismatch.received === 0
             ? 'Push TLS hostname mismatch:passed'
             : `Push TLS hostname mismatch:failed (${JSON.stringify(mismatch)})`,
+    );
+
+    // Trusted root, CN names the host but the subjectAltName does not: the SAN wins, so refused.
+    const sanElsewhere = await handshake(TLS_SAN_ELSEWHERE, 'localhost');
+    console.log(
+        sanElsewhere.error && sanElsewhere.received === 0
+            ? 'Push TLS SAN mismatch:passed'
+            : `Push TLS SAN mismatch:failed (${JSON.stringify(sanElsewhere)})`,
     );
 
     // ?tlsInsecure=true opts out of verification, hostname included.

@@ -1,5 +1,6 @@
-// Test-only TLS fixtures for the RN push e2e (push.node.js): a private CA and one key with two
-// leaf certificates it signed, one for "localhost" and one for "wrong.test". Never trusted outside the test.
+// Test-only TLS fixtures for the RN push e2e (push.node.js): a private CA and one key with three
+// leaf certificates it signed: "localhost", "wrong.test", and one whose CN is "localhost" but whose
+// subjectAltName is only "other.test". Never trusted outside the test.
 export const TLS_CA = `
 -----BEGIN CERTIFICATE-----
 MIIDEDCCAfigAwIBAgIUbvMj3hWTBfRQRuOVcLEPnCGMP1QwDQYJKoZIhvcNAQEL
@@ -90,5 +91,25 @@ sQ6RpT0hjUzRpQ7IJm2v8Dtl/uwrfpgmSi7T6Tlq3KCrmVFOcbDSLThda/swB2JJ
 AX4jEzzl1tD9ZldsSHKOZMScMPVon8vOybcMzqswHdAHyCcXpcF3YWQFk9Plc2lh
 yxUWHFjuZJF2eohWZuXDQzMLwr+YTzxFSk/ppoJFxSQocQejr00EK8PxBo2HVakI
 SQ==
+-----END CERTIFICATE-----
+`;
+export const TLS_SAN_ELSEWHERE = `
+-----BEGIN CERTIFICATE-----
+MIIC/DCCAeSgAwIBAgIUAjJqOOD68V8Bjxjoaoi9x6y9DrEwDQYJKoZIhvcNAQEL
+BQAwHzEdMBsGA1UEAwwUQXBwd3JpdGUgU0RLIFRlc3QgQ0EwIBcNMjYxMDI4MTEw
+NzIxWhgPMjEyNjEwMDQxMTA3MjFaMBQxEjAQBgNVBAMMCWxvY2FsaG9zdDCCASIw
+DQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAM9jVrxeIUwham36zkKT2uwAL2ey
+dzQXittcHq5w+F7bzAte3OBU0C43uJXoXp1Sm5YRLAUQ8haORPncQ5fDKV/3nNPX
+rfYUv9BRb/WPICXJOZ+GFuupbxPYMhtQxx1/ECm3AI1k501ddL5Pps8ztFobpXbS
+nI+aVIGVJgZyIlpnn5WihA3IlqBvj+s3bZ/FqvUAJH3xH3EcmCFHhUkKrwnxNZMP
+WuL1EufC4QdXgj/hzTSx6jlKn4idyTlhwDH/YpDnvmlcrfsbo4ZtQ7MTGISfkSxL
+SZp8cSifr4DrhCcMfGHLNA4+TW8pY8H3on7tER8lWfwmsdKLNFXlFpE+OaUCAwEA
+AaM5MDcwFQYDVR0RBA4wDIIKb3RoZXIudGVzdDAJBgNVHRMEAjAAMBMGA1UdJQQM
+MAoGCCsGAQUFBwMBMA0GCSqGSIb3DQEBCwUAA4IBAQBYRz71kCcew2LoVlAtVhmr
+/hDuokiEmECSjsAB2QmdYpNGWGZnCG1BCSibe8YoSbINsvtzhNUJy2G7OM73FXGL
+jUs1GfG2AgYJloz/iUPYFihNCu7NPkIkFF5pAbsX1Q/SaKaSgO6Q2EkzIvfKFd5N
+RJHKUbBho0FjZHJDI1HUcC2B/7GQTgP9gbpiRfMeOFnQojPIbuM3ROcIzQn6RUIr
+rJJOvPSxYR/lBPhFPz8EdaY8HLq35Qn8cTY1ysLfvh7PqzsmNHXH6RoBwGckjrhe
+Br6jq+ZkyqALr0VvIkQFpWREYO88zSQRQSjuhfrcUPSvkQ9nZjwUHjRbdW9iFZ+r
 -----END CERTIFICATE-----
 `;

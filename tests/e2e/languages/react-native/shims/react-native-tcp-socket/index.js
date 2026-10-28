@@ -25,9 +25,13 @@ module.exports = {
             },
             callback,
         );
-        // As the library: a Promise of the peer certificate, with only the subject CN as a name.
+        // As the library: a Promise of the peer certificate, with only the subject CN as a name
+        // (no subjectAltName) and its SHA-256 fingerprint.
         const peer = socket.getPeerCertificate.bind(socket);
-        socket.getPeerCertificate = async () => ({ subject: { CN: peer().subject?.CN } });
+        socket.getPeerCertificate = async () => {
+            const certificate = peer();
+            return { subject: { CN: certificate.subject?.CN }, fingerprint256: certificate.fingerprint256 };
+        };
         return socket;
     },
 };

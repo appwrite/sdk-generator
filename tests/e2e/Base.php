@@ -392,6 +392,7 @@ abstract class Base extends TestCase
         'Push TLS hostname rules:passed',
         'Push TLS hostname match:passed',
         'Push TLS hostname mismatch:passed',
+        'Push TLS SAN mismatch:passed',
         'Push TLS insecure:passed',
     ];
 
