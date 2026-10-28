@@ -38,6 +38,7 @@ final class ReactNativeAndroidTest extends Base
     #[Override]
     protected array $build = [
         'cp tests/e2e/languages/react-native/push.node.js tests/e2e/sdks/react-native/push.node.js',
+        'cp tests/e2e/languages/react-native/tls.node.js tests/e2e/languages/react-native/tls-fixtures.js tests/e2e/sdks/react-native/',
         'cp tests/e2e/languages/react-native/rollup.push.config.mjs tests/e2e/sdks/react-native/rollup.push.config.mjs',
         'cp -R tests/e2e/languages/react-native/shims tests/e2e/sdks/react-native/shims',
         // Install deps without peers (react-native-tcp-socket is an optional peer that would
@@ -75,6 +76,7 @@ final class ReactNativeAndroidTest extends Base
         ...Base::REACT_NATIVE_PUSH_JS_RESPONSES,
         ...Base::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,
         ...Base::PUSH_CLOSE_RIGHT_AFTER_SUBSCRIBE_RESPONSES,
+        ...Base::REACT_NATIVE_PUSH_TLS_RESPONSES,
         ...Base::PUSH_BACKGROUND_RESPONSES,
         ...Base::PUSH_NATIVE_SESSION_COOKIE_RESPONSES,
         ...Base::PUSH_NOTIFICATION_OPENED_RESPONSES,

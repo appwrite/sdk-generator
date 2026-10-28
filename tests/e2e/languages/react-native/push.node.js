@@ -14,6 +14,7 @@ import { __test as expoNotifications } from 'expo-notifications';
 import { Client } from './src/client';
 import { Push } from './src/services/push';
 import { Topic } from './src/topic';
+import { checkTls } from './tls.node.js';
 
 const ENDPOINT = 'mqtt://mqtt:1883';
 const timeout = (ms, value) => new Promise((resolve) => setTimeout(() => resolve(value), ms));
@@ -361,6 +362,8 @@ async function main() {
             : `Push close right after subscribe:failed (${quickClosed}, opened: ${quickOpened})`,
     );
     quickPush.close();
+
+    await checkTls();
 
     // mqtt.js keepalive timers would otherwise hold the event loop open.
     process.exit(0);
