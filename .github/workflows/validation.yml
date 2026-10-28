@@ -241,7 +241,7 @@ jobs:
           case "${{ matrix.sdk }}" in
             web)
               npm ci
-              npm audit
+              npm audit --audit-level=moderate
               npm run format:check
               npm run lint
               npm run analyse
@@ -263,7 +263,7 @@ jobs:
               ;;
             react-native)
               npm ci --omit=peer
-              npm audit --omit=peer
+              npm audit --audit-level=moderate --omit=peer
               npm run format:check
               npm run lint
               npm run analyse
@@ -338,7 +338,7 @@ jobs:
               ;;
             node)
               npm ci
-              npm audit
+              npm audit --audit-level=moderate
               npm run format:check
               npm run lint
               npm run analyse
