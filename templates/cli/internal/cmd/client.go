@@ -254,9 +254,7 @@ func endpointSelfSigned(global *config.Global, previous string, endpoint string)
 
 	switch choice {
 	case sessionCurrent, sessionSignedIn, sessionStub:
-		session := global.SessionData(id)
-
-		return session != nil && session.GetBool(config.PreferenceSelfSigned)
+		return config.PreferenceBool(global.SessionData(id), config.PreferenceSelfSigned)
 	case sessionRepointed:
 		return inheritedSelfSigned(global, endpoint)
 	default:

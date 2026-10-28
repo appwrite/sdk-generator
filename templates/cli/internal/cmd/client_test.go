@@ -334,6 +334,15 @@ func TestEndpointChangeVerifiesWithTheSavedSessionsTrust(t *testing.T) {
 	}
 }
 
+// Older CLI versions saved `selfSigned` as the string "true".
+func TestEndpointChangeVerifiesWithLegacyStringTrust(t *testing.T) {
+	global := preferencesWith(t, `{"current": "one", "one": {"endpoint": "https://one/v1"}, "two": {"endpoint": "https://two/v1", "cookie": "zzcookie", "selfSigned": "true"}}`)
+
+	if !endpointSelfSigned(global, "one", "https://two/v1") {
+		t.Error("ignored the string-valued trust an older CLI saved for https://two/v1")
+	}
+}
+
 // The signed-in session the CLI switches to is the one whose trust applies,
 // not a stub's for the same server.
 func TestEndpointChangeVerifiesWithTheSessionItSwitchesTo(t *testing.T) {

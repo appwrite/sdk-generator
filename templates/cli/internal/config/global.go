@@ -217,12 +217,15 @@ func (g *Global) CurrentValue(key string) string {
 // because rejecting the string form would silently disable a setting the user
 // believes is on.
 func (g *Global) CurrentBool(key string) bool {
-	current := g.Current()
-	if current == nil {
+	return PreferenceBool(g.Current(), key)
+}
+
+func PreferenceBool(session *Object, key string) bool {
+	if session == nil {
 		return false
 	}
 
-	value, ok := current.Get(key)
+	value, ok := session.Get(key)
 	if !ok {
 		return false
 	}
