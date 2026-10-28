@@ -73,6 +73,9 @@ export function createTcpStream({
     // Writes MQTT.js issues before the TCP handshake completes are held here and
     // flushed on connect, so the CONNECT packet is never dropped on the opening socket.
     const pending: { chunk: Buffer; cb: (err?: Error | null) => void }[] = [];
+    // Bytes the server sends before it is verified are held here too, so MQTT.js never parses
+    // a packet from an unverified peer; they are dropped with the socket if verification fails.
+    const inbound: Buffer[] = [];
 
     // TLS must go through connectTLS(): plain Socket.connect() ignores a `tls`
     // option entirely (it never performs a handshake), so sending MQTT bytes into
@@ -123,6 +126,10 @@ export function createTcpStream({
             socket.write(chunk, undefined, (err) => cb(err ?? null));
         }
         pending.length = 0;
+        for (const buf of inbound) {
+            duplex.push(buf);
+        }
+        inbound.length = 0;
     };
     const onSecureConnect = () => {
         if (!checkHost) {
@@ -180,6 +187,10 @@ export function createTcpStream({
         // string case just in case, decoding it as raw bytes.
         const buf =
             typeof data === 'string' ? Buffer.from(data, 'binary') : data;
+        if (!connected) {
+            inbound.push(buf);
+            return;
+        }
         if (!duplex.push(buf)) {
             socket.pause();
         }
