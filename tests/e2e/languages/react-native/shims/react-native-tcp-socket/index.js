@@ -6,16 +6,32 @@
 const net = require('net');
 const tls = require('tls');
 
+// Roots connectTLS trusts; a test sets `trust.ca` to its own CA (undefined = Node's defaults).
+const trust = { ca: undefined };
+
 module.exports = {
+    trust,
     createConnection: (options, callback) =>
         net.createConnection({ host: options.host, port: options.port }, callback),
-    connectTLS: (options, callback) =>
-        tls.connect(
+    connectTLS: (options, callback) => {
+        const socket = tls.connect(
             {
                 host: options.host,
                 port: options.port,
                 rejectUnauthorized: options.rejectUnauthorized,
+                ca: trust.ca,
+                // As on Android: the native socket validates the chain but never the hostname.
+                checkServerIdentity: () => undefined,
             },
             callback,
-        ),
+        );
+        // As the library: a Promise of the peer certificate, with only the subject CN as a name
+        // (no subjectAltName) and its SHA-256 fingerprint.
+        const peer = socket.getPeerCertificate.bind(socket);
+        socket.getPeerCertificate = async () => {
+            const certificate = peer();
+            return { subject: { CN: certificate.subject?.CN }, fingerprint256: certificate.fingerprint256 };
+        };
+        return socket;
+    },
 };

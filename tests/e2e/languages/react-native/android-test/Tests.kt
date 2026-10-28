@@ -30,6 +30,7 @@ import io.appwrite.reactnative.services.PushReceiver
 import io.appwrite.reactnative.services.PushStore
 import org.json.JSONArray
 import org.json.JSONObject
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -38,10 +39,24 @@ import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.io.File
+import java.net.InetAddress
 import java.net.URI
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
+import java.security.KeyFactory
+import java.security.KeyStore
+import java.security.MessageDigest
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
+import java.security.spec.PKCS8EncodedKeySpec
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.KeyManagerFactory
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLServerSocket
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.TrustManagerFactory
+import kotlin.concurrent.thread
 
 // The app's PushReceiver: records what reaches it and lets the SDK post its notification too.
 class E2EPushReceiver : PushReceiver() {
@@ -497,5 +512,91 @@ class PushBridgeBackgroundStatusTest {
         const val IGNORING_BATTERY_OPTIMIZATIONS = "ignoringBatteryOptimizations"
         const val BACKGROUND_RESTRICTED = "backgroundRestricted"
         const val BEST_EFFORT = "bestEffort"
+    }
+}
+
+/**
+ * The native check push.ts relies on before its TLS socket writes anything: the module's
+ * verifiedCertificate() verifies the server for the host and returns its certificate's SHA-256.
+ * The server is a local TLS socket serving the fixtures the Node TLS checks use, trusted through
+ * a test CA. Robolectric runs the JVM's TLS, whose default HostnameVerifier rejects every host,
+ * so the handshake's own hostname check (subjectAltName) is the one exercised here; one case
+ * shows a refusing verifier is still consulted.
+ */
+@Config(manifest = Config.NONE)
+@RunWith(AndroidJUnit4::class)
+class PushTlsTest {
+    private val reactContext = BridgeReactContext(ApplicationProvider.getApplicationContext<Application>())
+
+    // tls-fixtures.js sits next to this project in the generated SDK.
+    private val fixtures = File("../tls-fixtures.js").readText()
+
+    private fun pem(name: String): ByteArray {
+        val body = fixtures.substringAfter("export const $name = `").substringBefore("`;")
+        val base64 = body.lines().filter { it.isNotBlank() && !it.startsWith("-----") }.joinToString("")
+        return java.util.Base64.getDecoder().decode(base64)
+    }
+
+    private fun certificate(name: String) = CertificateFactory.getInstance("X.509")
+        .generateCertificate(pem(name).inputStream()) as X509Certificate
+
+    private val trust: SSLSocketFactory = SSLContext.getInstance("TLS").apply {
+        val roots = KeyStore.getInstance(KeyStore.getDefaultType()).apply {
+            load(null)
+            setCertificateEntry("ca", certificate("TLS_CA"))
+        }
+        init(null, TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply { init(roots) }.trustManagers, null)
+    }.socketFactory
+
+    // Serves the named certificate on localhost, runs verifiedCertificate() against it, and
+    // returns the fingerprint it resolved with, or its rejection.
+    private fun verify(name: String, verifier: HostnameVerifier = HostnameVerifier { _, _ -> true }): Result<Any?> {
+        val key = KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(pem("TLS_KEY")))
+        val identity = KeyStore.getInstance(KeyStore.getDefaultType()).apply {
+            load(null)
+            setKeyEntry("server", key, PASSWORD, arrayOf(certificate(name)))
+        }
+        val server = SSLContext.getInstance("TLS").apply {
+            init(KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm()).apply { init(identity, PASSWORD) }.keyManagers, null, null)
+        }.serverSocketFactory.createServerSocket(0, 1, InetAddress.getByName("localhost")) as SSLServerSocket
+        thread {
+            runCatching { server.accept().use { (it as javax.net.ssl.SSLSocket).startHandshake() } }
+        }
+        val module = AppwritePushModule(reactContext, trust, verifier) { _, _ -> }
+        val promise = TestPromise()
+        module.verifiedCertificate("localhost", server.localPort.toDouble(), promise)
+        return promise.await().also { server.close() }
+    }
+
+    private fun fingerprint(name: String) = MessageDigest.getInstance("SHA-256")
+        .digest(certificate(name).encoded)
+        .joinToString(":") { "%02X".format(it) }
+
+    @Test
+    fun testMatchingCertificateResolvesWithItsFingerprint() {
+        assertEquals(fingerprint("TLS_LOCALHOST"), verify("TLS_LOCALHOST").getOrThrow())
+    }
+
+    @Test
+    fun testCertificateForAnotherHostIsRefused() {
+        val result = verify("TLS_WRONG_HOST")
+        assertTrue("wrong host: $result", result.isFailure)
+    }
+
+    @Test
+    fun testCommonNameDoesNotOverrideSubjectAltName() {
+        // CN is localhost, but the subjectAltName is only other.test.
+        val result = verify("TLS_SAN_ELSEWHERE")
+        assertTrue("SAN elsewhere: $result", result.isFailure)
+    }
+
+    @Test
+    fun testRefusingHostnameVerifierIsHonoured() {
+        val result = verify("TLS_LOCALHOST", HostnameVerifier { _, _ -> false })
+        assertTrue("refused by verifier: $result", result.isFailure)
+    }
+
+    private companion object {
+        val PASSWORD = "test".toCharArray()
     }
 }

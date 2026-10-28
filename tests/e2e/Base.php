@@ -387,6 +387,17 @@ abstract class Base extends TestCase
         'Push notification content JS:passed',
     ];
 
+    // React Native on Android: the transport has the native module verify the broker's certificate.
+    protected const REACT_NATIVE_PUSH_TLS_RESPONSES = [
+        'Push TLS hostname match:passed',
+        'Push TLS hostname mismatch:passed',
+        'Push TLS SAN mismatch:passed',
+        'Push TLS other certificate:passed',
+        'Push TLS no native module:passed',
+        'Push TLS flood while verifying:passed',
+        'Push TLS insecure:passed',
+    ];
+
     // React Native on Android: the tap that launched the app is reported once, later taps as events.
     protected const PUSH_NOTIFICATION_OPENED_RESPONSES = [
         'Push notification opened:passed',
