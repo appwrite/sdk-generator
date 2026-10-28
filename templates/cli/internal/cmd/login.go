@@ -178,7 +178,7 @@ func loginSelfSigned(global *config.Global, endpoint string, flag *string) (bool
 		return selfSigned, nil
 	}
 
-	return inheritedSelfSigned(global, endpoint), nil
+	return endpointSelfSigned(global, global.CurrentSessionID(), endpoint), nil
 }
 
 // currentAccount reads the signed-in account.
