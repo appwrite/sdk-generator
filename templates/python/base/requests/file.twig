@@ -10,7 +10,7 @@
         upload_id = {{ uploadIdParameter.name | escapeKeyword | caseSnake }}
 {% endif %}
 
-        response = self.client.chunked_upload(
+        response = await self.client.chunked_upload(
             api_path,
             {
 {%~ for key, security in (method | securityHeaders) %}

@@ -42,42 +42,54 @@ InputFile.from_bytes(bytearray(), "example.file")
 {%- endmacro %}
 import json
 import re
-import requests_mock
 import unittest
 from urllib.parse import parse_qs, unquote, urlsplit
+
+import httpx2
 
 from {{ namespace | caseSnake }}.client import Client
 from {{ namespace | caseSnake }}.input_file import InputFile
 from {{ namespace | caseSnake }}.models import *
 from {{ namespace | caseSnake }}.services.{{ service.name | caseSnake }} import {{ service.name | caseUcfirst }}
 
+# respx patches `httpx` while the SDK talks HTTP through httpx2. Point `import
+# httpx` at httpx2 before respx is imported, so the mocks cover the transport
+# the SDK actually uses. See `test/__init__.py`.
+httpx2.alias_httpx()
 
-class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
+import respx
 
-    def setUp(self):
+
+class {{ service.name | caseUcfirst }}ServiceTest(unittest.IsolatedAsyncioTestCase):
+
+    async def asyncSetUp(self):
         self.client = Client()
         self.{{ service.name | caseSnake }} = {{ service.name | caseUcfirst }}(self.client)
 
+    async def asyncTearDown(self):
+        await self.client.aclose()
+
 {% for method in (service | operations) %}
-    @requests_mock.Mocker()
-    def test_{{ (method | methodName) | caseSnake }}(self, m):
+    @respx.mock
+    async def test_{{ (method | methodName) | caseSnake }}(self):
 {% if (method | methodType) == 'webAuth' %}        data = None
 {% elseif (method | methodType) == 'location' %}        data = bytearray()
 {% elseif (method | textResponse) %}        data = '; café zone\nwww 3600 IN A 192.0.2.1\n'
 {% elseif (method | responseModel) and (method | responseModel) != 'any' %}        data = {{ (method | responseModel) | responseModelExample(spec) | raw }}
 {% else %}        data = ''
 {% endif %}        headers = {'Content-Type': {% if (method | methodType) == 'location' %}'application/octet-stream'{% elseif (method | textResponse) %}'text/plain; charset=utf-8'{% else %}'application/json'{% endif %}}
-        m.request(
-            '{{ method.method.value | caseUpper }}',
-            requests_mock.ANY,
-            {% if (method | methodType) == 'location' %}body=data{% elseif (method | textResponse) %}text=data{% else %}text=json.dumps(data){% endif %},
-            headers=headers,
+        respx.route(method='{{ method.method.value | caseUpper }}').mock(
+            return_value=httpx2.Response(
+                200,
+                {% if (method | methodType) == 'location' %}content=bytes(data){% elseif (method | textResponse) %}text=data{% else %}text=json.dumps(data){% endif %},
+                headers=headers,
+            ),
         )
 {% set parameters = method | parameters('all') %}
 {% if parameters is empty %}
-        response = self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}()
+        response = await self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}()
 {% else %}
-        response = self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}(
+        response = await self.{{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}(
 {% for parameter in parameters %}            {% if not parameter.required %}{{ parameter.name | escapeKeyword | caseSnake }}={% endif %}{{ _self.argument_value(parameter) }},
 {% endfor %}        )
 {% endif %}
@@ -88,8 +100,8 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
 {% set isMultipart = 'multipart/form-data' in (method | consumes) %}
 {% set isJson = method.method.value | caseUpper != 'GET' and not isMultipart %}
 {% set sentParameters = ((method | parameters('query')) | merge(method | parameters('body'))) | filter((param) => isJson or (param | schemaType) not in ['array', 'object']) %}
-        request = m.last_request
-        url = urlsplit(request.url)
+        request = respx.calls.last.request
+        url = urlsplit(str(request.url))
         self.assertEqual(
             unquote(url.path),
             '{{ path | replace({'\\': '\\\\', "'": "\\'"}) | raw }}',
@@ -98,12 +110,12 @@ class {{ service.name | caseUcfirst }}ServiceTest(unittest.TestCase):
         sent = dict(
             re.findall(
                 r'form-data; name="([^"\[]+)[^\r\n]*\r\n(?:[^\r\n]+\r\n)*\r\n(.*?)\r\n--',
-                request.body.decode('latin-1'),
+                request.content.decode('latin-1'),
                 re.S,
             )
         )
 {% elseif isJson %}
-        sent = json.loads(request.body or '{}')
+        sent = json.loads(request.content or '{}')
 {% else %}
         sent = parse_qs(url.query, keep_blank_values=True)
 {% endif %}

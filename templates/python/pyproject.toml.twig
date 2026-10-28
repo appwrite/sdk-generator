@@ -7,7 +7,7 @@ name = "{{ language.params.pipPackage }}"
 version = "{{ sdk.version }}"
 description = "{{ sdk.shortDescription }}"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "{{ spec.info.license.name }}" }
 authors = [
   { name = "{{ spec.info.contact.name }}", email = "{{ spec.info.contact.email }}" }
@@ -16,8 +16,8 @@ maintainers = [
   { name = "{{ spec.info.contact.name }}", email = "{{ spec.info.contact.email }}" }
 ]
 dependencies = [
-  "requests>=2.34.2,<3",
-  "urllib3>=2.8.0,<3",
+  "httpx2>=2.0,<3",
+  "anyio>=4,<5",
   "pydantic>=2,<3",
 ]
 classifiers = [
@@ -27,7 +27,6 @@ classifiers = [
   "Topic :: Software Development",
   "License :: OSI Approved :: {{ sdk.license }}",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -35,8 +34,8 @@ classifiers = [
 
 [project.optional-dependencies]
 test = [
-  "black==26.10.1; python_version >= '3.10'",
-  "requests_mock==1.11.0",
+  "black==26.10.1",
+  "respx>=0.21,<1",
 ]
 
 [project.urls]
@@ -46,7 +45,7 @@ Repository = "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}"
 [tool.black]
 line-length = 120
 skip-string-normalization = true
-target-version = ['py310']
+target-version = ['py311']
 
 [tool.setuptools.packages.find]
 include = ["{{ namespace | caseSnake }}*"]
