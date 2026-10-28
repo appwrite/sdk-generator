@@ -7,7 +7,7 @@
 import tls from 'tls';
 import { Buffer } from 'buffer';
 import { trust } from 'react-native-tcp-socket';
-import { createTcpStream } from './src/lib/tcp-stream';
+import { certificateMatchesHost, createTcpStream } from './src/lib/tcp-stream';
 import { TLS_CA, TLS_KEY, TLS_LOCALHOST, TLS_WRONG_HOST } from './tls-fixtures';
 
 const CREDENTIAL = 'CONNECT session-credential';
@@ -34,7 +34,25 @@ async function handshake(cert, host, tlsInsecure = false) {
     return { error, received };
 }
 
+// [certificate name, host, matches]
+const HOSTNAME_RULES = [
+    ['push.example.com', 'push.example.com', true],
+    ['PUSH.Example.com.', 'push.example.com', true],
+    ['*.example.com', 'push.example.com', true],
+    ['*.example.com', 'a.push.example.com', false],
+    ['*.example.com', 'example.com', false],
+    ['p*.example.com', 'push.example.com', false],
+    ['*.com', 'example.com', false],
+    ['*.0.0.1', '127.0.0.1', false],
+    ['127.0.0.1', '127.0.0.1', true],
+    ['example.com', 'push.example.com', false],
+    [undefined, 'push.example.com', false],
+];
+
 export async function checkTls() {
+    const broken = HOSTNAME_RULES.filter(([name, host, matches]) => certificateMatchesHost(name, host) !== matches);
+    console.log(broken.length === 0 ? 'Push TLS hostname rules:passed' : `Push TLS hostname rules:failed (${JSON.stringify(broken)})`);
+
     // Trusted root, matching name: the credential goes through.
     const match = await handshake(TLS_LOCALHOST, 'localhost');
     console.log(

@@ -2,7 +2,9 @@ import './polyfills';
 
 import { Buffer } from 'buffer';
 import { Duplex } from 'readable-stream';
+import { Platform } from 'react-native';
 import type TcpSocketType from 'react-native-tcp-socket';
+import type { TLSSocket } from 'react-native-tcp-socket';
 import type { IStream } from 'mqtt';
 
 export interface TcpStreamOptions {
@@ -16,6 +18,38 @@ export interface TcpStreamOptions {
      * testing.
      */
     tlsInsecure: boolean;
+}
+
+/**
+ * Whether a certificate name covers `host`, per RFC 6125: case-insensitive, with a `*`
+ * only as the whole left-most label, standing for exactly one label, and never for an IP.
+ */
+export function certificateMatchesHost(
+    name: string | undefined,
+    host: string,
+): boolean {
+    const normalize = (value: string) =>
+        (value.endsWith('.') ? value.slice(0, -1) : value).toLowerCase();
+    if (!name) {
+        return false;
+    }
+    const pattern = normalize(name);
+    const target = normalize(host);
+    if (!pattern.startsWith('*.')) {
+        return pattern === target;
+    }
+    const isIp =
+        target.includes(':') ||
+        target
+            .split('.')
+            .every((label) => label !== '' && !isNaN(Number(label)));
+    const dot = target.indexOf('.');
+    return (
+        !isIp &&
+        pattern.split('.').length > 2 &&
+        dot > 0 &&
+        target.slice(dot) === pattern.slice(1)
+    );
 }
 
 /**
@@ -50,6 +84,11 @@ export function createTcpStream({
         );
     }
     /* eslint-enable @typescript-eslint/no-require-imports */
+
+    // Android's native TLS socket validates the certificate chain but never the hostname
+    // (iOS checks it natively), so check the peer certificate's name here, before anything,
+    // the CONNECT credential included, is written to the socket.
+    const checkHost = tls && !tlsInsecure && Platform.OS !== 'ios';
 
     let connected = false;
     // Writes MQTT.js issues before the TCP handshake completes are held here and
@@ -106,8 +145,37 @@ export function createTcpStream({
         }
         pending.length = 0;
     };
-    socket.on('connect', onConnect);
-    socket.on('secureConnect', onConnect);
+    const onSecureConnect = () => {
+        if (!checkHost) {
+            onConnect();
+            return;
+        }
+        (socket as TLSSocket)
+            .getPeerCertificate()
+            .then(
+                (certificate) => certificate?.subject?.CN,
+                () => {
+                    throw new Error(
+                        `Could not read the push server's TLS certificate to verify it for '${host}'.`,
+                    );
+                },
+            )
+            .then((name) => {
+                if (!certificateMatchesHost(name, host)) {
+                    throw new Error(
+                        `The push server's TLS certificate is not valid for '${host}'.`,
+                    );
+                }
+                onConnect();
+            })
+            .catch((err: Error) => duplex.destroy(err));
+    };
+    // A TLS socket is ready only once the handshake completes ('secureConnect').
+    if (tls) {
+        socket.on('secureConnect', onSecureConnect);
+    } else {
+        socket.on('connect', onConnect);
+    }
 
     socket.on('data', (data) => {
         // The native socket delivers Buffers by default (no encoding set); guard the
