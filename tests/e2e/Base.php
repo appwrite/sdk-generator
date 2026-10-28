@@ -394,6 +394,7 @@ abstract class Base extends TestCase
         'Push TLS SAN mismatch:passed',
         'Push TLS other certificate:passed',
         'Push TLS no native module:passed',
+        'Push TLS flood while verifying:passed',
         'Push TLS insecure:passed',
     ];
 

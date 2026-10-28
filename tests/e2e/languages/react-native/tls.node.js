@@ -57,6 +57,45 @@ async function handshake(cert, host, { tlsInsecure = false, native = nativeTls }
     return { error, received, delivered };
 }
 
+// A server that floods the socket while the native check is still running. Reports whether the
+// server managed to hand the whole flood to the network before the check finished (only possible
+// if the transport kept reading, and holding, everything it was sent) and how much the stream
+// delivered once verified.
+async function floodWhileVerifying() {
+    const FLOOD = 64 * 1024 * 1024;
+    let flushed = false;
+    let flushedBeforeVerified = null;
+    let delivered = 0;
+    const server = tls.createServer({ key: TLS_KEY, cert: TLS_LOCALHOST }, (socket) => {
+        socket.on('error', () => {});
+        socket.write(Buffer.alloc(FLOOD), (err) => (flushed ||= !err));
+    });
+    await new Promise((resolve) => server.listen(0, resolve));
+    trust.ca = TLS_CA;
+    const previous = NativeModules.AppwritePush;
+    NativeModules.AppwritePush = {
+        verifiedCertificate: async (host, port) => {
+            const verified = await nativeTls.verifiedCertificate(host, port);
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            flushedBeforeVerified = flushed;
+            return verified;
+        },
+    };
+
+    const stream = createTcpStream({ host: 'localhost', port: server.address().port, tls: true, tlsInsecure: false });
+    stream.on('error', () => {});
+    const done = new Promise((resolve) =>
+        stream.on('data', (data) => (delivered += data.length) === FLOOD && resolve()),
+    );
+    await Promise.race([done, new Promise((resolve) => setTimeout(resolve, 10000))]);
+
+    stream.destroy();
+    server.close();
+    trust.ca = undefined;
+    NativeModules.AppwritePush = previous;
+    return { flushedBeforeVerified, delivered, expected: FLOOD };
+}
+
 // Refused: nothing written to the server and nothing it sent handed on.
 const refused = (outcome) => outcome.error && outcome.received === 0 && outcome.delivered === 0;
 const accepted = (outcome) =>
@@ -87,6 +126,11 @@ export async function checkTls() {
     // Without the native module nothing can verify the hostname: refused.
     const unverifiable = await handshake(TLS_LOCALHOST, 'localhost', { native: null });
     report('no native module', refused(unverifiable), unverifiable);
+
+    // Flooded while verifying: the transport stops reading instead of holding the flood, and
+    // delivers all of it once verified.
+    const flood = await floodWhileVerifying();
+    report('flood while verifying', flood.flushedBeforeVerified === false && flood.delivered === flood.expected, flood);
 
     // ?tlsInsecure=true opts out of verification, hostname included.
     const insecure = await handshake(TLS_WRONG_HOST, 'localhost', { tlsInsecure: true });
