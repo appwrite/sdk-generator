@@ -387,12 +387,13 @@ abstract class Base extends TestCase
         'Push notification content JS:passed',
     ];
 
-    // React Native on Android: the transport checks the broker certificate's hostname itself.
+    // React Native on Android: the transport has the native module verify the broker's certificate.
     protected const REACT_NATIVE_PUSH_TLS_RESPONSES = [
-        'Push TLS hostname rules:passed',
         'Push TLS hostname match:passed',
         'Push TLS hostname mismatch:passed',
         'Push TLS SAN mismatch:passed',
+        'Push TLS other certificate:passed',
+        'Push TLS no native module:passed',
         'Push TLS insecure:passed',
     ];
 

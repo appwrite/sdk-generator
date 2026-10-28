@@ -2,7 +2,7 @@ import './polyfills';
 
 import { Buffer } from 'buffer';
 import { Duplex } from 'readable-stream';
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import type TcpSocketType from 'react-native-tcp-socket';
 import type { TLSSocket } from 'react-native-tcp-socket';
 import type { IStream } from 'mqtt';
@@ -20,36 +20,13 @@ export interface TcpStreamOptions {
     tlsInsecure: boolean;
 }
 
-/**
- * Whether a certificate name covers `host`, per RFC 6125: case-insensitive, with a `*`
- * only as the whole left-most label, standing for exactly one label, and never for an IP.
- */
-export function certificateMatchesHost(
-    name: string | undefined,
-    host: string,
-): boolean {
-    const normalize = (value: string) =>
-        (value.endsWith('.') ? value.slice(0, -1) : value).toLowerCase();
-    if (!name) {
-        return false;
-    }
-    const pattern = normalize(name);
-    const target = normalize(host);
-    if (!pattern.startsWith('*.')) {
-        return pattern === target;
-    }
-    const isIp =
-        target.includes(':') ||
-        target
-            .split('.')
-            .every((label) => label !== '' && !isNaN(Number(label)));
-    const dot = target.indexOf('.');
-    return (
-        !isIp &&
-        pattern.split('.').length > 2 &&
-        dot > 0 &&
-        target.slice(dot) === pattern.slice(1)
-    );
+/** The slice of the SDK's native Android module that verifies a TLS server. */
+interface NativeTls {
+    /**
+     * The SHA-256 fingerprint of the certificate `host`:`port` presents, once Android has
+     * verified it for `host`: chain and hostname (subjectAltName). Rejects otherwise.
+     */
+    verifiedCertificate(host: string, port: number): Promise<string>;
 }
 
 /**
@@ -86,8 +63,10 @@ export function createTcpStream({
     /* eslint-enable @typescript-eslint/no-require-imports */
 
     // Android's native TLS socket validates the certificate chain but never the hostname
-    // (iOS checks it natively), so check the peer certificate's name here, before anything,
-    // the CONNECT credential included, is written to the socket.
+    // (iOS checks it natively). Its peer certificate carries no subjectAltName to check, so the
+    // SDK's native module verifies the server the way HTTPS does and returns the fingerprint of
+    // the certificate it verified; this socket's certificate must be that one before anything,
+    // the CONNECT credential included, is written to it.
     const checkHost = tls && !tlsInsecure && Platform.OS !== 'ios';
 
     let connected = false;
@@ -150,25 +129,44 @@ export function createTcpStream({
             onConnect();
             return;
         }
-        (socket as TLSSocket)
-            .getPeerCertificate()
-            .then(
-                (certificate) => certificate?.subject?.CN,
-                () => {
+        const native = NativeModules?.{{ spec.info.title | caseUcfirst }}Push as
+            Partial<NativeTls> | undefined;
+        if (!native?.verifiedCertificate) {
+            duplex.destroy(
+                new Error(
+                    "Verifying the push server's TLS certificate needs the SDK's native Android module. Rebuild the app with it linked.",
+                ),
+            );
+            return;
+        }
+        Promise.all([
+            (socket as TLSSocket).getPeerCertificate().catch(() => {
+                throw new Error(
+                    `Could not read the push server's TLS certificate to verify it for '${host}'.`,
+                );
+            }),
+            native.verifiedCertificate(host, port),
+        ])
+            .then(([certificate, verified]) => {
+                const fingerprint = certificate?.fingerprint256;
+                if (
+                    !fingerprint ||
+                    fingerprint.toUpperCase() !== verified.toUpperCase()
+                ) {
                     throw new Error(
-                        `Could not read the push server's TLS certificate to verify it for '${host}'.`,
-                    );
-                },
-            )
-            .then((name) => {
-                if (!certificateMatchesHost(name, host)) {
-                    throw new Error(
-                        `The push server's TLS certificate is not valid for '${host}'.`,
+                        `The push server's TLS certificate is not the one verified for '${host}'.`,
                     );
                 }
-                onConnect();
+                // The socket may have closed while this was verifying.
+                if (!duplex.destroyed) {
+                    onConnect();
+                }
             })
-            .catch((err: Error) => duplex.destroy(err));
+            .catch((err: unknown) =>
+                duplex.destroy(
+                    err instanceof Error ? err : new Error(String(err)),
+                ),
+            );
     };
     // A TLS socket is ready only once the handshake completes ('secureConnect').
     if (tls) {

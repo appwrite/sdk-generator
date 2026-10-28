@@ -57,6 +57,8 @@ declare module 'react-native-tcp-socket' {
 
     export interface PeerCertificate {
         subject?: { CN?: string };
+        /** SHA-256 of the DER certificate, as colon-separated hex. */
+        fingerprint256?: string;
     }
 
     export interface TLSSocket extends Socket {

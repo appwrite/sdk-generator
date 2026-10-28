@@ -12,6 +12,14 @@ import io.{{ spec.info.title | caseLower }}.reactnative.services.PushMessage
 import io.{{ spec.info.title | caseLower }}.reactnative.services.PushTap
 import io.{{ spec.info.title | caseLower }}.reactnative.services.PushTaps
 import org.json.JSONObject
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.security.MessageDigest
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLPeerUnverifiedException
+import javax.net.ssl.SSLSocket
+import javax.net.ssl.SSLSocketFactory
+import kotlin.concurrent.thread
 
 /**
  * The React Native side of [PushBridge]: the SDK's `Push` hosts its background subscriptions
@@ -147,6 +155,35 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
     fun defaultClientId(authMethod: String, credential: String, promise: Promise) =
         settle(promise) { bridge.defaultClientId(authMethod, credential) }
 
+    /**
+     * The SHA-256 fingerprint of the certificate [host]:[port] presents, once verified for [host]
+     * as HTTPS would: the chain, then the hostname against its subjectAltName. JS opens its TLS
+     * socket through react-native-tcp-socket, which checks only the chain, and requires that
+     * socket's certificate to be this one before it writes anything.
+     */
+    @ReactMethod
+    fun verifiedCertificate(host: String, port: Double, promise: Promise) {
+        thread(name = "{{ spec.info.title | caseUcfirst }}PushTls") {
+            settle(promise) {
+                Socket().use { plain ->
+                    plain.connect(InetSocketAddress(host, port.toInt()), TLS_TIMEOUT_MS)
+                    // Layered with the hostname, so the handshake sends it as SNI.
+                    val factory = SSLSocketFactory.getDefault() as SSLSocketFactory
+                    (factory.createSocket(plain, host, port.toInt(), true) as SSLSocket).use { socket ->
+                        socket.soTimeout = TLS_TIMEOUT_MS
+                        socket.startHandshake()
+                        if (!HttpsURLConnection.getDefaultHostnameVerifier().verify(host, socket.session)) {
+                            throw SSLPeerUnverifiedException("The push server's TLS certificate is not valid for '$host'.")
+                        }
+                        MessageDigest.getInstance("SHA-256")
+                            .digest(socket.session.peerCertificates[0].encoded)
+                            .joinToString(":") { "%02X".format(it) }
+                    }
+                }
+            }
+        }
+    }
+
     // Required by NativeEventEmitter; events are emitted whether or not anyone listens.
     @ReactMethod
     fun addListener(eventName: String) = Unit
@@ -170,6 +207,7 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
         const val ERROR_EVENT = "{{ spec.info.title | caseUcfirst }}PushError"
         const val OPENED_EVENT = "{{ spec.info.title | caseUcfirst }}PushOpened"
         const val CONNECTION_EVENT = "{{ spec.info.title | caseUcfirst }}PushConnection"
+        private const val TLS_TIMEOUT_MS = 10_000
         private const val ERROR_CODE = "{{ spec.info.title | caseLower }}_push"
     }
 }

@@ -6,15 +6,29 @@
 // Each check opens the generated transport to a local TLS server and records what reaches it.
 import tls from 'tls';
 import { Buffer } from 'buffer';
+import { NativeModules } from 'react-native';
 import { trust } from 'react-native-tcp-socket';
-import { certificateMatchesHost, createTcpStream } from './src/lib/tcp-stream';
+import { createTcpStream } from './src/lib/tcp-stream';
 import { TLS_CA, TLS_KEY, TLS_LOCALHOST, TLS_SAN_ELSEWHERE, TLS_WRONG_HOST } from './tls-fixtures';
 
 const CREDENTIAL = 'CONNECT session-credential';
 
-// Serves `cert`, connects to it as `host`, writes the credential, and reports whether the
-// stream failed and how many bytes the server received.
-async function handshake(cert, host, tlsInsecure = false) {
+// Stand-in for the SDK's native Android module: verifies host:port as HTTPS does (Node checks the
+// subjectAltName and ignores the CN when there is one) and returns that certificate's fingerprint.
+const nativeTls = {
+    verifiedCertificate: (host, port) =>
+        new Promise((resolve, reject) => {
+            const socket = tls.connect({ host, port, servername: host, ca: TLS_CA }, () => {
+                resolve(socket.getPeerCertificate().fingerprint256);
+                socket.destroy();
+            });
+            socket.on('error', reject);
+        }),
+};
+
+// Serves `cert`, connects to it as `host` with `native` as the SDK's native module, writes the
+// credential, and reports whether the stream failed and how many bytes the server received.
+async function handshake(cert, host, { tlsInsecure = false, native = nativeTls } = {}) {
     let received = 0;
     const server = tls.createServer({ key: TLS_KEY, cert }, (socket) => {
         socket.on('data', (data) => (received += data.length));
@@ -22,6 +36,8 @@ async function handshake(cert, host, tlsInsecure = false) {
     });
     await new Promise((resolve) => server.listen(0, resolve));
     trust.ca = TLS_CA;
+    const previous = NativeModules.AppwritePush;
+    NativeModules.AppwritePush = native;
 
     const stream = createTcpStream({ host, port: server.address().port, tls: true, tlsInsecure });
     const failed = new Promise((resolve) => stream.on('error', () => resolve(true)));
@@ -31,57 +47,37 @@ async function handshake(cert, host, tlsInsecure = false) {
     stream.destroy();
     server.close();
     trust.ca = undefined;
+    NativeModules.AppwritePush = previous;
     return { error, received };
 }
 
-// [certificate name, host, matches]
-const HOSTNAME_RULES = [
-    ['push.example.com', 'push.example.com', true],
-    ['PUSH.Example.com.', 'push.example.com', true],
-    ['*.example.com', 'push.example.com', true],
-    ['*.example.com', 'a.push.example.com', false],
-    ['*.example.com', 'example.com', false],
-    ['p*.example.com', 'push.example.com', false],
-    ['*.com', 'example.com', false],
-    ['*.0.0.1', '127.0.0.1', false],
-    ['127.0.0.1', '127.0.0.1', true],
-    ['example.com', 'push.example.com', false],
-    [undefined, 'push.example.com', false],
-];
+const report = (name, passed, outcome) =>
+    console.log(passed ? `Push TLS ${name}:passed` : `Push TLS ${name}:failed (${JSON.stringify(outcome)})`);
 
 export async function checkTls() {
-    const broken = HOSTNAME_RULES.filter(([name, host, matches]) => certificateMatchesHost(name, host) !== matches);
-    console.log(broken.length === 0 ? 'Push TLS hostname rules:passed' : `Push TLS hostname rules:failed (${JSON.stringify(broken)})`);
-
     // Trusted root, matching name: the credential goes through.
     const match = await handshake(TLS_LOCALHOST, 'localhost');
-    console.log(
-        !match.error && match.received === CREDENTIAL.length
-            ? 'Push TLS hostname match:passed'
-            : `Push TLS hostname match:failed (${JSON.stringify(match)})`,
-    );
+    report('hostname match', !match.error && match.received === CREDENTIAL.length, match);
 
     // Trusted root, another name: refused before a single byte is written.
     const mismatch = await handshake(TLS_WRONG_HOST, 'localhost');
-    console.log(
-        mismatch.error && mismatch.received === 0
-            ? 'Push TLS hostname mismatch:passed'
-            : `Push TLS hostname mismatch:failed (${JSON.stringify(mismatch)})`,
-    );
+    report('hostname mismatch', mismatch.error && mismatch.received === 0, mismatch);
 
     // Trusted root, CN names the host but the subjectAltName does not: the SAN wins, so refused.
     const sanElsewhere = await handshake(TLS_SAN_ELSEWHERE, 'localhost');
-    console.log(
-        sanElsewhere.error && sanElsewhere.received === 0
-            ? 'Push TLS SAN mismatch:passed'
-            : `Push TLS SAN mismatch:failed (${JSON.stringify(sanElsewhere)})`,
-    );
+    report('SAN mismatch', sanElsewhere.error && sanElsewhere.received === 0, sanElsewhere);
+
+    // The socket's certificate is not the one the native module verified: refused.
+    const other = await handshake(TLS_LOCALHOST, 'localhost', {
+        native: { verifiedCertificate: async () => '00:11:22' },
+    });
+    report('other certificate', other.error && other.received === 0, other);
+
+    // Without the native module nothing can verify the hostname: refused.
+    const unverifiable = await handshake(TLS_LOCALHOST, 'localhost', { native: null });
+    report('no native module', unverifiable.error && unverifiable.received === 0, unverifiable);
 
     // ?tlsInsecure=true opts out of verification, hostname included.
-    const insecure = await handshake(TLS_WRONG_HOST, 'localhost', true);
-    console.log(
-        !insecure.error && insecure.received === CREDENTIAL.length
-            ? 'Push TLS insecure:passed'
-            : `Push TLS insecure:failed (${JSON.stringify(insecure)})`,
-    );
+    const insecure = await handshake(TLS_WRONG_HOST, 'localhost', { tlsInsecure: true });
+    report('insecure', !insecure.error && insecure.received === CREDENTIAL.length, insecure);
 }
