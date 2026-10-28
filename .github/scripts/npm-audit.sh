@@ -6,7 +6,11 @@ npm audit --audit-level=moderate "$@"
 report=$(npm audit --json "$@" || true)
 node -e '
 const report = JSON.parse(process.argv[1]);
-const fixable = Object.values(report.vulnerabilities ?? {}).filter(
+if (report.error || typeof report.vulnerabilities !== "object") {
+    console.error("npm audit did not produce a report: " + JSON.stringify(report.error ?? report));
+    process.exit(1);
+}
+const fixable = Object.values(report.vulnerabilities).filter(
     (vulnerability) => vulnerability.via.some((via) => typeof via === "object")
         && (vulnerability.fixAvailable === true
             || (typeof vulnerability.fixAvailable === "object" && !vulnerability.fixAvailable.isSemVerMajor)),
