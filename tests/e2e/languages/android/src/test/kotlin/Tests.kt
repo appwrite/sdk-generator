@@ -227,30 +227,30 @@ class ServiceTest {
             writeToFile(zone)
             writeToFile(general.getMixed().result)
             writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1"))
-            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1", InputFile.fromPath("../../../../resources/file.png")))
+            writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1", InputFile.fromPath("../../../resources/file.png")))
 
             val message = "conversation without a required file"
             writeToFile(general.optionalUpload(message).result)
-            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../../resources/file.png")).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../resources/file.png")).result)
             writeToFile(general.optionalUpload(message, metadata = mapOf("source" to "sdk", "uri" to "café")).result)
-            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../../resources/file.png"), mapOf("source" to "sdk", "uri" to "café")).result)
+            writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../resources/file.png"), mapOf("source" to "sdk", "uri" to "café")).result)
 
             try {
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../../resources/file.png"))
+                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/file.png"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
 
             try {
-                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../../resources/large_file.mp4"))
+                mock = general.upload("string", 123, listOf("string in array"), InputFile.fromPath("../../../resources/large_file.mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
 
             try {
-                var bytes = File("../../../../resources/file.png").readBytes()
+                var bytes = File("../../../resources/file.png").readBytes()
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "file.png", "image/png"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
@@ -258,7 +258,7 @@ class ServiceTest {
             }
 
             try {
-                var bytes = File("../../../../resources/large_file.mp4").readBytes()
+                var bytes = File("../../../resources/large_file.mp4").readBytes()
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(bytes, "large_file.mp4", "video/mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
@@ -272,13 +272,13 @@ class ServiceTest {
                 writeToFile(ex.toString())
             }
             try {
-                mock = general.uploadWithId("newfileid", InputFile.fromPath("../../../../resources/large_file.mp4"))
+                mock = general.uploadWithId("newfileid", InputFile.fromPath("../../../resources/large_file.mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())
             }
 
-            val profile = general.uploadGeneric(InputFile.fromPath("../../../../resources/file.png"))
+            val profile = general.uploadGeneric(InputFile.fromPath("../../../resources/file.png"))
             writeToFile(profile.prefs.data["result"] as String)
 
             writeToFile(String(general.download()))
@@ -535,7 +535,7 @@ class ServiceTest {
             writeToFile(ID.unique())
             writeToFile(ID.custom("custom_id"))
 
-            JavaInterop.run(general, "../../../../resources/file.png").forEach { writeToFile(it) }
+            JavaInterop.run(general, "../../../resources/file.png").forEach { writeToFile(it) }
             ChannelInterop.run().forEach { writeToFile(it) }
 
             // Topic helper tests
