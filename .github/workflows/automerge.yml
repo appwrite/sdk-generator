@@ -4,8 +4,8 @@ on:
   workflow_run:
     workflows: [CI, Validation]
     types: [completed]
-  issue_comment:
-    types: [created, edited]
+  check_run:
+    types: [completed]
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
@@ -29,7 +29,7 @@ jobs:
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && startsWith(github.event.workflow_run.head_branch, 'renovate/')) ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.user.login == 'hansi-codes[bot]')
+      (github.event_name == 'check_run' && github.event.check_run.app.slug == 'hansi-codes')
     runs-on: ubuntu-latest
     steps:
       - name: generate app token
@@ -57,18 +57,13 @@ jobs:
           while read -r number sha; do
             [ -n "$number" ] || continue
 
-            reviewed=$(gh api --paginate --slurp "repos/$REPOSITORY/issues/$number/comments?per_page=100" | jq -r '
-              [add[] | select(.user.login == "hansi-codes[bot]" and (.body | contains("<!-- hans:summary -->")))]
-              | last // {body: ""}
-              | .body
-              | select(test("(^|\\n)## [^\\n]* Tier S ·"))
-              | capture("Reviewed <code>(?<sha>[0-9a-f]+)</code>").sha // empty')
-            if [ -z "$reviewed" ] || [[ "$sha" != "$reviewed"* ]]; then
-              echo "#$number: no Hansi tier S review for $sha"
+            runs=$(gh api --paginate --slurp "repos/$REPOSITORY/commits/$sha/check-runs?per_page=100" | jq '[.[].check_runs[]]')
+
+            tier=$(jq -r '[.[] | select(.app.slug == "hansi-codes" and .status == "completed")] | last | .output.title // ""' <<< "$runs")
+            if [[ "$tier" != "Tier S:"* ]]; then
+              echo "#$number: no Hansi tier S review for $sha (${tier:-none})"
               continue
             fi
-
-            runs=$(gh api --paginate --slurp "repos/$REPOSITORY/commits/$sha/check-runs?per_page=100" | jq '[.[].check_runs[]]')
             actions=$(jq '[.[] | select(.app.slug == "github-actions")] | length' <<< "$runs")
             pending=$(jq '[.[] | select(.status != "completed")] | length' <<< "$runs")
             unsuccessful=$(jq -r '[.[] | select(.status == "completed" and ([.conclusion] | inside(["success", "skipped", "neutral"]) | not)) | .name] | join(", ")' <<< "$runs")
