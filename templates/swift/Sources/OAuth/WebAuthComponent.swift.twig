@@ -14,6 +14,9 @@ import NIO
 public class WebAuthComponent {
 
     private static var callbacks = [String: (Result<String, {{ spec.info.title | caseUcfirst}}Error>) -> Void]()
+    /// The endpoint host of each login in progress, by callback scheme. A callback URL
+    /// can only set a session for a login this app started, and only for its endpoint.
+    private static var hosts = [String: String]()
     #if canImport(AuthenticationServices)
         private static var currentAuthSession: ASWebAuthenticationSession?
     #endif
@@ -38,6 +41,7 @@ public class WebAuthComponent {
         onComplete: @escaping (Result<String, {{ spec.info.title | caseUcfirst}}Error>) -> Void
     ) {
         callbacks[callbackScheme] = onComplete
+        hosts[callbackScheme] = url.host
 
         #if canImport(AuthenticationServices)
             currentAuthSession = ASWebAuthenticationSession(
@@ -65,32 +69,37 @@ public class WebAuthComponent {
     }
 
     ///
-    /// Handle an incoming cooke from a URL, saving it to use for future requests.
+    /// Handle an incoming cookie from a URL, saving it to use for future requests.
+    ///
+    /// Any app or web page can open a URL with the callback scheme, so the cookie is only
+    /// kept while a login started with that scheme is in progress, and only when it is for
+    /// that login's endpoint.
     ///
     /// - Parameters:
     ///   - url: The URL containing the cookie
     ///
     public static func handleIncomingCookie(from url: URL) {
 
-        guard let components = URLComponents(string: url.absoluteString),
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+            let scheme = components.scheme,
+            let host = hosts[scheme],
             let queryItems = components.queryItems
         else {
             return
         }
 
-        let cookieParts = [String: String](
-            uniqueKeysWithValues: queryItems.compactMap { item in
-                item.value.map { (item.name, $0) }
-            })
+        var cookieParts = [String: String]()
+        for item in queryItems where cookieParts[item.name] == nil {
+            cookieParts[item.name] = item.value
+        }
 
-        guard var domain = cookieParts["domain"],
+        guard let domain = cookieParts["domain"],
             let key = cookieParts["key"],
-            let secret = cookieParts["secret"]
+            let secret = cookieParts["secret"],
+            (domain.hasPrefix(".") ? String(domain.dropFirst()) : domain).lowercased() == host.lowercased()
         else {
             return
         }
-
-        domain.remove(at: domain.startIndex)
 
         let path: String? = cookieParts["path"]
         let expires: String? = cookieParts["expires"]
@@ -120,12 +129,9 @@ public class WebAuthComponent {
             cookie += "; secure"
         }
 
-        UserDefaults.standard.set([cookie], forKey: domain)
+        UserDefaults.standard.set([cookie], forKey: host)
 
-        WebAuthComponent.onCallback(
-            scheme: components.scheme!,
-            url: components.url!
-        )
+        WebAuthComponent.onCallback(scheme: scheme, url: url)
     }
 
     ///
@@ -151,6 +157,8 @@ public class WebAuthComponent {
         callbacks.forEach { (_, callback) in
             callback(.failure({{ spec.info.title | caseUcfirst}}Error(message: "User cancelled login.")))
         }
+
+        hosts.removeAll()
 
         #if canImport(AuthenticationServices)
             currentAuthSession = nil

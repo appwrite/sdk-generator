@@ -882,9 +882,32 @@ class Python extends Language
         return $split;
     }
 
+    /**
+     * Prose for the body of a `"""` docstring, with continuation lines indented.
+     *
+     * A docstring is an ordinary string literal: a backslash starts an escape
+     * (`\N{...}` fails to compile, one before the closing quotes escapes them)
+     * and `"""` ends it, so a description containing either would continue as
+     * code. Backslashes are doubled and the third quote of a run becomes
+     * `\x22`, which reads the same whether or not Twig HTML-escapes the output.
+     */
     protected function formatDocstring(string $description, int $indent): string
     {
-        $lines = \explode("\n", \str_replace("\r\n", "\n", \trim($description)));
+        $source = \trim($description);
+        $description = '';
+        $quotes = 0;
+        for ($position = 0, $length = \strlen($source); $position < $length; $position++) {
+            $character = $source[$position];
+            if ($character === '"' && $quotes === 2) {
+                $character = '\x22';
+            } elseif ($character === '\\') {
+                $character = '\\\\';
+            }
+            $quotes = $character === '"' ? $quotes + 1 : 0;
+            $description .= $character;
+        }
+
+        $lines = \explode("\n", \str_replace("\r\n", "\n", $description));
         foreach ($lines as $index => $line) {
             $line = \rtrim($line);
             if ($index > 0 && $line !== '') {

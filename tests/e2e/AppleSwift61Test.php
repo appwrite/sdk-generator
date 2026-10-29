@@ -41,6 +41,9 @@ final class AppleSwift61Test extends Base
         ...Base::GENERAL_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::NULL_PATH_RESPONSE,
+        ...Base::PATH_PARAM_RESPONSES,
+        ...Base::PATH_SEGMENT_RESPONSES,
+        ...Base::PATH_DOT_RESPONSES,
         ...Base::QUERY_ENCODING_RESPONSES,
         ...Base::TEXT_RESPONSES,
         ...Base::TEXT_UPLOAD_RESPONSES,
@@ -77,5 +80,6 @@ final class AppleSwift61Test extends Base
         ...Base::PUSH_CREDENTIAL_SWITCH_RESPONSES,
         ...Base::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,
         ...Base::PUSH_CLOSE_FROM_CALLBACK_RESPONSES,
+        'OAuth callback without a login:passed',
     ];
 }

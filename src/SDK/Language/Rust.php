@@ -808,6 +808,18 @@ class Rust extends Language
             return $expr;
         }
 
+        // A call taking one argument too long for its line, such as
+        // `&Client::encode_path(&self.client...)`: rustfmt puts the argument
+        // on its own lines inside the call, with a trailing comma.
+        $argument = $this->rustfmtSingleCallArgument($expr);
+        if ($argument !== null) {
+            $callee = substr($expr, 0, strlen($expr) - strlen($argument) - 1);
+
+            return $callee . "\n"
+                . str_repeat(' ', $indent + 4) . $this->rustfmtChainExpr($indent + 4, $argument) . ",\n"
+                . str_repeat(' ', $indent) . ')';
+        }
+
         $segments = preg_split('/(?=\.[A-Za-z_])/', $expr, -1, PREG_SPLIT_NO_EMPTY);
         if ($segments === false || count($segments) < 2) {
             return $expr;
@@ -816,6 +828,43 @@ class Rust extends Language
         $inner = str_repeat(' ', $indent + 4);
 
         return $segments[0] . "\n" . $inner . implode("\n" . $inner, array_slice($segments, 1));
+    }
+
+    /**
+     * The argument of `path(argument)` when the expression is exactly one
+     * call of a plain path with one argument, or null otherwise.
+     */
+    protected function rustfmtSingleCallArgument(string $expr): ?string
+    {
+        if (preg_match('/^&?[A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*\(/', $expr, $match) !== 1 || !str_ends_with($expr, ')')) {
+            return null;
+        }
+
+        $argument = substr($expr, strlen($match[0]), -1);
+        $depth = 0;
+        $quoted = false;
+        for ($i = 0, $length = strlen($argument); $i < $length; $i++) {
+            $char = $argument[$i];
+            if ($quoted) {
+                if ($char === '\\') {
+                    $i++;
+                } elseif ($char === '"') {
+                    $quoted = false;
+                }
+                continue;
+            }
+            if ($char === '"') {
+                $quoted = true;
+            } elseif ($char === '(') {
+                $depth++;
+            } elseif ($char === ')' && --$depth < 0) {
+                return null;
+            } elseif ($char === ',' && $depth === 0) {
+                return null;
+            }
+        }
+
+        return $depth === 0 && !$quoted ? $argument : null;
     }
 
     protected function rustfmtMatchArm(int $indent, string $pattern, string $value): string

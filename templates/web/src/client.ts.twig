@@ -429,6 +429,14 @@ class {{spec.info.title | caseUcfirst}}Exception extends Error {
     }
 }
 
+export function encodePath(value: unknown): string {
+    const segment = String(value);
+    if (segment === '.' || segment === '..') {
+        throw new {{spec.info.title | caseUcfirst}}Exception('Path parameter cannot be "." or ".."');
+    }
+    return encodeURIComponent(segment);
+}
+
 /**
  * Client that handles requests to {{spec.info.title | caseUcfirst}}
  */
@@ -657,7 +665,7 @@ class Client {
      * Set {{headerKey | caseUcfirst}}
      *
 {%~ if header.description %}
-     * {{header.description}}
+     * {{header.description | escapeComment}}
      *
 {%~ endif %}
      * @param value string

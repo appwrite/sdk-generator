@@ -45,6 +45,19 @@ abstract class Base extends TestCase
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
+    // Server SDKs answer a redirect with an error instead of following it: the next location may
+    // be another host, and the request carries the API key. Printed as `code:message`.
+    protected const SERVER_REDIRECT_RESPONSES = [
+        '301:Redirect to /v1/mock/tests/general/redirect/done not followed',
+    ];
+
+    // Server SDKs keep no cookies: the cookie set-cookie answers with is not sent with get-cookie,
+    // so one caller's session cannot reach the next call made on the same client.
+    protected const SERVER_COOKIE_RESPONSES = [
+        'GET:/v1/mock/tests/general/set-cookie:passed',
+        'Missing cookie value',
+    ];
+
     protected const LOCATION_RESPONSES = [
         'GET:/v1/mock/tests/general/download:passed',
         'GET:/v1/mock/tests/general/download:passed:as:impersonated',
@@ -52,6 +65,18 @@ abstract class Base extends TestCase
 
     protected const PATH_PARAM_RESPONSES = [
         'GET:/v1/mock/tests/general/path/grant%2Fspecial%26id:passed',
+    ];
+
+    // getPath('../grant?special=id#x y%') and getPath('unique()'): every reserved character
+    // stays inside the one segment, and the parentheses of unique() are left as they are.
+    protected const PATH_SEGMENT_RESPONSES = [
+        'GET:/v1/mock/tests/general/path/..%2Fgrant%3Fspecial%3Did%23x%20y%25:passed',
+        'GET:/v1/mock/tests/general/path/unique():passed',
+    ];
+
+    protected const PATH_DOT_RESPONSES = [
+        'Path parameter cannot be "." or ".."',
+        'Path parameter cannot be "." or ".."',
     ];
 
     // One behavioral contract, invoked by each SDK's language adapter.
@@ -213,6 +238,10 @@ abstract class Base extends TestCase
 
     protected const BOUNDARY_UPLOAD_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
+    ];
+
+    protected const UPLOAD_WITH_ID_RESPONSES = [
+        'POST:/v1/mock/tests/general/upload-with-id:passed',
     ];
 
     protected const LARGE_FILE_RESPONSES = [

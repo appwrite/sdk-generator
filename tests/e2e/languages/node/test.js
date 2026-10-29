@@ -146,8 +146,16 @@ async function start() {
     console.log(response.result);
 
     // General
-    response = await general.redirect();
-    console.log(response.result);
+    // A redirect is reported as an error, not followed with the API key.
+    try {
+        await general.redirect();
+        throw new Error('A redirect was followed');
+    } catch (error) {
+        if (!(error instanceof AppwriteException)) {
+            throw error;
+        }
+        console.log(`${error.code}:${error.message}`);
+    }
 
     for (const [id, plain] of [['', '0'], ['0', '']]) {
         try {
@@ -163,6 +171,16 @@ async function start() {
 
     response = await general.getPath({ pathId: 'grant/special&id' });
     console.log(response.result);
+
+    for (const pathId of ['.', '..']) {
+        try {
+            await general.getPath({ pathId });
+            throw new Error('Dot path segment was accepted');
+        } catch (error) {
+            if (!(error instanceof AppwriteException)) throw error;
+            console.log(error.message);
+        }
+    }
 
     const zone = await new Plaintext(client).getZone();
     if (typeof zone !== 'string') {

@@ -6,7 +6,7 @@ import JSONCodable
 import NIO
 
 {%~ if service.description %}
-/// {{ service.description | trim }}
+/// {{ service.description | trim | escapeComment | replace({'\n': '\n/// '}) }}
 {%~ else %}
 ///
 {%~ endif %}
@@ -15,7 +15,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
     {%~ for method in (service | operations) %}
     ///
     {%~ if method.description %}
-    {{~ method.description | swiftDoc }}
+    {{~ method.description | escapeComment | swiftDoc }}
     ///
     {%~ endif %}
     {%~ if (method | parameters('all')) | length > 0 %}
@@ -112,7 +112,7 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
 
     ///
     {%~ if method.description %}
-    {{~ method.description | swiftDoc }}
+    {{~ method.description | escapeComment | swiftDoc }}
     ///
     {%~ endif %}
     {%~ if (method | parameters('all')) | length > 0 %}

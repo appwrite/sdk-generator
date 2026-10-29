@@ -1,9 +1,9 @@
 {% set uploadIdParameter = method | uploadIdParameter %}
-        val idParamName: String? = {% if uploadIdParameter %}"{{ uploadIdParameter.name }}"{% else %}null{% endif %}
+        val idParamName: String? = {% if uploadIdParameter %}"{{ uploadIdParameter.name | escapeDollarSign }}"{% else %}null{% endif %}
 
         {%~ for parameter in (method | parameters('all')) %}
         {%~ if (parameter | schemaType) == 'file' %}
-        val paramName = "{{ parameter.name }}"
+        val paramName = "{{ parameter.name | escapeDollarSign }}"
         {%~ endif %}
         {%~ endfor %}
         return client.chunkedUpload(

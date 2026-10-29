@@ -100,8 +100,13 @@ class ServiceTest {
             writeToFile(mock.result)
 
             // General Tests
-            val result = general.redirect()
-            writeToFile((result as Map<String, Any>)["result"] as String)
+            // A redirect is reported as an error, not followed with the API key.
+            try {
+                general.redirect()
+                error("A redirect was followed")
+            } catch (e: AppwriteException) {
+                writeToFile("${e.code}:${e.message}")
+            }
 
             for ((id, plain) in listOf("" to "0", "0" to "")) {
                 try {
@@ -113,6 +118,19 @@ class ServiceTest {
             }
             writeToFile(general.validatePath("0", "0").result)
             writeToFile(general.validatePath("0", null).result)
+            // The mock routes are registered at the encoded paths, so each call only reaches
+            // its route if the ID is escaped as one segment.
+            writeToFile(general.getPath("grant/special&id").result)
+            writeToFile(general.getPath("../grant?special=id#x y%").result)
+            writeToFile(general.getPath("unique()").result)
+            for (id in listOf(".", "..")) {
+                try {
+                    general.getPath(id)
+                    error("Dot path segment was accepted")
+                } catch (e: AppwriteException) {
+                    writeToFile(e.message ?: "Missing exception message")
+                }
+            }
 
             val zone: String = Plaintext(client).getZone()
             writeToFile(zone)
@@ -155,6 +173,12 @@ class ServiceTest {
 
             try {
                 mock = general.upload("string", 123, listOf("string in array"), InputFile.fromBytes(ByteArray(5 * 1024 * 1024), "boundary.bin", "application/octet-stream"))
+                writeToFile(mock.result)
+            } catch (ex: Exception) {
+                writeToFile(ex.toString())
+            }
+            try {
+                mock = general.uploadWithId("newfileid", InputFile.fromPath("../../../resources/large_file.mp4"))
                 writeToFile(mock.result)
             } catch (ex: Exception) {
                 writeToFile(ex.toString())

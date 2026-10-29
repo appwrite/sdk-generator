@@ -102,6 +102,15 @@ mixin ClientMixin {
 
     final isJson =
         (res.headers['content-type'] ?? '').contains('application/json');
+    if (res.statusCode >= 300 && res.statusCode < 400) {
+      final location = res.headers['location'] ?? '';
+      throw {{spec.info.title | caseUcfirst}}Exception(
+        'Redirect to $location not followed',
+        res.statusCode,
+        '',
+        res.body,
+      );
+    }
     if (res.statusCode >= 400) {
       // Empty bodies still arrive with application/json (e.g. truncated
       // proxy/edge errors). Avoid FormatException from json.decode('').

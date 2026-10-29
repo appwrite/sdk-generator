@@ -270,6 +270,14 @@ class {{spec.info.title | caseUcfirst}}Exception extends Error {
     }
 }
 
+export function encodePath(value: unknown): string {
+    const segment = String(value);
+    if (segment === '.' || segment === '..') {
+        throw new {{spec.info.title | caseUcfirst}}Exception('Path parameter cannot be "." or ".."');
+    }
+    return encodeURIComponent(segment);
+}
+
 class Client {
     config: { [key: string]: string } = {
         endpoint: '{{ (spec | endpoint) }}',
@@ -418,7 +426,7 @@ class Client {
      * Set {{headerKey | caseUcfirst}}
      *
 {% if header.description %}
-{{ header.description | wrap(75, '     * ') }}
+{{ header.description | escapeComment | wrap(75, '     * ') }}
      *
 {% endif %}
      * @param value string

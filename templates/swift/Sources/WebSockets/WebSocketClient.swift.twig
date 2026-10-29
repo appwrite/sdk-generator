@@ -29,6 +29,7 @@ public class WebSocketClient {
     public private(set) var maxFrameSize: Int
 
     var tlsEnabled: Bool = false
+    var selfSigned: Bool = false
     var closeSent: Bool = false
 
     private let locker = DispatchQueue(label: WEBSOCKET_LOCKER_QUEUE, qos: .background)
@@ -218,14 +219,18 @@ public class WebSocketClient {
     ///
     /// - parameters:
     ///     - url:          The absolute URL of the GET method used to identify the WebSocket endpoint
+    ///     - tlsEnabled:   Is TLS enabled for this client. Defaults to the URL scheme: `wss` and `https` use TLS.
+    ///     - selfSigned:   Accept any server certificate. TLS stays on.
     ///     - delegate:     Delegate to handle message and error callbacks.
     public init?(
         _ url: String,
-        tlsEnabled: Bool = true,
+        tlsEnabled: Bool? = nil,
+        selfSigned: Bool = false,
         headers: HTTPHeaders = HTTPHeaders(),
         delegate: WebSocketClientDelegate? = nil
     ) {
         let rawUrl = URL(string: url)
+        let tlsEnabled = tlsEnabled ?? ["wss", "https"].contains(rawUrl?.scheme?.lowercased() ?? "wss")
         self.frameKey = "tergregfgbsfdgfdsfgdbv=="
         self.host = rawUrl?.host ?? "localhost"
         self.port = rawUrl?.port ?? (tlsEnabled ? 443 : 80)
@@ -234,6 +239,7 @@ public class WebSocketClient {
         self.headers = headers
         self.maxFrameSize = 24
         self.tlsEnabled = tlsEnabled
+        self.selfSigned = selfSigned
         self.delegate = delegate
 
         DispatchQueue.global(qos: .background).async {
@@ -304,7 +310,10 @@ public class WebSocketClient {
         return channel.pipeline.addHTTPClientHandlers(leftOverBytesStrategy: .forwardBytes, withClientUpgrade: config).flatMap { _ in
             return channel.pipeline.addHandler(httpHandler).flatMap { _ in
                 if self.tlsEnabled {
-                    let tlsConfig = TLSConfiguration.makeClientConfiguration()
+                    var tlsConfig = TLSConfiguration.makeClientConfiguration()
+                    if self.selfSigned {
+                        tlsConfig.certificateVerification = .none
+                    }
                     let sslContext = try! NIOSSLContext(configuration: tlsConfig)
                     let sslHandler = try! NIOSSLClientHandler(
                         context: sslContext, serverHostname: self.host)

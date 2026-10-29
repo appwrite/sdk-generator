@@ -2,7 +2,9 @@
 {% set usesModels = false %}
 {% set usesException = false %}
 {% set usesDefaults = false %}
+{% set usesPath = false %}
 {% for method in (service | operations) %}
+{% if (method | parameters('path')) is not empty %}{% set usesPath = true %}{% endif %}
 {% if 'multipart/form-data' not in (method | consumes) and (method | responseDefaults(spec, 8)) is not empty %}{% set usesDefaults = true %}{% endif %}
 {% if 'multipart/form-data' in (method | consumes) %}{% set usesUpload = true %}{% endif %}
 {% if 'Models.' in (method | getReturn(spec)) or 'Models.' in ((method | responseModel) | getGenerics(spec)) %}{% set usesModels = true %}{% endif %}
@@ -16,6 +18,7 @@
 {% set clientImports = clientImports | merge(['Client', 'type Payload']) %}
 {% if usesUpload %}{% set clientImports = clientImports | merge(['UploadProgress']) %}{% endif %}
 {% if usesDefaults %}{% set clientImports = clientImports | merge(['applyDefaults']) %}{% endif %}
+{% if usesPath %}{% set clientImports = clientImports | merge(['encodePath']) %}{% endif %}
 {{ clientImports | jsImport('../client') | raw }}
 {% if usesModels %}
 import type { Models } from '../models';
@@ -46,11 +49,11 @@ export class {{ service.name | caseUcfirst }} {
     {%~ for method in (service | operations) %}
     /**
     {%~ if method.description %}
-     * {{ method.description | replace({'\n': '\n     * '}) | trimLines | raw }}
+     * {{ method.description | escapeComment | replace({'\n': '\n     * '}) | trimLines | raw }}
     {%~ endif %}
      *
     {%~ for parameter in (method | parameters('all')) %}
-     * @param {{ '{' }}{{ parameter | getPropertyType(method, spec) | raw }}{{ '}' }} params.{{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method, spec) | raw }}{{ '}' }} params.{{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | escapeComment | raw }}
     {%~ endfor %}
      * @throws {{ '{' }}{{ spec.info.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
@@ -67,11 +70,11 @@ export class {{ service.name | caseUcfirst }} {
     {{ ((method | methodName) | caseCamel ~ ((method | responseModel) | getGenerics(spec))) | tsSignature([objectParam], (method | getReturn(spec)), 4, ';') | raw }}
     /**
      {%~ if method.description %}
-     * {{ method.description | replace({'\n': '\n     * '}) | trimLines | raw }}
+     * {{ method.description | escapeComment | replace({'\n': '\n     * '}) | trimLines | raw }}
      {%~ endif %}
      *
      {%~ for parameter in (method | parameters('all')) %}
-     * @param {{ '{' }}{{ parameter | getPropertyType(method, spec) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | raw }}
+     * @param {{ '{' }}{{ parameter | getPropertyType(method, spec) | raw }}{{ '}' }} {{ parameter.name | caseCamel | escapeKeyword }} - {{ parameter.description | escapeComment | raw }}
      {%~ endfor %}
      * @throws {{ '{' }}{{ spec.info.title | caseUcfirst}}Exception}
      * @returns {{ '{' }}{{ method | getReturn(spec) | raw }}{{ '}' }}
@@ -138,7 +141,7 @@ export class {{ service.name | caseUcfirst }} {
         }
         {%~ endif %}
         {%~ endfor %}
-{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodeURIComponent(String(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ '))']]) %}{% endfor %}
+{% set pathReplacements = [] %}{% for parameter in (method | parameters('path')) %}{% set pathReplacements = pathReplacements|merge([['{' ~ parameter.name ~ '}', 'encodePath(' ~ (((parameter | configKey(method))) ? ('this.client.config.' ~ ((parameter | configKey(method)) | caseLower)) : (parameter.name | caseCamel | escapeKeyword)) ~ ')']]) %}{% endfor %}
         {{ method.path | tsApiPath(pathReplacements, 8) | raw }}
         const apiPayload: Payload = {};
         {%~ for parameter in (method | parameters('query')) %}

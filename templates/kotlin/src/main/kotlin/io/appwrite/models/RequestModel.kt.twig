@@ -8,23 +8,23 @@ import {{ sdk.namespace | caseDot }}.enums.{{ (property | enumName) | caseUcfirs
 {%~ endfor %}
 
 /**
- *{{ (' ' ~ requestModel.description) | replace({"\n": "\n * "}) | kotlinDoc }}
+ *{{ (' ' ~ requestModel.description | escapeComment) | replace({"\n": "\n * "}) | kotlinDoc }}
  */
 data class {{ requestModelName | caseUcfirst }}(
     {%~ for property in requestModel.properties %}
     /**
-     *{{ (' ' ~ property.description) | replace({"\n": "\n     * "}) | kotlinDoc }}
+     *{{ (' ' ~ property.description | escapeComment) | replace({"\n": "\n     * "}) | kotlinDoc }}
      */
     @SerializedName("{{ (property | schemaName) | escapeKeyword | escapeDollarSign}}")
     {% if (property | schemaRequired) -%} val
     {%- else -%} var
-    {%- endif %} {{ (property | schemaName) | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}? = null{% endif %},
+    {%- endif %} {{ (property | schemaName) | identifier | escapeKeyword | removeDollarSign }}: {{ property | propertyType(spec) | raw }}{% if not (property | schemaRequired) %}? = null{% endif %},
 
     {%~ endfor %}
 ) {
     fun toMap(): Map<String, Any?> = mapOf(
         {%~ for property in requestModel.properties %}
-        "{{ (property | schemaName) | escapeDollarSign }}" to {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { it.toMap() }{% else %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif (property | enumValues) is not empty %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}{% if (property | schemaType) == 'array' %}.map { it.value }{% else %}.value{% endif %}{% else %}{{(property | schemaName) | escapeKeyword | removeDollarSign}}{% endif %},
+        "{{ (property | schemaName) | escapeDollarSign }}" to {% if (property | schemaModel) %}{% if (property | schemaType) == 'array' %}{{(property | schemaName) | identifier | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.map { it.toMap() }{% else %}{{(property | schemaName) | identifier | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}.toMap(){% endif %}{% elseif (property | enumValues) is not empty %}{{(property | schemaName) | identifier | escapeKeyword | removeDollarSign}}{% if not (property | schemaRequired) %}?{% endif %}{% if (property | schemaType) == 'array' %}.map { it.value }{% else %}.value{% endif %}{% else %}{{(property | schemaName) | identifier | escapeKeyword | removeDollarSign}}{% endif %},
         {%~ endfor %}
     )
 }

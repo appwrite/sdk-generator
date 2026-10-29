@@ -9,4 +9,27 @@ abstract class Service
     public function __construct(protected Client $client)
     {
     }
+
+    /**
+     * Encode a value as one path segment.
+     *
+     * Everything but letters, digits and -_.!~*'() is escaped, as
+     * encodeURIComponent does, so a value fills exactly the segment it
+     * replaces.
+     */
+    protected static function encodePath(string|int|float|bool|null $value): string
+    {
+        $segment = (string) $value;
+        if ($segment === '.' || $segment === '..') {
+            throw new {{ namespace | split('\\') | last | caseUcfirst }}Exception('Path parameter cannot be "." or ".."');
+        }
+
+        return strtr(rawurlencode($segment), [
+            '%21' => '!',
+            '%2A' => '*',
+            '%27' => "'",
+            '%28' => '(',
+            '%29' => ')',
+        ]);
+    }
 }

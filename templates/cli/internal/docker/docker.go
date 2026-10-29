@@ -252,7 +252,7 @@ func (c *Client) Start(ctx context.Context, options StartOptions) (wait func() e
 	}
 
 	arguments := []string{"run", "--rm", "--name", options.ID,
-		"-p", strconv.Itoa(options.Port) + ":3000",
+		"-p", publishArgument(options.Port),
 		"-e", "OPEN_RUNTIMES_ENV=development",
 		"-e", "OPEN_RUNTIMES_SECRET=",
 		"-e", "OPEN_RUNTIMES_ENTRYPOINT=" + options.Entrypoint,
@@ -297,6 +297,17 @@ func (c *Client) Start(ctx context.Context, options StartOptions) (wait func() e
 	}
 
 	return func() error { return <-exited }, nil
+}
+
+// publishArgument publishes the function on the loopback interface only.
+//
+// The container runs with an empty OPEN_RUNTIMES_SECRET and the project's
+// variables and an ephemeral API key in its environment, so published on every
+// interface (docker's default) anyone on the network could execute it with
+// those credentials. PortAvailable already keeps a port held on [::1] out, so a
+// client trying ::1 first for `localhost` falls back to 127.0.0.1.
+func publishArgument(port int) string {
+	return net.JoinHostPort("127.0.0.1", strconv.Itoa(port)) + ":3000"
 }
 
 // waitForPort polls until the published port accepts a connection.

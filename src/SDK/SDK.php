@@ -45,6 +45,34 @@ class SDK
 {
     private const string MULTIPART_MEDIA_TYPE = 'multipart/form-data';
 
+    /**
+     * What a name or value from the spec may contain, by role. Templates print
+     * these as identifiers (a model property is a field name in TypeScript,
+     * Kotlin and Swift) or between quotes (paths, header names, enum values,
+     * the endpoint) without escaping, so a quote, backslash, `$`, backtick or
+     * line break in one would be code in the generated SDK.
+     */
+    private const array SAFE = [
+        'name' => '/^[A-Za-z0-9_-]+$/',
+        'field' => '/^\$?[A-Za-z0-9_-]+$/',
+        'path' => '/^\/[A-Za-z0-9_\/{}.~:@!()+,;=-]*$/',
+        'url' => '/^https?:\/\/[^\s"\'`\\\\$\p{Cc}\x{2028}\x{2029}]+$/u',
+        'title' => '/^[A-Za-z0-9 _-]+$/',
+        'version' => '/^[A-Za-z0-9.+_-]*$/',
+        'media' => '/^(?:[A-Za-z0-9!#&*+.^_|~-]+\/[A-Za-z0-9!#&*+.^_|~-]+(?: *; *[A-Za-z0-9!#&*+.^_|~-]+=[A-Za-z0-9!#&*+.^_|~-]+)*)?$/',
+    ];
+
+    /** Characters an enum value may not contain, for the same reason. */
+    private const string UNSAFE_ENUM_VALUE = '/["\'`\\\\$]|[\p{Cc}\x{2028}\x{2029}]/u';
+
+    /**
+     * Enum names are cased into type names, but some templates also print them
+     * raw inside line comments, so they may not hold a line break. The spec
+     * uses titles such as `teams.read` and `Côte d'Ivoire`, so nothing else
+     * is refused.
+     */
+    private const string UNSAFE_ENUM_NAME = '/[\p{Cc}\x{2028}\x{2029}]/u';
+
     protected ?Environment $twig = null;
 
     protected array $defaultHeaders = [];
@@ -101,6 +129,7 @@ class SDK
      */
     public function __construct(protected Language $language, protected Specification $spec)
     {
+        $this->validate();
         $this->indexSchemas();
         $this->twig = new Environment(new FilesystemLoader(__DIR__ . '/../../templates'), [
             'debug' => true
@@ -128,7 +157,6 @@ class SDK
         $this->twig->addFilter(new TwigFilter('caseUcwords', fn($value): string => ucwords((string) $value, " -_")));
         $this->twig->addFilter(new TwigFilter('caseLcfirst', fn($value): string => lcfirst((string)$value)));
         $this->twig->addFilter(new TwigFilter('caseCamel', fn(?string $value): string => $this->helperCamelCase($value)));
-        $this->twig->addFilter(new TwigFilter('removeDash', fn($value): string|array => str_replace('-', '', $value)));
         $this->twig->addFilter(new TwigFilter('caseDash', fn($value): string => str_replace([' ', '_'], '-', strtolower((string) preg_replace('/([a-zA-Z])(?=[A-Z])/', '$1-', (string) $value)))));
         $this->twig->addFilter(new TwigFilter('caseKebab', function ($value): string {
             $value = preg_replace('/(?<!^)([A-Z][a-z]|(?<=[a-z])[^a-z\s_]|(?<=[A-Z])\d)/', '-$1', (string) $value);
@@ -206,8 +234,19 @@ class SDK
             $value = str_replace('$', '\\$', $value);   // Escape dollar signs
             return $value;
         }, ['is_safe' => ['html']]));
+        // Spec prose printed into a doc comment must not end it. Block comments
+        // end at `*/` (and nest at `/*` in Kotlin and Swift); line comments end
+        // at a line break, which is not always `\n` (Swift, Dart and Python also
+        // break at `\r`, C# at U+0085, U+2028 and U+2029). Every break becomes
+        // `\n`, so a template that prefixes each `\n` keeps every line commented.
+        $this->twig->addFilter(new TwigFilter('escapeComment', fn($value): string => str_replace(
+            ['*/', '/*', "\r\n", "\r", "\u{85}", "\u{2028}", "\u{2029}"],
+            ['*\\/', '/\\*', "\n", "\n", "\n", "\n", "\n"],
+            (string) $value,
+        )));
         $this->twig->addFilter(new TwigFilter('html', fn($value) => $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('escapeKeyword', fn(string $value): string => $language->escapeKeyword($value), ['is_safe' => ['html']]));
+        $this->twig->addFilter(new TwigFilter('identifier', fn(string $value): string => $language->toIdentifier($value)));
         $this->twig->addFilter(new TwigFilter('caseHTML', fn($value) => $value, ['is_safe' => ['html']]));
         $this->twig->addFilter(new TwigFilter('removeDollarSign', fn($value): string|array => str_replace('$', '', $value)));
         $this->twig->addFilter(new TwigFilter('unescape', fn($value): string => html_entity_decode((string) $value)));
@@ -1045,22 +1084,23 @@ class SDK
             if (!\in_array($file['scope'], ['copy', 'download'], true)) {
                 $template = $this->twig->load($file['template']); /* @var $template TemplateWrapper */
             }
-            $destination    = $target . '/' . $file['destination'];
+            $destination    = $file['destination'];
             $block          = $file['block'] ?? null;
             $minify         = $file['minify'] ?? false;
 
             switch ($file['scope']) {
                 case 'default':
-                    $this->render($template, $destination, $block, $params, $minify);
+                    $this->render($template, $target, $destination, $block, $params, $minify);
                     break;
                 case 'copy':
+                    $destination = $target . '/' . $destination;
                     if (!file_exists(dirname($destination))) {
                         mkdir(dirname($destination), 0777, true);
                     }
                     copy(realpath(__DIR__ . '/../../templates/' . $file['template']), $destination);
                     break;
                 case 'download':
-                    $this->download($file['template'], $destination, $params);
+                    $this->download($file['template'], $target, $destination, $params);
                     break;
                 case 'service':
                     foreach ($filteredServices as $key => $service) {
@@ -1080,7 +1120,7 @@ class SDK
                             continue;
                         }
 
-                        $this->render($template, $destination, $block, $params, $minify);
+                        $this->render($template, $target, $destination, $block, $params, $minify);
                     }
                     break;
                 case 'definition':
@@ -1092,7 +1132,7 @@ class SDK
                             continue;
                         }
 
-                        $this->render($template, $destination, $block, $params, $minify);
+                        $this->render($template, $target, $destination, $block, $params, $minify);
                     }
                     break;
                 case 'requestModel':
@@ -1104,7 +1144,7 @@ class SDK
                             continue;
                         }
 
-                        $this->render($template, $destination, $block, $params, $minify);
+                        $this->render($template, $target, $destination, $block, $params, $minify);
                     }
                     break;
                 case 'method':
@@ -1126,7 +1166,7 @@ class SDK
                                 continue;
                             }
 
-                            $this->render($template, $destination, $block, $params, $minify);
+                            $this->render($template, $target, $destination, $block, $params, $minify);
                         }
                     }
                     break;
@@ -1134,7 +1174,7 @@ class SDK
                     foreach ($filteredAllEnums as $enum) {
                         $params['enum'] = $enum;
 
-                        $this->render($template, $destination, $block, $params, $minify);
+                        $this->render($template, $target, $destination, $block, $params, $minify);
                     }
                     break;
             }
@@ -1427,10 +1467,9 @@ class SDK
      * @throws Twig_Error_Loader
      * @throws Twig_Error_Syntax
      */
-    protected function render(TemplateWrapper $template, string $destination, ?string $block, array $params = [], bool $minify = false): void
+    protected function render(TemplateWrapper $template, string $target, string $destination, ?string $block, array $params = [], bool $minify = false): void
     {
-        $destination    = $this->twig->createTemplate($destination);
-        $destination    = $destination->render($params);
+        $destination    = $this->resolveDestination($target, $destination, $params);
         $output         = (empty($block)) ? $template->render($params) : $template->renderBlock($block, $params);
 
         if (!file_exists(dirname($destination))) {
@@ -1465,9 +1504,9 @@ class SDK
      *
      * @throws Exception
      */
-    protected function download(string $url, string $destination, array $params = []): void
+    protected function download(string $url, string $target, string $destination, array $params = []): void
     {
-        $destination = $this->twig->createTemplate($destination)->render($params);
+        $destination = $this->resolveDestination($target, $destination, $params);
 
         if (!file_exists(dirname($destination))) {
             mkdir(dirname($destination), 0777, true);
@@ -1484,6 +1523,27 @@ class SDK
         if ($result === false) {
             throw new Exception('Can\'t save file: ' . $destination);
         }
+    }
+
+    /**
+     * Render a `getFiles()` destination and place it under the target.
+     *
+     * Destinations interpolate names taken from the spec (services, methods,
+     * models, enums, the title), and some filters keep `/` and `.`, so a spec
+     * naming a service `../../x` would write outside the SDK. Such a path is
+     * refused rather than rewritten: the spec is wrong, not the file.
+     *
+     * @throws Exception
+     */
+    protected function resolveDestination(string $target, string $destination, array $params): string
+    {
+        $path = $this->twig->createTemplate($destination)->render($params);
+
+        if (\str_contains($path, "\0") || \in_array('..', \explode('/', \str_replace('\\', '/', $path)), true)) {
+            throw new Exception('Refusing to write outside the SDK directory: ' . $path);
+        }
+
+        return $target . '/' . $path;
     }
 
     protected function helperCamelCase(?string $str): string
@@ -1711,6 +1771,128 @@ class SDK
     protected function normalizeSchemaReference(string $reference): string
     {
         return \str_replace(['#/components/schemas/', '#/definitions/'], '', $reference);
+    }
+
+    /**
+     * Refuse a spec whose names or values would not stay names and values in
+     * the generated source. See SAFE.
+     *
+     * @throws UnexpectedValueException
+     */
+    protected function validate(): void
+    {
+        $this->assertSafe('title', 'title', $this->spec->info->title);
+        $this->assertSafe('version', 'version', $this->spec->info->version);
+        foreach ($this->spec->servers as $server) {
+            $this->assertSafe('url', 'server URL', $server->url);
+        }
+        foreach ($this->spec->tags as $tag) {
+            $this->assertSafe('name', 'tag', $tag->name);
+        }
+        foreach ($this->spec->securitySchemes as $key => $scheme) {
+            $this->assertSafe('name', 'security scheme', (string) $key);
+            if ($scheme->name !== null) {
+                $this->assertSafe('name', 'security scheme name', $scheme->name);
+            }
+        }
+        foreach ($this->spec->schemas as $name => $schema) {
+            $this->assertSafe('name', 'schema', (string) $name);
+            $this->validateSchema($schema);
+        }
+        foreach ($this->spec->paths as $path => $item) {
+            $this->assertSafe('path', 'path', (string) $path);
+            foreach ($item->parameters as $parameter) {
+                $this->validateParameter($parameter);
+            }
+            foreach ($item->operations as $operation) {
+                $this->assertSafe('name', 'operation ID', $operation->id);
+                foreach ($operation->tags as $tag) {
+                    $this->assertSafe('name', 'tag', $tag);
+                }
+                foreach ($operation->parameters as $parameter) {
+                    $this->validateParameter($parameter);
+                }
+                $media = [$operation->requestBody?->content ?? []];
+                foreach ($operation->responses as $response) {
+                    $media[] = $response->content;
+                }
+                foreach ($media as $content) {
+                    foreach ($content as $name => $type) {
+                        $this->assertSafe('media', 'media type', (string) $name);
+                        if ($type->schema !== null) {
+                            $this->validateSchema($type->schema);
+                        }
+                    }
+                }
+                $aliases = $operation->extensions[Extension::APPWRITE->value][Appwrite::METHODS->value] ?? [];
+                foreach (\is_array($aliases) ? $aliases : [] as $alias) {
+                    foreach (['name', 'namespace'] as $key) {
+                        if (\is_array($alias) && isset($alias[$key])) {
+                            $this->assertSafe('name', 'method ' . $key, (string) $alias[$key]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    protected function validateParameter(Parameter $parameter): void
+    {
+        $this->assertSafe($parameter->location === ParameterLocation::HEADER ? 'name' : 'field', 'parameter', $parameter->name);
+        if ($parameter->schema instanceof Schema) {
+            $this->validateSchema($parameter->schema);
+        }
+    }
+
+    protected function validateSchema(Schema $schema): void
+    {
+        foreach ($schema->enum as $value) {
+            if (\is_string($value) && \preg_match(self::UNSAFE_ENUM_VALUE, $value)) {
+                throw new UnexpectedValueException('Spec enum value is not safe to generate: ' . \json_encode($value));
+            }
+        }
+        if ($schema->enum !== []) {
+            foreach ([$schema instanceof StringSchema ? $schema->enumName : null, $schema->title] as $enumName) {
+                if ($enumName !== null && \preg_match(self::UNSAFE_ENUM_NAME, $enumName)) {
+                    throw new UnexpectedValueException('Spec enum name is not safe to generate: ' . \json_encode($enumName));
+                }
+            }
+        }
+        if ($schema instanceof ObjectSchema) {
+            $identifiers = [];
+            $payload = $schema->additionalProperties ? $this->language->getPropertyIdentifier('data') : null;
+            if ($payload !== null) {
+                $identifiers[$payload] = 'additionalProperties';
+            }
+            foreach ($schema->properties as $name => $property) {
+                $this->assertSafe('field', 'property', (string) $name);
+                $identifier = $this->language->getPropertyIdentifier((string) $name);
+                if ($identifier !== null && isset($identifiers[$identifier])) {
+                    throw new UnexpectedValueException('Spec property is not safe to generate: ' . \json_encode((string) $name) . ' has the same identifier as ' . \json_encode($identifiers[$identifier]));
+                }
+                if ($identifier !== null) {
+                    $identifiers[$identifier] = (string) $name;
+                }
+                $this->validateSchema($property);
+            }
+            if ($schema->additionalProperties instanceof Schema) {
+                $this->validateSchema($schema->additionalProperties);
+            }
+        } elseif ($schema instanceof ArraySchema) {
+            $this->validateSchema($schema->items);
+        } elseif ($schema instanceof CompositeSchema) {
+            foreach ($schema->schemas as $branch) {
+                $this->validateSchema($branch);
+            }
+        }
+    }
+
+    /** @throws UnexpectedValueException */
+    protected function assertSafe(string $role, string $what, string $value): void
+    {
+        if (!\preg_match(self::SAFE[$role], $value)) {
+            throw new UnexpectedValueException('Spec ' . $what . ' is not safe to generate: ' . \json_encode($value));
+        }
     }
 
     protected function indexSchemas(): void

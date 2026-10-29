@@ -13,6 +13,8 @@ use Twig\TwigFilter;
 
 class Dart extends Language
 {
+    private const array ENUM_MEMBERS = ['hashCode', 'index', 'noSuchMethod', 'runtimeType', 'toJson', 'toString', 'value', 'values'];
+
     /**
      * @var array
      */
@@ -148,6 +150,45 @@ class Dart extends Language
         }
 
         return $prefix . parent::escapeKeyword($value);
+    }
+
+    #[Override]
+    public function getPropertyIdentifier(string $name): ?string
+    {
+        return $this->escapeKeyword($name);
+    }
+
+    #[Override]
+    public function resolveEnumKeys(Schema|Parameter $value): array
+    {
+        $keys = parent::resolveEnumKeys($value);
+        $reserved = $this->isOpenStringEnum($value) ? [] : self::ENUM_MEMBERS;
+        $used = [];
+        $pending = [];
+        foreach ($keys as $index => $key) {
+            $identifier = $this->escapeKeyword($this->toCamelCase($key));
+            if (\in_array($identifier, $reserved, true) || isset($used[$identifier])) {
+                $pending[] = $index;
+                continue;
+            }
+            $used[$identifier] = true;
+        }
+
+        foreach ($pending as $index) {
+            $identifier = $this->escapeKeyword($this->toCamelCase($keys[$index]));
+            $base = \in_array($identifier, $reserved, true) ? 'x' . \ucfirst($identifier) : $identifier;
+            $candidate = $base;
+            $suffix = 2;
+            while (isset($used[$candidate])) {
+                $candidate = $base . $suffix;
+                $suffix++;
+            }
+
+            $keys[$index] = $candidate;
+            $used[$candidate] = true;
+        }
+
+        return $keys;
     }
 
     public function getStringQuote(): string

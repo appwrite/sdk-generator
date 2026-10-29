@@ -65,7 +65,7 @@ func WithChunkSize(size int64) client.ClientOption {
 // Helper method to construct NewClient()
 {% if header.description %}
 //
-// {{header.description}}
+// {{ header.description | escapeComment | replace({'\n': '\n// '}) }}
 {% endif %}
 func With{{headerKey | caseUcfirst}}(value string) client.ClientOption {
 	return func(clt *client.Client) error {

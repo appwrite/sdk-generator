@@ -191,6 +191,14 @@ function getUserAgent() {
     return ua;
 }
 
+export function encodePath(value: unknown): string {
+    const segment = String(value);
+    if (segment === '.' || segment === '..') {
+        throw new {{spec.info.title | caseUcfirst}}Exception('Path parameter cannot be "." or ".."');
+    }
+    return encodeURIComponent(segment);
+}
+
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
     private selfSignedAgent?: Agent;
@@ -292,7 +300,7 @@ class Client {
      * Set {{headerKey | caseUcfirst}}
      *
     {%~ if header.description %}
-     * {{header.description}}
+     * {{header.description | escapeComment}}
      *
     {%~ endif %}
      * @param value string
@@ -747,7 +755,11 @@ class Client {
 
         let data: any = null;
 
-        const response = await fetch(uri, options);
+        // Not followed: a redirect would carry the API key wherever it points.
+        const response = await fetch(uri, {
+            ...options,
+            redirect: 'manual',
+        });
 
         const warnings = response.headers.get('x-{{ spec.info.title | lower }}-warning');
         if (warnings) {
@@ -756,6 +768,16 @@ class Client {
                 .forEach((warning: string) =>
                     console.warn('Warning: ' + warning),
                 );
+        }
+
+        if (300 <= response.status && response.status < 400) {
+            const location = response.headers.get('location') || '';
+            throw new {{spec.info.title | caseUcfirst}}Exception(
+                `Redirect to ${location} not followed`,
+                response.status,
+                '',
+                await response.text(),
+            );
         }
 
         if (responseType === 'text' && response.status < 400) {

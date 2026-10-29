@@ -40,7 +40,7 @@ _PAYLOAD_ADAPTER = TypeAdapter(Dict[str, Any])
 
 class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generic[T]{% endif %}):
     """
-    {{ definition.description }}
+    {{ definition.description | formatDocstring(4) }}
 {% if definition.properties | length > 0 %}
 
     Attributes

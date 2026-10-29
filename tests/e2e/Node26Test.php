@@ -42,9 +42,10 @@ final class Node26Test extends Base
         ...Base::FOO_RESPONSES, // Object params
         ...Base::BAR_RESPONSES,
         ...Base::BAR_RESPONSES, // Object params
-        ...Base::GENERAL_RESPONSES,
+        ...Base::SERVER_REDIRECT_RESPONSES,
         ...Base::PATH_VALIDATION_RESPONSES,
         ...Base::PATH_PARAM_RESPONSES,
+        ...Base::PATH_DOT_RESPONSES,
         ...Base::TEXT_RESPONSES,
         ...Base::TEXT_UPLOAD_RESPONSES,
         ...Base::OPTIONAL_UPLOAD_RESPONSES,

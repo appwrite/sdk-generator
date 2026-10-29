@@ -31,7 +31,7 @@ export namespace Models {
 
 {% endif %}
     /**
-     * {{ definition.description | trimLines }}
+     * {{ definition.description | escapeComment | trimLines }}
      */
 {% if definition.properties is empty %}
     {{ (definitionName | caseUcfirst) | tsTypeAlias((definitionName | getGenerics(spec, true)), '{};', 4) | raw }}
@@ -39,10 +39,10 @@ export namespace Models {
     {{ (definitionName | caseUcfirst) | tsTypeAlias((definitionName | getGenerics(spec, true)), '{', 4) | raw }}
 {% for property in definition.properties %}
         /**
-         *{% if (property.description | trimLines) is not empty %} {{ property.description | trimLines | raw }}{% endif %}
+         *{% if (property.description | trimLines) is not empty %} {{ property.description | escapeComment | trimLines | raw }}{% endif %}
 
          */
-        {{ ((property | schemaName) | removeDash ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, definitionName)), 8, (property | schemaNullable)) | raw }}
+        {{ ((property | schemaName) | tsKey ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, definitionName)), 8, (property | schemaNullable)) | raw }}
 {% endfor %}
     };
 {% endif %}
@@ -59,15 +59,15 @@ export namespace Models {
 
 {% endif %}
     /**
-     * {{ requestModel.description | trimLines }}
+     * {{ requestModel.description | escapeComment | trimLines }}
      */
     {{ (requestModelName | caseUcfirst) | tsTypeAlias((requestModelName | getGenerics(spec, true)), '{', 4) | raw }}
 {% for property in requestModel.properties %}
         /**
-         *{% if (property.description | trimLines) is not empty %} {{ property.description | trimLines | raw }}{% endif %}
+         *{% if (property.description | trimLines) is not empty %} {{ property.description | escapeComment | trimLines | raw }}{% endif %}
 
          */
-        {{ ((property | schemaName) | removeDash ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, requestModelName)), 8, (property | schemaNullable)) | raw }}
+        {{ ((property | schemaName) | tsKey ~ ((property | schemaRequired) ? '' : '?')) | tsModelProperty((property | getSubSchema(spec, requestModelName)), 8, (property | schemaNullable)) | raw }}
 {% endfor %}
     };
 {% if requestModel.additionalProperties %}

@@ -58,14 +58,7 @@
             $postedName = ${{ parameter.name | caseCamel }}->getFilename();
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name | caseCamel }}'] = Part::body('{{ parameter.name | caseCamel }}', ${{ parameter.name | caseCamel }}->getData(), $postedName, $mimeType);
-                $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, [
-    {% for param in (method | parameters('header')) %}
-                    '{{ param.name }}' => ${{ param.name | caseCamel }},
-    {% endfor %}
-    {% for key, header in (method | methodHeaders) %}
-                    '{{ key }}' => '{{ header }}',
-    {% endfor %}
-                    ], $apiParams);
+                $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, $apiHeaders, $apiParams);
 {% if responseModels | length > 0 %}
 {% if responseModels | length > 1 and hasResponseDiscriminator %}
                 if (!is_array($response)) {
@@ -95,14 +88,7 @@
             //send single file if size is less than or equal to 5MB
             if ($size <= Client::CHUNK_SIZE) {
                 $apiParams['{{ parameter.name }}'] = Part::file('{{ parameter.name }}', ${{ parameter.name | caseCamel }}->getPath(), $postedName, $mimeType);
-                $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, [
-    {% for param in (method | parameters('header')) %}
-                    '{{ param.name }}' => ${{ param.name | caseCamel }},
-    {% endfor %}
-    {% for key, header in (method | methodHeaders) %}
-                    '{{ key }}' => '{{ header }}',
-    {% endfor %}
-                    ], $apiParams);
+                $response = $this->client->call(Client::METHOD_{{ method.method.value | caseUpper }}, $apiPath, $apiHeaders, $apiParams);
 {% if responseModels | length > 0 %}
 {% if responseModels | length > 1 and hasResponseDiscriminator %}
                 if (!is_array($response)) {
@@ -133,14 +119,14 @@
         $response = null;
 {% if uploadIdParameter.required %}
         try {
-            $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ uploadIdParameter.name }});
+            $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . self::encodePath(${{ uploadIdParameter.name }}));
             $counter = $response['chunksUploaded'] ?? 0;
         } catch (\Exception) {
         }
 {% else %}
         if (!empty(${{ uploadIdParameter.name }})) {
             try {
-                $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . ${{ uploadIdParameter.name }});
+                $response = $this->client->call(Client::METHOD_GET, $apiPath . '/' . self::encodePath(${{ uploadIdParameter.name }}));
                 $counter = $response['chunksUploaded'] ?? 0;
             } catch (\Exception) {
             }

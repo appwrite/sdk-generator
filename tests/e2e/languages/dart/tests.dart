@@ -64,8 +64,13 @@ void main() async {
 
   // General Tests
 
-  final res = await general.redirect();
-  print(res['result']);
+  // A redirect is reported as an error, not followed with the API key.
+  try {
+    await general.redirect();
+    throw StateError('A redirect was followed');
+  } on AppwriteException catch (e) {
+    print('${e.code}:${e.message}');
+  }
 
   for (final ids in [['', '0'], ['0', '']]) {
     try {
@@ -77,6 +82,19 @@ void main() async {
   }
   print((await general.validatePath(id: '0', plain: '0')).result);
   print((await general.validatePath(id: null, plain: '0')).result);
+  // The mock routes are registered at the encoded paths, so each call only reaches
+  // its route if the ID is escaped as one segment.
+  print((await general.getPath(pathId: 'grant/special&id')).result);
+  print((await general.getPath(pathId: '../grant?special=id#x y%')).result);
+  print((await general.getPath(pathId: 'unique()')).result);
+  for (final id in ['.', '..']) {
+    try {
+      await general.getPath(pathId: id);
+      throw StateError('Dot path segment was accepted');
+    } on AppwriteException catch (e) {
+      print(e.message);
+    }
+  }
 
   final String zone = await Plaintext(client).getZone();
   print(zone);

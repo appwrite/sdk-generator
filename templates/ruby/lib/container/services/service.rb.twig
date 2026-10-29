@@ -29,10 +29,10 @@ module {{spec.info.title | caseUcfirst }}
 {%~ endif %}
         #
 {% endif %}
-{{ method.description | wrap(75, '        # ') | rtrimLines }}
+{{ method.description | escapeComment | wrap(75, '        # ') | rtrimLines }}
         #
 {% for parameter in methodParams %}
-        # @param [{{ parameter | typeName }}] {{ parameter.name | caseSnake | escapeKeyword }} {{ parameter.description | rtrimLines }}
+        # @param [{{ parameter | typeName }}] {{ parameter.name | caseSnake | escapeKeyword }} {{ parameter.description | escapeComment | replace({'\n': '\n        # '}) | rtrimLines }}
 {% endfor %}
         #
         # @return [{% set responseModels = method | getValidResponseModels %}{% if (method | textResponse) %}String{% elseif responseModels|length > 0 %}{% for responseModel in responseModels %}{{ responseModel | caseUcfirst }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}]

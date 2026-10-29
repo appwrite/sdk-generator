@@ -77,8 +77,26 @@ class Tests: XCTestCase {
 
 
         // General Tests
-        let result = try await general.redirect()
-        print((result as! [String: Any])["result"] as! String)
+        // A redirect is reported as an error, not followed with the API key.
+        do {
+            _ = try await general.redirect()
+            XCTFail("A redirect was followed")
+        } catch let error as AppwriteError {
+            print("\(error.code ?? 0):\(error.message)")
+        }
+
+        // The client keeps no cookies: neither the one set-cookie sets nor one left in the
+        // process-wide defaults for the endpoint's host is sent back.
+        print(try await general.setCookie().result)
+        // The mock reads cookie names lowercased, as Swoole stores them.
+        UserDefaults.standard.set(["cookiename=cookieValue"], forKey: "mockapi")
+        do {
+            _ = try await general.getCookie()
+            XCTFail("A stored cookie was sent")
+        } catch let error as AppwriteError {
+            print(error.message)
+        }
+        UserDefaults.standard.removeObject(forKey: "mockapi")
 
         for (id, plain) in [("", "0"), ("0", "")] {
             do {
@@ -90,6 +108,19 @@ class Tests: XCTestCase {
         }
         print(try await general.validatePath(plain: "0", id: "0").result)
         print(try await general.validatePath(plain: "0", id: nil).result)
+        // The mock routes are registered at the encoded paths, so each call only reaches
+        // its route if the ID is escaped as one segment.
+        print(try await general.getPath(pathId: "grant/special&id").result)
+        print(try await general.getPath(pathId: "../grant?special=id#x y%").result)
+        print(try await general.getPath(pathId: "unique()").result)
+        for id in [".", ".."] {
+            do {
+                _ = try await general.getPath(pathId: id)
+                XCTFail("Dot path segment was accepted")
+            } catch let error as AppwriteError {
+                print(error.message)
+            }
+        }
         print(try await general.getQuery(value: "a&b+c#d=e%f", values: ["a&b", "c+d#e"]).result)
 
         let zone: String = try await Plaintext(client).getZone()

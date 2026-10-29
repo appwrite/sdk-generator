@@ -101,6 +101,13 @@ const errorConfig = [
         'code' => 405,
     ],
 
+    /** Storage */
+    Exception::STORAGE_FILE_NOT_FOUND => [
+        'name' => Exception::STORAGE_FILE_NOT_FOUND,
+        'description' => 'The requested file could not be found.',
+        'code' => 404,
+    ],
+
     /** Functions  */
     Exception::FUNCTION_NOT_FOUND => [
         'name' => Exception::FUNCTION_NOT_FOUND,
@@ -141,6 +148,9 @@ class Exception extends \Exception
     public const GENERAL_CODES_DISABLED            = 'general_codes_disabled';
     public const GENERAL_USAGE_DISABLED            = 'general_usage_disabled';
     public const GENERAL_NOT_IMPLEMENTED           = 'general_not_implemented';
+
+    /** Storage */
+    public const STORAGE_FILE_NOT_FOUND            = 'storage_file_not_found';
 
     /** Functions */
     public const FUNCTION_NOT_FOUND                = 'function_not_found';

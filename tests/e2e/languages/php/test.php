@@ -171,8 +171,13 @@ echo $response->result . "\n";
 $response = $bar->delete('string', 123, ['string in array']);
 echo $response->result . "\n";
 
-$response = $general->redirect();
-echo $response['result'] . "\n";
+// A redirect is reported as an error, not followed with the API key.
+try {
+    $general->redirect();
+    throw new RuntimeException('A redirect was followed');
+} catch (AppwriteException $error) {
+    echo $error->getCode() . ':' . $error->getMessage() . "\n";
+}
 
 foreach ([['', '0'], ['0', '']] as [$id, $plain]) {
     try {
@@ -183,6 +188,20 @@ foreach ([['', '0'], ['0', '']] as [$id, $plain]) {
     }
 }
 echo $general->validatePath('0', '0')->result . "\n";
+
+// The mock routes are registered at the encoded paths, so each call only reaches its route
+// if the ID is escaped as one segment.
+echo $general->getPath('grant/special&id')->result . "\n";
+echo $general->getPath('../grant?special=id#x y%')->result . "\n";
+echo $general->getPath('unique()')->result . "\n";
+foreach (['.', '..'] as $id) {
+    try {
+        $general->getPath($id);
+        throw new RuntimeException('Dot path segment was accepted');
+    } catch (AppwriteException $error) {
+        echo $error->getMessage() . "\n";
+    }
+}
 
 $zone = new Plaintext($client)->getZone();
 echo $zone . "\n";

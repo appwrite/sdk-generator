@@ -65,8 +65,12 @@ print(response.result)
 
 # General Tests
 
-response = general.redirect()
-print(response['result'])
+# A redirect is reported as an error, not followed with the API key.
+try:
+    general.redirect()
+    raise AssertionError('A redirect was followed')
+except AppwriteException as error:
+    print(f'{error.code}:{error.message}')
 
 for id, plain in [('', '0'), ('0', '')]:
     try:
@@ -75,6 +79,18 @@ for id, plain in [('', '0'), ('0', '')]:
     except AppwriteException as error:
         print(error.message)
 print(general.validate_path('0', '0').result)
+
+# The mock routes are registered at the encoded paths, so each call only reaches its route
+# if the ID is escaped as one segment.
+print(general.get_path('grant/special&id').result)
+print(general.get_path('../grant?special=id#x y%').result)
+print(general.get_path('unique()').result)
+for id in ['.', '..']:
+    try:
+        general.get_path(id)
+        raise AssertionError('Dot path segment was accepted')
+    except AppwriteException as error:
+        print(error.message)
 
 zone = Plaintext(client).get_zone()
 if not isinstance(zone, str):
