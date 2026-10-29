@@ -22,14 +22,10 @@ final class Web
             platform: 'client',
             header: 'web',
             build: [
-                'cp tests/e2e/languages/web/tests.js tests/e2e/sdks/web/tests.js',
-                'cp tests/e2e/languages/web/node.js tests/e2e/sdks/web/node.js',
-                'cp tests/e2e/languages/web/index.html tests/e2e/sdks/web/index.html',
-                'cp tests/e2e/languages/web/tab.html tests/e2e/sdks/web/tab.html',
-                'cp tests/e2e/languages/web/module.html tests/e2e/sdks/web/module.html',
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy sh -c "npm install && npm run build && npm run build:cdn"',
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/languages/web mcr.microsoft.com/playwright:v1.56.1-jammy npm ci',
             ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/e2e/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy node tests.js',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -e BROWSER=chromium -w /app/tests/e2e/languages/web mcr.microsoft.com/playwright:v1.56.1-jammy node tests.js',
             expected: [
                 ...Output::PING_RESPONSE,
                 ...Output::FOO_RESPONSES,
@@ -91,13 +87,10 @@ final class Web
             platform: 'client',
             header: 'web',
             build: [
-                'cp tests/e2e/languages/web/tests.js tests/e2e/sdks/web/tests.js',
-                'cp tests/e2e/languages/web/node.js tests/e2e/sdks/web/node.js',
-                'cp tests/e2e/languages/web/index.html tests/e2e/sdks/web/index.html',
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy npm install',
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web mcr.microsoft.com/playwright:v1.56.1-jammy npm run build',
             ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/web node:20-alpine node node.js',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/web node:20-alpine node node.js',
             expected: [
                 ...Output::PING_RESPONSE,
                 ...Output::FOO_RESPONSES,

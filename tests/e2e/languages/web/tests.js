@@ -5,7 +5,7 @@ const path = require('path');
 const { exit } = require('process');
 
 const server = http.createServer((request, response) => {
-    return handler(request, response)
+    return handler(request, response, { public: path.join(__dirname, '..', '..') })
 });
 
 const log = message => {
@@ -26,7 +26,7 @@ server.listen(3000, async () => {
     try {
         const page = await context.newPage();
         page.on('console', log);
-        await page.goto('http://localhost:3000');
+        await page.goto('http://localhost:3000/languages/web/');
         await page.setInputFiles('#file', path.join(__dirname, '/../../../resources/file.png'));
         await page.setInputFiles('#file2', path.join(__dirname, '/../../../resources/large_file.mp4'));
         await page.click('#start');
@@ -41,7 +41,7 @@ server.listen(3000, async () => {
                 mqttRequests++;
             }
         });
-        await modulePage.goto('http://localhost:3000/module.html');
+        await modulePage.goto('http://localhost:3000/languages/web/module.html');
         await modulePage.waitForFunction(() => window.moduleDone === true, null, { timeout: 15000 });
         await modulePage.waitForLoadState('networkidle');
         console.log(`MQTT chunks requested: ${mqttRequests}`);

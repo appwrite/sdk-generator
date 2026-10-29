@@ -24,18 +24,14 @@ final class CLI
             header: 'cli',
             build: [
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli golang:1.26 go mod tidy',
-                // Only this build gets applehosts.go, which points the Apple sign-in at the mock API.
-                'cp tests/e2e/languages/cli/applehosts.go tests/e2e/sdks/cli/internal/cmd/applehosts.go',
                 // -buildvcs=false: the tree is generated inside this repository, and in
                 // CI the checkout and the container disagree on ownership, so the git
                 // stamp fails with "dubious ownership". Linux only.
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli golang:1.26 go build -buildvcs=false -o appwrite .',
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli golang:1.26 go test ./internal/...',
-                'mkdir -p tests/e2e/sdks/cli/conformance',
-                'cp tests/e2e/languages/cli/main.go tests/e2e/sdks/cli/conformance/main.go',
             ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli '
-                . 'golang:1.26 go run ./conformance',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/cli '
+                . 'golang:1.26 go run .',
             expected: [
                 ...Output::FOO_RESPONSES,
                 ...Output::BAR_RESPONSES,
@@ -61,17 +57,14 @@ final class CLI
             header: 'cli',
             build: [
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli-wasm golang:1.26 go mod tidy',
-                'mkdir -p tests/e2e/sdks/cli-wasm/conformance',
                 // `browser` selects the reduced command surface; GOOS selects js adapters.
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli-wasm -e GOOS=js -e GOARCH=wasm '
-                    . 'golang:1.26 go build -tags browser -buildvcs=false -o conformance/appwrite.wasm .',
+                    . 'golang:1.26 go build -tags browser -buildvcs=false -o appwrite.wasm .',
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli-wasm golang:1.26 '
-                    . 'sh -c \'cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" conformance/wasm_exec.js\'',
-                'cp tests/e2e/languages/cli-wasm/harness.mjs tests/e2e/sdks/cli-wasm/conformance/harness.mjs',
-                'cp tests/e2e/languages/cli-wasm/run.cjs tests/e2e/sdks/cli-wasm/conformance/run.cjs',
+                    . 'sh -c \'cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" wasm_exec.js\'',
             ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli-wasm '
-                . 'node:24 node ./conformance/harness.mjs',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/cli-wasm '
+                . 'node:24 node harness.mjs',
             expected: [
                 ...Output::FOO_RESPONSES,
                 ...Output::BAR_RESPONSES,
@@ -91,27 +84,23 @@ final class CLI
             header: 'cli',
             build: [
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli-wasm-browser golang:1.26 go mod tidy',
-                'mkdir -p tests/e2e/sdks/cli-wasm-browser/browser',
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli-wasm-browser -e GOOS=js -e GOARCH=wasm '
-                    . 'golang:1.26 go build -tags browser -buildvcs=false -o browser/appwrite.wasm .',
+                    . 'golang:1.26 go build -tags browser -buildvcs=false -o appwrite.wasm .',
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli-wasm-browser golang:1.26 '
-                    . 'sh -c \'cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" browser/wasm_exec.js\'',
-                'cp tests/e2e/languages/cli-wasm-browser/server.mjs tests/e2e/sdks/cli-wasm-browser/browser/server.mjs',
-                'cp tests/e2e/languages/cli-wasm-browser/driver.mjs tests/e2e/sdks/cli-wasm-browser/browser/driver.mjs',
-                'cp tests/e2e/languages/cli-wasm-browser/page.html tests/e2e/sdks/cli-wasm-browser/browser/page.html',
+                    . 'sh -c \'cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" wasm_exec.js\'',
+                // The image ships the browsers, not the client library. package.json pins
+                // playwright to the image's version: a playwright newer than its browsers
+                // refuses to launch them, and that failure reads as a broken test rather
+                // than a mismatched pair.
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/languages/cli-wasm-browser '
+                    . 'mcr.microsoft.com/playwright:v1.62.0-noble npm ci',
             ],
             // --ipc=host is Playwright's own recommendation: Chromium's default shared
             // memory in a container is too small and it crashes rendering large pages.
             // The browser is launched with --no-sandbox in the driver, so no extra
             // privileges are needed here.
-            // The image ships the browsers, not the client library, so the driver's one
-            // import has to be installed. The version is pinned to the image's: a
-            // playwright newer than its browsers refuses to launch them, and that
-            // failure reads as a broken test rather than a mismatched pair.
-            command: 'docker run --rm --ipc=host -v $(pwd):/app -w /app/tests/e2e/sdks/cli-wasm-browser '
-                . 'mcr.microsoft.com/playwright:v1.62.0-noble '
-                . 'sh -c \'npm install --no-save --no-audit --no-fund --loglevel=error playwright@1.62.0 '
-                . '>/dev/null 2>&1 && node ./browser/driver.mjs\'',
+            command: 'docker run --rm --ipc=host -v $(pwd):/app -w /app/tests/e2e/languages/cli-wasm-browser '
+                . 'mcr.microsoft.com/playwright:v1.62.0-noble node driver.mjs',
             expected: [
                 'ok   a page with no HOME and no filesystem gets a product error, not an environment one',
                 'ok   without a session the CLI reaches the API and renders its 401',

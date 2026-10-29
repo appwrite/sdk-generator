@@ -32,14 +32,16 @@ globalThis.require = require
 globalThis.fs = fs
 globalThis.path = path
 
-require(path.join(__dirname, 'wasm_exec.js'))
+const sdk = path.join(__dirname, '..', '..', 'sdks', 'cli-wasm')
+
+require(path.join(sdk, 'wasm_exec.js'))
 
 const go = new Go()
 go.argv = ['appwrite', ...real.argv.slice(2)]
 go.env = Object.assign({}, real.env)
 go.exit = real.exit.bind(real)
 
-WebAssembly.instantiate(fs.readFileSync(path.join(__dirname, 'appwrite.wasm')), go.importObject)
+WebAssembly.instantiate(fs.readFileSync(path.join(sdk, 'appwrite.wasm')), go.importObject)
     .then((result) => {
         real.on('exit', (code) => {
             // Surface a Go deadlock instead of letting Node exit successfully.
