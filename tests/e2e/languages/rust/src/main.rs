@@ -191,8 +191,6 @@ async fn test_general_service(client: &Client, string_in_array: &[String]) -> Re
         },
     }
 
-    println!("Invalid endpoint URL: htp://cloud.appwrite.io/v1");
-
     let (): () = general.empty().await?;
 
     // Test Queries

@@ -46,7 +46,6 @@ final class Rust
                 ...Output::NULLABLE_MODEL_RESPONSES,
                 ...Output::ENUM_DEFAULT_RESPONSES,
                 ...Output::EXCEPTION_RESPONSES,
-                ...Output::ENDPOINT_RESPONSES,
                 ...Output::QUERY_HELPER_RESPONSES,
                 ...Output::QUERY_TRANSPORT_RESPONSES,
                 ...Output::PERMISSION_HELPER_RESPONSES,
