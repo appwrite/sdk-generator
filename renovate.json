@@ -337,10 +337,10 @@
       "minimumReleaseAge": "3 days"
     },
     {
-      "description": "Keep the Swift 6.1-compatible tracing range until newer toolchains are validated.",
+      "description": "The tracing range is capped below 1.6.0 by hand for Swift 6.1; Renovate rewrites the exclusive bound to drop 1.5.0.",
       "matchManagers": ["swift", "custom.regex"],
       "matchDepNames": ["apple/swift-distributed-tracing"],
-      "allowedVersions": "<1.6.0"
+      "enabled": false
     },
     {
       "matchUpdateTypes": ["major"],
