@@ -25,9 +25,9 @@ import { chromium } from 'playwright'
 
 import { PAGE_ORIGIN, REMOTE_ORIGIN, requests, start, stop } from './server.mjs'
 
-// Base.php discards every line up to and including this one, then compares the
+// RuntimeTest.php discards every line up to and including this one, then compares the
 // rest positionally -- so the checks below are pinned by name in
-// CLIWasmBrowserTest::$expectedOutput, and one being quietly dropped is a
+// the CLIWasmBrowser runtime's expected lines, and one being quietly dropped is a
 // failure rather than a shorter list.
 console.log('Test Started')
 
@@ -73,10 +73,10 @@ page.on('pageerror', (error) => failures.push(`page error: ${error.message}`))
 await page.goto(PAGE_ORIGIN)
 await page.evaluate(() => window.ready)
 
-// Index 0 is Base::getExpectedSdkHeaders(). `general headers` is a generated
+// Index 0 is the SDK header line RuntimeTest prepends. `general headers` is a generated
 // command, and this tree is generated with sdk.test set, so it is a mock that
 // prints the fixture without making a request -- see
-// templates/cli/base/mock.go.twig. It is printed here to satisfy Base.php's
+// templates/cli/base/mock.go.twig. It is printed here to satisfy RuntimeTest.php's
 // positional comparison and proves nothing on its own; the headers are checked
 // for real further down, against what the fixture received on a `whoami`.
 const mocked = await page.evaluate(() => window.runCLI(['general', 'headers']))

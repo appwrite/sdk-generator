@@ -285,8 +285,6 @@ class Tests: XCTestCase {
             print(error.response)
         }
 
-        print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
-
         await fulfillment(of: [expectation], timeout: 20.0)
         print(realtimeResponse)
 
@@ -852,6 +850,7 @@ class Tests: XCTestCase {
         WebAuthComponent.handleIncomingCookie(from: URL(string: "appwrite-callback-123456://?domain=.zzplanted.example&key=a_session_123456&secret=planted")!)
         WebAuthComponent.handleIncomingCookie(from: URL(string: "appwrite-callback-123456://?domain=&domain=&key=a&key=b&secret=c")!)
         print(UserDefaults.standard.stringArray(forKey: "zzplanted.example") == nil ? "OAuth callback without a login:passed" : "OAuth callback without a login:failed")
+        print("Test Ended")
     }
 
     /// A server may write its first frame in the same packet as the 101 response.

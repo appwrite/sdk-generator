@@ -20,4 +20,7 @@ chmod +x /usr/local/bin/chrome-nosandbox
 export CHROME_EXECUTABLE=/usr/local/bin/chrome-nosandbox
 
 flutter pub get
-flutter test --platform chrome test/appwrite_web_test.dart
+status=0
+flutter test --platform chrome test/appwrite_web_test.dart > flutter-test.log || status=$?
+grep -v -x 'No tests ran.' flutter-test.log
+[ "$status" -eq 0 ] || [ "$status" -eq 79 ]

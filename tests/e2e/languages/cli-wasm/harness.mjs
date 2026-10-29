@@ -66,7 +66,7 @@ run('client',
     '--self-signed', 'true',
 )
 
-// Base.php compares output positionally after this marker.
+// RuntimeTest.php compares output positionally after this marker.
 console.log('Test Started')
 
 const headers = value('general', 'headers')
