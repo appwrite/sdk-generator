@@ -16,6 +16,7 @@ android {
     sourceSets {
         getByName("main") {
             java.srcDir("$module/java")
+            kotlin.srcDir("$module/java")
             manifest.srcFile("$module/AndroidManifest.xml")
         }
     }

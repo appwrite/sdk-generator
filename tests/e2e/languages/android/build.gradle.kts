@@ -9,12 +9,14 @@ project(":library") {
 
     pluginManager.withPlugin("com.android.library") {
         extensions.configure<com.android.build.api.dsl.LibraryExtension> {
-            sourceSets.getByName("test").java.srcDirs(
-                rootProject.file("src/test/kotlin"),
-                rootProject.file("src/test/java"),
-                rootProject.file("../kotlin/src/test/java"),
-                rootProject.file("build/examples"),
-            )
+            sourceSets.getByName("test") {
+                java.srcDirs(
+                    rootProject.file("src/test/java"),
+                    rootProject.file("../kotlin/src/test/java"),
+                    rootProject.file("build/examples"),
+                )
+                kotlin.srcDir(rootProject.file("src/test/kotlin"))
+            }
             lint {
                 checkOnly += "NewApi"
                 abortOnError = true
