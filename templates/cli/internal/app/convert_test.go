@@ -44,3 +44,24 @@ func TestDecodeSliceSendsAnEmptyArrayForTheEmptyArrayValue(t *testing.T) {
 		t.Errorf("--flag [] sends %s, want []", encoded)
 	}
 }
+
+func TestDecodeReadsTheFlagIntoTheModel(t *testing.T) {
+	type player struct {
+		Name  string `json:"name"`
+		Score int    `json:"score"`
+	}
+
+	decoded, err := Decode[player](`{"name":"John Doe","score":100}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decoded.Name != "John Doe" || decoded.Score != 100 {
+		t.Errorf("decoded %+v, want the name and score given", decoded)
+	}
+}
+
+func TestDecodeRejectsAValueThatIsNotJSON(t *testing.T) {
+	if _, err := Decode[map[string]any]("name=John"); err == nil {
+		t.Error("a non-JSON value was accepted")
+	}
+}

@@ -106,6 +106,19 @@ func isEmptyArray(raws []string) bool {
 	return len(raws) == 1 && strings.TrimSpace(raws[0]) == EmptyArray
 }
 
+func Decode[T any](raw string) (T, error) {
+	var value T
+
+	decoder := json.NewDecoder(strings.NewReader(raw))
+	decoder.UseNumber()
+
+	if err := decoder.Decode(&value); err != nil {
+		return value, fmt.Errorf("expected JSON for this flag, got %q: %w", raw, err)
+	}
+
+	return value, nil
+}
+
 // DecodeSlice parses each value of a repeatable flag into T.
 //
 // Needed where the SDK declares a slice such as []interface{}, []float64, or

@@ -2,35 +2,23 @@ package services
 
 {% set scope = resourceHeader | cliServiceScope %}
 {% set hasQueryParam = (service | operations) | hasCliQueryParam %}
+{% set sdkPackages = [service.name | goPackage] %}
+{% if service | cliUsesModels(service | operations) %}
+{% set sdkPackages = (sdkPackages|merge(['models']))|sort %}
+{% endif %}
 import (
-{% if sdk.test %}
-{% if hasQueryParam %}
-	"encoding/json"
-
-{% endif %}
 	"github.com/spf13/cobra"
+
+{% for sdkPackage in sdkPackages %}
+	"{{ language.params.sdkImportPath }}/{{ sdkPackage }}"
+{% endfor %}
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 {% if hasQueryParam %}
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/query"
 {% endif %}
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
-{% else %}
-	"github.com/spf13/cobra"
-
-	"{{ language.params.sdkImportPath }}/{{ service.name | goPackage }}"
-
-	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
-{% if hasQueryParam %}
-	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/query"
-{% endif %}
-	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
-{% endif %}
 )
-{% if sdk.test %}
-
-{{ include('cli/base/mock.go.twig') -}}
-{% endif %}
 
 // New{{ service.name | caseUcfirst }}Command builds the `{{ service.name | caseLower }}` command tree.
 func New{{ service.name | caseUcfirst }}Command() *cobra.Command {
@@ -170,9 +158,7 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 {% endif %}
 		RunE: func(cmd *cobra.Command, args []string) error {
 {% set plan = getGoCallPlan(method, service) %}
-{% if sdk.test %}
-			service := new{{ service.name | caseUcfirst }}MockService()
-{% elseif not implementation %}
+{% if not implementation %}
 {% if scope %}
 			client, err := app.ClientFor{{ scope.label }}({{ scopedFlag ? scope.idVar : '""' }})
 {% elseif isConsoleOnly %}
@@ -185,7 +171,6 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 			}
 			service := {{ plan.package }}.New(client)
 {% endif %}
-{% if not sdk.test %}
 {% for decode in plan.decodes %}
 {% if decode.cleanup is defined %}
 			{{ decode.var }}, {{ decode.cleanup }}, err := app.{{ decode.helper }}({{ decode.source }})
@@ -200,7 +185,6 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 			}
 {% endif %}
 {% endfor %}
-{% endif %}
 {% if query.hasQueries %}
 
 {% if query.hasFiltering %}
@@ -247,7 +231,7 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 				return err
 			}
 {% endif %}
-{% if plan.optional is not empty and not implementation and not sdk.test %}
+{% if plan.optional is not empty and not implementation %}
 
 			// An unset flag must be omitted, not sent as its zero value.
 			options := []{{ plan.package }}.{{ plan.optionType }}{}
@@ -275,13 +259,6 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 				limitFlag, offsetFlag, search)
 {% elseif implementation == 'getOrganizationForSession' %}
 			result, err := app.GetOrganizationForSession({{ scopedFlag ? scope.idVar : '""' }})
-{% elseif sdk.test %}
-{# Joined rather than suffixed per argument: a trailing ", " leaves a method
-   with no arguments after it reading `Method(id, )`, which compiles but is not
-   what anyone would write. #}
-{% set callArguments = query.hasQueries ? ['queries'] : [] %}
-{% for parameter in (method | parameters('all')) %}{% set callArguments = callArguments|merge([getGoVarName(parameter, service)]) %}{% endfor %}
-			result, err := service.{{ plan.method }}({{ callArguments|join(', ') }})
 {% else %}
 {% set callArguments = [] %}
 {% for argument in plan.required %}{% set callArguments = callArguments|merge([argument.expression]) %}{% endfor %}
@@ -291,7 +268,7 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 			if err != nil {
 				return sdk.WrapMutationError("{{ method.method.value | upper }}", err)
 			}
-{% if (method | methodType) == 'location' and not sdk.test %}
+{% if (method | methodType) == 'location' %}
 
 			// A location method returns the file bytes, not a URL -- the SDK
 			// has already fetched them.

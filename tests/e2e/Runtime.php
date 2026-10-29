@@ -11,6 +11,7 @@ final readonly class Runtime
     /**
      * @param list<string> $build
      * @param list<string> $expected
+     * @param list<Dependency> $dependencies
      */
     public function __construct(
         public string $directory,
@@ -24,6 +25,8 @@ final readonly class Runtime
         public string $version = '0.0.1',
         public string $namespace = 'appwrite',
         public bool $reachesServer = true,
+        public array $dependencies = [],
+        public ?string $identity = null,
     ) {
     }
 }

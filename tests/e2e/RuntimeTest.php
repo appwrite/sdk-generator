@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\E2E;
 
+use Appwrite\SDK\Language;
 use Appwrite\SDK\SDK;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -108,24 +109,59 @@ final class RuntimeTest extends TestCase
 
     private function generate(Runtime $runtime): void
     {
+        foreach ($runtime->dependencies as $dependency) {
+            $this->generateSdk(
+                $dependency->language,
+                $dependency->language->getName(),
+                $runtime->platform,
+                $dependency->version,
+                $runtime->namespace,
+                $dependency->owner,
+                $dependency->repository,
+                $dependency->directory,
+            );
+        }
+
+        $this->generateSdk(
+            $runtime->language,
+            $runtime->name,
+            $runtime->platform,
+            $runtime->version,
+            $runtime->namespace,
+            'repoowner',
+            'reponame',
+            $runtime->directory,
+        );
+    }
+
+    private function generateSdk(
+        Language $language,
+        string $name,
+        string $platform,
+        string $version,
+        string $namespace,
+        string $owner,
+        string $repository,
+        string $directory,
+    ): void {
         $spec = \file_get_contents(self::SPEC);
 
         $this->assertNotEmpty($spec, 'Failed to read the spec');
 
-        $sdk = new SDK($runtime->language, Parser::parse($spec));
+        $sdk = new SDK($language, Parser::parse($spec));
 
         $sdk
-            ->setName($runtime->name)
-            ->setVersion($runtime->version)
-            ->setPlatform($runtime->platform)
-            ->setNamespace($runtime->namespace)
+            ->setName($name)
+            ->setVersion($version)
+            ->setPlatform($platform)
+            ->setNamespace($namespace)
             ->setDescription('Repo description goes here')
             ->setShortDescription('Repo short description goes here')
             ->setCoverImage('https://github.com/appwrite/appwrite/raw/main/public/images/github.png')
             ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
             ->setExamples('**EXAMPLES** <HTML>')
-            ->setGitUserName('repoowner')
-            ->setGitRepoName('reponame')
+            ->setGitUserName($owner)
+            ->setGitRepoName($repository)
             ->setLicense('BSD-3-Clause')
             ->setLicenseContent('demo license')
             ->setChangelog('--changelog--')
@@ -142,11 +178,11 @@ final class RuntimeTest extends TestCase
             ])
             ->setTest('true');
 
-        $directory = self::OUTPUT . '/' . $runtime->directory;
+        $path = self::OUTPUT . '/' . $directory;
 
-        $this->removeDirectory($directory);
+        $this->removeDirectory($path);
 
-        $sdk->generate($directory);
+        $sdk->generate($path);
     }
 
     private function build(Runtime $runtime): void
@@ -215,7 +251,7 @@ final class RuntimeTest extends TestCase
 
         $this->assertNotFalse($start, 'The driver never printed "' . self::START . '"');
 
-        $headers = "x-sdk-name: {$runtime->name}; x-sdk-platform: {$runtime->platform}; x-sdk-language: {$runtime->header}; x-sdk-version: {$runtime->version}";
+        $headers = $runtime->identity ?? "x-sdk-name: {$runtime->name}; x-sdk-platform: {$runtime->platform}; x-sdk-language: {$runtime->header}; x-sdk-version: {$runtime->version}";
         $expected = [$headers, ...$runtime->expected];
         $actual = \array_slice($output, $start + 1);
 

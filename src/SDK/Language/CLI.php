@@ -272,7 +272,7 @@ class CLI extends Go
             $sdkType = parent::getTypeName($parameter);
             $expression = $variable;
 
-            if ($this->isCliGraphQLInput($parameter, $method, $service)) {
+            if ($sdkType === 'interface{}' && $this->isCliGraphQLInput($parameter, $method, $service)) {
                 $expression = $variable . 'Value';
                 $decodes[] = [
                     'var' => $expression,
@@ -318,6 +318,20 @@ class CLI extends Go
     }
 
     /**
+     * @param array<Operation> $methods
+     */
+    protected function usesCliModels(Tag $service, array $methods): bool
+    {
+        return array_any(
+            $methods,
+            fn (Operation $method): bool => array_any(
+                $this->getGoCallPlan($method, $service)['decodes'],
+                fn (array $decode): bool => str_contains($decode['helper'], 'models.'),
+            ),
+        );
+    }
+
+    /**
      * Bridge a flag's Go type to the type the SDK parameter declares.
      *
      * Returns the call-site expression, plus a statement to emit before the call
@@ -335,6 +349,9 @@ class CLI extends Go
         // fail on bad input, so both are decoded into their own variable first.
         if ($sdkType === 'interface{}' && $flagType === 'string') {
             return [$variable . 'Value', ['var' => $variable . 'Value', 'source' => $variable, 'helper' => 'JSONObject']];
+        }
+        if (str_starts_with($sdkType, 'models.') && $flagType === 'string') {
+            return [$variable . 'Decoded', ['var' => $variable . 'Decoded', 'source' => $variable, 'helper' => 'Decode[' . $sdkType . ']']];
         }
         if ($sdkType === 'file.InputFile') {
             $decode = [
@@ -379,6 +396,7 @@ class CLI extends Go
     {
         return array_merge(parent::getFilters(), [
             new TwigFilter('hasCliQueryParam', fn(array $methods): bool => $this->hasCliQueryParam($methods)),
+            new TwigFilter('cliUsesModels', fn(Tag $service, array $methods): bool => $this->usesCliModels($service, $methods)),
             new TwigFilter('cliServiceScope', fn(?string $resourceHeader): ?array => $this->getCliServiceScope($resourceHeader)),
             new TwigFilter('cliQueryConfig', fn(Operation $method): array => $this->getCliQueryConfig($method)),
             new TwigFilter('cliTopLevelAliases', fn(Tag $service, array $methods): array => $this->getCliTopLevelAliases($service, $methods)),
