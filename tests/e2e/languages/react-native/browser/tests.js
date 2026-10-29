@@ -1,10 +1,14 @@
 const playwright = require('playwright');
 const handler = require('serve-handler');
 const http = require('http');
+const path = require('path');
 const { exit } = require('process');
 
+const resources = path.resolve(__dirname, '../../../../resources');
+
 const server = http.createServer((request, response) => {
-    return handler(request, response);
+    const resource = ['/file.png', '/large_file.mp4'].includes(request.url);
+    return handler(request, response, resource ? { public: resources } : {});
 });
 
 server.listen(3000, async () => {

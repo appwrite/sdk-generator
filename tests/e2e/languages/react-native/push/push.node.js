@@ -1,9 +1,9 @@
 // React Native push e2e, run under Node as Platform.OS "android".
 //
 // The RN Push service is raw-TCP only (mqtt.js over react-native-tcp-socket), which the
-// browser harness (browser.js) cannot exercise. This entry runs the *generated* Push client
-// under Node against the mock broker's TCP listener (mqtt:1883). rollup.push.config.mjs
-// aliases `react-native-tcp-socket` to a thin Node net/tls adapter (shims/), so the real
+// browser harness (browser/browser.js) cannot exercise. This entry runs the *generated* Push client
+// under Node against the mock broker's TCP listener (mqtt:1883). package.json maps
+// `react-native-tcp-socket` to a thin Node net/tls adapter (shims/), so the real
 // src/services/push.ts + src/lib/tcp-stream.ts run unmodified; only the leaf native socket
 // is swapped for Node's net (an identical API subset). There is no native Android module here
 // (as in Expo Go), so background delivery is unavailable and the topic-less subscribe's
@@ -11,9 +11,9 @@
 import { EventEmitter } from 'events';
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
 import { __test as expoNotifications } from 'expo-notifications';
-import { Client } from './src/client';
-import { Push } from './src/services/push';
-import { Topic } from './src/topic';
+import { Client } from '../../../sdks/react-native/src/client';
+import { Push } from '../../../sdks/react-native/src/services/push';
+import { Topic } from '../../../sdks/react-native/src/topic';
 
 const ENDPOINT = 'mqtt://mqtt:1883';
 const timeout = (ms, value) => new Promise((resolve) => setTimeout(() => resolve(value), ms));

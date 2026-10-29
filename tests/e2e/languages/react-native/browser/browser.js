@@ -20,7 +20,7 @@ import {
     Operator,
     Condition,
     MockType,
-} from './src/index';
+} from '../../../sdks/react-native/src/index';
 
 (async () => {
     let response;

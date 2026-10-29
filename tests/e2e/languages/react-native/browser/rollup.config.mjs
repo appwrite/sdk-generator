@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const sdk = path.resolve(__dirname, '../../../sdks/react-native');
 
 export default {
     input: 'browser.js',
@@ -42,20 +43,25 @@ export default {
             browser: true,
             extensions: ['.mjs', '.js', '.jsx', '.ts', '.tsx', '.json'],
             preferBuiltins: false,
+            modulePaths: [path.join(__dirname, 'node_modules')],
         }),
         commonjs(),
         typescript({
-            tsconfig: './tsconfig.json',
+            tsconfig: path.join(sdk, 'tsconfig.json'),
             noEmitOnError: false,
             compilerOptions: {
                 allowJs: true,
                 declaration: false,
                 declarationMap: false,
-                outDir: 'dist',
-                rootDir: '.',
+                outDir: path.join(__dirname, 'dist'),
+                rootDir: path.resolve(__dirname, '../../..'),
             },
-            include: ['src/**/*.ts', 'browser.js', 'shims/**/*.js'],
-            exclude: ['node_modules/**', 'dist/**'],
+            include: [
+                path.join(sdk, 'src/**/*.ts'),
+                path.join(__dirname, 'browser.js'),
+                path.join(__dirname, 'shims/**/*.js'),
+            ],
+            exclude: ['**/node_modules/**', '**/dist/**'],
         }),
     ],
 };
