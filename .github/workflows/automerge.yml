@@ -57,18 +57,13 @@ jobs:
           while read -r number sha; do
             [ -n "$number" ] || continue
 
-            reviewed=$(gh api --paginate --slurp "repos/$REPOSITORY/issues/$number/comments?per_page=100" | jq -r '
-              [add[] | select(.user.login == "hansi-codes[bot]" and (.body | contains("<!-- hans:summary -->")))]
-              | last // {body: ""}
-              | .body
-              | select(test("(^|\\n)## [^\\n]* Tier S ·"))
-              | capture("Reviewed <code>(?<sha>[0-9a-f]+)</code>").sha // empty')
-            if [ -z "$reviewed" ] || [[ "$sha" != "$reviewed"* ]]; then
-              echo "#$number: no Hansi tier S review for $sha"
+            runs=$(gh api --paginate --slurp "repos/$REPOSITORY/commits/$sha/check-runs?per_page=100" | jq '[.[].check_runs[]]')
+
+            tier=$(jq -r '[.[] | select(.app.slug == "hansi-codes" and .status == "completed")] | last | .output.title // ""' <<< "$runs")
+            if [[ "$tier" != "Tier S:"* ]]; then
+              echo "#$number: no Hansi tier S review for $sha (${tier:-none})"
               continue
             fi
-
-            runs=$(gh api --paginate --slurp "repos/$REPOSITORY/commits/$sha/check-runs?per_page=100" | jq '[.[].check_runs[]]')
             actions=$(jq '[.[] | select(.app.slug == "github-actions")] | length' <<< "$runs")
             pending=$(jq '[.[] | select(.status != "completed")] | length' <<< "$runs")
             unsuccessful=$(jq -r '[.[] | select(.status == "completed" and ([.conclusion] | inside(["success", "skipped", "neutral"]) | not)) | .name] | join(", ")' <<< "$runs")
