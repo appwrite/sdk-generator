@@ -6,7 +6,6 @@ import FoundationNetworking
 import Appwrite
 import JSONCodable
 import AppwriteEnums
-import AsyncHTTPClient
 import NIO
 
 class Tests: XCTestCase {
