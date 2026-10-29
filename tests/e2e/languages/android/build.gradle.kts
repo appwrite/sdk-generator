@@ -17,6 +17,11 @@ project(":library") {
                 )
                 kotlin.srcDir(rootProject.file("src/test/kotlin"))
             }
+            testOptions {
+                unitTests.all {
+                    it.workingDir = rootDir
+                }
+            }
             lint {
                 checkOnly += "NewApi"
                 abortOnError = true
