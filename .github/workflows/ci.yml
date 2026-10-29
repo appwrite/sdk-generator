@@ -30,6 +30,7 @@ jobs:
           CLIWasmBrowser,
           DartBeta,
           DartStable,
+          DartWasm,
           DotNet60,
           DotNet80,
           DotNet90,

@@ -64,5 +64,25 @@ final class Dart
                 ],
             );
         }
+
+        yield 'DartWasm' => new Runtime(
+            directory: 'dart',
+            language: new Language\Dart(),
+            name: 'dart',
+            platform: 'server',
+            header: 'dart',
+            build: [
+                'mkdir -p tests/e2e/sdks/dart/tests',
+                'cp tests/e2e/languages/dart/wasm.dart tests/e2e/sdks/dart/tests/wasm.dart',
+                'cp tests/e2e/languages/dart/wasm.mjs tests/e2e/sdks/dart/tests/wasm.mjs',
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dart dart:stable sh -c "dart pub get && dart compile wasm tests/wasm.dart -o tests/wasm/main.wasm"',
+            ],
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dart node:24 node tests/wasm.mjs',
+            expected: [
+                ...Output::PING_RESPONSE,
+                ...Output::FOO_RESPONSES,
+                ...Output::BAR_RESPONSES
+            ],
+        );
     }
 }
