@@ -388,10 +388,12 @@ func (s *pushSetup) ensureApplePlatform(bundleID string) {
 	output.Success(s.out, "Added the Apple platform %s to the project.", bundleID)
 }
 
-// apnsNextSteps says what else push on iOS needs beyond what init apns sets up.
+// apnsNextSteps says what else push on iOS needs when an Appwrite push provider carries the
+// messages and APNs only wakes the app. APNs alone delivers the whole notification.
 func (s *pushSetup) apnsNextSteps() {
-	if appwrite, err := s.providers("appwrite"); err == nil && findProvider(appwrite, func(provider messagingProvider) bool { return provider.Enabled }) == nil {
-		output.Hint(s.out, "Enable the Appwrite push provider in the project: messages reach the app over it, and APNs only wakes the app.")
+	appwrite, err := s.providers("appwrite")
+	if err != nil || findProvider(appwrite, func(provider messagingProvider) bool { return provider.Enabled }) == nil {
+		return
 	}
 	output.Hint(s.out, "For messages while the app is in the background or swiped away, add a Notification Service Extension whose class extends AppwriteNotificationService, and put the app and the extension in one App Group, named by AppwritePushAppGroup in both Info.plists.")
 }
