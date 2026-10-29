@@ -70,12 +70,9 @@ final class Dart
             platform: 'server',
             header: 'dart',
             build: [
-                'mkdir -p tests/e2e/sdks/dart/tests',
-                'cp tests/e2e/languages/dart/wasm.dart tests/e2e/sdks/dart/tests/wasm.dart',
-                'cp tests/e2e/languages/dart/wasm.mjs tests/e2e/sdks/dart/tests/wasm.mjs',
-                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dart dart:stable sh -c "dart pub get && dart compile wasm tests/wasm.dart -o tests/wasm/main.wasm"',
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/languages/dart dart:stable sh -c "dart pub get && dart compile wasm wasm.dart -o wasm/main.wasm"',
             ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dart node:24 node tests/wasm.mjs',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/dart node:24 node wasm.mjs',
             expected: [
                 ...Output::PING_RESPONSE,
                 ...Output::FOO_RESPONSES,

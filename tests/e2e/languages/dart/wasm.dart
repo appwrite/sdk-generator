@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import '../lib/models.dart';
-import '../lib/packageName.dart';
+import 'package:packageName/models.dart';
+import 'package:packageName/packageName.dart';
 
 // Runs the SDK compiled with `dart compile wasm`, so it takes the browser client.
 void main() async {
