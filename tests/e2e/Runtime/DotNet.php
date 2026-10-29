@@ -22,12 +22,8 @@ final class DotNet
                 name: 'dotnet',
                 platform: 'server',
                 header: 'dotnet',
-                build: [
-                    'mkdir -p tests/e2e/sdks/dotnet/test',
-                    'cp tests/e2e/languages/dotnet/Tests.cs tests/e2e/sdks/dotnet/test/Tests.cs',
-                    'cp tests/e2e/languages/dotnet/Tests' . $key . '.csproj tests/e2e/sdks/dotnet/test/Tests.csproj',
-                ],
-                command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dotnet/test mcr.microsoft.com/dotnet/sdk:' . $version . '-alpine' . $alpine . ' dotnet test --verbosity normal --framework net' . $version,
+                build: [],
+                command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/dotnet mcr.microsoft.com/dotnet/sdk:' . $version . '-alpine' . $alpine . ' dotnet test --verbosity normal --framework net' . $version,
                 expected: [
                     ...Output::FOO_RESPONSES,
                     ...Output::BAR_RESPONSES,

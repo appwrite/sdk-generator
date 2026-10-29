@@ -16,16 +16,13 @@ final class Swift
     public static function runtimes(): iterable
     {
         yield 'Swift61' => new Runtime(
-            directory: 'swift',
+            directory: 'swift-sdk',
             language: new Language\Swift(),
             name: 'swift',
             platform: 'server',
             header: 'swift',
-            build: [
-                'mkdir -p tests/e2e/sdks/swift/Tests/AppwriteTests',
-                'cp tests/e2e/languages/swift/Tests.swift tests/e2e/sdks/swift/Tests/AppwriteTests/Tests.swift',
-            ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/swift swift:6.1-jammy swift test',
+            build: [],
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/swift swift:6.1-jammy swift test',
             expected: [
                 ...Output::PING_RESPONSE,
                 ...Output::FOO_RESPONSES,

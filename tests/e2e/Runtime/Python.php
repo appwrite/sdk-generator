@@ -23,12 +23,10 @@ final class Python
                 platform: 'server',
                 header: 'python',
                 build: [
-                    'cp tests/e2e/languages/python/tests.py tests/e2e/sdks/python/test.py',
-                    'echo "" > tests/e2e/sdks/python/__init__.py',
-                    'docker run --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/e2e/sdks/python/vendor python:' . $version . '-alpine pip install -r tests/e2e/sdks/python/requirements.txt --upgrade',
+                    'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/python python:' . $version . '-alpine pip install --target vendor -r requirements.txt',
                     'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/python --env PYTHONPATH=vendor python:' . $version . '-alpine python -m unittest discover -s test -t .',
                 ],
-                command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app --env PIP_TARGET=tests/e2e/sdks/python/vendor --env PYTHONPATH=tests/e2e/sdks/python/vendor python:' . $version . '-alpine python tests/e2e/sdks/python/test.py',
+                command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/python --env PYTHONPATH=../../sdks/python:../../sdks/python/vendor python:' . $version . '-alpine python tests.py',
                 expected: [
                     ...Output::FOO_RESPONSES,
                     ...Output::BAR_RESPONSES,

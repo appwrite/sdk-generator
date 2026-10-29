@@ -38,8 +38,8 @@ import (
 	"strings"
 )
 
-// binary is the CLI under test, built by the test's build step next to this file.
-const binary = "./appwrite"
+// binary is the CLI under test, built by the test's build step in the generated tree.
+const binary = "../../sdks/cli/appwrite"
 
 // resultLabel is what the Go table renderer puts in front of a single value.
 var resultLabel = regexp.MustCompile(`^result\s*:?\s+`)

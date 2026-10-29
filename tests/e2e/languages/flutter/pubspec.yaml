@@ -1,0 +1,17 @@
+name: flutter_e2e
+publish_to: none
+
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+  flutter: '>=3.38.1'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  packageName:
+    path: ../../sdks/flutter
+  path_provider_platform_interface: 2.1.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
