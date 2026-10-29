@@ -65,3 +65,13 @@ func TestDecodeRejectsAValueThatIsNotJSON(t *testing.T) {
 		t.Error("a non-JSON value was accepted")
 	}
 }
+
+func TestDecodeLeavesAnUnsetFlagEmpty(t *testing.T) {
+	decoded, err := Decode[map[string]any]("")
+	if err != nil {
+		t.Fatalf("an unset optional flag failed to decode: %v", err)
+	}
+	if decoded != nil {
+		t.Errorf("decoded %v, want no value", decoded)
+	}
+}

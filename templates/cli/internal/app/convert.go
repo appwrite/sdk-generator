@@ -108,6 +108,9 @@ func isEmptyArray(raws []string) bool {
 
 func Decode[T any](raw string) (T, error) {
 	var value T
+	if raw == "" {
+		return value, nil
+	}
 
 	decoder := json.NewDecoder(strings.NewReader(raw))
 	decoder.UseNumber()
