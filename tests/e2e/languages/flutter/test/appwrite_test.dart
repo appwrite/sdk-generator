@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 
-import '../lib/client_io.dart';
-import '../lib/enums.dart';
-import '../lib/models.dart';
-import '../lib/packageName.dart';
-import '../lib/src/input_file.dart';
-import '../lib/src/mqtt_native.dart';
+import 'package:packageName/client_io.dart';
+import 'package:packageName/enums.dart';
+import 'package:packageName/models.dart';
+import 'package:packageName/packageName.dart';
+import 'package:packageName/src/input_file.dart';
+import 'package:packageName/src/mqtt_native.dart';
 
 class FakePathProvider extends PathProviderPlatform {
   @override

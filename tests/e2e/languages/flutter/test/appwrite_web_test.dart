@@ -7,7 +7,7 @@ import 'package:packageName/packageName.dart';
 
 // Flutter web e2e: exercises the push service over its web transport
 // (MQTT-over-WebSocket via MqttBrowserClient) against the mock broker. The native
-// (dart:io) path is covered by tests.dart over TCP; this runs under
+// (dart:io) path is covered by appwrite_test.dart over TCP; this runs under
 // `flutter test --platform chrome`, where the conditional import selects the
 // browser client and a raw TCP socket is unavailable.
 void main() async {
