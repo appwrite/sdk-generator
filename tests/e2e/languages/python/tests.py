@@ -98,33 +98,33 @@ if not isinstance(zone, str):
 print(zone)
 print(general.get_mixed().result)
 print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1'))
-print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1', InputFile.from_path('./tests/resources/file.png')))
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1', InputFile.from_path('../../../resources/file.png')))
 
 message = 'conversation without a required file'
 print(general.optional_upload(message).result)
-attachment = InputFile.from_path('./tests/resources/file.png')
+attachment = InputFile.from_path('../../../resources/file.png')
 print(general.optional_upload(message, attachment).result)
 print(general.optional_upload(message, metadata={'source': 'sdk', 'uri': 'café'}).result)
-print(general.optional_upload(message, InputFile.from_path('./tests/resources/file.png'), {'source': 'sdk', 'uri': 'café'}).result)
+print(general.optional_upload(message, InputFile.from_path('../../../resources/file.png'), {'source': 'sdk', 'uri': 'café'}).result)
 
-response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
+response = general.upload('string', 123, ['string in array'], InputFile.from_path('../../../resources/file.png'))
 print(response.result)
 
-response = general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/large_file.mp4'))
+response = general.upload('string', 123, ['string in array'], InputFile.from_path('../../../resources/large_file.mp4'))
 print(response.result)
 
-data = open('./tests/resources/file.png', 'rb').read()
+data = open('../../../resources/file.png', 'rb').read()
 response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'file.png', 'image/png'))
 print(response.result)
 
-data = open('./tests/resources/large_file.mp4', 'rb').read()
+data = open('../../../resources/large_file.mp4', 'rb').read()
 response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4','video/mp4'))
 print(response.result)
 
 response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(bytes(5 * 1024 * 1024), 'boundary.bin', 'application/octet-stream'))
 print(response.result)
 
-response = general.upload_generic(InputFile.from_path('./tests/resources/file.png'))
+response = general.upload_generic(InputFile.from_path('../../../resources/file.png'))
 print(response.prefs.data['result'])
 
 print(general.download().decode())

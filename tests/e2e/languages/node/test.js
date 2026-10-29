@@ -14,8 +14,8 @@ const {
     General,
     Plaintext,
     AppwriteException
-} = require('./dist/index.js');
-const { InputFile } = require('./dist/inputFile.js');
+} = require('package-name');
+const { InputFile } = require('package-name/file');
 const { readFile } = require('fs/promises');
 
 async function start() {
@@ -223,11 +223,11 @@ async function start() {
     response = await general.upload('string', 123, ['string in array'], InputFile.fromPath(__dirname + '/../../../resources/large_file.mp4', 'large_file.mp4'));
     console.log(response.result);
 
-    const smallBuffer = await readFile('./tests/resources/file.png');
+    const smallBuffer = await readFile('../../../resources/file.png');
     response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(smallBuffer, 'file.png'))
     console.log(response.result);
 
-    const largeBuffer = await readFile('./tests/resources/large_file.mp4');
+    const largeBuffer = await readFile('../../../resources/large_file.mp4');
     response = await general.upload('string', 123, ['string in array'], InputFile.fromBuffer(largeBuffer, 'large_file.mp4'))
     console.log(response.result);
 

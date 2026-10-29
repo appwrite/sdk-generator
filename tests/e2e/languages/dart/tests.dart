@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import '../lib/enums.dart';
-import '../lib/models.dart';
-import '../lib/packageName.dart';
-import '../lib/src/input_file.dart';
+import 'package:packageName/enums.dart';
+import 'package:packageName/models.dart';
+import 'package:packageName/packageName.dart';
+import 'package:packageName/src/input_file.dart';
 
 void main() async {
   Client client = Client().setSelfSigned();
