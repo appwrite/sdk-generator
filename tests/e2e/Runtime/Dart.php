@@ -23,11 +23,9 @@ final class Dart
                 platform: 'server',
                 header: 'dart',
                 build: [
-                    'mkdir -p tests/e2e/sdks/dart/tests',
-                    'cp tests/e2e/languages/dart/tests.dart tests/e2e/sdks/dart/tests/tests.dart',
                     'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dart dart:' . $channel . ' sh -c "dart pub get && dart test"',
                 ],
-                command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dart dart:' . $channel . ' sh -c "dart pub get && dart pub run tests/tests.dart"',
+                command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/dart dart:' . $channel . ' sh -c "dart pub get && dart run tests.dart"',
                 expected: [
                     ...Output::PING_RESPONSE,
                     ...Output::FOO_RESPONSES,

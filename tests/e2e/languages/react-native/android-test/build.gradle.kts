@@ -2,12 +2,23 @@ plugins {
     id("com.android.library") version "9.5.0"
 }
 
+val module = "../../../sdks/react-native/android/src/main"
+val result = layout.projectDirectory.file("result.txt").asFile
+
 android {
     namespace = "io.appwrite.reactnative"
     compileSdk = 37
 
     defaultConfig {
         minSdk = 24
+    }
+
+    sourceSets {
+        getByName("main") {
+            java.srcDir("$module/java")
+            kotlin.srcDir("$module/java")
+            manifest.srcFile("$module/AndroidManifest.xml")
+        }
     }
 
     testOptions {
@@ -20,6 +31,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+tasks.withType<Test>().configureEach {
+    outputs.upToDateWhen { false }
+    doFirst { result.delete() }
 }
 
 dependencies {

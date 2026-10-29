@@ -30,6 +30,10 @@ if (!is_dir($destination) && !mkdir($destination, 0777, true)) {
     exit(1);
 }
 
+foreach (glob("{$destination}/*.java") ?: [] as $stale) {
+    unlink($stale);
+}
+
 foreach ($paths as $index => $path) {
     if (!preg_match('/```java\n(.*?)```/s', (string) file_get_contents($path), $match)) {
         fwrite(STDERR, "No Java block in {$path}\n");

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs the Flutter web e2e (web_tests.dart) under a headless browser.
+# Runs the Flutter web e2e (test/appwrite_web_test.dart) under a headless browser.
 #
 # The Flutter image ships no browser, so install Google Chrome, then run the test with
 # `flutter test --platform chrome`; extra arguments such as --wasm go to `flutter test`.

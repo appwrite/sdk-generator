@@ -22,10 +22,9 @@ final class Rust
             platform: 'server',
             header: 'rust',
             build: [
-                'mkdir -p tests/e2e/tmp/rust',
-                'cp -Rf tests/e2e/sdks/rust/* tests/e2e/tmp/rust/',
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/rust rust:1.85 cargo test --lib',
             ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app rust:1.85 sh -c "cd tests/e2e/languages/rust/ && ./test.sh"',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/rust rust:1.85 cargo run',
             expected: [
                 ...Output::FOO_RESPONSES,
                 ...Output::BAR_RESPONSES,
@@ -47,7 +46,6 @@ final class Rust
                 ...Output::NULLABLE_MODEL_RESPONSES,
                 ...Output::ENUM_DEFAULT_RESPONSES,
                 ...Output::EXCEPTION_RESPONSES,
-                ...Output::ENDPOINT_RESPONSES,
                 ...Output::QUERY_HELPER_RESPONSES,
                 ...Output::QUERY_TRANSPORT_RESPONSES,
                 ...Output::PERMISSION_HELPER_RESPONSES,

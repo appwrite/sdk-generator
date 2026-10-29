@@ -1,4 +1,4 @@
-const { AppwriteException, Client, Foo, Bar, General, Plaintext, Query, flattenParam, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = require('./dist/cjs/sdk.js');
+const { AppwriteException, Client, Foo, Bar, General, Plaintext, Query, flattenParam, Permission, Role, ID, Topic, Channel, Operator, Condition, MockType } = require('../../sdks/web/dist/cjs/sdk.js');
 
 async function start() {
     let response;

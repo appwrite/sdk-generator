@@ -25,7 +25,7 @@ final class PHP
                 'composer install --working-dir=tests/e2e/sdks/php --no-interaction --prefer-dist',
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/php php:8.5-cli-alpine vendor/bin/phpunit',
             ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app php:8.5-cli-alpine php tests/e2e/languages/php/test.php',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/php php:8.5-cli-alpine php test.php',
             expected: [
                 ...Output::FOO_RESPONSES,
                 ...Output::BAR_RESPONSES,

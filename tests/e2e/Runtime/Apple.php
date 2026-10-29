@@ -16,18 +16,17 @@ final class Apple
     public static function runtimes(): iterable
     {
         yield 'AppleSwift61' => new Runtime(
-            directory: 'apple',
+            directory: 'apple-sdk',
             language: new Language\Apple(),
             name: 'swift',
             platform: 'client',
             header: 'apple',
             build: [
-                'mkdir -p tests/e2e/sdks/apple/Tests/AppwriteTests',
-                'cp tests/e2e/languages/apple/Tests.swift tests/e2e/sdks/apple/Tests/AppwriteTests/Tests.swift',
+                'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/apple-sdk swift:6.1-jammy swift test --disable-xctest',
             ],
             // `swift test` forwards the tests' stderr into its stdout, so the SDK's stderr diagnostics
             // would land in the output compared below. Running the XCTest bundle keeps them apart.
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/apple swift:6.1-jammy sh -c "swift build --build-tests && { .build/debug/AppwritePackageTests.xctest; xctest=\$?; swift test --skip-build --disable-xctest; testing=\$?; [ \$xctest -eq 0 ] && [ \$testing -eq 0 ]; }"',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/apple swift:6.1-jammy sh -c "swift build --build-tests && .build/debug/E2EPackageTests.xctest"',
             expected: [
                 ...Output::PING_RESPONSE,
                 ...Output::FOO_RESPONSES,

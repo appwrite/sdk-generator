@@ -27,6 +27,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
+const sdk = join(here, '..', '..', 'sdks', 'cli-wasm-browser')
 
 export const PAGE_ORIGIN = 'http://127.0.0.1:8111'
 export const REMOTE_ORIGIN = 'http://localhost:8112'
@@ -174,7 +175,7 @@ const page = createServer((request, response) => {
     const extension = name.slice(name.lastIndexOf('.'))
 
     try {
-        const body = readFileSync(join(here, name.slice(1)))
+        const body = readFileSync(join(name === '/page.html' ? here : sdk, name.slice(1)))
         response.writeHead(200, {
             'content-type': CONTENT_TYPES[extension] ?? 'application/octet-stream',
             'content-length': body.length,

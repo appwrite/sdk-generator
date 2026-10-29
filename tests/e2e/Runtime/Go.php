@@ -22,10 +22,9 @@ final class Go
             platform: 'server',
             header: 'go',
             build: [
-                'mkdir -p tests/e2e/tmp/go/src/github.com/repoowner/reponame',
-                'cp -Rf tests/e2e/sdks/go/* tests/e2e/tmp/go/src/github.com/repoowner/reponame/'
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/languages/go golang:1.13 go test github.com/repoowner/reponame/client github.com/repoowner/reponame/models github.com/repoowner/reponame/plaintext github.com/repoowner/reponame/textafterunion ./models',
             ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app golang:1.13 sh -c "cd tests/e2e/languages/go/ && ./test.sh"',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/go golang:1.13 go run tests.go',
             expected: [
                 ...Output::FOO_RESPONSES,
                 ...Output::BAR_RESPONSES,
@@ -62,10 +61,9 @@ final class Go
             platform: 'server',
             header: 'go',
             build: [
-                'mkdir -p tests/e2e/tmp/go/src/github.com/repoowner/reponame/v2',
-                'cp -Rf tests/e2e/sdks/go/* tests/e2e/tmp/go/src/github.com/repoowner/reponame/v2/'
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/languages/go-v2 golang:1.18 go test github.com/repoowner/reponame/v2/... ./models',
             ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app golang:1.18 sh -c "cd tests/e2e/languages/go-v2/ && ./test.sh"',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/go-v2 golang:1.18 go run tests.go',
             expected: [
                 ...Output::FOO_RESPONSES,
                 ...Output::BAR_RESPONSES,

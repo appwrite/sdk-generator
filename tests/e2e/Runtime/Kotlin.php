@@ -22,14 +22,9 @@ final class Kotlin
             platform: 'server',
             header: 'kotlin',
             build: [
-                'mkdir -p tests/e2e/sdks/kotlin/src/test/kotlin',
-                'cp tests/e2e/languages/kotlin/Tests.kt tests/e2e/sdks/kotlin/src/test/kotlin/Tests.kt',
-                'mkdir -p tests/e2e/sdks/kotlin/src/test/java/io/appwrite',
-                'cp tests/e2e/languages/kotlin/JavaInterop.java tests/e2e/sdks/kotlin/src/test/java/io/appwrite/JavaInterop.java',
-                'php tests/e2e/languages/kotlin/java-examples.php tests/e2e/sdks/kotlin/docs/examples/java tests/e2e/sdks/kotlin/src/test/java/examples',
-                'chmod +x tests/e2e/sdks/kotlin/gradlew',
+                'php tests/e2e/languages/kotlin/java-examples.php tests/e2e/sdks/kotlin/docs/examples/java tests/e2e/languages/kotlin/build/examples',
             ],
-            command: 'docker run --network="mockapi" -v $(pwd):/app -w /app/tests/e2e/sdks/kotlin eclipse-temurin:17-jdk-jammy sh -c "./gradlew test -q && cat result.txt"',
+            command: 'docker run --network="mockapi" -v $(pwd):/app -w /app/tests/e2e/languages/kotlin eclipse-temurin:17-jdk-jammy sh -c "sh ../../sdks/kotlin/gradlew :sdk:test test -q && cat result.txt"',
             expected: [
                 ...Output::PING_RESPONSE,
                 ...Output::FOO_RESPONSES,

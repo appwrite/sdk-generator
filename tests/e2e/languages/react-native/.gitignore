@@ -1,0 +1,8 @@
+node_modules/
+package-lock.json
+dist/
+browser/shims/expo/
+android-test/.gradle/
+android-test/.kotlin/
+android-test/build/
+android-test/result.txt
