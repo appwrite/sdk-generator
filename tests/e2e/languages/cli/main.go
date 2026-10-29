@@ -32,7 +32,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -40,9 +39,6 @@ import (
 
 // binary is the CLI under test, built by the test's build step in the generated tree.
 const binary = "../../sdks/cli/appwrite"
-
-// resultLabel is what the Go table renderer puts in front of a single value.
-var resultLabel = regexp.MustCompile(`^result\s*:?\s+`)
 
 func main() {
 	// A sandboxed HOME keeps the run from reading or writing real credentials,
@@ -383,26 +379,18 @@ func (h *harness) runExpectingFailure(args ...string) string {
 	return combined.String()
 }
 
-// value runs the CLI and returns the bare value out of its rendered output,
-// which is what RuntimeTest.php compares against.
+// value runs the CLI with --raw and returns the `result` the API responded with.
 func (h *harness) value(args ...string) string {
-	output := h.run(args...)
+	output := h.run(append(args, "--raw")...)
 
-	for line := range strings.SplitSeq(output, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		// Only a leading `result` label is stripped. Splitting on the first
-		// colon would eat into values that contain one, and most fixtures here
-		// do: `GET:/v1/...` and `x-sdk-name: cli; ...`.
-		return strings.TrimSpace(resultLabel.ReplaceAllString(line, ""))
+	var response struct {
+		Result string `json:"result"`
+	}
+	if err := json.Unmarshal([]byte(output), &response); err != nil {
+		fail(fmt.Errorf("`%s --raw` did not print the API response: %w\n%s", strings.Join(args, " "), err, output))
 	}
 
-	fail(fmt.Errorf("no value in CLI output for `%s`", strings.Join(args, " ")))
-
-	return ""
+	return response.Result
 }
 
 // initApns sets up APNs for a project folder against the mock API: both providers and the Apple

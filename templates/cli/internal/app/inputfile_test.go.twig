@@ -1,6 +1,5 @@
 package app
 
-{% if not sdk.test %}
 import (
 	"os"
 	"path/filepath"
@@ -64,4 +63,3 @@ func TestDeploymentInputFileRejectsAMissingPath(t *testing.T) {
 		t.Fatal("missing path was accepted")
 	}
 }
-{% endif %}

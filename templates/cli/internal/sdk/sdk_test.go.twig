@@ -1,9 +1,3 @@
-{% if sdk.test %}
-package sdk
-
-// The SDK-backed client is omitted from the conformance build, so there is
-// nothing here to test. The file still exists because getFiles() is static.
-{% else %}
 package sdk
 
 import (
@@ -248,4 +242,3 @@ func TestCookieSessionGetsAdminMode(t *testing.T) {
 		t.Errorf("mode = %q, want %q", client.Headers["X-Appwrite-Mode"], config.ModeAdmin)
 	}
 }
-{% endif %}

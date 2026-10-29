@@ -587,7 +587,7 @@ final class Output
     ];
 
     public const array CLI_HEADERS_RESPONSES = [
-        'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; '
+        'x-sdk-name: Command Line; x-sdk-platform: console; x-sdk-language: cli; '
             . 'x-sdk-version: 0.0.1; accept: application/json, text/plain',
     ];
 
