@@ -36,6 +36,7 @@ jobs:
           FlutterStable,
           FlutterBeta,
           FlutterWeb,
+          FlutterWebWasm,
           Go113,
           Go118,
           KotlinJava17,
