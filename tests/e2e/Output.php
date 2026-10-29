@@ -4,28 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\E2E;
 
-use Exception;
-use Override;
-use Throwable;
-use Appwrite\SDK\Language;
-use Appwrite\SDK\SDK;
-use Utopia\OpenAPI\Parser;
-use PHPUnit\Framework\TestCase;
-use Twig\Error\LoaderError;
-use Twig\Error\RuntimeError;
-use Twig\Error\SyntaxError;
-
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-abstract class Base extends TestCase
+final class Output
 {
-    protected const PING_RESPONSE = [
+    public const array PING_RESPONSE = [
         'GET:/v1/ping:passed',
     ];
 
-    protected const FOO_RESPONSES = [
+    public const array FOO_RESPONSES = [
         'GET:/v1/mock/tests/foo:passed',
         'POST:/v1/mock/tests/foo:passed',
         'PUT:/v1/mock/tests/foo:passed',
@@ -33,7 +18,7 @@ abstract class Base extends TestCase
         'DELETE:/v1/mock/tests/foo:passed',
     ];
 
-    protected const BAR_RESPONSES = [
+    public const array BAR_RESPONSES = [
         'GET:/v1/mock/tests/bar:passed',
         'POST:/v1/mock/tests/bar:passed',
         'PUT:/v1/mock/tests/bar:passed',
@@ -41,47 +26,47 @@ abstract class Base extends TestCase
         'DELETE:/v1/mock/tests/bar:passed',
     ];
 
-    protected const GENERAL_RESPONSES = [
+    public const array GENERAL_RESPONSES = [
         'GET:/v1/mock/tests/general/redirect/done:passed',
     ];
 
     // Server SDKs answer a redirect with an error instead of following it: the next location may
     // be another host, and the request carries the API key. Printed as `code:message`.
-    protected const SERVER_REDIRECT_RESPONSES = [
+    public const array SERVER_REDIRECT_RESPONSES = [
         '301:Redirect to /v1/mock/tests/general/redirect/done not followed',
     ];
 
     // Server SDKs keep no cookies: the cookie set-cookie answers with is not sent with get-cookie,
     // so one caller's session cannot reach the next call made on the same client.
-    protected const SERVER_COOKIE_RESPONSES = [
+    public const array SERVER_COOKIE_RESPONSES = [
         'GET:/v1/mock/tests/general/set-cookie:passed',
         'Missing cookie value',
     ];
 
-    protected const LOCATION_RESPONSES = [
+    public const array LOCATION_RESPONSES = [
         'GET:/v1/mock/tests/general/download:passed',
         'GET:/v1/mock/tests/general/download:passed:as:impersonated',
     ];
 
-    protected const PATH_PARAM_RESPONSES = [
+    public const array PATH_PARAM_RESPONSES = [
         'GET:/v1/mock/tests/general/path/grant%2Fspecial%26id:passed',
     ];
 
     // getPath('../grant?special=id#x y%') and getPath('unique()'): every reserved character
     // stays inside the one segment, and the parentheses of unique() are left as they are.
-    protected const PATH_SEGMENT_RESPONSES = [
+    public const array PATH_SEGMENT_RESPONSES = [
         'GET:/v1/mock/tests/general/path/..%2Fgrant%3Fspecial%3Did%23x%20y%25:passed',
         'GET:/v1/mock/tests/general/path/unique():passed',
     ];
 
-    protected const PATH_DOT_RESPONSES = [
+    public const array PATH_DOT_RESPONSES = [
         'Path parameter cannot be "." or ".."',
         'Path parameter cannot be "." or ".."',
     ];
 
     // One behavioral contract, invoked by each SDK's language adapter.
     // The mock never emits these errors: reaching it cannot pass the rejection checks.
-    protected const PATH_VALIDATION_RESPONSES = [
+    public const array PATH_VALIDATION_RESPONSES = [
         'Missing required parameter: "id"',
         'Missing required parameter: "plain"',
         'GET:/v1/mock/tests/general/path-validation/0/0:passed',
@@ -89,105 +74,105 @@ abstract class Base extends TestCase
 
     // Dart/Flutter, Kotlin/Android, Swift/Apple and Rust keep a null path
     // segment as literal "null", never as an empty segment.
-    protected const NULL_PATH_RESPONSE = [
+    public const array NULL_PATH_RESPONSE = [
         'GET:/v1/mock/tests/general/path-validation/null/0:passed',
     ];
 
     // Query values containing `&`, `+` and `#` reach the server unchanged.
-    protected const QUERY_ENCODING_RESPONSES = [
+    public const array QUERY_ENCODING_RESPONSES = [
         'GET:/v1/mock/tests/general/query:passed',
     ];
 
-    protected const OAUTH_RESPONSES = [
+    public const array OAUTH_RESPONSES = [
         'https://localhost?code=abcdef&state=123456',
     ];
 
-    protected const DOWNLOAD_RESPONSES = [
+    public const array DOWNLOAD_RESPONSES = [
         'GET:/v1/mock/tests/general/download:passed',
     ];
 
-    protected const COOKIE_RESPONSES = [
+    public const array COOKIE_RESPONSES = [
         'GET:/v1/mock/tests/general/set-cookie:passed',
         'GET:/v1/mock/tests/general/get-cookie:passed',
     ];
 
-    protected const ENUM_RESPONSES = [
+    public const array ENUM_RESPONSES = [
         'POST:/v1/mock/tests/general/enum:passed',
     ];
 
-    protected const MODEL_RESPONSES = [
+    public const array MODEL_RESPONSES = [
         'POST:/v1/mock/tests/general/models:passed',
         'POST:/v1/mock/tests/general/models/array:passed',
     ];
 
-    protected const MODEL_DEFAULT_RESPONSES = [
+    public const array MODEL_DEFAULT_RESPONSES = [
         'preset: name=guest, count=25, enabled=false',
         'preset: name=guest, count=25, enabled=false',
         'preset: name=server, count=25, enabled=true',
         'empty presets: 0',
     ];
 
-    protected const JS_MODEL_TO_STRING_RESPONSES = [
+    public const array JS_MODEL_TO_STRING_RESPONSES = [
         'preset toString: {"name":"guest","count":25,"enabled":false,"tier":"free","tags":[],"settings":{},"verified":null,"scopes":["read","write"]}',
     ];
 
-    protected const JS_DEFAULT_COPY_RESPONSES = [
+    public const array JS_DEFAULT_COPY_RESPONSES = [
         'preset tags shared: 0',
     ];
 
-    protected const JS_NESTED_BUILDER_RESPONSES = [
+    public const array JS_NESTED_BUILDER_RESPONSES = [
         'nested builder: passed',
     ];
 
-    protected const NULLABLE_PARAM_RESPONSES = [
+    public const array NULLABLE_PARAM_RESPONSES = [
         'POST:/v1/mock/tests/general/nullable:passed',
     ];
 
-    protected const NULLABLE_MODEL_RESPONSES = [
+    public const array NULLABLE_MODEL_RESPONSES = [
         'preset verified: null',
     ];
 
-    protected const ENUM_DEFAULT_RESPONSES = [
+    public const array ENUM_DEFAULT_RESPONSES = [
         'preset quality default: medium',
     ];
 
-    protected const ENUM_ARRAY_MODEL_RESPONSES = [
+    public const array ENUM_ARRAY_MODEL_RESPONSES = [
         'preset scopes: read,write',
     ];
 
-    protected const PYTHON_MODEL_DEFAULT_RESPONSES = [
+    public const array PYTHON_MODEL_DEFAULT_RESPONSES = [
         'preset tier: PresetTier.FREE',
     ];
 
-    protected const DOTNET_DATETIME_STRING_RESPONSES = [
+    public const array DOTNET_DATETIME_STRING_RESPONSES = [
         'datetime property: 2026-10-16T22:10:08.123+00:00',
         'datetime data: 2026-10-16T22:10:08.123+00:00',
     ];
 
-    protected const MAP_MODEL_DEFAULT_RESPONSES = [
+    public const array MAP_MODEL_DEFAULT_RESPONSES = [
         'preset settings: options=0',
     ];
 
-    protected const NESTED_MODEL_DEFAULT_RESPONSES = [
+    public const array NESTED_MODEL_DEFAULT_RESPONSES = [
         'preset profile: prefs=0',
     ];
 
-    protected const OBJECT_ARRAY_RESPONSES = [
+    public const array OBJECT_ARRAY_RESPONSES = [
         'POST:/v1/mock/tests/general/documents:passed',
     ];
 
-    protected const OPTIONAL_PARAM_RESPONSES = [
+    public const array OPTIONAL_PARAM_RESPONSES = [
         'width=-1,height=128,name=omitted',
         'width=0,height=64,name=zero',
     ];
 
-    protected const UNION_RESPONSES = [
+    public const array UNION_RESPONSES = [
         'GET:/v1/mock/tests/union:passed',
         'test-data',
         'stub',
     ];
 
-    protected const OPTIONAL_UPLOAD_RESPONSES = [
+    public const array OPTIONAL_UPLOAD_RESPONSES = [
         'optional-upload:without-file',
         'optional-upload:without-file',
         'optional-upload:without-file',
@@ -197,54 +182,54 @@ abstract class Base extends TestCase
         'required-file:rejected',
     ];
 
-    protected const MULTIPART_OBJECT_RESPONSES = [
+    public const array MULTIPART_OBJECT_RESPONSES = [
         'optional-upload:without-file:with-metadata',
         'optional-upload:with-file:with-metadata',
     ];
 
-    protected const OPTIONAL_ATTACHMENT_RESPONSES = [
+    public const array OPTIONAL_ATTACHMENT_RESPONSES = [
         'optional-upload:without-file',
         'optional-upload:with-file',
     ];
 
-    protected const TEXT_RESPONSES = [
+    public const array TEXT_RESPONSES = [
         '; café zone',
         'www 3600 IN A 192.0.2.1',
         '',
         'mixed-model',
     ];
 
-    protected const TEXT_UPLOAD_RESPONSES = [
+    public const array TEXT_UPLOAD_RESPONSES = [
         'zone-import:without-file',
         '',
         'zone-import:with-file',
         '',
     ];
 
-    protected const UPLOAD_RESPONSE = [
+    public const array UPLOAD_RESPONSE = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    protected const UPLOAD_RESPONSES = [
+    public const array UPLOAD_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    protected const GENERIC_UPLOAD_RESPONSES = [
+    public const array GENERIC_UPLOAD_RESPONSES = [
         'PUT:/v1/mock/tests/general/upload-generic:passed',
     ];
 
-    protected const BOUNDARY_UPLOAD_RESPONSES = [
+    public const array BOUNDARY_UPLOAD_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
-    protected const UPLOAD_WITH_ID_RESPONSES = [
+    public const array UPLOAD_WITH_ID_RESPONSES = [
         'POST:/v1/mock/tests/general/upload-with-id:passed',
     ];
 
-    protected const LARGE_FILE_RESPONSES = [
+    public const array LARGE_FILE_RESPONSES = [
         'POST:/v1/mock/tests/general/upload:passed',
     ];
 
@@ -252,17 +237,20 @@ abstract class Base extends TestCase
      * 'Mock 400 error'                              -> message
      * '{"message":"Mock 400 error","code":400}'     -> response
      */
-    protected const EXCEPTION_RESPONSES = [
+    public const array EXCEPTION_RESPONSES = [
         'Mock 400 error',
         '{"message":"Mock 400 error","code":400}',
         'Mock 500 error',
         '{"message":"Mock 500 error","code":500}',
         'This is a text error',
         'This is a text error',
+    ];
+
+    public const array ENDPOINT_RESPONSES = [
         'Invalid endpoint URL: htp://cloud.appwrite.io/v1',
     ];
 
-    protected const REALTIME_RESPONSES = [
+    public const array REALTIME_RESPONSES = [
         'WS:/v1/realtime:passed',
         'WS:/v1/realtime:passed',
         'Realtime failed!',
@@ -275,7 +263,7 @@ abstract class Base extends TestCase
 
     // Native push (MQTT) round-trip against the mock broker: subscribe, receive, and the
     // connection lifecycle hook (onOpen) firing.
-    protected const PUSH_RESPONSES = [
+    public const array PUSH_RESPONSES = [
         'Push subscribe:passed',
         'Push open:passed',
         'Push message:passed',
@@ -287,28 +275,28 @@ abstract class Base extends TestCase
 
     // Web and React Native derive their client id themselves (mqtt.js needs one): a user signing
     // in again with a new session still gets what was missed in between replayed.
-    protected const PUSH_SESSION_REPLAY_RESPONSES = [
+    public const array PUSH_SESSION_REPLAY_RESPONSES = [
         'Push session replay:passed',
     ];
 
-    protected const PUSH_CREDENTIAL_SWITCH_RESPONSES = [
+    public const array PUSH_CREDENTIAL_SWITCH_RESPONSES = [
         'Push credential switch:passed',
         'Push credential pending switch:passed',
     ];
 
-    protected const PUSH_CLOSE_WHILE_CONNECTING_RESPONSES = [
+    public const array PUSH_CLOSE_WHILE_CONNECTING_RESPONSES = [
         'Push close while connecting:passed',
     ];
 
-    protected const PUSH_CLOSE_RIGHT_AFTER_SUBSCRIBE_RESPONSES = [
+    public const array PUSH_CLOSE_RIGHT_AFTER_SUBSCRIBE_RESPONSES = [
         'Push close right after subscribe:passed',
     ];
 
-    protected const PUSH_CLOSE_FROM_CALLBACK_RESPONSES = [
+    public const array PUSH_CLOSE_FROM_CALLBACK_RESPONSES = [
         'Push close from callback:passed',
     ];
 
-    protected const WEB_PUSH_CONNECTION_RESPONSES = [
+    public const array WEB_PUSH_CONNECTION_RESPONSES = [
         'Push concurrent refused:passed',
         'Push tab client id:passed',
         'Push notification opened web:passed',
@@ -316,24 +304,24 @@ abstract class Base extends TestCase
 
     // Android, Apple, Flutter and Web: a topic-less subscribe uses the session the client signed
     // in with when no JWT or session is set on it.
-    protected const PUSH_SIGN_IN_SESSION_RESPONSES = [
+    public const array PUSH_SIGN_IN_SESSION_RESPONSES = [
         'Push user sign-in session topic:passed',
     ];
 
-    protected const PUSH_SESSION_COOKIE_RESPONSES = [
+    public const array PUSH_SESSION_COOKIE_RESPONSES = [
         'Push user cookie topic:passed',
         'Push user cookie switch:passed',
         'Push user cookie pending switch:passed',
     ];
 
-    protected const PUSH_NATIVE_SESSION_COOKIE_RESPONSES = [
+    public const array PUSH_NATIVE_SESSION_COOKIE_RESPONSES = [
         'Push session cookie:passed',
     ];
 
     // Broker errors reaching onError: a refused CONNECT and a server DISCONNECT, carrying the
     // broker's MQTT 5 reason string (Apple checks only that the error arrives: MQTTNIO does not
     // expose the reason string).
-    protected const PUSH_ERROR_RESPONSES = [
+    public const array PUSH_ERROR_RESPONSES = [
         'Push connect error:passed',
         'Push disconnect error:passed',
     ];
@@ -345,7 +333,7 @@ abstract class Base extends TestCase
     // Flutter's public Push API on the Android path, with a stand-in for the native plugin on its
     // channels: background subscribe completes once the plugin reports it subscribed, a message
     // reaches the callback, and after sign-out it no longer reaches the app.
-    protected const FLUTTER_PUSH_NATIVE_RESPONSES = [
+    public const array FLUTTER_PUSH_NATIVE_RESPONSES = [
         'Push native subscribe:passed',
         'Push native message:passed',
         'Push native close:passed',
@@ -353,33 +341,33 @@ abstract class Base extends TestCase
 
     // Android: a saved background subscription the app later subscribes to with background off,
     // then unsubscribes, delivers nothing after a restart.
-    protected const ANDROID_PUSH_OPT_OUT_RESPONSES = [
+    public const array ANDROID_PUSH_OPT_OUT_RESPONSES = [
         'Push background opt-out:passed',
     ];
 
     // Android: unsubscribing one of two in-process subscriptions on the same topic stops its
     // callback, though the other subscription keeps the broker filter.
-    protected const ANDROID_PUSH_SHARED_TOPIC_RESPONSES = [
+    public const array ANDROID_PUSH_SHARED_TOPIC_RESPONSES = [
         'Push shared topic unsubscribe:passed',
     ];
 
-    protected const ANDROID_COOKIE_STORE_RESPONSES = [
+    public const array ANDROID_COOKIE_STORE_RESPONSES = [
         'Cookie store reload:passed',
         'Cookie store saved format:passed',
     ];
 
     // React Native and Flutter on Android: when a Push with another credential starts background
     // delivery, the Push that had it hears on onError that its background delivery stopped.
-    protected const PUSH_NATIVE_DISPLACED_RESPONSES = [
+    public const array PUSH_NATIVE_DISPLACED_RESPONSES = [
         'Push native displaced:passed',
     ];
 
     // React Native and Flutter on Android ask for POST_NOTIFICATIONS once background delivery starts.
-    protected const PUSH_NOTIFICATION_PERMISSION_RESPONSES = [
+    public const array PUSH_NOTIFICATION_PERMISSION_RESPONSES = [
         'Push notification permission:passed',
     ];
 
-    protected const REACT_NATIVE_PUSH_JS_RESPONSES = [
+    public const array REACT_NATIVE_PUSH_JS_RESPONSES = [
         'Push native connection JS:passed',
         'Push background status JS:passed',
         'Push notification opened JS:passed',
@@ -388,12 +376,12 @@ abstract class Base extends TestCase
     ];
 
     // React Native on Android: the tap that launched the app is reported once, later taps as events.
-    protected const PUSH_NOTIFICATION_OPENED_RESPONSES = [
+    public const array PUSH_NOTIFICATION_OPENED_RESPONSES = [
         'Push notification opened:passed',
     ];
 
     // React Native on Android: background runs follow the session in the WebView cookie store.
-    protected const REACT_NATIVE_PUSH_COOKIE_REFRESH_RESPONSES = [
+    public const array REACT_NATIVE_PUSH_COOKIE_REFRESH_RESPONSES = [
         'Push background cookie refresh:passed',
         'Push background reconnect credential:passed',
         'Push background drain:passed',
@@ -401,7 +389,7 @@ abstract class Base extends TestCase
 
     // Android only: no notification while the app is on screen, the watchdog job, resume with the
     // current credential, and restricted background usage.
-    protected const ANDROID_PUSH_BACKGROUND_RESPONSES = [
+    public const array ANDROID_PUSH_BACKGROUND_RESPONSES = [
         'Push background message:passed',
         'Push foreground no notification:passed',
         'Push background watchdog:passed',
@@ -412,19 +400,19 @@ abstract class Base extends TestCase
         'Push background restricted:passed',
     ];
 
-    protected const PUSH_BACKGROUND_RESPONSES = [
+    public const array PUSH_BACKGROUND_RESPONSES = [
         'Push background message:passed',
         'Push background restore:passed',
         'Push background close:passed',
         'Push background refused:passed',
     ];
 
-    protected const ANDROID_PUSH_NOTIFICATION_RESPONSES = [
+    public const array ANDROID_PUSH_NOTIFICATION_RESPONSES = [
         'Push notification content:passed',
         'Push notification opened:passed',
     ];
 
-    protected const QUERY_HELPER_RESPONSES = [
+    public const array QUERY_HELPER_RESPONSES = [
         '{"method":"equal","attribute":"released","values":[true]}',
         '{"method":"equal","attribute":"title","values":["Spiderman","Dr. Strange"]}',
         '{"method":"notEqual","attribute":"title","values":["Spiderman"]}',
@@ -496,9 +484,13 @@ abstract class Base extends TestCase
     // Each language harness sends these through a real listRows request and prints
     // the echo the mock server returns, so the assertion reads the request the
     // server received rather than what a helper rendered in process.
-    protected const QUERY_TRANSPORT_RESPONSE = '__QUERY_TRANSPORT_RESPONSE__';
+    public const string QUERY_TRANSPORT_RESPONSE = '__QUERY_TRANSPORT_RESPONSE__';
 
-    protected const QUERY_TRANSPORT_QUERIES = [
+    public const array QUERY_TRANSPORT_RESPONSES = [
+        self::QUERY_TRANSPORT_RESPONSE,
+    ];
+
+    public const array QUERY_TRANSPORT_QUERIES = [
         '{"method":"count","attribute":"*","values":["total"]}',
         '{"method":"join","attribute":"orders","values":["$id","=","customerId"]}',
         '{"method":"groupBy","values":["status"]}',
@@ -533,7 +525,7 @@ abstract class Base extends TestCase
         '{"method":"limit","values":[1]}',
     ];
 
-    protected const PERMISSION_HELPER_RESPONSES = [
+    public const array PERMISSION_HELPER_RESPONSES = [
         'read("any")',
         'write("user:userid")',
         'create("users")',
@@ -546,17 +538,17 @@ abstract class Base extends TestCase
         'create("label:admin")',
     ];
 
-    protected const ID_HELPER_RESPONSES = [
+    public const array ID_HELPER_RESPONSES = [
         'unique()',
         'custom_id'
     ];
 
-    protected const ANDROID_JAVA_INTEROP_RESPONSES = [
+    public const array ANDROID_JAVA_INTEROP_RESPONSES = [
         'databases.db1',
         'account',
     ];
 
-    protected const JAVA_INTEROP_RESPONSES = [
+    public const array JAVA_INTEROP_RESPONSES = [
         'unique()',
         'read("any")',
         '{"method":"limit","values":[1]}',
@@ -567,7 +559,7 @@ abstract class Base extends TestCase
         'PUT:/v1/mock/tests/general/upload-generic:passed',
     ];
 
-    protected const TOPIC_HELPER_RESPONSES = [
+    public const array TOPIC_HELPER_RESPONSES = [
         'user/123/notification',
         'org/42/user/123/notification',
         'Topic empty path:passed',
@@ -578,143 +570,30 @@ abstract class Base extends TestCase
         'Topic nul:passed',
     ];
 
-    protected const QUERY_PAGE_OVERFLOW_RESPONSES = [
+    public const array QUERY_PAGE_OVERFLOW_RESPONSES = [
         'Query page overflow:passed',
     ];
 
-    protected const UNITY_MANAGER_RESPONSES = [
+    public const array UNITY_MANAGER_RESPONSES = [
         'Manager push reinitialize:passed',
         'Config all services:passed',
         'Config some services:passed',
     ];
 
-    protected const ADDITIONAL_PROPERTIES_RESPONSES = [
+    public const array ADDITIONAL_PROPERTIES_RESPONSES = [
         '{"theme":"dark","timezone":"UTC"}',
         '{"$id":"row1","custom":"value","nested":{"enabled":true}}',
         '{"data":{"enabled":true},"status":"ok","extra":"kept"}',
     ];
 
-    protected const CLI_HEADERS_RESPONSES = [
+    public const array CLI_HEADERS_RESPONSES = [
         'x-sdk-name: cli; x-sdk-platform: server; x-sdk-language: cli; '
             . 'x-sdk-version: 0.0.1; accept: application/json, text/plain',
     ];
 
-    protected const CLI_FUNCTION_RESPONSES = [
-        'POST:/v1/functions/{functionId}/executions:passed',
-    ];
+    public const string HEADERS_RESPONSE = '__HEADERS_RESPONSE__';
 
-    protected const CLI_COMPLETION_RESPONSES = [
-        'compdef _appwrite appwrite',
-        'complete -F _appwrite_completion appwrite',
-        'complete -c \'appwrite\' -f -n \'__appwrite_using_command\' -a \'bar client completion foo functions general\'',
-        '\'foo:get\') context=\'foo get\' ;;',
-    ];
-
-    protected const CLI_TYPEGEN_RESPONSES = [
-        'CLI_TYPEGEN:passed',
-    ];
-
-    protected const AUTH_LOGIC_RESPONSES = [
-        'auth:endpoint-cloud-hostname:passed',
-        'auth:endpoint-regional:passed',
-        'auth:endpoint-localhost:passed',
-        'auth:endpoint-cloud-login:passed',
-        'auth:endpoint-dev-override:passed',
-        'auth:endpoint-normalize:passed',
-        'auth:console-slug-region:passed',
-        'auth:decode-id-token:passed',
-        'auth:authorization-pending-error:passed',
-        'auth:session-account-key:passed',
-        'auth:session-local-only:passed',
-        'auth:refresh-token-keyring-storage:passed',
-        'auth:refresh-token-prefs-fallback:passed',
-        'auth:session-legacy:passed',
-        'auth:session-has-auth:passed',
-        'auth:plan-session-logout:passed',
-        'auth:logout-question-choices:passed',
-        'auth:logout-skips-empty-prompt:passed',
-        'auth:logout-single-account-ignores-current-stub:passed',
-        'auth:restore-current-session-fallback:passed',
-        'auth:client-endpoint-session-reuse:passed',
-        'auth:whoami-signed-in-account-hint:passed',
-        'auth:client-reset-confirmation:passed',
-        'auth:poll-device-token-success:passed',
-        'auth:poll-device-token-retry:passed',
-        'auth:poll-device-token-error:passed',
-        'auth:poll-device-token-timeout:passed',
-        'auth:poll-device-token-slow-down:passed',
-        'auth:poll-device-token-empty-error:passed',
-        'auth:poll-device-token-default-interval:passed',
-        'auth:valid-access-token-cached:passed',
-        'auth:valid-access-token-missing-expiry:passed',
-        'auth:valid-access-token-session-endpoint:passed',
-        'auth:project-session-endpoint-mismatch:passed',
-        'auth:organization-header:passed',
-        'auth:project-id-override:passed',
-        'auth:cloud-login-rejects-credentials:passed',
-        'auth:login-switch-selectors:passed',
-        'auth:login-switch-headless:passed',
-        'auth:login-switch-rejects-credentials:passed',
-        'auth:open-browser:passed',
-        'auth:context-organization-lookup:passed',
-        'auth:context-project-precedence:passed',
-    ];
-
-    protected const CLI_REGRESSION_RESPONSES = [
-        'CLI_ERROR_HANDLING:passed',
-        'CLI_CONSOLE_FALLBACKS:passed',
-    ];
-
-    protected const CLI_ATTRIBUTE_SYNC_RESPONSES = [
-        'attribute:in-place-updates:passed',
-        'attribute:recreates-immutable:passed',
-        'attribute:ignores-derived-fields:passed',
-        'attribute:omitted-encrypt-not-recreate:passed',
-        'attribute:index-columns-change:passed',
-        'attribute:attribute-delete-uses-attribute-waiter:passed',
-        'attribute:update-guards:passed',
-        'attribute:resize-hard-fail:passed',
-        'attribute:rename-in-place:passed',
-        'attribute:rename-already-applied:passed',
-        'attribute:rename-missing-both-creates:passed',
-        'attribute:rename-both-exist-deletes-old:passed',
-        'attribute:rename-plus-field-change:passed',
-        'attribute:rename-preserves-indexes:passed',
-        'attribute:rename-hard-fail-before-delete:passed',
-        'attribute:rename-schema-validation:passed',
-    ];
-
-    protected const CLI_LOCAL_FUNCTION_EMULATION_RESPONSES = [
-        'CLI_LOCAL_FUNCTION_RUNNER_CONFIG:passed',
-        'CLI_LOCAL_SOURCE_PREFLIGHT:passed',
-    ];
-
-    protected const HEADERS_RESPONSE = '__HEADERS_RESPONSE__';
-
-    protected const CLI_RESPONSE_RENDERING_RESPONSES = [
-        'CLI_RUNTIME_RENDERING:passed',
-        'CLI_DEPLOYMENT_RENDERING:passed',
-    ];
-
-    protected const CLI_QUERY_HELPER_RESPONSES = [
-        '[' .
-        '"{\"method\":\"orderDesc\",\"attribute\":\"rawName\"}",' .
-        '"{\"method\":\"equal\",\"attribute\":\"published\",\"values\":[true]}",' .
-        '"{\"method\":\"greaterThanEqual\",\"attribute\":\"score\",\"values\":[10]}",' .
-        '"{\"method\":\"equal\",\"attribute\":\"legacy\",\"values\":[true]}",' .
-        '"{\"method\":\"equal\",\"attribute\":\"status\",\"values\":[\"draft\",\"published\"]}",' .
-        '"{\"method\":\"orderAsc\",\"attribute\":\"title\"}",' .
-        '"{\"method\":\"orderDesc\",\"attribute\":\"$createdAt\"}",' .
-        '"{\"method\":\"limit\",\"values\":[25]}",' .
-        '"{\"method\":\"offset\",\"values\":[50]}",' .
-        '"{\"method\":\"cursorAfter\",\"values\":[\"row-before\"]}",' .
-        '"{\"method\":\"cursorBefore\",\"values\":[\"row-after\"]}",' .
-        '"{\"method\":\"select\",\"values\":[\"$id\",\"title\"]}"' .
-        ']',
-        'CLI_QUERY_HELPERS:passed',
-    ];
-
-    protected const CHANNEL_HELPER_RESPONSES = [
+    public const array CHANNEL_HELPER_RESPONSES = [
         'databases.db1.collections.col1.documents',
         'databases.db1.collections.col1.documents.doc1',
         'databases.db1.collections.col1.documents.doc1.create',
@@ -750,7 +629,7 @@ abstract class Base extends TestCase
         'presences.presence1.delete',
     ];
 
-    protected const OPERATOR_HELPER_RESPONSES = [
+    public const array OPERATOR_HELPER_RESPONSES = [
         '{"method":"increment","values":[1]}',
         '{"method":"increment","values":[5,100]}',
         '{"method":"decrement","values":[1]}',
@@ -778,212 +657,4 @@ abstract class Base extends TestCase
         '{"method":"dateSetNow","values":[]}',
         self::HEADERS_RESPONSE,
     ];
-
-    protected string $class = '';
-    protected string $language = '';
-    protected array $build = [];
-    protected string $command = '';
-    protected array $expectedOutput = [];
-    protected string $sdkName;
-    protected string $sdkPlatform;
-    protected string $sdkLanguage;
-    protected string $version;
-
-    #[Override]
-    public function setUp(): void
-    {
-        \array_unshift($this->expectedOutput, $this->getExpectedSdkHeaders());
-
-        $output = [];
-        $status = 0;
-
-        \exec(
-            'cd ./mock-server && docker compose build && docker compose up -d --force-recreate 2>&1',
-            $output,
-            $status
-        );
-
-        if ($status !== 0) {
-            $this->fail(
-                "Failed to start mock-server (exit {$status}):\n" . \implode("\n", $output)
-            );
-        }
-    }
-
-    protected function getExpectedSdkHeaders(): string
-    {
-        return "x-sdk-name: {$this->sdkName}; x-sdk-platform: {$this->sdkPlatform}; x-sdk-language: {$this->sdkLanguage}; x-sdk-version: {$this->version}";
-    }
-
-    #[Override]
-    public function tearDown(): void
-    {
-        // Remove the mock server so local test runs don't leave containers behind
-        \exec('
-            cd ./mock-server && \
-            docker compose down
-        ');
-    }
-
-    /**
-     * @throws SyntaxError
-     * @throws Throwable
-     * @throws RuntimeError
-     * @throws LoaderError
-     */
-    public function testHTTPSuccess(): void
-    {
-        $spec = file_get_contents(realpath(__DIR__ . '/../resources/spec-openapi3.json'));
-
-        if (empty($spec)) {
-            throw new Exception('Failed to parse spec.');
-        }
-
-        $sdk = new SDK($this->getLanguage(), Parser::parse($spec));
-
-        $sdk
-            ->setName($this->sdkName)
-            ->setVersion($this->version)
-            ->setPlatform($this->sdkPlatform)
-            ->setDescription('Repo description goes here')
-            ->setShortDescription('Repo short description goes here')
-            ->setCoverImage('https://github.com/appwrite/appwrite/raw/main/public/images/github.png')
-            ->setWarning('**WORK IN PROGRESS - THIS IS JUST A TEST SDK**')
-            ->setExamples('**EXAMPLES** <HTML>')
-            ->setGitUserName('repoowner')
-            ->setGitRepoName('reponame')
-            ->setLicense('BSD-3-Clause')
-            ->setLicenseContent('demo license')
-            ->setChangelog('--changelog--')
-            ->setDefaultHeaders([
-                'X-Appwrite-Response-Format' => '0.8.0',
-            ])
-            ->setExclude([
-                'services' => [
-                    ['name' => 'zzexcludedservice'],
-                ],
-                'methods' => [
-                    ['name' => 'createExcludedGeneralFixture'],
-                ],
-            ])
-            ->setTest("true");
-
-        if ($this->language === 'android' || $this->language === 'kotlin') {
-            $sdk->setNamespace("io.appwrite");
-        } else {
-            $sdk->setNamespace("appwrite");
-        }
-
-        $dir = __DIR__ . '/sdks/' . $this->language;
-
-        $this->rmdirRecursive($dir);
-
-        $sdk->generate(__DIR__ . '/sdks/' . $this->language);
-
-        /**
-         * Build SDK
-         */
-        foreach ($this->build as $command) {
-            echo "Build Executing: {$command}\n";
-
-            $buildOutput = [];
-            $status = 0;
-
-            exec($command . ' 2>&1', $buildOutput, $status);
-
-            echo \implode("\n", $buildOutput) . "\n";
-
-            // A build step that produces no artifact -- `go test`, a linter --
-            // used to fail in silence, because only the exit codes of steps
-            // that something later reads were ever noticed.
-            $this->assertSame(0, $status, "Build command failed: {$command}");
-        }
-
-        $output = [];
-
-        echo "Env Executing: {$this->command}\n";
-
-        exec($this->command, $output);
-
-        $this->assertIsArray($output);
-
-        do {
-            $removed = \array_shift($output);
-        } while ($removed != 'Test Started' && count($output) !== 0);
-
-        echo \implode("\n", $output);
-
-        foreach ($this->expectedOutput as $index => $expected) {
-            if ($expected === self::HEADERS_RESPONSE) {
-                $expected = $this->getExpectedSdkHeaders() . '; accept: application/json, text/plain';
-            }
-
-            if ($expected === self::QUERY_TRANSPORT_RESPONSE) {
-                $this->assertQueriesReachedTheServer($output[$index] ?? null);
-                continue;
-            }
-
-            // HACK: Swift does not guarantee the order of the JSON parameters
-            if (\str_starts_with((string) $expected, '{')) {
-                $this->assertEquals(
-                    \json_decode((string) $expected, true),
-                    \json_decode($output[$index], true)
-                );
-            } elseif ($expected == 'unique()') {
-                $this->assertNotEmpty($output[$index]);
-                $this->assertIsString($output[$index]);
-                $this->assertSame(20, strlen($output[$index]));
-                $this->assertNotSame('unique()', $output[$index]);
-            } else {
-                $this->assertEquals($expected, $output[$index]);
-            }
-        }
-    }
-
-    private function assertQueriesReachedTheServer(?string $echo): void
-    {
-        $received = \json_decode((string) $echo, true);
-
-        $this->assertIsArray(
-            $received,
-            "The SDK did not print the query list the mock server echoes back, it printed: {$echo}"
-        );
-        $this->assertCount(
-            \count(self::QUERY_TRANSPORT_QUERIES),
-            $received,
-            'The server received a different number of queries than the SDK was given'
-        );
-
-        foreach (self::QUERY_TRANSPORT_QUERIES as $position => $expected) {
-            // HACK: Swift does not guarantee the order of the JSON parameters
-            $this->assertEquals(
-                \json_decode($expected, true),
-                \json_decode((string) $received[$position], true),
-                "Query {$position} did not reach the server as the helper described it"
-            );
-        }
-    }
-
-    private function rmdirRecursive(string $dir): void
-    {
-        if (!\is_dir($dir)) {
-            return;
-        }
-        foreach (\scandir($dir) as $file) {
-            if ('.' === $file || '..' === $file) {
-                continue;
-            }
-            if (\is_dir("$dir/$file")) {
-                $this->rmdirRecursive("$dir/$file");
-            } else {
-                \unlink("$dir/$file");
-            }
-        }
-        \rmdir($dir);
-    }
-
-    public function getLanguage(): Language
-    {
-        return new $this->class();
-    }
 }

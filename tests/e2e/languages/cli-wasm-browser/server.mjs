@@ -123,7 +123,7 @@ function api(request, response, { origin, cors }) {
 
     // /v1/account is what `whoami` calls.
     //
-    // Deliberately not a generated service command. Base.php generates this
+    // Deliberately not a generated service command. RuntimeTest.php generates this
     // tree with sdk.test set, which replaces every generated service with a
     // mock that returns canned fixtures and makes no request at all -- see
     // templates/cli/base/mock.go.twig. A cookie assertion written against

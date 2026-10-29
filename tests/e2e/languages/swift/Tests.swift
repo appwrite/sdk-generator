@@ -246,8 +246,6 @@ class Tests: XCTestCase {
             print(error.response)
         }
 
-        print("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // Indicates fatalError by client.setEndpoint
-
         try! await general.empty()
 
         let url = try? await general.oauth2(
@@ -452,6 +450,7 @@ class Tests: XCTestCase {
         } catch {
             print(error.localizedDescription)
         }
+        print("Test Ended")
     }
 
     func parse(from json: String) -> String? {

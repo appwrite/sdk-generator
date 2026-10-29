@@ -11,6 +11,8 @@ services:
       - php
       - -e
       - app/http.php
+    environment:
+      - MOCK_NONCE
     volumes:
       - ./app:/usr/src/code/app
       - ./src:/usr/src/code/src

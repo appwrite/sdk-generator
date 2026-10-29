@@ -458,6 +458,8 @@ namespace AppwriteTests
             TestContext.WriteLine($"datetime property: {Mock.From(row).Result}");
             TestContext.WriteLine($"datetime data: {Preferences.From(row).Data["$createdAt"]}");
             CultureInfo.CurrentCulture = culture;
+
+            TestContext.WriteLine("Test Ended");
         }
     }
 }

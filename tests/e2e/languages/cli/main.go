@@ -1,7 +1,7 @@
 // Conformance harness for the CLI.
 //
 // Drives the built binary against the mock API and prints the values
-// tests/e2e/Base.php compares positionally. It asserts observable CLI behaviour
+// tests/e2e/RuntimeTest.php compares positionally. It asserts observable CLI behaviour
 // only -- what the binary prints and what it exits with -- because that is the
 // whole of the CLI's contract. The Go internals are covered by
 // `go test ./internal/...`, which the same test's build step runs.
@@ -63,12 +63,12 @@ func main() {
 		"--self-signed", "true",
 	)
 
-	// Base.php discards every line up to and including `Test Started`, then
+	// RuntimeTest.php discards every line up to and including `Test Started`, then
 	// compares the rest positionally. Order matters, and nothing may be printed
 	// before this.
 	fmt.Println("Test Started")
 
-	// Index 0 is Base::getExpectedSdkHeaders() -- the header string without the
+	// Index 0 is the SDK header line RuntimeTest prepends -- the header string without the
 	// trailing `accept`. Read out of the binary's own output rather than
 	// hardcoded, so it fails if the CLI stops sending them.
 	headers := harness.value("general", "headers")
@@ -384,7 +384,7 @@ func (h *harness) runExpectingFailure(args ...string) string {
 }
 
 // value runs the CLI and returns the bare value out of its rendered output,
-// which is what Base.php compares against.
+// which is what RuntimeTest.php compares against.
 func (h *harness) value(args ...string) string {
 	output := h.run(args...)
 

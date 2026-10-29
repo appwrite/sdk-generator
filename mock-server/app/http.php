@@ -9,6 +9,7 @@ if (\file_exists(__DIR__ . '/../vendor/autoload.php')) {
 use Utopia\Http\Http as App;
 use Utopia\MockServer\Utopia\Exception;
 use Utopia\MockServer\Utopia\File;
+use Swoole\Coroutine;
 use Swoole\Http\Request as SwooleRequest;
 use Utopia\Console\Console;
 use Utopia\MockServer\Utopia\Response;
@@ -39,6 +40,19 @@ const APP_PLATFORM_SERVER = 'server';
 const APP_PLATFORM_CLIENT = 'client';
 const APP_PLATFORM_CONSOLE = 'console';
 const APP_STORAGE_CACHE = '/storage/cache';
+const APP_JOURNAL = APP_STORAGE_CACHE . '/journal.jsonl';
+
+function stamp(string $line): string
+{
+    static $nonce = null;
+    $nonce ??= \getenv('MOCK_NONCE') ?: '';
+
+    if ($nonce === '') {
+        return $line;
+    }
+
+    return $line . ':' . $nonce . '.' . Coroutine::getContext()['request'];
+}
 
 $payloadSize = 6 * (1024 * 1024); // 6MB
 $workerNumber = swoole_cpu_num() * intval(App::getEnv('_APP_WORKER_PER_CORE', 6));
@@ -375,7 +389,7 @@ App::get('/v1/mock/tests/general/download')
             ->addHeader('Content-Disposition', 'attachment; filename="test.txt"')
             ->addHeader('Expires', \date('D, d M Y H:i:s', \time() + (60 * 60 * 24 * 45)) . ' GMT') // 45 days cache
             ->addHeader('X-Peak', \memory_get_peak_usage())
-            ->send('GET:/v1/mock/tests/general/download:passed' . ($impersonate === '' ? '' : ':as:' . $impersonate));
+            ->send(stamp('GET:/v1/mock/tests/general/download:passed' . ($impersonate === '' ? '' : ':as:' . $impersonate)));
     });
 
 App::post('/v1/mock/tests/general/upload')
@@ -457,7 +471,7 @@ App::post('/v1/mock/tests/general/upload')
                     '$id' => 'newfileid',
                     'chunksTotal' => $chunksTotal,
                     'chunksUploaded' => $chunksTotal,
-                    'result' => 'POST:/v1/mock/tests/general/upload:passed',
+                    'result' => stamp('POST:/v1/mock/tests/general/upload:passed'),
                 ]);
             }
         } else {
@@ -556,7 +570,7 @@ App::post('/v1/mock/tests/general/upload-with-id')
             '$id' => $fileId,
             'chunksTotal' => $chunksTotal,
             'chunksUploaded' => $chunksTotal,
-            'result' => 'POST:/v1/mock/tests/general/upload-with-id:passed',
+            'result' => stamp('POST:/v1/mock/tests/general/upload-with-id:passed'),
         ]);
     });
 
@@ -638,7 +652,7 @@ App::put('/v1/mock/tests/general/upload-generic')
         // The SDK must hydrate the free-form preferences, not drop them.
         $response->json([
             'name' => 'John Doe',
-            'prefs' => ['result' => 'PUT:/v1/mock/tests/general/upload-generic:passed'],
+            'prefs' => ['result' => stamp('PUT:/v1/mock/tests/general/upload-generic:passed')],
         ]);
     });
 
@@ -956,7 +970,7 @@ App::get('/v1/mock/tests/union')
         } else {
             $response->json([
                 'type' => 'mock',
-                'result' => 'GET:/v1/mock/tests/union:passed',
+                'result' => stamp('GET:/v1/mock/tests/union:passed'),
             ]);
         }
     });
@@ -1552,47 +1566,11 @@ App::shutdown()
     ->inject('request')
     ->action(function (Route $route, UtopiaSwooleResponse $response, Request $request) {
 
-        $result = [];
         $routePath = $route->getPath();
         if ($routePath === '/v1/mock/tests/general/path-validation/:id/:zero') {
             $routePath = \parse_url($request->getURI(), PHP_URL_PATH);
         }
-        $path   = APP_STORAGE_CACHE . '/tests.json';
-        $handle = \fopen($path, 'c+');
-
-        if ($handle === false) {
-            throw new Exception(Exception::GENERAL_MOCK, 'Failed to lock results', 500);
-        }
-
-        try {
-            if (!\flock($handle, LOCK_EX)) {
-                throw new Exception(Exception::GENERAL_MOCK, 'Failed to lock results', 500);
-            }
-
-            $contents = \stream_get_contents($handle);
-            $tests = ($contents !== false && $contents !== '') ? \json_decode($contents, true) : [];
-
-            if (!\is_array($tests)) {
-                throw new Exception(Exception::GENERAL_MOCK, 'Failed to read results', 500);
-            }
-
-            $result[$route->getMethod() . ':' . $routePath] = true;
-            $tests = \array_merge($tests, $result);
-
-            \ftruncate($handle, 0);
-            \rewind($handle);
-
-            if (!\fwrite($handle, \json_encode($tests))) {
-                throw new Exception(Exception::GENERAL_MOCK, 'Failed to save results', 500);
-            }
-
-            \fflush($handle);
-        } finally {
-            \flock($handle, LOCK_UN);
-            \fclose($handle);
-        }
-
-        $response->json(['result' => $route->getMethod() . ':' . $routePath . ':passed']);
+        $response->json(['result' => stamp($route->getMethod() . ':' . $routePath . ':passed')]);
     });
 
 App::error()
@@ -1683,7 +1661,22 @@ $server->onStart(function () use ($payloadSize) {
 $httpAdapter = new HttpAdapter($adapter->getNative());
 $app = new App($httpAdapter, 'UTC');
 $app->resources()->set('utopia', fn () => $app);
-$httpAdapter->onRequest(fn (Request $request, UtopiaSwooleResponse $response) => $app->run($request, $response));
+\file_put_contents(APP_JOURNAL, '');
+
+$httpAdapter->onRequest(function (Request $request, UtopiaSwooleResponse $response) use ($app) {
+    $id = \bin2hex(\random_bytes(8));
+    Coroutine::getContext()['request'] = $id;
+
+    $entry = [
+        'id' => $id,
+        'method' => $request->getMethod(),
+        'path' => \parse_url($request->getURI(), PHP_URL_PATH),
+        'route' => $app->match($request)?->route?->getPath(),
+    ];
+    \file_put_contents(APP_JOURNAL, \json_encode($entry, JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR) . "\n", FILE_APPEND | LOCK_EX);
+
+    $app->run($request, $response);
+});
 
 $server->onOpen(function (int $fd, SwooleRequest $swooleRequest) use ($server, $realtimeProtocol) {
     $path = (string) ($swooleRequest->server['request_uri'] ?? '');
