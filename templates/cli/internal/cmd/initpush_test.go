@@ -485,7 +485,7 @@ func TestInitApnsCreatesBothEnvironmentsAndEditsXcode(t *testing.T) {
 	}
 }
 
-func TestInitApnsAddsTheApplePlatformAndSaysWhatElseIsNeeded(t *testing.T) {
+func TestInitApnsAddsTheApplePlatform(t *testing.T) {
 	web := map[string]any{"$id": "web", "type": "web", "hostname": "example.com"}
 	messaging := &fakeMessaging{platforms: []map[string]any{web}}
 	server := httptest.NewServer(messaging)
@@ -501,10 +501,27 @@ func TestInitApnsAddsTheApplePlatformAndSaysWhatElseIsNeeded(t *testing.T) {
 		t.Fatalf("platforms = %v", messaging.platforms)
 	}
 	text := out.String()
-	for _, part := range []string{"Added the Apple platform com.example.app", "Enable the Appwrite push provider", "AppwriteNotificationService"} {
-		if !strings.Contains(text, part) {
-			t.Errorf("output is missing %q:\n%s", part, text)
-		}
+	if !strings.Contains(text, "Added the Apple platform com.example.app") {
+		t.Errorf("output is missing the added platform:\n%s", text)
+	}
+	if strings.Contains(text, "AppwriteNotificationService") {
+		t.Errorf("APNs alone asks for a Notification Service Extension:\n%s", text)
+	}
+}
+
+func TestInitApnsAsksForTheExtensionWithAnAppwritePushProvider(t *testing.T) {
+	messaging := &fakeMessaging{providers: []map[string]any{{"$id": "push", "provider": "appwrite", "enabled": true}}}
+	server := httptest.NewServer(messaging)
+	defer server.Close()
+
+	root := t.TempDir()
+	setup, out := newTestPushSetup(t, server, &prompt.Scripted{}, root)
+	err := setup.apns(apnsOptions{keyPath: testApnsKey(t, root), keyID: "ABCDE12345", teamID: "ABCDE12345", bundleID: "com.example.app", environment: "sandbox"}, appleApp{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "AppwriteNotificationService") {
+		t.Errorf("output is missing the extension hint:\n%s", out.String())
 	}
 }
 

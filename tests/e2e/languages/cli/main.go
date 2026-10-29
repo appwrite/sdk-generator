@@ -429,9 +429,10 @@ func (h *harness) initApns() {
 		"APNs is set up for io.appwrite.e2e",
 		"Added the Apple platform io.appwrite.e2e to the project",
 		"Skipped the App ID check",
-		"Enable the Appwrite push provider",
-		"AppwriteNotificationService",
 	)
+	if strings.Contains(first, "AppwriteNotificationService") {
+		fail(fmt.Errorf("APNs alone asked for a Notification Service Extension:\n%s", first))
+	}
 
 	again := project.run(true, "--bundle-id", "io.appwrite.e2e")
 	expectOutput(again, "APNs is already set up for io.appwrite.e2e")
