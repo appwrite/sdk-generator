@@ -279,6 +279,13 @@ class CLI extends Go
                     'source' => $variable,
                     'helper' => 'GraphQLRequest',
                 ];
+            } elseif (str_starts_with($sdkType, 'models.') && $flagType === 'string') {
+                $expression = $variable . 'Decoded';
+                $decodes[] = [
+                    'var' => $expression,
+                    'source' => 'cmd, "' . $this->getCliOptionName($parameter->name) . '", ' . $variable,
+                    'helper' => 'DecodeFlag[' . $sdkType . ']',
+                ];
             } elseif ($flagType === '[]string' && $sdkType === '[]string') {
                 $expression = 'app.StringSlice(' . $variable . ')';
             } elseif ($flagType !== $sdkType) {
@@ -349,9 +356,6 @@ class CLI extends Go
         // fail on bad input, so both are decoded into their own variable first.
         if ($sdkType === 'interface{}' && $flagType === 'string') {
             return [$variable . 'Value', ['var' => $variable . 'Value', 'source' => $variable, 'helper' => 'JSONObject']];
-        }
-        if (str_starts_with($sdkType, 'models.') && $flagType === 'string') {
-            return [$variable . 'Decoded', ['var' => $variable . 'Decoded', 'source' => $variable, 'helper' => 'Decode[' . $sdkType . ']']];
         }
         if ($sdkType === 'file.InputFile') {
             $decode = [
