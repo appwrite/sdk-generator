@@ -510,7 +510,8 @@ func TestInitApnsAddsTheApplePlatform(t *testing.T) {
 }
 
 func TestInitApnsAsksForTheExtensionWithAnAppwritePushProvider(t *testing.T) {
-	messaging := &fakeMessaging{providers: []map[string]any{{"$id": "push", "provider": "appwrite", "enabled": true}}}
+	push := map[string]any{"$id": "push", "provider": "appwrite", "enabled": true}
+	messaging := &fakeMessaging{providers: []map[string]any{push}}
 	server := httptest.NewServer(messaging)
 	defer server.Close()
 
