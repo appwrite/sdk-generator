@@ -318,8 +318,8 @@ func TestZeroUsesARegionalEndpointAsGiven(t *testing.T) {
 
 // Once a project is claimed or deleted the API answers zero_not_found, the same
 // as for a wrong secret. status has to say what that means rather than echo the
-// API, and stop holding a claim secret nothing accepts, while the key session
-// stays usable for a project the user claimed.
+// API. It keeps the session, because the CLI cannot tell the cases apart and a
+// still-unclaimed project's claim link must not be thrown away.
 func TestZeroStatusReportsAProjectNoLongerUnclaimed(t *testing.T) {
 	preferencesWith(t, `{}`)
 	inDirectory(t, t.TempDir())
@@ -349,17 +349,9 @@ func TestZeroStatusReportsAProjectNoLongerUnclaimed(t *testing.T) {
 	}
 	session := global.SessionData(zeroSessionPrefix + "zero-project")
 	if session == nil || session.GetString(config.PreferenceKey) != "standard_zero-api-key" {
-		t.Fatal("dropped the API key session along with the claim data")
+		t.Fatal("dropped the API key session")
 	}
-	if session.GetObject(preferenceZero) != nil {
-		t.Error("kept the claim secret after the project left Zero")
-	}
-
-	requests = requests[:0]
-	if err := runZeroStatus(command); err == nil || !strings.Contains(err.Error(), "no Appwrite Zero project") {
-		t.Errorf("second status = %v, want no Zero project found", err)
-	}
-	if len(requests) != 0 {
-		t.Errorf("second status asked the API again (%d requests)", len(requests))
+	if got := session.GetObject(preferenceZero).GetString("claimUrl"); got != "https://console.example/claim/code" {
+		t.Errorf("claim link = %q, want it kept", got)
 	}
 }

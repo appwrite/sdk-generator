@@ -225,7 +225,7 @@ func runZeroStatus(command *cobra.Command) error {
 		Call("GET", path, nil, &zero)
 	var apiError *client.APIError
 	if errors.As(err, &apiError) && apiError.Type == zeroNotFound {
-		return zeroGone(global, session)
+		return zeroGone(session)
 	}
 	if err != nil {
 		return err
@@ -256,17 +256,12 @@ func runZeroStatus(command *cobra.Command) error {
 	return app.RenderValue(report)
 }
 
-// zeroGone handles a project the API no longer knows as unclaimed: it answers
-// zero_not_found alike for claimed, deleted, unknown and wrong-secret, so the
-// CLI cannot tell which. The claim secret and owner token are dropped, since
-// nothing accepts them any more. The endpoint and API key stay, because a
-// claimed project may still answer to its key from this directory.
-func zeroGone(global *config.Global, session *config.Object) error {
+// zeroGone explains zero_not_found, which the API answers alike for a claimed,
+// deleted or unknown project and for a wrong secret. The session is left as it
+// is: the CLI cannot tell which case this is, and a project still unclaimed
+// behind a stale secret may yet be claimed with the stored link.
+func zeroGone(session *config.Object) error {
 	stored := session.GetObject(preferenceZero)
-	session.Delete(preferenceZero)
-	if err := global.Write(); err != nil {
-		return err
-	}
 
 	message := fmt.Sprintf("Appwrite Zero project %s is no longer unclaimed: it was claimed or deleted",
 		stored.GetString("projectId"))
