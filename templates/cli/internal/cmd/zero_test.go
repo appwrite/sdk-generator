@@ -133,10 +133,9 @@ func TestZeroLinksTheDirectoryAndStoresTheKeyAsASession(t *testing.T) {
 	}
 }
 
-// The --json manifest is what an agent hands back, so the owner token it
-// exists to carry must survive redaction. The API key and claim secret are the
-// CLI's own and stay out of it unless --show-secrets asks for them.
-func TestZeroJSONManifestCarriesTheOwnerToken(t *testing.T) {
+// The --json manifest is what an agent hands back, so the credentials it exists
+// to carry must survive redaction, with or without --show-secrets.
+func TestZeroJSONManifestIsUnredacted(t *testing.T) {
 	for _, test := range []struct {
 		name        string
 		showSecrets bool
@@ -161,20 +160,14 @@ func TestZeroJSONManifestCarriesTheOwnerToken(t *testing.T) {
 			if err := json.Unmarshal(out.Bytes(), &manifest); err != nil {
 				t.Fatalf("manifest is not JSON: %v\n%s", err, out)
 			}
-			if manifest["accessToken"] != "owner-token" {
-				t.Errorf("accessToken = %v, want the owner token", manifest["accessToken"])
-			}
-			if manifest["claimUrl"] != "https://console.example/claim/code" {
-				t.Errorf("claimUrl = %v", manifest["claimUrl"])
-			}
-
-			for key, value := range map[string]string{"apiKey": "standard_zero-api-key", "secret": "claim-secret"} {
-				got, present := manifest[key]
-				if test.showSecrets && got != value {
-					t.Errorf("%s = %v with --show-secrets, want %s", key, got, value)
-				}
-				if !test.showSecrets && present {
-					t.Errorf("%s = %v printed without --show-secrets", key, got)
+			for key, value := range map[string]string{
+				"accessToken": "owner-token",
+				"apiKey":      "standard_zero-api-key",
+				"secret":      "claim-secret",
+				"claimUrl":    "https://console.example/claim/code",
+			} {
+				if manifest[key] != value {
+					t.Errorf("%s = %v, want %s", key, manifest[key], value)
 				}
 			}
 		})
