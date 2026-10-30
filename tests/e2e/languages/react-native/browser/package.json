@@ -17,7 +17,7 @@
         "react": "19.3.1",
         "react-dom": "19.3.1",
         "react-native-web": "0.21.4",
-        "rollup": "4.65.0",
+        "rollup": "4.65.1",
         "serve-handler": "6.1.7",
         "tslib": "2.8.1",
         "typescript": "5.9.3"
