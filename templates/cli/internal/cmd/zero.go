@@ -152,12 +152,29 @@ func runZero(command *cobra.Command, endpoint string) error {
 	warnDetachedSession(messages, global, previous)
 
 	if app.Flags().JSON || app.Flags().Raw {
-		return app.RenderValue(&zero)
+		return renderZeroManifest(command.OutOrStdout(), &zero)
 	}
 
 	printZeroWelcome(command.OutOrStdout(), &zero, local.Path())
 
 	return nil
+}
+
+// renderZeroManifest prints the manifest an agent hands back. The owner token
+// is its point, and the welcome already prints it in each owner link, so the
+// redactor must not mask it. The API key and the claim secret are kept in
+// prefs.json for the CLI's own calls and leave it only with --show-secrets.
+func renderZeroManifest(out io.Writer, zero *jsonx.Object) error {
+	if !app.Flags().ShowSecrets {
+		zero.Delete("apiKey")
+		zero.Delete("secret")
+	}
+
+	renderer := app.Renderer()
+	renderer.ShowSecrets = true
+	renderer.Writer = out
+
+	return renderer.Render(zero)
 }
 
 func printZeroWelcome(out io.Writer, zero *jsonx.Object, path string) {

@@ -1368,6 +1368,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/zero_test.go',
+                'template'      => 'cli/internal/cmd/zero_test.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/organization.go',
                 'template'      => 'cli/internal/cmd/organization.go',
             ],
