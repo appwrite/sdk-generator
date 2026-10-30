@@ -3,7 +3,10 @@
 package cmd
 
 import (
+	"context"
+	"crypto/tls"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -254,5 +257,58 @@ func TestZeroStatusReportsAnExpiredProject(t *testing.T) {
 		if request.URL.Path == "/proxy/rules" {
 			t.Error("asked an expired project for its rules")
 		}
+	}
+}
+
+// A Zero project is created in the region of the server that receives the
+// request, and the API takes no region. Collapsing a regional endpoint onto the
+// base host created the project in another region, or met zero_disabled where
+// the asked-for region had Zero. The request has to reach the host as given.
+func TestZeroUsesARegionalEndpointAsGiven(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	const regional = "https://nyc.cloud.appwrite.io/v1"
+
+	var host, path string
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host, path = r.Host, r.URL.Path
+		json.NewEncoder(w).Encode(map[string]any{
+			"$id":         "zero-row",
+			"projectId":   "zero-project",
+			"endpoint":    regional,
+			"apiKey":      "standard_zero-api-key",
+			"accessToken": "owner-token",
+		})
+	}))
+	t.Cleanup(server.Close)
+
+	// Every host dials the test server, so the regional name is never resolved.
+	previous := http.DefaultTransport
+	transport := previous.(*http.Transport).Clone()
+	transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, server.Listener.Addr().String())
+	}
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	http.DefaultTransport = transport
+	t.Cleanup(func() { http.DefaultTransport = previous })
+
+	command, _ := captureCommand()
+	if err := runZero(command, regional); err != nil {
+		t.Fatal(err)
+	}
+
+	if host != "nyc.cloud.appwrite.io" || path != "/v1/zero" {
+		t.Errorf("created the project through %s%s, want nyc.cloud.appwrite.io/v1/zero", host, path)
+	}
+
+	global, err := preferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := global.SessionData(zeroSessionPrefix + "zero-project")
+	if session == nil || session.GetString(config.PreferenceEndpoint) != regional {
+		t.Errorf("session endpoint is not the regional one the manifest returned")
 	}
 }

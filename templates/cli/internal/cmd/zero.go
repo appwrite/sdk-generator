@@ -87,10 +87,12 @@ func runZero(command *cobra.Command, endpoint string) error {
 	if endpoint == "" {
 		endpoint = osGetenv(sdk.EnvEndpoint)
 	}
+	// Used as given: a Zero project is created in the region of the server
+	// that receives the request, so a regional endpoint must not be collapsed
+	// onto the base host.
 	if endpoint == "" {
 		endpoint = config.DefaultEndpoint
 	}
-	endpoint = config.NormalizeCloudConsoleEndpoint(endpoint)
 
 	// Loaded before the project is created, so a config that cannot be read
 	// does not spend one of the day's few Zero projects.
