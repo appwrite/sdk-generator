@@ -43,6 +43,7 @@ const (
 
 	zeroUnavailable = "zero_unavailable"
 	zeroDisabled    = "zero_disabled"
+	zeroNotFound    = "zero_not_found"
 	zeroActive      = "active"
 	zeroExpired     = "expired"
 )
@@ -222,6 +223,10 @@ func runZeroStatus(command *cobra.Command) error {
 		SetProject(config.ProjectConsole).
 		SetLocale("en-US").
 		Call("GET", path, nil, &zero)
+	var apiError *client.APIError
+	if errors.As(err, &apiError) && apiError.Type == zeroNotFound {
+		return zeroGone(global, session)
+	}
 	if err != nil {
 		return err
 	}
@@ -233,11 +238,9 @@ func runZeroStatus(command *cobra.Command) error {
 	report.Set("status", status)
 	report.Set("endpoint", zero.GetString("endpoint"))
 	report.Set("consoleUrl", zero.GetString("consoleUrl"))
-	if status == zeroActive || status == zeroExpired {
-		report.Set("buildTimeLeft", timeLeft(zero.GetString("expiresAt"), now))
-		report.Set("claimTimeLeft", timeLeft(zero.GetString("claimBy"), now))
-		report.Set("claimUrl", stored.GetString("claimUrl"))
-	}
+	report.Set("buildTimeLeft", timeLeft(zero.GetString("expiresAt"), now))
+	report.Set("claimTimeLeft", timeLeft(zero.GetString("claimBy"), now))
+	report.Set("claimUrl", stored.GetString("claimUrl"))
 	// An expired project refuses API calls with zero_expired until it is
 	// claimed, so its rules cannot be listed.
 	if status == zeroActive {
@@ -251,6 +254,27 @@ func runZeroStatus(command *cobra.Command) error {
 	report.Set("claimBy", zero.GetString("claimBy"))
 
 	return app.RenderValue(report)
+}
+
+// zeroGone handles a project the API no longer knows as unclaimed: it answers
+// zero_not_found alike for claimed, deleted, unknown and wrong-secret, so the
+// CLI cannot tell which. The claim secret and owner token are dropped, since
+// nothing accepts them any more. The endpoint and API key stay, because a
+// claimed project may still answer to its key from this directory.
+func zeroGone(global *config.Global, session *config.Object) error {
+	stored := session.GetObject(preferenceZero)
+	session.Delete(preferenceZero)
+	if err := global.Write(); err != nil {
+		return err
+	}
+
+	message := fmt.Sprintf("Appwrite Zero project %s is no longer unclaimed: it was claimed or deleted",
+		stored.GetString("projectId"))
+	if console := stored.GetString("consoleUrl"); console != "" {
+		message += ". If you claimed it, open it at " + console
+	}
+
+	return errors.New(message)
 }
 
 // zeroOwnerLinks lists the link that opens each of the project's domains for

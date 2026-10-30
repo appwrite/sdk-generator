@@ -29,7 +29,7 @@ func zeroServer(t *testing.T, requests *[]*http.Request, status string) *httptes
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/zero":
 			json.NewEncoder(w).Encode(map[string]any{
-				"$id":            "zero-row",
+				"$id":            "zero-project",
 				"secret":         "claim-secret",
 				"projectId":      "zero-project",
 				"organizationId": "zero-org",
@@ -41,7 +41,10 @@ func zeroServer(t *testing.T, requests *[]*http.Request, status string) *httptes
 				"expiresAt":      "2099-01-01T00:00:00Z",
 				"claimBy":        "2099-01-02T00:00:00Z",
 			})
-		case r.Method == http.MethodGet && r.URL.Path == "/zero/zero-row":
+		case r.Method == http.MethodGet && r.URL.Path == "/zero/zero-project" && status == zeroNotFound:
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"message":"Zero project not found","code":404,"type":"zero_not_found"}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/zero/zero-project":
 			json.NewEncoder(w).Encode(map[string]any{
 				"projectId": "zero-project",
 				"status":    status,
@@ -310,5 +313,53 @@ func TestZeroUsesARegionalEndpointAsGiven(t *testing.T) {
 	session := global.SessionData(zeroSessionPrefix + "zero-project")
 	if session == nil || session.GetString(config.PreferenceEndpoint) != regional {
 		t.Errorf("session endpoint is not the regional one the manifest returned")
+	}
+}
+
+// Once a project is claimed or deleted the API answers zero_not_found, the same
+// as for a wrong secret. status has to say what that means rather than echo the
+// API, and stop holding a claim secret nothing accepts, while the key session
+// stays usable for a project the user claimed.
+func TestZeroStatusReportsAProjectNoLongerUnclaimed(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroNotFound)
+
+	command, _ := captureCommand()
+	if err := runZero(command, server.URL); err != nil {
+		t.Fatal(err)
+	}
+
+	err := runZeroStatus(command)
+	if err == nil {
+		t.Fatal("status succeeded for a project the API no longer knows")
+	}
+	for _, want := range []string{"zero-project", "claimed or deleted", "https://console.example/project"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("message %q does not mention %q", err, want)
+		}
+	}
+
+	global, err := preferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := global.SessionData(zeroSessionPrefix + "zero-project")
+	if session == nil || session.GetString(config.PreferenceKey) != "standard_zero-api-key" {
+		t.Fatal("dropped the API key session along with the claim data")
+	}
+	if session.GetObject(preferenceZero) != nil {
+		t.Error("kept the claim secret after the project left Zero")
+	}
+
+	requests = requests[:0]
+	if err := runZeroStatus(command); err == nil || !strings.Contains(err.Error(), "no Appwrite Zero project") {
+		t.Errorf("second status = %v, want no Zero project found", err)
+	}
+	if len(requests) != 0 {
+		t.Errorf("second status asked the API again (%d requests)", len(requests))
 	}
 }
