@@ -235,7 +235,10 @@ func runZeroStatus(command *cobra.Command) error {
 		report.Set("buildTimeLeft", timeLeft(zero.GetString("expiresAt"), now))
 		report.Set("claimTimeLeft", timeLeft(zero.GetString("claimBy"), now))
 		report.Set("claimUrl", stored.GetString("claimUrl"))
-
+	}
+	// An expired project refuses API calls with zero_expired until it is
+	// claimed, so its rules cannot be listed.
+	if status == zeroActive {
 		links, err := zeroOwnerLinks(session, zero.GetString("projectId"), stored.GetString("accessToken"))
 		if err != nil {
 			return err

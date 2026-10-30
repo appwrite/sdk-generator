@@ -16,7 +16,7 @@ import (
 
 // zeroServer answers the Zero endpoints the way the API does and records what
 // the CLI sent.
-func zeroServer(t *testing.T, requests *[]*http.Request) *httptest.Server {
+func zeroServer(t *testing.T, requests *[]*http.Request, status string) *httptest.Server {
 	t.Helper()
 
 	var server *httptest.Server
@@ -41,11 +41,14 @@ func zeroServer(t *testing.T, requests *[]*http.Request) *httptest.Server {
 		case r.Method == http.MethodGet && r.URL.Path == "/zero/zero-row":
 			json.NewEncoder(w).Encode(map[string]any{
 				"projectId": "zero-project",
-				"status":    "active",
+				"status":    status,
 				"endpoint":  server.URL,
 				"expiresAt": "2099-01-01T00:00:00Z",
 				"claimBy":   "2099-01-02T00:00:00Z",
 			})
+		case r.Method == http.MethodGet && r.URL.Path == "/proxy/rules" && status == zeroExpired:
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(`{"message":"Build window over","code":403,"type":"zero_expired"}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/proxy/rules":
 			w.Write([]byte(`{"total":1,"rules":[{"domain":"app.example"}]}`))
 		default:
@@ -76,7 +79,7 @@ func TestZeroLinksTheDirectoryAndStoresTheKeyAsASession(t *testing.T) {
 	withZeroFlags(t, false, false)
 
 	var requests []*http.Request
-	server := zeroServer(t, &requests)
+	server := zeroServer(t, &requests, zeroActive)
 
 	command, out := captureCommand()
 	if err := runZero(command, server.URL); err != nil {
@@ -147,7 +150,7 @@ func TestZeroJSONManifestCarriesTheOwnerToken(t *testing.T) {
 			withZeroFlags(t, true, test.showSecrets)
 
 			var requests []*http.Request
-			server := zeroServer(t, &requests)
+			server := zeroServer(t, &requests, zeroActive)
 
 			command, out := captureCommand()
 			if err := runZero(command, server.URL); err != nil {
@@ -186,7 +189,7 @@ func TestZeroStatusUsesTheStoredSession(t *testing.T) {
 	withZeroFlags(t, false, false)
 
 	var requests []*http.Request
-	server := zeroServer(t, &requests)
+	server := zeroServer(t, &requests, zeroActive)
 
 	command, _ := captureCommand()
 	if err := runZero(command, server.URL); err != nil {
@@ -224,5 +227,32 @@ func TestZeroStatusUsesTheStoredSession(t *testing.T) {
 	}
 	if len(requests) == 0 || requests[0].URL.Query().Get("secret") != "claim-secret" {
 		t.Error("status did not read the project with the stored claim secret")
+	}
+}
+
+// After the build window the project refuses API calls with zero_expired, but
+// `zero status` is how the user learns the claim deadline, so it must still
+// answer without asking the project for its domains.
+func TestZeroStatusReportsAnExpiredProject(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroExpired)
+
+	command, _ := captureCommand()
+	if err := runZero(command, server.URL); err != nil {
+		t.Fatal(err)
+	}
+
+	requests = requests[:0]
+	if err := runZeroStatus(command); err != nil {
+		t.Fatalf("status failed for an expired project: %v", err)
+	}
+	for _, request := range requests {
+		if request.URL.Path == "/proxy/rules" {
+			t.Error("asked an expired project for its rules")
+		}
 	}
 }
