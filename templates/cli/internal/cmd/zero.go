@@ -160,10 +160,16 @@ func runZero(command *cobra.Command, endpoint string) error {
 	return nil
 }
 
-// renderZeroManifest prints the manifest an agent hands back, unredacted: the
-// owner token, API key and claim secret are the user's own new credentials,
-// and an agent cannot use a manifest that hides them.
+// renderZeroManifest prints the manifest an agent hands back. The owner token
+// is its point, and the welcome already prints it in each owner link, so the
+// redactor must not mask it. The API key and the claim secret are kept in
+// prefs.json for the CLI's own calls and leave it only with --show-secrets.
 func renderZeroManifest(out io.Writer, zero *jsonx.Object) error {
+	if !app.Flags().ShowSecrets {
+		zero.Delete("apiKey")
+		zero.Delete("secret")
+	}
+
 	renderer := app.Renderer()
 	renderer.ShowSecrets = true
 	renderer.Writer = out
