@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -49,7 +50,7 @@ const (
 )
 
 func newZeroCommand() *cobra.Command {
-	var endpoint string
+	var endpoint, region string
 
 	command := &cobra.Command{
 		Use:   "zero",
@@ -59,15 +60,19 @@ func newZeroCommand() *cobra.Command {
 			"link to keep it; unclaimed projects are deleted. Until then its domains open only " +
 			"for you: visit a domain's owner link once, or send the access token in the " +
 			"X-Appwrite-Zero-Token header. --json prints the manifest, including the claim " +
-			"link and the access token, for agents to hand back.",
+			"link and the access token, for agents to hand back.\n\n" +
+			"The project is created in the region that serves the request. --region picks one, " +
+			"such as `zero --region fra`; it cannot be combined with --endpoint.",
 		Args: cobra.NoArgs,
 		RunE: func(command *cobra.Command, args []string) error {
-			return runZero(command, endpoint)
+			return runZero(command, endpoint, region)
 		},
 	}
 
 	command.Flags().StringVarP(&endpoint, "endpoint", "e", "",
 		"Appwrite endpoint to create the project on (default "+config.DefaultEndpoint+")")
+	command.Flags().StringVar(&region, "region", "",
+		"Cloud region to create the project in: "+strings.Join(config.CloudRegions(), ", "))
 	command.AddCommand(newZeroStatusCommand())
 
 	return command
@@ -84,15 +89,10 @@ func newZeroStatusCommand() *cobra.Command {
 	}
 }
 
-func runZero(command *cobra.Command, endpoint string) error {
-	if endpoint == "" {
-		endpoint = osGetenv(sdk.EnvEndpoint)
-	}
-	// Used as given: a Zero project is created in the region of the server
-	// that receives the request, so a regional endpoint must not be collapsed
-	// onto the base host.
-	if endpoint == "" {
-		endpoint = config.DefaultEndpoint
+func runZero(command *cobra.Command, endpoint, region string) error {
+	endpoint, err := zeroEndpoint(endpoint, region)
+	if err != nil {
+		return err
 	}
 
 	// Loaded before the project is created, so a config that cannot be read
@@ -161,6 +161,35 @@ func runZero(command *cobra.Command, endpoint string) error {
 	printZeroWelcome(command.OutOrStdout(), &zero, local.Path())
 
 	return nil
+}
+
+// zeroEndpoint picks the host to create the project on. The API takes no
+// region: a Zero project is created in the region of the server that receives
+// the request, so --region selects that region's host, and an endpoint is used
+// as given rather than collapsed onto the base host.
+func zeroEndpoint(endpoint, region string) (string, error) {
+	if region != "" && endpoint != "" {
+		return "", errors.New("--region and --endpoint both choose where the project is created; pass only one")
+	}
+	if region != "" && !config.IsCloudRegion(region) {
+		return "", fmt.Errorf("unknown region %q, expected one of: %s",
+			region, strings.Join(config.CloudRegions(), ", "))
+	}
+
+	if endpoint == "" {
+		endpoint = osGetenv(sdk.EnvEndpoint)
+	}
+	if endpoint == "" {
+		endpoint = config.DefaultEndpoint
+	}
+	if region == "" {
+		return endpoint, nil
+	}
+	if !isCloudEndpoint(endpoint) {
+		return "", fmt.Errorf("--region needs an Appwrite Cloud endpoint, not %s", endpoint)
+	}
+
+	return regionalEndpoint(endpoint, region), nil
 }
 
 // renderZeroManifest prints the manifest an agent hands back. The owner token

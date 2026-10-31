@@ -15,6 +15,7 @@ import (
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 )
 
 // zeroServer answers the Zero endpoints the way the API does and records what
@@ -66,6 +67,34 @@ func zeroServer(t *testing.T, requests *[]*http.Request, status string) *httptes
 	return server
 }
 
+// regionalZeroServer answers POST /zero for any host: every host dials the
+// test server, so a regional name is never resolved. It records the host and
+// path the CLI called.
+func regionalZeroServer(t *testing.T, endpoint string, host, path *string) {
+	t.Helper()
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		*host, *path = r.Host, r.URL.Path
+		json.NewEncoder(w).Encode(map[string]any{
+			"$id":         "zero-row",
+			"projectId":   "zero-project",
+			"endpoint":    endpoint,
+			"apiKey":      "standard_zero-api-key",
+			"accessToken": "owner-token",
+		})
+	}))
+	t.Cleanup(server.Close)
+
+	previous := http.DefaultTransport
+	transport := previous.(*http.Transport).Clone()
+	transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, server.Listener.Addr().String())
+	}
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	http.DefaultTransport = transport
+	t.Cleanup(func() { http.DefaultTransport = previous })
+}
+
 func withZeroFlags(t *testing.T, json, showSecrets bool) {
 	t.Helper()
 
@@ -88,7 +117,7 @@ func TestZeroLinksTheDirectoryAndStoresTheKeyAsASession(t *testing.T) {
 	server := zeroServer(t, &requests, zeroActive)
 
 	command, out := captureCommand()
-	if err := runZero(command, server.URL); err != nil {
+	if err := runZero(command, server.URL, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -159,7 +188,7 @@ func TestZeroJSONManifestCarriesTheOwnerToken(t *testing.T) {
 			server := zeroServer(t, &requests, zeroActive)
 
 			command, out := captureCommand()
-			if err := runZero(command, server.URL); err != nil {
+			if err := runZero(command, server.URL, ""); err != nil {
 				t.Fatal(err)
 			}
 
@@ -198,7 +227,7 @@ func TestZeroStatusUsesTheStoredSession(t *testing.T) {
 	server := zeroServer(t, &requests, zeroActive)
 
 	command, _ := captureCommand()
-	if err := runZero(command, server.URL); err != nil {
+	if err := runZero(command, server.URL, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -248,7 +277,7 @@ func TestZeroStatusReportsAnExpiredProject(t *testing.T) {
 	server := zeroServer(t, &requests, zeroExpired)
 
 	command, _ := captureCommand()
-	if err := runZero(command, server.URL); err != nil {
+	if err := runZero(command, server.URL, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -275,30 +304,10 @@ func TestZeroUsesARegionalEndpointAsGiven(t *testing.T) {
 	const regional = "https://nyc.cloud.appwrite.io/v1"
 
 	var host, path string
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		host, path = r.Host, r.URL.Path
-		json.NewEncoder(w).Encode(map[string]any{
-			"$id":         "zero-row",
-			"projectId":   "zero-project",
-			"endpoint":    regional,
-			"apiKey":      "standard_zero-api-key",
-			"accessToken": "owner-token",
-		})
-	}))
-	t.Cleanup(server.Close)
-
-	// Every host dials the test server, so the regional name is never resolved.
-	previous := http.DefaultTransport
-	transport := previous.(*http.Transport).Clone()
-	transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
-		return (&net.Dialer{}).DialContext(ctx, network, server.Listener.Addr().String())
-	}
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	http.DefaultTransport = transport
-	t.Cleanup(func() { http.DefaultTransport = previous })
+	regionalZeroServer(t, regional, &host, &path)
 
 	command, _ := captureCommand()
-	if err := runZero(command, regional); err != nil {
+	if err := runZero(command, regional, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -329,7 +338,7 @@ func TestZeroStatusReportsAProjectNoLongerUnclaimed(t *testing.T) {
 	server := zeroServer(t, &requests, zeroNotFound)
 
 	command, _ := captureCommand()
-	if err := runZero(command, server.URL); err != nil {
+	if err := runZero(command, server.URL, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -353,5 +362,81 @@ func TestZeroStatusReportsAProjectNoLongerUnclaimed(t *testing.T) {
 	}
 	if got := session.GetObject(preferenceZero).GetString("claimUrl"); got != "https://console.example/claim/code" {
 		t.Errorf("claim link = %q, want it kept", got)
+	}
+}
+
+// The API takes no region, so --region has to send the create to that region's
+// host, and keep it as the session's endpoint for every later command.
+func TestZeroRegionCreatesOnTheRegionalHost(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+	t.Setenv(sdk.EnvEndpoint, "")
+
+	const regional = "https://syd.cloud.appwrite.io/v1"
+
+	var host, path string
+	regionalZeroServer(t, regional, &host, &path)
+
+	command, _ := captureCommand()
+	if err := runZero(command, "", "syd"); err != nil {
+		t.Fatal(err)
+	}
+
+	if host != "syd.cloud.appwrite.io" || path != "/v1/zero" {
+		t.Errorf("created the project through %s%s, want syd.cloud.appwrite.io/v1/zero", host, path)
+	}
+
+	global, err := preferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := global.SessionData(zeroSessionPrefix + "zero-project")
+	if session == nil || session.GetString(config.PreferenceEndpoint) != regional {
+		t.Errorf("session endpoint is not %s", regional)
+	}
+}
+
+// --region and --endpoint both say where the project goes. Honouring either one
+// silently would create it somewhere the user did not ask for, and spend one of
+// the network's few Zero projects doing so.
+func TestZeroRefusesARegionOrEndpointItCannotUse(t *testing.T) {
+	cases := map[string]struct{ endpoint, region, want string }{
+		"region with endpoint": {"https://fra.cloud.appwrite.io/v1", "nyc", "--region and --endpoint"},
+		"unknown region":       {"", "mars", `unknown region "mars"`},
+		"upper-case region":    {"", "FRA", `unknown region "FRA"`},
+	}
+
+	for name, test := range cases {
+		t.Run(name, func(t *testing.T) {
+			preferencesWith(t, `{}`)
+			directory := t.TempDir()
+			inDirectory(t, directory)
+			withZeroFlags(t, false, false)
+			t.Setenv(sdk.EnvEndpoint, "")
+
+			var host, path string
+			regionalZeroServer(t, "", &host, &path)
+
+			command, _ := captureCommand()
+			err := runZero(command, test.endpoint, test.region)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want one mentioning %s", err, test.want)
+			}
+
+			if host != "" {
+				t.Errorf("called %s%s before refusing", host, path)
+			}
+			global, err := preferences()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if ids := global.SessionIDs(); len(ids) != 0 {
+				t.Errorf("stored sessions %v before refusing", ids)
+			}
+			if _, err := os.Stat(config.LocalPath(directory)); !os.IsNotExist(err) {
+				t.Errorf("wrote %s before refusing", config.LocalPath(directory))
+			}
+		})
 	}
 }
