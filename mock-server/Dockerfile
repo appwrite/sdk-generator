@@ -1,4 +1,4 @@
-FROM composer:2.10 AS composer
+FROM composer:2.11 AS composer
 
 LABEL maintainer="team@appwrite.io"
 
@@ -22,7 +22,7 @@ RUN set -eu; \
         sleep $((n * 5)); \
     done
 
-FROM composer:2.10 AS composer_mqtt
+FROM composer:2.11 AS composer_mqtt
 
 # The broker keeps its own locked dependencies so it can evolve independently of the HTTP mock.
 WORKDIR /usr/local/src/
