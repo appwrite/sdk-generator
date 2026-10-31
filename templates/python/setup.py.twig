@@ -24,6 +24,12 @@ setuptools.setup(
         'urllib3>=2.8.0,<3',
         'pydantic>=2,<3',
     ],
+    extras_require={
+        'async': [
+            'httpx2>=2.0,<3',
+            'anyio>=4,<5',
+        ],
+    },
     python_requires='>=3.10',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
