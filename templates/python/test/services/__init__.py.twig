@@ -1,7 +1,0 @@
-import httpx2
-
-# See `test/__init__.py`: respx patches `httpx` while the SDK talks HTTP
-# through httpx2. Repeating the alias here keeps the service tests mocked when
-# the suite is discovered from inside the test directory, where the `test`
-# package itself is never imported.
-httpx2.alias_httpx()

@@ -165,21 +165,29 @@ final class GenerationTest extends TestCase
         ],
         'python' => [
             'setup.py' => [
-                "python_requires='>=3.11'",
+                "python_requires='>=3.10'",
+                "'requests>=2.34.2,<3'",
+                "'urllib3>=2.8.0,<3'",
                 "'httpx2>=2.0,<3'",
                 "'anyio>=4,<5'",
+                "'Programming Language :: Python :: 3.10'",
                 "'Programming Language :: Python :: 3.11'",
                 "'Programming Language :: Python :: 3.12'",
                 "'Programming Language :: Python :: 3.13'",
             ],
             'requirements.txt' => [
+                'requests>=2.34.2,<3',
+                'urllib3>=2.8.0,<3',
                 'httpx2>=2.0,<3',
                 'anyio>=4,<5',
             ],
             'pyproject.toml' => [
-                'requires-python = ">=3.11"',
+                'requires-python = ">=3.10"',
+                '"requests>=2.34.2,<3"',
+                '"urllib3>=2.8.0,<3"',
                 '"httpx2>=2.0,<3"',
                 '"anyio>=4,<5"',
+                '"Programming Language :: Python :: 3.10"',
                 '"Programming Language :: Python :: 3.11"',
                 '"Programming Language :: Python :: 3.12"',
                 '"Programming Language :: Python :: 3.13"',
@@ -1702,7 +1710,9 @@ final class GenerationTest extends TestCase
         yield 'go resume' => ['go', 'server', 'client/client.go', 'resp, err := client.call("get", url+"/"+encodepath(uploadid), nil, nil)'];
         yield 'python path' => ['python', 'server', 'appwrite/services/general.py', "api_path = api_path.replace('{pathid}', self._encode_path(path_id))"];
         yield 'python encoder' => ['python', 'server', 'appwrite/service.py', "return quote(segment, safe=\"!*'()\")"];
-        yield 'python resume' => ['python', 'server', 'appwrite/client.py', "await self.call('get', path + '/' + quote(upload_id, safe=\"!*'()\"), headers)"];
+        yield 'python resume' => ['python', 'server', 'appwrite/client.py', "self.call('get', path + '/' + quote(upload_id, safe=\"!*'()\"), headers)"];
+        yield 'python async path' => ['python', 'server', 'appwrite/async_services/general.py', "api_path = api_path.replace('{pathid}', self._encode_path(path_id))"];
+        yield 'python async resume' => ['python', 'server', 'appwrite/async_client.py', "await self.call('get', path + '/' + quote(upload_id, safe=\"!*'()\"), headers)"];
         yield 'ruby path' => ['ruby', 'server', 'lib/appwrite/services/general.rb', ".gsub('{pathid}', @client.encode_path(path_id))"];
         yield 'ruby encoder' => ['ruby', 'server', 'lib/appwrite/client.rb', "segment.b.gsub(/[^a-za-z0-9\\-_.!~*'()]/n)"];
         yield 'ruby resume' => ['ruby', 'server', 'lib/appwrite/client.rb', 'path: "#{path}/#{encode_path(upload_id)}",'];
@@ -1794,8 +1804,10 @@ final class GenerationTest extends TestCase
         yield 'go redirects' => ['go', 'client/client.go', "checkredirect: func(*http.request, []*http.request) error {\n\t\t\treturn http.erruselastresponse", ''];
         yield 'go redirect error' => ['go', 'client/client.go', 'message:    "redirect to " + resp.header.get("location") + " not followed",', ''];
         yield 'go cookies' => ['go', 'client/client.go', 'timeout: timeout,', 'cookiejar'];
-        yield 'python redirects' => ['python', 'appwrite/client.py', "follow_redirects=false,\n", "allow_redirects=false if"];
+        yield 'python redirects' => ['python', 'appwrite/client.py', "allow_redirects=false,\n", "allow_redirects=false if"];
         yield 'python redirect error' => ['python', 'appwrite/client.py', "if response_type != 'location' and 300 <= response.status_code < 400:", ''];
+        yield 'python async redirects' => ['python', 'appwrite/async_client.py', "follow_redirects=False,\n", ''];
+        yield 'python async redirect error' => ['python', 'appwrite/async_client.py', "if response_type != 'location' and 300 <= response.status_code < 400:", ''];
         yield 'php redirects' => ['php', 'src/Appwrite/Client.php', 'new httpclient($adapter)->withfollowredirects(false);', 'httpclientnoredirect'];
         yield 'php redirect error' => ['php', 'src/Appwrite/Client.php', "throw new appwriteexception('redirect to ' . \$location . ' not followed', \$responsestatus, '', \$responsebody);", ''];
         yield 'dotnet handler' => ['dotnet', 'Appwrite/Client.cs', "allowautoredirect = false,\n                usecookies = false", '_http = http ?? new httpclient();'];
@@ -1858,9 +1870,12 @@ final class GenerationTest extends TestCase
     {
         yield 'php path' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "->expects()->call(\n                'get',\n                '/mock/tests/general/path/grant%2fspecial%26id',"];
         yield 'php params' => ['php', 'server', 'tests/Appwrite/Services/FooTest.php', "->expects()->call(\n                'put',\n                '/mock/tests/foo',\n                mockery::any(),\n                mockery::on(function (array \$params): bool {\n                    \$this->assertsame(['x', 'y', 'z'], array_keys(\$params));"];
-        yield 'python path' => ['python', 'server', 'test/services/test_general.py', "response = await self.general.get_path(\n            'grant/special&id',\n        )\n        request = respx.calls.last.request\n        url = urlsplit(str(request.url))\n        self.assertequal(\n            unquote(url.path),\n            '/v1/mock/tests/general/path/grant/special&id',\n        )"];
-        yield 'python params' => ['python', 'server', 'test/services/test_foo.py', "respx.route(method='put').mock(\n            return_value=httpx2.response("];
-        yield 'python body' => ['python', 'server', 'test/services/test_foo.py', "sent = json.loads(request.content or '{}')\n        self.assertequal(\n            sent,\n            {\n                'x': '[]',\n                'y': 1,\n                'z': [],\n            },\n        )"];
+        yield 'python path' => ['python', 'server', 'test/services/test_general.py', "response = self.general.get_path(\n            'grant/special&id',\n        )\n        request = m.last_request\n        url = urlsplit(request.url)\n        self.assertequal(\n            unquote(url.path),\n            '/v1/mock/tests/general/path/grant/special&id',\n        )"];
+        yield 'python params' => ['python', 'server', 'test/services/test_foo.py', "m.request(\n            'put',\n            requests_mock.any,"];
+        yield 'python body' => ['python', 'server', 'test/services/test_foo.py', "sent = json.loads(request.body or '{}')\n        self.assertequal(\n            sent,\n            {\n                'x': '[]',\n                'y': 1,\n                'z': [],\n            },\n        )"];
+        yield 'python async path' => ['python', 'server', 'test_async/services/test_general.py', "response = await self.general.get_path(\n            'grant/special&id',\n        )\n        request = respx.calls.last.request\n        url = urlsplit(str(request.url))\n        self.assertequal(\n            unquote(url.path),\n            '/v1/mock/tests/general/path/grant/special&id',\n        )"];
+        yield 'python async params' => ['python', 'server', 'test_async/services/test_foo.py', "respx.route(method='put').mock(\n            return_value=httpx2.response(\n                200,\n                text=json.dumps(data),\n                headers=headers,\n            ),\n        )"];
+        yield 'python async body' => ['python', 'server', 'test_async/services/test_foo.py', "sent = json.loads(request.content or '{}')\n        self.assertequal(\n            sent,\n            {\n                'x': '[]',\n                'y': 1,\n                'z': [],\n            },\n        )"];
         foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {
             yield "{$name} path" => [$name, $platform, 'test/services/general_test.dart', "verify(\n        client.call(\n          httpmethod.get,\n          path: \"/mock/tests/general/path/grant%2fspecial%26id\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),"];
             yield "{$name} params" => [$name, $platform, 'test/services/foo_test.dart', "client.call(\n          httpmethod.put,\n          path: \"/mock/tests/foo\",\n          headers: anynamed('headers'),\n          params: captureanynamed('params'),\n          responsetype: anynamed('responsetype'),\n        ),\n      ).captured.single;\n      expect(params, {\n        \"x\": \"[]\",\n        \"y\": 1,\n        \"z\": isa<list>(),\n      });"];
@@ -1885,10 +1900,14 @@ final class GenerationTest extends TestCase
         yield 'php arguments' => ['php', 'server', 'tests/Appwrite/Services/FunctionsTest.php', "\$response = \$this->functions->createexecution(\n            \"functionid\",\n            body: \"body\",\n            async: false,"];
         yield 'php body' => ['php', 'server', 'tests/Appwrite/Services/FunctionsTest.php', "\$expected = [\n                        'functionid' => \"functionid\",\n                        'body' => \"body\",\n                        'async' => false,"];
         yield 'php query' => ['php', 'server', 'tests/Appwrite/Services/GeneralTest.php', "\$expected = [\n                        'width' => 1,\n                        'height' => 1,\n                        'name' => \"name\",\n                    ];\n                    \$this->assertsame(\$expected, array_intersect_key(\$params, \$expected));"];
-        yield 'python arguments' => ['python', 'server', 'test/services/test_functions.py', "response = await self.functions.create_execution(\n            'functionid',\n            body='body',\n            xasync=false,"];
-        yield 'python body' => ['python', 'server', 'test/services/test_functions.py', "sent = json.loads(request.content or '{}')\n        self.assertequal(\n            sent,\n            {\n                'body': 'body',\n                'async': false,"];
+        yield 'python arguments' => ['python', 'server', 'test/services/test_functions.py', "response = self.functions.create_execution(\n            'functionid',\n            body='body',\n            xasync=false,"];
+        yield 'python body' => ['python', 'server', 'test/services/test_functions.py', "sent = json.loads(request.body or '{}')\n        self.assertequal(\n            sent,\n            {\n                'body': 'body',\n                'async': false,"];
         yield 'python query' => ['python', 'server', 'test/services/test_general.py', "sent = parse_qs(url.query, keep_blank_values=true)\n        self.assertequal(\n            sent,\n            {\n                'width': ['1'],\n                'height': ['1'],\n                'name': ['name'],\n            },\n        )"];
         yield 'python multipart' => ['python', 'server', 'test/services/test_general.py', "self.assertequal(\n            sent,\n            {\n                'message': 'message',\n                'attachment': '',\n            },\n        )"];
+        yield 'python async arguments' => ['python', 'server', 'test_async/services/test_functions.py', "response = await self.functions.create_execution(\n            'functionid',\n            body='body',\n            xasync=false,"];
+        yield 'python async body' => ['python', 'server', 'test_async/services/test_functions.py', "sent = json.loads(request.content or '{}')\n        self.assertequal(\n            sent,\n            {\n                'body': 'body',\n                'async': false,"];
+        yield 'python async query' => ['python', 'server', 'test_async/services/test_general.py', "sent = parse_qs(url.query, keep_blank_values=true)\n        self.assertequal(\n            sent,\n            {\n                'width': ['1'],\n                'height': ['1'],\n                'name': ['name'],\n            },\n        )"];
+        yield 'python async multipart' => ['python', 'server', 'test_async/services/test_general.py', "self.assertequal(\n            sent,\n            {\n                'message': 'message',\n                'attachment': '',\n            },\n        )"];
         yield 'dart arguments' => ['dart', 'server', 'test/services/functions_test.dart', "functions.createexecution(\n        functionid: \"functionid\",\n        body: \"body\",\n        xasync: false,"];
         yield 'dart body' => ['dart', 'server', 'test/services/functions_test.dart', "expect(params, {\n        \"body\": \"body\",\n        \"async\": false,"];
         foreach (['dart' => 'server', 'flutter' => 'client'] as $name => $platform) {

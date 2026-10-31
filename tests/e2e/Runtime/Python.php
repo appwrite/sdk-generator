@@ -16,16 +16,23 @@ final class Python
     public static function runtimes(): iterable
     {
         foreach (['310' => '3.10', '311' => '3.11', '312' => '3.12', '313' => '3.13'] as $key => $version) {
+            $build = [
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/python python:' . $version . '-alpine pip install --target vendor -r requirements.txt',
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/python --env PYTHONPATH=vendor python:' . $version . '-alpine python -m unittest discover -s test -t .',
+            ];
+
+            // httpx2 needs Python 3.11, so the async suite only runs on the versions that can install it.
+            if ($version !== '3.10') {
+                $build[] = 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/python --env PYTHONPATH=vendor python:' . $version . '-alpine python -m unittest discover -s test_async -t .';
+            }
+
             yield "Python{$key}" => new Runtime(
                 directory: 'python',
                 language: new Language\Python(),
                 name: 'python',
                 platform: 'server',
                 header: 'python',
-                build: [
-                    'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/python python:' . $version . '-alpine pip install --target vendor -r requirements.txt',
-                    'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/python --env PYTHONPATH=vendor python:' . $version . '-alpine python -m unittest discover -s test -t .',
-                ],
+                build: $build,
                 command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/python --env PYTHONPATH=../../sdks/python:../../sdks/python/vendor python:' . $version . '-alpine python tests.py',
                 expected: [
                     ...Output::FOO_RESPONSES,

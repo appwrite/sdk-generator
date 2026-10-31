@@ -1,4 +1,4 @@
-        response = await self.client.call(
+        response = {% if isAsync %}await {% endif %}self.client.call(
             '{{ method.method.value | caseLower }}',
             api_path,
             {

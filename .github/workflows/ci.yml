@@ -42,6 +42,7 @@ jobs:
           Node26,
           Node20,
           PHP85,
+          Python310,
           Python311,
           Python312,
           Python313,
