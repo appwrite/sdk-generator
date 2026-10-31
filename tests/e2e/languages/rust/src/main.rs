@@ -1,0 +1,452 @@
+use appwrite::{
+    Client,
+    enums::PresetQuality,
+    id::ID,
+    input_file::InputFile,
+    operator::{self, Condition},
+    permission::Permission,
+    query::Query,
+    role::Role,
+    topic,
+    services::*,
+};
+use serde_json::json;
+use std::path::Path;
+use tokio;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let string_in_array = vec!["string in array".to_string()];
+
+    let client = Client::new()
+        .set_endpoint("http://mockapi/v1")
+        .set_project("appwrite")
+        .set_key("apikey")
+        .add_header("Origin", "http://localhost");
+
+    println!("\n\nTest Started");
+    let sdk_headers = client.get_headers();
+    println!(
+        "x-sdk-name: {}; x-sdk-platform: {}; x-sdk-language: {}; x-sdk-version: {}",
+        sdk_headers["x-sdk-name"],
+        sdk_headers["x-sdk-platform"],
+        sdk_headers["x-sdk-language"],
+        sdk_headers["x-sdk-version"],
+    );
+    test_foo_service(&client, &string_in_array).await?;
+    test_bar_service(&client, &string_in_array).await?;
+    test_general_service(&client, &string_in_array).await?;
+
+    Ok(())
+}
+
+async fn test_foo_service(client: &Client, string_in_array: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let foo = Foo::new(&client);
+
+    // Foo Service
+    match foo.get("string", 123, string_in_array).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("foo.get => error {}", e),
+    }
+
+    match foo.post("string", 123, string_in_array).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("foo.post => error {}", e),
+    }
+
+    match foo.put("string", 123, string_in_array).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("foo.put => error {}", e),
+    }
+
+    match foo.patch("string", 123, string_in_array).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("foo.patch => error {}", e),
+    }
+
+    match foo.delete("string", 123, string_in_array).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("foo.delete => error {}", e),
+    }
+
+    Ok(())
+}
+
+async fn test_bar_service(client: &Client, string_in_array: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let bar = Bar::new(&client);
+
+    // Bar Service
+    match bar.get("string", 123, string_in_array).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("bar.get => error {}", e),
+    }
+
+    match bar.post("string", 123, string_in_array).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("bar.post => error {}", e),
+    }
+
+    match bar.put("string", 123, string_in_array).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("bar.put => error {}", e),
+    }
+
+    match bar.patch("string", 123, string_in_array).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("bar.patch => error {}", e),
+    }
+
+    match bar.delete("string", 123, string_in_array).await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("bar.delete => error {}", e),
+    }
+
+    Ok(())
+}
+
+async fn test_general_service(client: &Client, string_in_array: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let general = General::new(&client);
+
+    // A redirect is reported as an error, not followed with the API key.
+    let error = general.redirect().await.unwrap_err();
+    println!("{}:{}", error.code, error.message);
+
+    for (id, plain) in [("", "0"), ("0", "")] {
+        let error = general.validate_path(plain, Some(id)).await.unwrap_err();
+        assert_eq!(error.code, 0);
+        println!("{}", error.message);
+    }
+    println!("{}", general.validate_path("0", Some("0")).await?.result);
+    println!("{}", general.validate_path("0", None).await?.result);
+
+    // The mock routes are registered at the encoded paths, so each call only reaches
+    // its route if the ID is escaped as one segment.
+    println!("{}", general.get_path("grant/special&id").await?.result);
+    println!("{}", general.get_path("../grant?special=id#x y%").await?.result);
+    println!("{}", general.get_path("unique()").await?.result);
+    for id in [".", ".."] {
+        let error = general.get_path(id).await.unwrap_err();
+        assert_eq!(error.code, 0);
+        println!("{}", error.message);
+    }
+
+    let zone: String = Plaintext::new(&client).get_zone().await?;
+    println!("{}", zone);
+    println!("{}", general.get_mixed().await?.result);
+    let plaintext = Plaintext::new(&client);
+    let records = "www 3600 IN A 192.0.2.1";
+    println!("{}", plaintext.import_zone(records, None).await?);
+    let zone_file = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;
+    println!("{}", plaintext.import_zone(records, Some(zone_file)).await?);
+
+    let message = "conversation without a required file";
+    println!("{}", general.optional_upload(message, None, None).await?.result);
+    let attachment = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;
+    println!("{}", general.optional_upload(message, Some(attachment), None).await?.result);
+    println!("{}", general.optional_upload(message, None, Some(json!({ "source": "sdk", "uri": "café" }))).await?.result);
+    let attachment = InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?;
+    println!("{}", general.optional_upload(message, Some(attachment), Some(json!({ "source": "sdk", "uri": "café" }))).await?.result);
+
+    test_general_upload(client, string_in_array).await?;
+    test_large_upload(client, string_in_array).await?;
+    // A PUT upload has no chunked form, so it must go in one request even with tiny chunks.
+    let small_chunks = client.set_chunk_size(1024);
+    let profile = General::new(&small_chunks).upload_generic(InputFile::from_path(Path::new("/app/tests/resources/file.png"), None).await?).await?;
+    println!("{}", profile.prefs().get::<String>("result").unwrap_or_default());
+
+    // Extended General Responses
+    test_general_download(client).await?;
+
+    let preset = general.get_preset(None).await?;
+    println!("preset: name={}, count={}, enabled={}", preset.name, preset.count, preset.enabled);
+    for item in general.list_presets().await?.presets {
+        println!("preset: name={}, count={}, enabled={}", item.name, item.count, item.enabled);
+    }
+    println!("empty presets: {}", general.list_empty_presets().await?.presets.len());
+    println!("preset verified: {}", preset.verified.map_or("null".to_string(), |verified| verified.to_string()));
+    println!("preset quality default: {}", PresetQuality::default());
+
+    // Exception Responses
+    match general.error400().await {
+        Ok(_) => {},
+        Err(e) => {
+            println!("{}", e.message);
+            println!("{}", e.response);
+        },
+    }
+
+    match general.error500().await {
+        Ok(_) => {},
+        Err(e) => {
+            println!("{}", e.message);
+            println!("{}", e.response);
+        },
+    }
+
+    match general.error502().await {
+        Ok(_) => {},
+        Err(e) => {
+            println!("{}", e.message);
+            println!("{}", e.response);
+        },
+    }
+
+    let (): () = general.empty().await?;
+
+    // Test Queries
+    test_queries(client).await?;
+
+    // Test Permission Helpers
+    test_permission_helpers();
+
+    // Test Id Helpers
+    test_id_helpers();
+    test_topic_helpers();
+
+    // Test Operator Helpers
+    test_operator_helpers();
+
+    // Final test
+    match general.headers().await {
+        Ok(response) => println!("{}", response.result),
+        Err(e) => eprintln!("general.headers => error {}", e),
+    }
+
+    Ok(())
+}
+
+async fn test_general_upload(client: &Client, string_in_array: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let general = General::new(&client);
+    let upload_file = Path::new("/app/tests/resources/file.png");
+
+    match InputFile::from_path(upload_file, None).await {
+        Ok(input_file) => {
+            match general.upload("string", 123, string_in_array, input_file).await {
+                Ok(response) => println!("{}", response.result),
+                Err(e) => eprintln!("general.upload => error {}", e),
+            }
+        },
+        Err(e) => eprintln!("Failed to read file: {}", e),
+    }
+
+    Ok(())
+}
+
+async fn test_general_download(client: &Client) -> Result<(), Box<dyn std::error::Error>> {
+    let general = General::new(&client);
+
+    match general.download().await {
+        Ok(response) => {
+            // Convert bytes to string for display
+            if let Ok(response_str) = String::from_utf8(response) {
+                println!("{}", response_str);
+            }
+        },
+        Err(e) => eprintln!("general.download => error {}", e),
+    }
+
+    Ok(())
+}
+
+async fn test_large_upload(client: &Client, string_in_array: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let general = General::new(&client);
+    let upload_file = Path::new("/app/tests/resources/large_file.mp4");
+
+    match InputFile::from_path(upload_file, None).await {
+        Ok(input_file) => {
+            match general.upload("string", 123, string_in_array, input_file).await {
+                Ok(response) => println!("{}", response.result),
+                Err(e) => eprintln!("general.upload => error {}", e),
+            }
+        },
+        Err(e) => eprintln!("Failed to read large file: {}", e),
+    }
+
+    Ok(())
+}
+
+async fn test_queries(client: &Client) -> Result<(), Box<dyn std::error::Error>> {
+    println!("{}", Query::equal("released", true));
+    println!("{}", Query::equal("title", vec!["Spiderman", "Dr. Strange"]));
+    println!("{}", Query::not_equal("title", "Spiderman"));
+    println!("{}", Query::less_than("releasedYear", 1990));
+    println!("{}", Query::greater_than("releasedYear", 1990));
+    println!("{}", Query::search("name", "john"));
+    println!("{}", Query::is_null("name"));
+    println!("{}", Query::is_not_null("name"));
+    println!("{}", Query::between("age", 50, 100));
+    println!("{}", Query::between("age", 50.5, 100.5));
+    println!("{}", Query::between("name", "Anna", "Brad"));
+    println!("{}", Query::starts_with("name", "Ann"));
+    println!("{}", Query::ends_with("name", "nne"));
+    println!("{}", Query::select(vec!["name", "age"]));
+    println!("{}", Query::order_asc("title"));
+    println!("{}", Query::order_desc("title"));
+    println!("{}", Query::order_random());
+    println!("{}", Query::cursor_after("my_movie_id"));
+    println!("{}", Query::cursor_before("my_movie_id"));
+    println!("{}", Query::limit(50));
+    println!("{}", Query::offset(20));
+    println!("{}", Query::contains("title", "Spider"));
+    println!("{}", Query::contains("labels", "first"));
+    println!("{}", Query::contains_any("labels", vec!["first", "second"]));
+    println!("{}", Query::contains_all("labels", vec!["first", "second"]));
+    println!("{}", Query::not_contains("title", "Spider"));
+    println!("{}", Query::not_search("name", "john"));
+    println!("{}", Query::not_between("age", 50, 100));
+    println!("{}", Query::not_starts_with("name", "Ann"));
+    println!("{}", Query::not_ends_with("name", "nne"));
+    println!("{}", Query::created_before("2023-01-01"));
+    println!("{}", Query::created_after("2023-01-01"));
+    println!("{}", Query::created_between("2023-01-01", "2023-12-31"));
+    println!("{}", Query::updated_before("2023-01-01"));
+    println!("{}", Query::updated_after("2023-01-01"));
+    println!("{}", Query::updated_between("2023-01-01", "2023-12-31"));
+    println!("{}", Query::distance_equal("location", json!([[40.7128, -74], [40.7128, -74]]), 1000, true));
+    println!("{}", Query::distance_equal("location", json!([40.7128, -74]), 1000, true));
+    println!("{}", Query::distance_not_equal("location", json!([40.7128, -74]), 1000, true));
+    println!("{}", Query::distance_not_equal("location", json!([40.7128, -74]), 1000, true));
+    println!("{}", Query::distance_greater_than("location", json!([40.7128, -74]), 1000, true));
+    println!("{}", Query::distance_greater_than("location", json!([40.7128, -74]), 1000, true));
+    println!("{}", Query::distance_less_than("location", json!([40.7128, -74]), 1000, true));
+    println!("{}", Query::distance_less_than("location", json!([40.7128, -74]), 1000, true));
+    println!("{}", Query::vector_dot("embedding", json!([0.1, 0.2, 0.3])));
+    println!("{}", Query::vector_cosine("embedding", json!([0.1, 0.2, 0.3])));
+    println!("{}", Query::vector_euclidean("embedding", json!([0.1, 0.2, 0.3])));
+    println!("{}", Query::intersects("location", json!([40.7128, -74])));
+    println!("{}", Query::not_intersects("location", json!([40.7128, -74])));
+    println!("{}", Query::crosses("location", json!([40.7128, -74])));
+    println!("{}", Query::not_crosses("location", json!([40.7128, -74])));
+    println!("{}", Query::overlaps("location", json!([40.7128, -74])));
+    println!("{}", Query::not_overlaps("location", json!([40.7128, -74])));
+    println!("{}", Query::touches("location", json!([40.7128, -74])));
+    println!("{}", Query::not_touches("location", json!([40.7128, -74])));
+    println!("{}", Query::contains("location", json!([[40.7128, -74], [40.7128, -74]])));
+    println!("{}", Query::not_contains("location", json!([[40.7128, -74], [40.7128, -74]])));
+    println!("{}", Query::equal("location", json!([[40.7128, -74], [40.7128, -74]])));
+    println!("{}", Query::not_equal("location", json!([[40.7128, -74], [40.7128, -74]])));
+    println!("{}", Query::or(vec![
+        Query::equal("released", true).to_string(),
+        Query::less_than("releasedYear", 1990).to_string(),
+    ]));
+    println!("{}", Query::and(vec![
+        Query::equal("released", false).to_string(),
+        Query::greater_than("releasedYear", 2015).to_string(),
+    ]));
+    println!("{}", Query::regex("name", "pattern.*"));
+    println!("{}", Query::exists(vec!["attr1", "attr2"]));
+    println!("{}", Query::not_exists(vec!["attr1", "attr2"]));
+    println!("{}", Query::elem_match("friends", vec![
+        Query::equal("name", "Alice").to_string(),
+        Query::greater_than("age", 18).to_string(),
+    ]));
+    println!("{}", Query::relationship("comments", vec![
+        Query::equal("approved", true).to_string(),
+        Query::limit(2).to_string(),
+    ]));
+    let general = General::new(client);
+    let mut queries: Vec<String> = vec![
+        Query::count("*", "total").to_string(),
+        Query::join("orders", "$id", "customerId", "=", "").to_string(),
+        Query::group_by(vec!["status"]).to_string(),
+        Query::distinct().to_string(),
+        Query::covers("location", json!([1, 2])).to_string(),
+        Query::count_distinct("year", "uniqueYears").to_string(),
+        Query::sum("price", "total").to_string(),
+        Query::avg("price", "avgPrice").to_string(),
+        Query::min("price", "lowest").to_string(),
+        Query::max("price", "highest").to_string(),
+        Query::stddev("price", "sd").to_string(),
+        Query::stddev_pop("price", "sdp").to_string(),
+        Query::stddev_samp("price", "sds").to_string(),
+        Query::variance("price", "var").to_string(),
+        Query::var_pop("price", "vp").to_string(),
+        Query::var_samp("price", "vs").to_string(),
+        Query::bit_and("flags", "band").to_string(),
+        Query::bit_or("flags", "bor").to_string(),
+        Query::bit_xor("flags", "bxor").to_string(),
+        Query::having(vec![Query::greater_than("total", 1).to_string()]).to_string(),
+        Query::left_join("orders", "$id", "customerId", "=", "ord").to_string(),
+        Query::right_join("orders", "$id", "customerId", "=", "").to_string(),
+        Query::full_outer_join("orders", "$id", "customerId", "=", "").to_string(),
+        Query::cross_join("orders", "ord").to_string(),
+        Query::on("$id", "customerId", "=").to_string(),
+        Query::left_join_on("orders", "ord", vec![
+            Query::on("$id", "customerId", "=").to_string(),
+            Query::equal("ord.status", "paid").to_string(),
+        ]).to_string(),
+        Query::not_covers("location", json!([1, 2])).to_string(),
+        Query::spatial_equals("location", json!([1, 2])).to_string(),
+        Query::not_spatial_equals("location", json!([1, 2])).to_string(),
+    ];
+    queries.extend(Query::page(2, 10).iter().map(|query| query.to_string()));
+    queries.extend(Query::builder().limit(1).build());
+    println!("{}", general.list_rows(Some(queries)).await?.result);
+
+    Ok(())
+}
+
+fn test_permission_helpers() {
+    println!("{}", Permission::read(&Role::any().to_string()));
+    println!("{}", Permission::write(&Role::user(ID::custom("userid"), None).to_string()));
+    println!("{}", Permission::create(&Role::users(None).to_string()));
+    println!("{}", Permission::update(&Role::guests().to_string()));
+    println!("{}", Permission::delete(&Role::team("teamId", Some("owner")).to_string()));
+    println!("{}", Permission::delete(&Role::team("teamId", None::<&str>).to_string()));
+    println!("{}", Permission::create(&Role::member("memberId").to_string()));
+    println!("{}", Permission::update(&Role::users(Some("verified")).to_string()));
+    println!("{}", Permission::update(&Role::user(ID::custom("userid"), Some("unverified")).to_string()));
+    println!("{}", Permission::create(&Role::label("admin").to_string()));
+}
+
+fn test_id_helpers() {
+    println!("{}", ID::unique());
+    println!("{}", ID::custom("custom_id"));
+}
+
+fn test_topic_helpers() {
+    println!("{}", topic::path(&["user", "123", "notification"]).unwrap());
+    println!("{}", topic::path(&["org", "42", "user", "123"]).unwrap().path(&["notification"]).unwrap());
+    let cases: Vec<(&str, Vec<&str>)> = vec![
+        ("empty path", vec![]),
+        ("empty level", vec!["user", ""]),
+        ("slash", vec!["user/123"]),
+        ("plus", vec!["user", "a+b"]),
+        ("hash", vec!["user", "#"]),
+        ("nul", vec!["user", "a\0b"]),
+    ];
+    for (name, levels) in cases {
+        match topic::path(&levels) {
+            Ok(_) => println!("Topic {}:failed", name),
+            Err(_) => println!("Topic {}:passed", name),
+        }
+    }
+}
+
+fn test_operator_helpers() {
+    println!("{}", operator::increment());
+    println!("{}", operator::increment_with_max(5, 100));
+    println!("{}", operator::decrement());
+    println!("{}", operator::decrement_with_min(3, 0));
+    println!("{}", operator::multiply(2));
+    println!("{}", operator::multiply_with_max(3, 1000));
+    println!("{}", operator::divide(2));
+    println!("{}", operator::divide_with_min(4, 1));
+    println!("{}", operator::modulo(5));
+    println!("{}", operator::power(2));
+    println!("{}", operator::power_with_max(3, 100));
+    println!("{}", operator::array_append(&["item1", "item2"]));
+    println!("{}", operator::array_prepend(&["first", "second"]));
+    println!("{}", operator::array_insert(0, "newItem"));
+    println!("{}", operator::array_remove("oldItem"));
+    println!("{}", operator::array_unique());
+    println!("{}", operator::array_intersect(&["a", "b", "c"]));
+    println!("{}", operator::array_diff(&["x", "y"]));
+    println!("{}", operator::array_filter_with_value(Condition::Equal, "test"));
+    println!("{}", operator::string_concat("suffix"));
+    println!("{}", operator::string_replace("old", "new"));
+    println!("{}", operator::toggle());
+    println!("{}", operator::date_add_days(7));
+    println!("{}", operator::date_sub_days(3));
+    println!("{}", operator::date_set_now());
+}

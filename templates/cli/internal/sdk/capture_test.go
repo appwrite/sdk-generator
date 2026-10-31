@@ -104,8 +104,6 @@ func TestNonJSONResponsesAreNotCaptured(t *testing.T) {
 	}
 }
 
-// A chunked upload makes one request per chunk and the command renders the file
-// the last one returns, so the newest body wins.
 func TestTheNewestResponseWins(t *testing.T) {
 	responses := []string{`{"chunk":1}`, `{"chunk":2}`, `{"chunk":3}`}
 	index := 0
@@ -185,5 +183,19 @@ func TestNonTimeoutMutationErrorIsUnchanged(t *testing.T) {
 	}
 	if got := WrapMutationError(http.MethodPost, nil); got != nil {
 		t.Errorf("nil error became %v", got)
+	}
+}
+
+func TestAnUnfinishedChunkDoesNotReplaceTheFinishedUpload(t *testing.T) {
+	LastResponse.Take()
+	defer LastResponse.Take()
+
+	finished := `{"$id":"file","chunksTotal":4,"chunksUploaded":4}`
+	LastResponse.Record([]byte(`{"$id":"file","chunksTotal":4,"chunksUploaded":2}`))
+	LastResponse.Record([]byte(finished))
+	LastResponse.Record([]byte(`{"$id":"file","chunksTotal":4,"chunksUploaded":3}`))
+
+	if got := string(LastResponse.Take()); got != finished {
+		t.Errorf("captured %q, want the response for the finished upload", got)
 	}
 }

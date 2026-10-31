@@ -272,12 +272,19 @@ class CLI extends Go
             $sdkType = parent::getTypeName($parameter);
             $expression = $variable;
 
-            if ($this->isCliGraphQLInput($parameter, $method, $service)) {
+            if ($sdkType === 'interface{}' && $this->isCliGraphQLInput($parameter, $method, $service)) {
                 $expression = $variable . 'Value';
                 $decodes[] = [
                     'var' => $expression,
                     'source' => $variable,
                     'helper' => 'GraphQLRequest',
+                ];
+            } elseif (str_starts_with($sdkType, 'models.') && $flagType === 'string') {
+                $expression = $variable . 'Decoded';
+                $decodes[] = [
+                    'var' => $expression,
+                    'source' => 'cmd, "' . $this->getCliOptionName($parameter->name) . '", ' . $variable,
+                    'helper' => 'DecodeFlag[' . $sdkType . ']',
                 ];
             } elseif ($flagType === '[]string' && $sdkType === '[]string') {
                 $expression = 'app.StringSlice(' . $variable . ')';
@@ -315,6 +322,20 @@ class CLI extends Go
             'required' => $required,
             'optional' => $optional,
         ];
+    }
+
+    /**
+     * @param array<Operation> $methods
+     */
+    protected function usesCliModels(Tag $service, array $methods): bool
+    {
+        return array_any(
+            $methods,
+            fn (Operation $method): bool => array_any(
+                $this->getGoCallPlan($method, $service)['decodes'],
+                fn (array $decode): bool => str_contains($decode['helper'], 'models.'),
+            ),
+        );
     }
 
     /**
@@ -379,6 +400,7 @@ class CLI extends Go
     {
         return array_merge(parent::getFilters(), [
             new TwigFilter('hasCliQueryParam', fn(array $methods): bool => $this->hasCliQueryParam($methods)),
+            new TwigFilter('cliUsesModels', fn(Tag $service, array $methods): bool => $this->usesCliModels($service, $methods)),
             new TwigFilter('cliServiceScope', fn(?string $resourceHeader): ?array => $this->getCliServiceScope($resourceHeader)),
             new TwigFilter('cliQueryConfig', fn(Operation $method): array => $this->getCliQueryConfig($method)),
             new TwigFilter('cliTopLevelAliases', fn(Tag $service, array $methods): array => $this->getCliTopLevelAliases($service, $methods)),

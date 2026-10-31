@@ -43,6 +43,33 @@ func TestLogoutRevokesACookieSessionAtTheServer(t *testing.T) {
 	}
 }
 
+func TestLogoutRevokesASessionOnASelfSignedEndpoint(t *testing.T) {
+	var calls []string
+
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		w.Write([]byte(`{}`))
+	}))
+	defer server.Close()
+
+	global := preferencesWith(t, `{
+		"current": "s1",
+		"s1": {"endpoint": "`+server.URL+`", "cookie": "a_session_console=abc", "selfSigned": true}
+	}`)
+
+	result := logoutSessions(global, []string{"s1"})
+
+	if len(result.Failed) != 0 {
+		t.Fatalf("failed to sign out: %v", result.Errors)
+	}
+	if len(calls) != 1 || calls[0] != "DELETE /account/sessions/current" {
+		t.Errorf("requests = %v, want the session deleted at the server", calls)
+	}
+	if _, ok := global.Session("s1"); ok {
+		t.Error("the session is still stored after signing out")
+	}
+}
+
 // A session the server never issued has nothing to revoke. `client --endpoint`
 // creates these, and reaching out for them would fail against an endpoint the
 // user has not signed in to.

@@ -49,6 +49,15 @@ class Unity extends DotNet
      */
     private const int UNTRACKED_SERVICE_FLAGS = 15;
 
+    private bool $testMode = false;
+
+    public function setTestMode(bool $testMode): self
+    {
+        $this->testMode = $testMode;
+
+        return $this;
+    }
+
     public function setPackageName(string $name): self
     {
         $this->setParam('packageName', $name);
@@ -524,8 +533,6 @@ class Unity extends DotNet
             ],
         ];
 
-        $inTest = isset($GLOBALS['UNITY_TEST_MODE']) && $GLOBALS['UNITY_TEST_MODE'] === true;
-
         foreach ($files as &$file) {
             if (
                 str_starts_with($file['destination'], 'Packages/')
@@ -534,15 +541,13 @@ class Unity extends DotNet
                 $file['test'] = true;
             }
 
-            if (!$inTest && str_starts_with($file['destination'], 'Assets/')) {
+            if (!$this->testMode && str_starts_with($file['destination'], 'Assets/')) {
                 $file['destination'] = substr($file['destination'], \strlen('Assets/'));
             }
         }
         unset($file);
 
-        // Filter out problematic files in test mode
-        // Check if we're in test mode by looking for a global variable
-        if ($inTest) {
+        if ($this->testMode) {
             $excludeInTest = [
                 'Assets/Runtime/Utilities/{{ spec.info.title | caseUcfirst }}Utilities.cs',
                 'Assets/Runtime/{{ spec.info.title | caseUcfirst }}Config.cs',
@@ -568,7 +573,7 @@ class Unity extends DotNet
      */
     public function postGenerate(string $target): void
     {
-        if (isset($GLOBALS['UNITY_TEST_MODE']) && $GLOBALS['UNITY_TEST_MODE'] === true) {
+        if ($this->testMode) {
             return;
         }
 

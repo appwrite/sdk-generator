@@ -1,5 +1,3 @@
-import asyncio
-
 from appwrite.client import Client
 from appwrite.services.foo import Foo
 from appwrite.services.bar import Bar
@@ -27,357 +25,350 @@ client.add_header('Origin', 'http://localhost')
 client.set_project('console')
 client.set_self_signed()
 
+print("\nTest Started")
+sdk_headers = client.get_headers()
+print(f"x-sdk-name: {sdk_headers['x-sdk-name']}; x-sdk-platform: {sdk_headers['x-sdk-platform']}; x-sdk-language: {sdk_headers['x-sdk-language']}; x-sdk-version: {sdk_headers['x-sdk-version']}")
 
-async def main():
-    print("\nTest Started")
-    sdk_headers = client.get_headers()
-    print(f"x-sdk-name: {sdk_headers['x-sdk-name']}; x-sdk-platform: {sdk_headers['x-sdk-platform']}; x-sdk-language: {sdk_headers['x-sdk-language']}; x-sdk-version: {sdk_headers['x-sdk-version']}")
+# Foo Tests
 
-    # Foo Tests
+response = foo.get('string', 123, ['string in array'])
+print(response.result)
 
-    response = await foo.get('string', 123, ['string in array'])
-    print(response.result)
+response = foo.post('string', 123, ['string in array'])
+print(response.result)
 
-    response = await foo.post('string', 123, ['string in array'])
-    print(response.result)
+response = foo.put('string', 123, ['string in array'])
+print(response.result)
 
-    response = await foo.put('string', 123, ['string in array'])
-    print(response.result)
+response = foo.patch('string', 123, ['string in array'])
+print(response.result)
 
-    response = await foo.patch('string', 123, ['string in array'])
-    print(response.result)
+response = foo.delete('string', 123, ['string in array'])
+print(response.result)
 
-    response = await foo.delete('string', 123, ['string in array'])
-    print(response.result)
+# Bar Tests
 
-    # Bar Tests
+response = bar.get('string',123, ['string in array'])
+print(response.result)
 
-    response = await bar.get('string',123, ['string in array'])
-    print(response.result)
+response = bar.post('string', 123, ['string in array'])
+print(response.result)
 
-    response = await bar.post('string', 123, ['string in array'])
-    print(response.result)
+response = bar.put('string', 123, ['string in array'])
+print(response.result)
 
-    response = await bar.put('string', 123, ['string in array'])
-    print(response.result)
+response = bar.patch('string', 123, ['string in array'])
+print(response.result)
 
-    response = await bar.patch('string', 123, ['string in array'])
-    print(response.result)
+response = bar.delete('string', 123, ['string in array'])
+print(response.result)
 
-    response = await bar.delete('string', 123, ['string in array'])
-    print(response.result)
+# General Tests
 
-    # General Tests
+# A redirect is reported as an error, not followed with the API key.
+try:
+    general.redirect()
+    raise AssertionError('A redirect was followed')
+except AppwriteException as error:
+    print(f'{error.code}:{error.message}')
 
-    # A redirect is reported as an error, not followed with the API key.
+for id, plain in [('', '0'), ('0', '')]:
     try:
-        await general.redirect()
-        raise AssertionError('A redirect was followed')
+        general.validate_path(plain, id)
+        raise AssertionError('Empty path parameter was accepted')
     except AppwriteException as error:
-        print(f'{error.code}:{error.message}')
+        print(error.message)
+print(general.validate_path('0', '0').result)
 
-    for id, plain in [('', '0'), ('0', '')]:
-        try:
-            await general.validate_path(plain, id)
-            raise AssertionError('Empty path parameter was accepted')
-        except AppwriteException as error:
-            print(error.message)
-    print((await general.validate_path('0', '0')).result)
-
-    # The mock routes are registered at the encoded paths, so each call only reaches its route
-    # if the ID is escaped as one segment.
-    print((await general.get_path('grant/special&id')).result)
-    print((await general.get_path('../grant?special=id#x y%')).result)
-    print((await general.get_path('unique()')).result)
-    for id in ['.', '..']:
-        try:
-            await general.get_path(id)
-            raise AssertionError('Dot path segment was accepted')
-        except AppwriteException as error:
-            print(error.message)
-
-    zone = await Plaintext(client).get_zone()
-    if not isinstance(zone, str):
-        raise AssertionError(f'Expected zone text as str, got {type(zone).__name__}')
-    print(zone)
-    print((await general.get_mixed()).result)
-    print(await Plaintext(client).import_zone('www 3600 IN A 192.0.2.1'))
-    print(await Plaintext(client).import_zone('www 3600 IN A 192.0.2.1', InputFile.from_path('./tests/resources/file.png')))
-
-    message = 'conversation without a required file'
-    print((await general.optional_upload(message)).result)
-    attachment = InputFile.from_path('./tests/resources/file.png')
-    print((await general.optional_upload(message, attachment)).result)
-    print((await general.optional_upload(message, metadata={'source': 'sdk', 'uri': 'café'})).result)
-    print((await general.optional_upload(message, InputFile.from_path('./tests/resources/file.png'), {'source': 'sdk', 'uri': 'café'})).result)
-
-    response = await general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/file.png'))
-    print(response.result)
-
-    response = await general.upload('string', 123, ['string in array'], InputFile.from_path('./tests/resources/large_file.mp4'))
-    print(response.result)
-
-    data = open('./tests/resources/file.png', 'rb').read()
-    response = await general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'file.png', 'image/png'))
-    print(response.result)
-
-    data = open('./tests/resources/large_file.mp4', 'rb').read()
-    response = await general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4','video/mp4'))
-    print(response.result)
-
-    response = await general.upload('string', 123, ['string in array'], InputFile.from_bytes(bytes(5 * 1024 * 1024), 'boundary.bin', 'application/octet-stream'))
-    print(response.result)
-
-    response = await general.upload_generic(InputFile.from_path('./tests/resources/file.png'))
-    print(response.prefs.data['result'])
-
-    print((await general.download()).decode())
-
-    response = await general.enum(MockType.FIRST)
-    print(response.result)
-
-    # Request model tests
-    response = await general.create_player(Player(id='player1', name='John Doe', score=100))
-    print(response.result)
-
-    response = await general.create_players([
-        {'id': 'player1', 'name': 'John Doe', 'score': 100},
-        {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
-    ])
-    print(response.result)
-
-    preset = await general.get_preset()
-    print(f"preset: name={preset.name}, count={preset.count:g}, enabled={str(preset.enabled).lower()}")
-    for item in (await general.list_presets()).presets:
-        print(f"preset: name={item.name}, count={item.count:g}, enabled={str(item.enabled).lower()}")
-    print(f"empty presets: {len((await general.list_empty_presets()).presets)}")
-    print(f"preset verified: {'null' if preset.verified is None else preset.verified}")
-    print(f"preset scopes: {','.join(scope.value for scope in (preset.scopes or []))}")
-    print(f"preset tier: {preset.tier}")
-    print(f"preset settings: options={len((await general.get_preset_settings()).options)}")
-
+# The mock routes are registered at the encoded paths, so each call only reaches its route
+# if the ID is escaped as one segment.
+print(general.get_path('grant/special&id').result)
+print(general.get_path('../grant?special=id#x y%').result)
+print(general.get_path('unique()').result)
+for id in ['.', '..']:
     try:
-        response = await general.error400()
-    except AppwriteException as e:
-        print(e.message)
-        print(e.response)
+        general.get_path(id)
+        raise AssertionError('Dot path segment was accepted')
+    except AppwriteException as error:
+        print(error.message)
 
-    try:
-        response = await general.error500()
-    except AppwriteException as e:
-        print(e.message)
-        print(e.response)
+zone = Plaintext(client).get_zone()
+if not isinstance(zone, str):
+    raise AssertionError(f'Expected zone text as str, got {type(zone).__name__}')
+print(zone)
+print(general.get_mixed().result)
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1'))
+print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1', InputFile.from_path('../../../resources/file.png')))
 
-    try:
-        response = await general.error502()
-    except AppwriteException as e:
-        print(e.message)
-        print(e.response)
+message = 'conversation without a required file'
+print(general.optional_upload(message).result)
+attachment = InputFile.from_path('../../../resources/file.png')
+print(general.optional_upload(message, attachment).result)
+print(general.optional_upload(message, metadata={'source': 'sdk', 'uri': 'café'}).result)
+print(general.optional_upload(message, InputFile.from_path('../../../resources/file.png'), {'source': 'sdk', 'uri': 'café'}).result)
 
-    try:
-        client.set_endpoint("htp://cloud.appwrite.io/v1")
-    except AppwriteException as e:
-        print(e.message)
+response = general.upload('string', 123, ['string in array'], InputFile.from_path('../../../resources/file.png'))
+print(response.result)
 
-    await general.empty()
+response = general.upload('string', 123, ['string in array'], InputFile.from_path('../../../resources/large_file.mp4'))
+print(response.result)
 
-    url = await general.oauth2(
-        'clientId',
-        ['test'],
-        '123456',
-        'https://localhost',
-        'https://localhost'
-    )
-    print(url)
+data = open('../../../resources/file.png', 'rb').read()
+response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'file.png', 'image/png'))
+print(response.result)
 
-    # Query helper tests
-    print(Query.equal("released", [True]))
-    print(Query.equal("title", ["Spiderman", "Dr. Strange"]))
-    print(Query.not_equal("title", "Spiderman"))
-    print(Query.less_than("releasedYear", 1990))
-    print(Query.greater_than("releasedYear", 1990))
-    print(Query.search("name", "john"))
-    print(Query.is_null("name"))
-    print(Query.is_not_null("name"))
-    print(Query.between("age", 50, 100))
-    print(Query.between("age", 50.5, 100.5))
-    print(Query.between("name", "Anna", "Brad"))
-    print(Query.starts_with("name", "Ann"))
-    print(Query.ends_with("name", "nne"))
-    print(Query.select(["name", "age"]))
-    print(Query.order_asc("title"))
-    print(Query.order_desc("title"))
-    print(Query.order_random())
-    print(Query.cursor_after("my_movie_id"))
-    print(Query.cursor_before("my_movie_id"))
-    print(Query.limit(50))
-    print(Query.offset(20))
-    print(Query.contains("title", "Spider"))
-    print(Query.contains("labels", "first"))
-    print(Query.contains_any("labels", ["first", "second"]))
-    print(Query.contains_all("labels", ["first", "second"]))
+data = open('../../../resources/large_file.mp4', 'rb').read()
+response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(data, 'large_file.mp4','video/mp4'))
+print(response.result)
 
-    # New query methods
-    print(Query.not_contains("title", "Spider"))
-    print(Query.not_search("name", "john"))
-    print(Query.not_between("age", 50, 100))
-    print(Query.not_starts_with("name", "Ann"))
-    print(Query.not_ends_with("name", "nne"))
-    print(Query.created_before("2023-01-01"))
-    print(Query.created_after("2023-01-01"))
-    print(Query.created_between('2023-01-01', '2023-12-31'))
-    print(Query.updated_before("2023-01-01"))
-    print(Query.updated_after("2023-01-01"))
-    print(Query.updated_between('2023-01-01', '2023-12-31'))
+response = general.upload('string', 123, ['string in array'], InputFile.from_bytes(bytes(5 * 1024 * 1024), 'boundary.bin', 'application/octet-stream'))
+print(response.result)
 
-    # Spatial Distance query tests
-    print(Query.distance_equal("location", [[40.7128, -74], [40.7128, -74]], 1000))
-    print(Query.distance_equal("location", [40.7128, -74], 1000, True))
-    print(Query.distance_not_equal("location", [40.7128, -74], 1000))
-    print(Query.distance_not_equal("location", [40.7128, -74], 1000, True))
-    print(Query.distance_greater_than("location", [40.7128, -74], 1000))
-    print(Query.distance_greater_than("location", [40.7128, -74], 1000, True))
-    print(Query.distance_less_than("location", [40.7128, -74], 1000))
-    print(Query.distance_less_than("location", [40.7128, -74], 1000, True))
-    print(Query.vector_dot("embedding", [0.1, 0.2, 0.3]))
-    print(Query.vector_cosine("embedding", [0.1, 0.2, 0.3]))
-    print(Query.vector_euclidean("embedding", [0.1, 0.2, 0.3]))
+response = general.upload_generic(InputFile.from_path('../../../resources/file.png'))
+print(response.prefs.data['result'])
 
-    # Spatial query tests
-    print(Query.intersects("location", [40.7128, -74]))
-    print(Query.not_intersects("location", [40.7128, -74]))
-    print(Query.crosses("location", [40.7128, -74]))
-    print(Query.not_crosses("location", [40.7128, -74]))
-    print(Query.overlaps("location", [40.7128, -74]))
-    print(Query.not_overlaps("location", [40.7128, -74]))
-    print(Query.touches("location", [40.7128, -74]))
-    print(Query.not_touches("location", [40.7128, -74]))
-    print(Query.contains("location", [[40.7128, -74], [40.7128, -74]]))
-    print(Query.not_contains("location", [[40.7128, -74], [40.7128, -74]]))
-    print(Query.equal("location", [[40.7128, -74], [40.7128, -74]]))
-    print(Query.not_equal("location", [[40.7128, -74], [40.7128, -74]]))
+print(general.download().decode())
 
-    print(Query.or_queries(
-        [Query.equal("released", True), Query.less_than("releasedYear", 1990)]
-    ))
-    print(Query.and_queries(
-        [Query.equal("released", False), Query.greater_than("releasedYear", 2015)]
-    ))
+response = general.enum(MockType.FIRST)
+print(response.result)
 
-    # New query methods: regex, exists, notExists, elemMatch
-    print(Query.regex("name", "pattern.*"))
-    print(Query.exists(["attr1", "attr2"]))
-    print(Query.not_exists(["attr1", "attr2"]))
-    print(Query.elem_match("friends", [
-        Query.equal("name", "Alice"),
-        Query.greater_than("age", 18)
-    ]))
-    print(Query.relationship("comments", [
-        Query.equal("approved", True),
-        Query.limit(2)
-    ]))
-    query_transport = await general.list_rows([
-        Query.count("*", "total"),
-        Query.join("orders", "$id", "customerId"),
-        Query.group_by(["status"]),
-        Query.distinct(),
-        Query.covers("location", [1, 2]),
-        Query.count_distinct("year", "uniqueYears"),
-        Query.sum("price", "total"),
-        Query.avg("price", "avgPrice"),
-        Query.min("price", "lowest"),
-        Query.max("price", "highest"),
-        Query.stddev("price", "sd"),
-        Query.stddev_pop("price", "sdp"),
-        Query.stddev_samp("price", "sds"),
-        Query.variance("price", "var"),
-        Query.var_pop("price", "vp"),
-        Query.var_samp("price", "vs"),
-        Query.bit_and("flags", "band"),
-        Query.bit_or("flags", "bor"),
-        Query.bit_xor("flags", "bxor"),
-        Query.having([Query.greater_than("total", 1)]),
-        Query.left_join("orders", "$id", "customerId", "=", "ord"),
-        Query.right_join("orders", "$id", "customerId"),
-        Query.full_outer_join("orders", "$id", "customerId"),
-        Query.cross_join("orders", "ord"),
+# Request model tests
+response = general.create_player(Player(id='player1', name='John Doe', score=100))
+print(response.result)
+
+response = general.create_players([
+    {'id': 'player1', 'name': 'John Doe', 'score': 100},
+    {'id': 'player2', 'name': 'Jane Doe', 'score': 200}
+])
+print(response.result)
+
+preset = general.get_preset()
+print(f"preset: name={preset.name}, count={preset.count:g}, enabled={str(preset.enabled).lower()}")
+for item in general.list_presets().presets:
+    print(f"preset: name={item.name}, count={item.count:g}, enabled={str(item.enabled).lower()}")
+print(f"empty presets: {len(general.list_empty_presets().presets)}")
+print(f"preset verified: {'null' if preset.verified is None else preset.verified}")
+print(f"preset scopes: {','.join(scope.value for scope in (preset.scopes or []))}")
+print(f"preset tier: {preset.tier}")
+print(f"preset settings: options={len(general.get_preset_settings().options)}")
+
+try:
+    response = general.error400()
+except AppwriteException as e:
+    print(e.message)
+    print(e.response)
+
+try:
+    response = general.error500()
+except AppwriteException as e:
+    print(e.message)
+    print(e.response)
+
+try:
+    response = general.error502()
+except AppwriteException as e:
+    print(e.message)
+    print(e.response)
+
+try:
+    client.set_endpoint("htp://cloud.appwrite.io/v1")
+except AppwriteException as e:
+    print(e.message)
+
+general.empty()
+
+url = general.oauth2(
+    'clientId',
+    ['test'],
+    '123456',
+    'https://localhost',
+    'https://localhost'
+)
+print(url)
+
+# Query helper tests
+print(Query.equal("released", [True]))
+print(Query.equal("title", ["Spiderman", "Dr. Strange"]))
+print(Query.not_equal("title", "Spiderman"))
+print(Query.less_than("releasedYear", 1990))
+print(Query.greater_than("releasedYear", 1990))
+print(Query.search("name", "john"))
+print(Query.is_null("name"))
+print(Query.is_not_null("name"))
+print(Query.between("age", 50, 100))
+print(Query.between("age", 50.5, 100.5))
+print(Query.between("name", "Anna", "Brad"))
+print(Query.starts_with("name", "Ann"))
+print(Query.ends_with("name", "nne"))
+print(Query.select(["name", "age"]))
+print(Query.order_asc("title"))
+print(Query.order_desc("title"))
+print(Query.order_random())
+print(Query.cursor_after("my_movie_id"))
+print(Query.cursor_before("my_movie_id"))
+print(Query.limit(50))
+print(Query.offset(20))
+print(Query.contains("title", "Spider"))
+print(Query.contains("labels", "first"))
+print(Query.contains_any("labels", ["first", "second"]))
+print(Query.contains_all("labels", ["first", "second"]))
+
+# New query methods
+print(Query.not_contains("title", "Spider"))
+print(Query.not_search("name", "john"))
+print(Query.not_between("age", 50, 100))
+print(Query.not_starts_with("name", "Ann"))
+print(Query.not_ends_with("name", "nne"))
+print(Query.created_before("2023-01-01"))
+print(Query.created_after("2023-01-01"))
+print(Query.created_between('2023-01-01', '2023-12-31'))
+print(Query.updated_before("2023-01-01"))
+print(Query.updated_after("2023-01-01"))
+print(Query.updated_between('2023-01-01', '2023-12-31'))
+
+# Spatial Distance query tests
+print(Query.distance_equal("location", [[40.7128, -74], [40.7128, -74]], 1000))
+print(Query.distance_equal("location", [40.7128, -74], 1000, True))
+print(Query.distance_not_equal("location", [40.7128, -74], 1000))
+print(Query.distance_not_equal("location", [40.7128, -74], 1000, True))
+print(Query.distance_greater_than("location", [40.7128, -74], 1000))
+print(Query.distance_greater_than("location", [40.7128, -74], 1000, True))
+print(Query.distance_less_than("location", [40.7128, -74], 1000))
+print(Query.distance_less_than("location", [40.7128, -74], 1000, True))
+print(Query.vector_dot("embedding", [0.1, 0.2, 0.3]))
+print(Query.vector_cosine("embedding", [0.1, 0.2, 0.3]))
+print(Query.vector_euclidean("embedding", [0.1, 0.2, 0.3]))
+
+# Spatial query tests
+print(Query.intersects("location", [40.7128, -74]))
+print(Query.not_intersects("location", [40.7128, -74]))
+print(Query.crosses("location", [40.7128, -74]))
+print(Query.not_crosses("location", [40.7128, -74]))
+print(Query.overlaps("location", [40.7128, -74]))
+print(Query.not_overlaps("location", [40.7128, -74]))
+print(Query.touches("location", [40.7128, -74]))
+print(Query.not_touches("location", [40.7128, -74]))
+print(Query.contains("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.not_contains("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.equal("location", [[40.7128, -74], [40.7128, -74]]))
+print(Query.not_equal("location", [[40.7128, -74], [40.7128, -74]]))
+
+print(Query.or_queries(
+    [Query.equal("released", True), Query.less_than("releasedYear", 1990)]
+))
+print(Query.and_queries(
+    [Query.equal("released", False), Query.greater_than("releasedYear", 2015)]
+))
+
+# New query methods: regex, exists, notExists, elemMatch
+print(Query.regex("name", "pattern.*"))
+print(Query.exists(["attr1", "attr2"]))
+print(Query.not_exists(["attr1", "attr2"]))
+print(Query.elem_match("friends", [
+    Query.equal("name", "Alice"),
+    Query.greater_than("age", 18)
+]))
+print(Query.relationship("comments", [
+    Query.equal("approved", True),
+    Query.limit(2)
+]))
+query_transport = general.list_rows([
+    Query.count("*", "total"),
+    Query.join("orders", "$id", "customerId"),
+    Query.group_by(["status"]),
+    Query.distinct(),
+    Query.covers("location", [1, 2]),
+    Query.count_distinct("year", "uniqueYears"),
+    Query.sum("price", "total"),
+    Query.avg("price", "avgPrice"),
+    Query.min("price", "lowest"),
+    Query.max("price", "highest"),
+    Query.stddev("price", "sd"),
+    Query.stddev_pop("price", "sdp"),
+    Query.stddev_samp("price", "sds"),
+    Query.variance("price", "var"),
+    Query.var_pop("price", "vp"),
+    Query.var_samp("price", "vs"),
+    Query.bit_and("flags", "band"),
+    Query.bit_or("flags", "bor"),
+    Query.bit_xor("flags", "bxor"),
+    Query.having([Query.greater_than("total", 1)]),
+    Query.left_join("orders", "$id", "customerId", "=", "ord"),
+    Query.right_join("orders", "$id", "customerId"),
+    Query.full_outer_join("orders", "$id", "customerId"),
+    Query.cross_join("orders", "ord"),
+    Query.on("$id", "customerId"),
+    Query.left_join("orders", "ord", [
         Query.on("$id", "customerId"),
-        Query.left_join("orders", "ord", [
-            Query.on("$id", "customerId"),
-            Query.equal("ord.status", "paid"),
-        ]),
-        Query.not_covers("location", [1, 2]),
-        Query.spatial_equals("location", [1, 2]),
-        Query.not_spatial_equals("location", [1, 2]),
-        *Query.page(2, 10),
-        Query.builder().limit(1),
-    ])
-    print(query_transport.result)
+        Query.equal("ord.status", "paid"),
+    ]),
+    Query.not_covers("location", [1, 2]),
+    Query.spatial_equals("location", [1, 2]),
+    Query.not_spatial_equals("location", [1, 2]),
+    *Query.page(2, 10),
+    Query.builder().limit(1),
+])
+print(query_transport.result)
 
-    # Permission & Role helper tests
-    print(Permission.read(Role.any()))
-    print(Permission.write(Role.user(ID.custom('userid'))))
-    print(Permission.create(Role.users()))
-    print(Permission.update(Role.guests()))
-    print(Permission.delete(Role.team('teamId', 'owner')))
-    print(Permission.delete(Role.team('teamId')))
-    print(Permission.create(Role.member('memberId')))
-    print(Permission.update(Role.users('verified')))
-    print(Permission.update(Role.user(ID.custom('userid'), 'unverified')))
-    print(Permission.create(Role.label('admin')))
+# Permission & Role helper tests
+print(Permission.read(Role.any()))
+print(Permission.write(Role.user(ID.custom('userid'))))
+print(Permission.create(Role.users()))
+print(Permission.update(Role.guests()))
+print(Permission.delete(Role.team('teamId', 'owner')))
+print(Permission.delete(Role.team('teamId')))
+print(Permission.create(Role.member('memberId')))
+print(Permission.update(Role.users('verified')))
+print(Permission.update(Role.user(ID.custom('userid'), 'unverified')))
+print(Permission.create(Role.label('admin')))
 
-    # ID helper tests
-    print(ID.unique())
-    print(ID.custom('custom_id'))
+# ID helper tests
+print(ID.unique())
+print(ID.custom('custom_id'))
 
-    # Topic helper tests
-    print(Topic.path(['user', '123', 'notification']))
-    print(Topic.path(['org', '42', 'user', '123']).path(['notification']))
-    for name, levels in [
-        ('empty path', []),
-        ('empty level', ['user', '']),
-        ('slash', ['user/123']),
-        ('plus', ['user', 'a+b']),
-        ('hash', ['user', '#']),
-        ('nul', ['user', 'a\0b']),
-    ]:
-        try:
-            Topic.path(levels)
-            print(f'Topic {name}:failed')
-        except ValueError:
-            print(f'Topic {name}:passed')
+# Topic helper tests
+print(Topic.path(['user', '123', 'notification']))
+print(Topic.path(['org', '42', 'user', '123']).path(['notification']))
+for name, levels in [
+    ('empty path', []),
+    ('empty level', ['user', '']),
+    ('slash', ['user/123']),
+    ('plus', ['user', 'a+b']),
+    ('hash', ['user', '#']),
+    ('nul', ['user', 'a\0b']),
+]:
+    try:
+        Topic.path(levels)
+        print(f'Topic {name}:failed')
+    except ValueError:
+        print(f'Topic {name}:passed')
 
-    # Operator helper tests
-    print(Operator.increment())
-    print(Operator.increment(5, 100))
-    print(Operator.decrement())
-    print(Operator.decrement(3, 0))
-    print(Operator.multiply(2))
-    print(Operator.multiply(3, 1000))
-    print(Operator.divide(2))
-    print(Operator.divide(4, 1))
-    print(Operator.modulo(5))
-    print(Operator.power(2))
-    print(Operator.power(3, 100))
-    print(Operator.array_append(['item1', 'item2']))
-    print(Operator.array_prepend(['first', 'second']))
-    print(Operator.array_insert(0, 'newItem'))
-    print(Operator.array_remove('oldItem'))
-    print(Operator.array_unique())
-    print(Operator.array_intersect(['a', 'b', 'c']))
-    print(Operator.array_diff(['x', 'y']))
-    print(Operator.array_filter(Condition.EQUAL, 'test'))
-    print(Operator.string_concat('suffix'))
-    print(Operator.string_replace('old', 'new'))
-    print(Operator.toggle())
-    print(Operator.date_add_days(7))
-    print(Operator.date_sub_days(3))
-    print(Operator.date_set_now())
+# Operator helper tests
+print(Operator.increment())
+print(Operator.increment(5, 100))
+print(Operator.decrement())
+print(Operator.decrement(3, 0))
+print(Operator.multiply(2))
+print(Operator.multiply(3, 1000))
+print(Operator.divide(2))
+print(Operator.divide(4, 1))
+print(Operator.modulo(5))
+print(Operator.power(2))
+print(Operator.power(3, 100))
+print(Operator.array_append(['item1', 'item2']))
+print(Operator.array_prepend(['first', 'second']))
+print(Operator.array_insert(0, 'newItem'))
+print(Operator.array_remove('oldItem'))
+print(Operator.array_unique())
+print(Operator.array_intersect(['a', 'b', 'c']))
+print(Operator.array_diff(['x', 'y']))
+print(Operator.array_filter(Condition.EQUAL, 'test'))
+print(Operator.string_concat('suffix'))
+print(Operator.string_replace('old', 'new'))
+print(Operator.toggle())
+print(Operator.date_add_days(7))
+print(Operator.date_sub_days(3))
+print(Operator.date_set_now())
 
-    response = await general.headers()
-    print(response.result)
-
-    await client.aclose()
-
-
-asyncio.run(main())
+response = general.headers()
+print(response.result)

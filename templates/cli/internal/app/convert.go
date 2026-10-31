@@ -3,9 +3,12 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 // Conversions between what a flag can hold and what an SDK parameter declares.
@@ -104,6 +107,25 @@ func StringSlice(raws []string) []string {
 
 func isEmptyArray(raws []string) bool {
 	return len(raws) == 1 && strings.TrimSpace(raws[0]) == EmptyArray
+}
+
+func DecodeFlag[T any](command *cobra.Command, name string, raw string) (T, error) {
+	var value T
+	if !command.Flags().Changed(name) {
+		return value, nil
+	}
+
+	decoder := json.NewDecoder(strings.NewReader(raw))
+	decoder.UseNumber()
+
+	if err := decoder.Decode(&value); err != nil {
+		return value, fmt.Errorf("expected JSON for --%s, got %q: %w", name, raw, err)
+	}
+	if _, err := decoder.Token(); err != io.EOF {
+		return value, fmt.Errorf("expected one JSON value for --%s, got %q", name, raw)
+	}
+
+	return value, nil
 }
 
 // DecodeSlice parses each value of a repeatable flag into T.

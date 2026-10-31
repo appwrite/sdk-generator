@@ -91,7 +91,7 @@ jobs:
           composer install
 
       - name: Run Tests
-        run: composer test tests/e2e/${{ matrix.sdk }}Test.php
+        run: composer test -- tests/e2e/RuntimeTest.php --filter '@${{ matrix.sdk }}' --fail-on-empty-test-suite
 
   generation:
     name: Checks / Generation
@@ -114,6 +114,9 @@ jobs:
 
       - name: Run Tests
         run: composer test -- --testsuite Generation
+
+      - name: Harness
+        run: composer test -- tests/e2e/DriverTest.php tests/e2e/JsonTest.php
 
   lint:
     name: Checks / Lint

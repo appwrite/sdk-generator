@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -247,11 +249,11 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		fmt.Printf("empty presets: %d\n", len(emptyPresets.Presets))
 	}
 	if preset != nil {
-		if preset.Verified == nil {
-			fmt.Println("preset verified: null")
-		} else {
-			fmt.Printf("preset verified: %t\n", *preset.Verified)
+		verified := "null"
+		if preset.Verified != nil {
+			verified = strconv.FormatBool(*preset.Verified)
 		}
+		fmt.Printf("preset verified: %s\n", verified)
 		fmt.Printf("preset scopes: %s\n", strings.Join(preset.Scopes, ","))
 	}
 
@@ -259,22 +261,20 @@ func testGeneralService(client client.Client, stringInArray []string) {
 	_, err = general.Error400()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
-		fmt.Printf("%s\n", `{"message":"Mock 400 error","code":400}`) // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
+		printResponse(err)
 	}
 
 	_, err = general.Error500()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
-		fmt.Printf("%s\n", `{"message":"Mock 500 error","code":500}`) // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
+		printResponse(err)
 	}
 
 	_, err = general.Error502()
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
-		fmt.Printf("%s\n", "This is a text error") // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
+		printResponse(err)
 	}
-
-	fmt.Println("Invalid endpoint URL: htp://cloud.appwrite.io/v1") // TODO: Temporary workaround until AppwriteError can be properly instantiated and returned.
 
 	general.Empty()
 
@@ -560,4 +560,11 @@ func testOperatorHelpers() {
 	fmt.Println(operator.DateAddDays(7))
 	fmt.Println(operator.DateSubDays(3))
 	fmt.Println(operator.DateSetNow())
+}
+
+func printResponse(err error) {
+	var appwriteError *client.AppwriteError
+	if errors.As(err, &appwriteError) {
+		fmt.Println(appwriteError.GetResponse())
+	}
 }

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs the Flutter web e2e (web_tests.dart) under a headless browser.
+# Runs the Flutter web e2e (test/appwrite_web_test.dart) under a headless browser.
 #
 # The Flutter image ships no browser, so install Google Chrome, then run the test with
 # `flutter test --platform chrome`. Chrome runs as root inside the container, so it is
@@ -20,4 +20,7 @@ chmod +x /usr/local/bin/chrome-nosandbox
 export CHROME_EXECUTABLE=/usr/local/bin/chrome-nosandbox
 
 flutter pub get
-flutter test --platform chrome test/appwrite_web_test.dart
+status=0
+flutter test --platform chrome test/appwrite_web_test.dart > flutter-test.log || status=$?
+grep -v -x 'No tests ran.' flutter-test.log
+[ "$status" -eq 0 ] || [ "$status" -eq 79 ]

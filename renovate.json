@@ -303,7 +303,8 @@
     },
     {
       "description": "net6 e2e stays on the older VSTest/NUnit stack; newer combos break TestContext capture on EOL net6.",
-      "matchFileNames": ["tests/e2e/languages/dotnet/Tests60.csproj"],
+      "matchFileNames": ["tests/e2e/languages/dotnet/Tests.csproj"],
+      "matchCurrentVersion": "/^(17\\.1\\.0|3\\.13\\.3|4\\.2\\.1|3\\.1\\.2)$/",
       "enabled": false
     },
     {
@@ -337,10 +338,10 @@
       "minimumReleaseAge": "3 days"
     },
     {
-      "description": "Keep the Swift 6.1-compatible tracing range until newer toolchains are validated.",
+      "description": "The tracing range is capped below 1.6.0 by hand for Swift 6.1; Renovate rewrites the exclusive bound to drop 1.5.0.",
       "matchManagers": ["swift", "custom.regex"],
       "matchDepNames": ["apple/swift-distributed-tracing"],
-      "allowedVersions": "<1.6.0"
+      "enabled": false
     },
     {
       "matchUpdateTypes": ["major"],
