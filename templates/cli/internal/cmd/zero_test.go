@@ -3,15 +3,18 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
@@ -42,16 +45,30 @@ func zeroServer(t *testing.T, requests *[]*http.Request, status string) *httptes
 				"expiresAt":      "2099-01-01T00:00:00Z",
 				"claimBy":        "2099-01-02T00:00:00Z",
 			})
+		case r.URL.Path == "/zero/zero-project/tokens" && status == zeroNotFound:
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"message":"Zero project not found","code":404,"type":"zero_not_found"}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/zero/zero-project/tokens":
+			body, _ := io.ReadAll(r.Body)
+			r.Body = io.NopCloser(bytes.NewReader(body))
+			w.WriteHeader(http.StatusCreated)
+			json.NewEncoder(w).Encode(map[string]any{
+				"userId": "zero-owner",
+				"secret": "sign-in-secret",
+				"expire": time.Now().Add(5 * time.Minute).UTC().Format(time.RFC3339),
+				"url":    "https://console.example/sign-in?secret=sign-in-secret",
+			})
 		case r.Method == http.MethodGet && r.URL.Path == "/zero/zero-project" && status == zeroNotFound:
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte(`{"message":"Zero project not found","code":404,"type":"zero_not_found"}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/zero/zero-project":
 			json.NewEncoder(w).Encode(map[string]any{
-				"projectId": "zero-project",
-				"status":    status,
-				"endpoint":  server.URL,
-				"expiresAt": "2099-01-01T00:00:00Z",
-				"claimBy":   "2099-01-02T00:00:00Z",
+				"projectId":  "zero-project",
+				"status":     status,
+				"endpoint":   server.URL,
+				"consoleUrl": "https://console.example/project",
+				"expiresAt":  "2099-01-01T00:00:00Z",
+				"claimBy":    "2099-01-02T00:00:00Z",
 			})
 		case r.Method == http.MethodGet && r.URL.Path == "/proxy/rules" && status == zeroExpired:
 			w.WriteHeader(http.StatusForbidden)
@@ -165,6 +182,198 @@ func TestZeroLinksTheDirectoryAndStoresTheKeyAsASession(t *testing.T) {
 
 	if !strings.Contains(out.String(), "https://console.example/claim/code") {
 		t.Errorf("welcome does not print the claim link:\n%s", out)
+	}
+	// The console URL opens nothing for an owner with no session, so the
+	// welcome points at the command that signs the browser in instead.
+	if strings.Contains(out.String(), "https://console.example/project") {
+		t.Errorf("welcome prints the console URL, which needs a session:\n%s", out)
+	}
+	if !strings.Contains(out.String(), "zero console") {
+		t.Errorf("welcome does not point at zero console:\n%s", out)
+	}
+}
+
+// stdout captures what the renderer writes, which goes to os.Stdout rather
+// than to the command's writer.
+func stdout(t *testing.T, run func()) string {
+	t.Helper()
+
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous := os.Stdout
+	os.Stdout = writer
+	defer func() { os.Stdout = previous }()
+
+	run()
+	writer.Close()
+	contents, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return string(contents)
+}
+
+// `zero status` keeps consoleUrl in --json, whose schema agents read, but a
+// person is pointed at `zero console`: the URL alone opens nothing until the
+// project is claimed.
+func TestZeroStatusPointsAtZeroConsole(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		json bool
+	}{
+		{"table", false},
+		{"json", true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			preferencesWith(t, `{}`)
+			inDirectory(t, t.TempDir())
+			withZeroFlags(t, false, false)
+
+			var requests []*http.Request
+			server := zeroServer(t, &requests, zeroActive)
+
+			command, out := captureCommand()
+			if err := runZero(command, server.URL, ""); err != nil {
+				t.Fatal(err)
+			}
+
+			withZeroFlags(t, test.json, false)
+			out.Reset()
+			var err error
+			rendered := stdout(t, func() { err = runZeroStatus(command) })
+			if err != nil {
+				t.Fatal(err)
+			}
+			printed := rendered + out.String()
+
+			if got := strings.Contains(printed, "https://console.example/project"); got != test.json {
+				t.Errorf("console URL printed = %v, want %v:\n%s", got, test.json, printed)
+			}
+			if got := strings.Contains(printed, "zero console"); got == test.json {
+				t.Errorf("zero console hint printed = %v, want %v:\n%s", got, !test.json, printed)
+			}
+		})
+	}
+}
+
+// `zero console` signs the browser in as the project's owner with the stored
+// claim secret, the same unauthenticated way `zero status` reads the project,
+// and opens the link it gets back.
+func TestZeroConsoleOpensASignInLink(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroActive)
+
+	command, out := captureCommand()
+	if err := runZero(command, server.URL, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	requests = requests[:0]
+	out.Reset()
+	var opened []string
+	if err := runZeroConsole(command, func(link string) { opened = append(opened, link) }); err != nil {
+		t.Fatal(err)
+	}
+
+	const link = "https://console.example/sign-in?secret=sign-in-secret"
+	if len(requests) != 1 {
+		t.Fatalf("expected one request, got %d", len(requests))
+	}
+	request := requests[0]
+	if request.Method != http.MethodPost || request.URL.Path != "/zero/zero-project/tokens" {
+		t.Errorf("called %s %s", request.Method, request.URL.Path)
+	}
+	if got := request.Header.Get("X-Appwrite-Project"); got != "console" {
+		t.Errorf("project header = %q, want console", got)
+	}
+	if got := request.Header.Get("X-Appwrite-Key"); got != "" {
+		t.Errorf("sent the API key %q to an unauthenticated endpoint", got)
+	}
+	var body map[string]any
+	if err := json.NewDecoder(request.Body).Decode(&body); err != nil || body["secret"] != "claim-secret" {
+		t.Errorf("body = %v (%v), want the stored claim secret", body, err)
+	}
+
+	if len(opened) != 1 || opened[0] != link {
+		t.Errorf("opened %v, want the sign-in link", opened)
+	}
+	if !strings.Contains(out.String(), link) {
+		t.Errorf("does not print the link for a browser that did not open:\n%s", out)
+	}
+}
+
+// The link signs in once, so --json hands it back unopened: a browser opening
+// it would spend it. The session secret behind it stays out without
+// --show-secrets.
+func TestZeroConsoleJSONPrintsTheLinkUnopened(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroActive)
+
+	command, out := captureCommand()
+	if err := runZero(command, server.URL, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	withZeroFlags(t, true, false)
+	out.Reset()
+	opened := false
+	if err := runZeroConsole(command, func(string) { opened = true }); err != nil {
+		t.Fatal(err)
+	}
+
+	if opened {
+		t.Error("opened the single-use link with --json")
+	}
+	var token map[string]any
+	if err := json.Unmarshal(out.Bytes(), &token); err != nil {
+		t.Fatalf("output is not JSON: %v\n%s", err, out)
+	}
+	if token["url"] != "https://console.example/sign-in?secret=sign-in-secret" {
+		t.Errorf("url = %v", token["url"])
+	}
+	if secret, present := token["secret"]; present {
+		t.Errorf("secret = %v printed without --show-secrets", secret)
+	}
+}
+
+// Once the project is claimed or deleted the API answers zero_not_found, and
+// `zero console` says so the way `zero status` does rather than echo the API.
+func TestZeroConsoleReportsAProjectNoLongerUnclaimed(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroNotFound)
+
+	command, _ := captureCommand()
+	if err := runZero(command, server.URL, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	opened := false
+	err := runZeroConsole(command, func(string) { opened = true })
+	if err == nil {
+		t.Fatal("zero console succeeded for a project the API no longer knows")
+	}
+	for _, want := range []string{"zero-project", "claimed or deleted", "https://console.example/project"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("message %q does not mention %q", err, want)
+		}
+	}
+	if opened {
+		t.Error("opened a browser for a project it could not sign in to")
 	}
 }
 

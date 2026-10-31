@@ -31,8 +31,9 @@ import (
 // the X-Appwrite-Zero-Token header.
 
 const (
-	pathZero  = "/zero"
-	pathRules = "/proxy/rules"
+	pathZero   = "/zero"
+	pathRules  = "/proxy/rules"
+	pathTokens = "/tokens"
 
 	// zeroOwnerPath is where a domain of an unclaimed Zero takes the owner token.
 	zeroOwnerPath = "/__appwrite/zero?token="
@@ -74,6 +75,7 @@ func newZeroCommand() *cobra.Command {
 	command.Flags().StringVar(&region, "region", "",
 		"Cloud region to create the project in: "+strings.Join(config.CloudRegions(), ", "))
 	command.AddCommand(newZeroStatusCommand())
+	command.AddCommand(newZeroConsoleCommand())
 
 	return command
 }
@@ -85,6 +87,20 @@ func newZeroStatusCommand() *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(command *cobra.Command, args []string) error {
 			return runZeroStatus(command)
+		},
+	}
+}
+
+func newZeroConsoleCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "console",
+		Short: "Open this directory's Zero project in the console",
+		Long: "Sign in to the console as the owner of this directory's unclaimed Zero project " +
+			"and open it. The link works once, for a few minutes. --json prints it without " +
+			"opening a browser, for agents to hand back.",
+		Args: cobra.NoArgs,
+		RunE: func(command *cobra.Command, args []string) error {
+			return runZeroConsole(command, openBrowser)
 		},
 	}
 }
@@ -192,10 +208,10 @@ func zeroEndpoint(endpoint, region string) (string, error) {
 	return regionalEndpoint(endpoint, region), nil
 }
 
-// renderZeroManifest prints the manifest an agent hands back. The owner token
-// is its point, and the welcome already prints it in each owner link, so the
-// redactor must not mask it. The API key and the claim secret are kept in
-// prefs.json for the CLI's own calls and leave it only with --show-secrets.
+// renderZeroManifest prints what an agent hands back: the manifest, whose point
+// is the owner token the welcome already prints in each owner link, or the
+// console sign-in link. The redactor must not mask those. The API key, the
+// claim secret and the sign-in token's secret leave only with --show-secrets.
 func renderZeroManifest(out io.Writer, zero *jsonx.Object) error {
 	if !app.Flags().ShowSecrets {
 		zero.Delete("apiKey")
@@ -217,7 +233,6 @@ func printZeroWelcome(out io.Writer, zero *jsonx.Object, path string) {
 	fmt.Fprintln(out)
 	fmt.Fprintf(out, "  Project    %s\n", zero.GetString("projectId"))
 	fmt.Fprintf(out, "  Endpoint   %s\n", zero.GetString("endpoint"))
-	fmt.Fprintf(out, "  Console    %s\n", zero.GetString("consoleUrl"))
 	fmt.Fprintln(out)
 	fmt.Fprintf(out, "  You have %s to build. Claim it within %s to keep it:\n",
 		timeLeft(zero.GetString("expiresAt"), now), timeLeft(zero.GetString("claimBy"), now))
@@ -229,6 +244,7 @@ func printZeroWelcome(out io.Writer, zero *jsonx.Object, path string) {
 	fmt.Fprintln(out, output.Heading("  Next steps"))
 	fmt.Fprintf(out, "    %s tablesdb list       Call the project with its API key\n", name)
 	fmt.Fprintf(out, "    %s push                Deploy this directory's resources\n", name)
+	fmt.Fprintf(out, "    %s zero console        Open the project in the console\n", name)
 	fmt.Fprintf(out, "    %s zero status         Check the time left and get each domain's owner link\n", name)
 }
 
@@ -266,7 +282,12 @@ func runZeroStatus(command *cobra.Command) error {
 	report.Set("projectId", zero.GetString("projectId"))
 	report.Set("status", status)
 	report.Set("endpoint", zero.GetString("endpoint"))
-	report.Set("consoleUrl", zero.GetString("consoleUrl"))
+	// The console URL opens only for a signed-in owner, which an unclaimed
+	// project has none of, so a person is pointed at `zero console` instead.
+	machine := app.Flags().JSON || app.Flags().Raw
+	if machine {
+		report.Set("consoleUrl", zero.GetString("consoleUrl"))
+	}
 	report.Set("buildTimeLeft", timeLeft(zero.GetString("expiresAt"), now))
 	report.Set("claimTimeLeft", timeLeft(zero.GetString("claimBy"), now))
 	report.Set("claimUrl", stored.GetString("claimUrl"))
@@ -282,7 +303,64 @@ func runZeroStatus(command *cobra.Command) error {
 	report.Set("expiresAt", zero.GetString("expiresAt"))
 	report.Set("claimBy", zero.GetString("claimBy"))
 
-	return app.RenderValue(report)
+	if err := app.RenderValue(report); err != nil {
+		return err
+	}
+	if !machine {
+		output.Hint(command.OutOrStdout(), "Run `%s zero console` to open the project in the console", app.ExecutableName)
+	}
+
+	return nil
+}
+
+// runZeroConsole signs the browser in as the project's anonymous owner, whose
+// console URL alone opens nothing. The link is single use, so --json prints it
+// unopened for whoever it is handed to.
+func runZeroConsole(command *cobra.Command, open func(string)) error {
+	global, err := preferences()
+	if err != nil {
+		return err
+	}
+
+	session := zeroSession(global)
+	if session == nil {
+		return fmt.Errorf("no Appwrite Zero project found. Run `%s zero` to create one", app.ExecutableName)
+	}
+	stored := session.GetObject(preferenceZero)
+
+	var token jsonx.Object
+	path := pathZero + "/" + url.PathEscape(stored.GetString("$id")) + pathTokens
+	err = client.New(session.GetString(config.PreferenceEndpoint), app.Version).
+		WithoutResponseFormat().
+		SetProject(config.ProjectConsole).
+		SetLocale("en-US").
+		Call("POST", path, map[string]any{"secret": stored.GetString("secret")}, &token)
+	var apiError *client.APIError
+	if errors.As(err, &apiError) && apiError.Type == zeroNotFound {
+		return zeroGone(session)
+	}
+	if err != nil {
+		return err
+	}
+
+	if app.Flags().JSON || app.Flags().Raw {
+		return renderZeroManifest(command.OutOrStdout(), &token)
+	}
+
+	link := token.GetString("url")
+	open(link)
+
+	out := command.OutOrStdout()
+	output.Success(out, "Opening Appwrite Zero project %s in the console", stored.GetString("projectId"))
+	fmt.Fprintln(out)
+	within := ""
+	if left := timeLeft(token.GetString("expire"), time.Now()); left != "" {
+		within = " within " + left
+	}
+	fmt.Fprintf(out, "  If the browser did not open, this link signs you in once%s:\n", within)
+	fmt.Fprintf(out, "    %s\n", link)
+
+	return nil
 }
 
 // zeroGone explains zero_not_found, which the API answers alike for a claimed,
