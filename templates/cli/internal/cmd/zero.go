@@ -238,14 +238,13 @@ func printZeroWelcome(out io.Writer, zero *jsonx.Object, path string) {
 		timeLeft(zero.GetString("expiresAt"), now), timeLeft(zero.GetString("claimBy"), now))
 	fmt.Fprintf(out, "    %s\n", zero.GetString("claimUrl"))
 	fmt.Fprintln(out)
-	fmt.Fprintln(out, "  Until then its domains open only for you, through each domain's owner link:")
-	fmt.Fprintf(out, "    https://<domain>%s%s\n", zeroOwnerPath, zero.GetString("accessToken"))
+	fmt.Fprintln(out, "  Open it in the console, signed in:")
+	fmt.Fprintf(out, "    %s zero console\n", name)
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, output.Heading("  Next steps"))
 	fmt.Fprintf(out, "    %s tablesdb list       Call the project with its API key\n", name)
 	fmt.Fprintf(out, "    %s push                Deploy this directory's resources\n", name)
-	fmt.Fprintf(out, "    %s zero console        Open the project in the console\n", name)
-	fmt.Fprintf(out, "    %s zero status         Check the time left and get each domain's owner link\n", name)
+	fmt.Fprintf(out, "    %s zero status         Check the time left and get the private links to your sites and functions\n", name)
 }
 
 func runZeroStatus(command *cobra.Command) error {

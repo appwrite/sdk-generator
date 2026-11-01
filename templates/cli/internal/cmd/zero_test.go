@@ -191,6 +191,11 @@ func TestZeroLinksTheDirectoryAndStoresTheKeyAsASession(t *testing.T) {
 	if !strings.Contains(out.String(), "zero console") {
 		t.Errorf("welcome does not point at zero console:\n%s", out)
 	}
+	// A new project has no sites or functions, so there is no owner link to
+	// print: `zero status` lists one per domain once they exist.
+	if strings.Contains(out.String(), zeroOwnerPath) || strings.Contains(out.String(), "owner-token") {
+		t.Errorf("welcome prints an owner link:\n%s", out)
+	}
 }
 
 // stdout captures what the renderer writes, which goes to os.Stdout rather
