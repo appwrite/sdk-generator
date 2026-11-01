@@ -2,7 +2,7 @@
     "name": "web-e2e",
     "private": true,
     "dependencies": {
-        "playwright": "1.56.1",
+        "playwright": "1.64.1",
         "serve-handler": "6.1.7"
     }
 }
