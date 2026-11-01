@@ -518,6 +518,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/config/region.go',
+                'template'      => 'cli/internal/config/region.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/config/config_test.go',
                 'template'      => 'cli/internal/config/config_test.go',
             ],

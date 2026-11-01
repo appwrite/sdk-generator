@@ -654,3 +654,37 @@ func TestZeroRefusesARegionOrEndpointItCannotUse(t *testing.T) {
 		})
 	}
 }
+
+// Without --region or --endpoint the project goes to the region nearest the
+// user, on that region's host. The base host left everyone in Frankfurt and
+// stored an endpoint that was not the project's region.
+func TestZeroCreatesInTheNearestRegion(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+	t.Setenv(sdk.EnvEndpoint, "")
+	t.Setenv("TZ", "Asia/Singapore")
+
+	const regional = "https://sgp.cloud.appwrite.io/v1"
+
+	var host, path string
+	regionalZeroServer(t, regional, &host, &path)
+
+	command, _ := captureCommand()
+	if err := runZero(command, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	if host != "sgp.cloud.appwrite.io" || path != "/v1/zero" {
+		t.Errorf("created the project through %s%s, want sgp.cloud.appwrite.io/v1/zero", host, path)
+	}
+
+	global, err := preferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := global.SessionData(zeroSessionPrefix + "zero-project")
+	if session == nil || session.GetString(config.PreferenceEndpoint) != regional {
+		t.Errorf("session endpoint is not %s", regional)
+	}
+}

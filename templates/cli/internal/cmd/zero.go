@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -62,7 +63,7 @@ func newZeroCommand() *cobra.Command {
 			"for you: visit a domain's owner link once, or send the access token in the " +
 			"X-Appwrite-Zero-Token header. --json prints the manifest, including the claim " +
 			"link and the access token, for agents to hand back.\n\n" +
-			"The project is created in the region that serves the request. --region picks one, " +
+			"The project is created in the Cloud region closest to you. --region picks one, " +
 			"such as `zero --region fra`; it cannot be combined with --endpoint.",
 		Args: cobra.NoArgs,
 		RunE: func(command *cobra.Command, args []string) error {
@@ -182,7 +183,9 @@ func runZero(command *cobra.Command, endpoint, region string) error {
 // zeroEndpoint picks the host to create the project on. The API takes no
 // region: a Zero project is created in the region of the server that receives
 // the request, so --region selects that region's host, and an endpoint is used
-// as given rather than collapsed onto the base host.
+// as given rather than collapsed onto the base host. With neither, the project
+// goes to the nearest region's host: the base host would leave every user in
+// Frankfurt, and store an endpoint that is not the project's region.
 func zeroEndpoint(endpoint, region string) (string, error) {
 	if region != "" && endpoint != "" {
 		return "", errors.New("--region and --endpoint both choose where the project is created; pass only one")
@@ -197,6 +200,9 @@ func zeroEndpoint(endpoint, region string) (string, error) {
 	}
 	if endpoint == "" {
 		endpoint = config.DefaultEndpoint
+		if region == "" {
+			region = nearestRegion(endpoint)
+		}
 	}
 	if region == "" {
 		return endpoint, nil
@@ -206,6 +212,42 @@ func zeroEndpoint(endpoint, region string) (string, error) {
 	}
 
 	return regionalEndpoint(endpoint, region), nil
+}
+
+// nearestRegion picks the region for a project nobody placed. Cloud answers
+// GET /locale for anyone, from the caller's IP; when that fails, the local time
+// zone still places most users and Frankfurt takes the rest.
+func nearestRegion(endpoint string) string {
+	var locale jsonx.Object
+	_ = client.New(endpoint, app.Version).
+		WithoutResponseFormat().
+		SetProject(config.ProjectConsole).
+		Call("GET", "/locale", nil, &locale)
+
+	timeZone := localTimeZone()
+	if timeZone == "" {
+		timeZone = locale.GetString("timeZone")
+	}
+
+	return config.SuggestRegion(locale.GetString("countryCode"), locale.GetString("continentCode"),
+		timeZone, config.CloudRegions())
+}
+
+// localTimeZone is the IANA name of the machine's zone, from TZ or the
+// /etc/localtime link macOS and Linux keep; Go's time.Local only says "Local".
+func localTimeZone() string {
+	zone := strings.TrimPrefix(osGetenv("TZ"), ":")
+	if zone == "" {
+		zone, _ = os.Readlink("/etc/localtime")
+	}
+	if _, name, found := strings.Cut(zone, "zoneinfo/"); found {
+		return name
+	}
+	if strings.HasPrefix(zone, "/") {
+		return ""
+	}
+
+	return zone
 }
 
 // renderZeroManifest prints what an agent hands back: the manifest, whose point
