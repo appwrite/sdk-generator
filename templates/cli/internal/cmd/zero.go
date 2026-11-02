@@ -346,7 +346,9 @@ func printZeroWelcome(out io.Writer, zero *jsonx.Object, path, directory string)
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, output.Heading("  Next steps"))
 	if directory != "" {
-		fmt.Fprintf(out, "    %s\n", cdCommand(directory, runtime.GOOS))
+		// Git Bash, MSYS and Cygwin on Windows set SHELL; PowerShell and cmd do not
+		powershell := runtime.GOOS == "windows" && os.Getenv("SHELL") == ""
+		fmt.Fprintf(out, "    %s\n", cdCommand(directory, powershell))
 	}
 	fmt.Fprintf(out, "    %s tablesdb list       Call the project with its API key\n", name)
 	fmt.Fprintf(out, "    %s push                Deploy this directory's resources\n", name)
@@ -518,7 +520,12 @@ func runZeroList(command *cobra.Command) error {
 		return nil
 	}
 
-	return app.RenderValue(projects)
+	// The shape of the API's lists, which the human renderer draws as a table
+	list := jsonx.NewObject()
+	list.Set("total", len(projects))
+	list.Set("projects", projects)
+
+	return app.RenderValue(list)
 }
 
 // runZeroDelete deletes the project with its claim code, which the API checks
@@ -673,10 +680,10 @@ func zeroError(err error, endpoint string) error {
 }
 
 // cdCommand is the line a user pastes to enter a new directory: quoted for
-// PowerShell on Windows, where a single quote is doubled rather than escaped,
-// and for zsh or bash elsewhere.
-func cdCommand(directory, goos string) string {
-	if goos != "windows" {
+// PowerShell, where a single quote is doubled rather than escaped, or for a
+// POSIX shell, including Git Bash on Windows.
+func cdCommand(directory string, powershell bool) string {
+	if !powershell {
 		return "cd " + shellQuote(directory)
 	}
 	if !strings.ContainsAny(directory, " \t'\"`$&|;()[]{}<>#@,") {

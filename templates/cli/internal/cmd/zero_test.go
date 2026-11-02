@@ -904,10 +904,14 @@ func TestZeroListShowsTheStoredProjects(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var projects []map[string]any
-	if err := json.Unmarshal([]byte(rendered), &projects); err != nil {
+	var list struct {
+		Total    int              `json:"total"`
+		Projects []map[string]any `json:"projects"`
+	}
+	if err := json.Unmarshal([]byte(rendered), &list); err != nil {
 		t.Fatalf("not a JSON list: %v\n%s", err, rendered)
 	}
+	projects := list.Projects
 	if len(projects) != 1 {
 		t.Fatalf("got %d projects, want 1:\n%s", len(projects), rendered)
 	}
@@ -985,10 +989,13 @@ func TestZeroListDoesNotCallAClosedProjectDeleted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var projects []map[string]any
-	if err := json.Unmarshal([]byte(rendered), &projects); err != nil || len(projects) != 1 {
+	var list struct {
+		Projects []map[string]any `json:"projects"`
+	}
+	if err := json.Unmarshal([]byte(rendered), &list); err != nil || len(list.Projects) != 1 {
 		t.Fatalf("not a one-project list: %v\n%s", err, rendered)
 	}
+	projects := list.Projects
 	if projects[0]["status"] != "closed" {
 		t.Errorf("status = %v, want closed", projects[0]["status"])
 	}
@@ -1069,16 +1076,49 @@ func TestZeroShowsTheClaimLinkWhenItCannotSaveTheSession(t *testing.T) {
 // The `cd` hint is pasted into the user's shell, so it is quoted the way that
 // shell reads it.
 func TestZeroCdHintQuotesForTheUsersShell(t *testing.T) {
-	for _, test := range []struct{ directory, goos, want string }{
-		{"my-app", "linux", "cd my-app"},
-		{"my app", "darwin", "cd 'my app'"},
-		{"O'Neil", "linux", `cd 'O'\''Neil'`},
-		{"my-app", "windows", "cd my-app"},
-		{"my app", "windows", "cd 'my app'"},
-		{"O'Neil", "windows", "cd 'O''Neil'"},
+	for _, test := range []struct {
+		directory  string
+		powershell bool
+		want       string
+	}{
+		{"my-app", false, "cd my-app"},
+		{"my app", false, "cd 'my app'"},
+		{"O'Neil", false, `cd 'O'\''Neil'`},
+		{"my-app", true, "cd my-app"},
+		{"my app", true, "cd 'my app'"},
+		{"O'Neil", true, "cd 'O''Neil'"},
 	} {
-		if got := cdCommand(test.directory, test.goos); got != test.want {
-			t.Errorf("cdCommand(%q, %q) = %q, want %q", test.directory, test.goos, got, test.want)
+		if got := cdCommand(test.directory, test.powershell); got != test.want {
+			t.Errorf("cdCommand(%q, %v) = %q, want %q", test.directory, test.powershell, got, test.want)
 		}
+	}
+}
+
+// Without --json, the list is a readable table, not Go's print of its rows.
+func TestZeroListRendersATable(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroActive)
+
+	command, _ := captureCommand()
+	if err := runZero(command, server.URL, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	var err error
+	rendered := stdout(t, func() { err = runZeroList(command) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"zero-project", "active", "https://console.example/claim/code"} {
+		if !strings.Contains(rendered, want) {
+			t.Errorf("table lacks %s:\n%s", want, rendered)
+		}
+	}
+	if strings.Contains(rendered, "map[") || strings.Contains(rendered, "&{") {
+		t.Errorf("printed Go values:\n%s", rendered)
 	}
 }
