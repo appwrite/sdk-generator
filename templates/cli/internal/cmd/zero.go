@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -433,21 +434,31 @@ func zeroOwnerLinks(session *config.Object, projectID, token string) ([]string, 
 		return links, nil
 	}
 
-	var rules jsonx.Object
-	err := client.New(session.GetString(config.PreferenceEndpoint), app.Version).
+	api := client.New(session.GetString(config.PreferenceEndpoint), app.Version).
 		WithoutResponseFormat().
 		SetProject(projectID).
-		SetKey(session.GetString(config.PreferenceKey)).
-		Call("GET", pathRules, nil, &rules)
-	if err != nil {
-		return nil, err
-	}
+		SetKey(session.GetString(config.PreferenceKey))
 
-	for _, rule := range rules.GetObjects("rules") {
-		links = append(links, "https://"+rule.GetString("domain")+zeroOwnerPath+url.QueryEscape(token))
-	}
+	// Every deployment adds a preview rule, so a busy project has more than a page
+	const pageSize = 100
+	for offset := 0; ; offset += pageSize {
+		query := url.Values{"queries[]": []string{
+			`{"method":"limit","values":[` + strconv.Itoa(pageSize) + `]}`,
+			`{"method":"offset","values":[` + strconv.Itoa(offset) + `]}`,
+		}}
+		var rules jsonx.Object
+		if err := api.Call("GET", pathRules+"?"+query.Encode(), nil, &rules); err != nil {
+			return nil, err
+		}
 
-	return links, nil
+		page := rules.GetObjects("rules")
+		for _, rule := range page {
+			links = append(links, "https://"+rule.GetString("domain")+zeroOwnerPath+url.QueryEscape(token))
+		}
+		if len(page) < pageSize {
+			return links, nil
+		}
+	}
 }
 
 // zeroSession finds the Zero session for this directory's project, falling

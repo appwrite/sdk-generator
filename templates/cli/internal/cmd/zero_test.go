@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -716,5 +717,47 @@ func TestZeroPrefersCloudsTimeZoneOverTheMachines(t *testing.T) {
 
 	if host != "sfo.cloud.appwrite.io" {
 		t.Errorf("created the project through %s, want sfo.cloud.appwrite.io", host)
+	}
+}
+
+// Every deployment adds a preview rule, so the rules come back over several
+// pages and each one gets an owner link.
+func TestZeroOwnerLinksCoverEveryPageOfRules(t *testing.T) {
+	const total = 101
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Appwrite's default page when no limit is sent
+		limit, offset := 25, 0
+		for _, query := range r.URL.Query()["queries[]"] {
+			var parsed struct {
+				Method string `json:"method"`
+				Values []int  `json:"values"`
+			}
+			if json.Unmarshal([]byte(query), &parsed) == nil && len(parsed.Values) == 1 {
+				switch parsed.Method {
+				case "limit":
+					limit = parsed.Values[0]
+				case "offset":
+					offset = parsed.Values[0]
+				}
+			}
+		}
+		rules := []map[string]any{}
+		for i := offset; i < total && i < offset+limit; i++ {
+			rules = append(rules, map[string]any{"domain": fmt.Sprintf("rule-%d.example", i)})
+		}
+		json.NewEncoder(w).Encode(map[string]any{"total": total, "rules": rules})
+	}))
+	t.Cleanup(server.Close)
+
+	session := config.NewObject()
+	session.Set(config.PreferenceEndpoint, server.URL)
+	session.Set(config.PreferenceKey, "standard_zero-api-key")
+
+	links, err := zeroOwnerLinks(session, "zero-project", "owner-token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(links) != total || links[total-1] != "https://rule-100.example"+zeroOwnerPath+"owner-token" {
+		t.Errorf("got %d owner links, want %d ending with rule-100", len(links), total)
 	}
 }
