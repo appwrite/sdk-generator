@@ -528,8 +528,7 @@ class PushBridgeBackgroundStatusTest {
 class PushTlsTest {
     private val reactContext = BridgeReactContext(ApplicationProvider.getApplicationContext<Application>())
 
-    // tls-fixtures.js sits next to this project in the generated SDK.
-    private val fixtures = File("../tls-fixtures.js").readText()
+    private val fixtures = File("../push/tls-fixtures.js").readText()
 
     private fun pem(name: String): ByteArray {
         val body = fixtures.substringAfter("export const $name = `").substringBefore("`;")
