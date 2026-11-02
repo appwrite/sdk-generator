@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -46,6 +47,13 @@ func zeroServer(t *testing.T, requests *[]*http.Request, status string) *httptes
 				"expiresAt":      "2099-01-01T00:00:00Z",
 				"claimBy":        "2099-01-02T00:00:00Z",
 			})
+		case r.Method == http.MethodDelete && r.URL.Path == "/zero/zero-project" && status == zeroNotFound:
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"message":"Zero project not found","code":404,"type":"zero_not_found"}`))
+		case r.Method == http.MethodDelete && r.URL.Path == "/zero/zero-project":
+			body, _ := io.ReadAll(r.Body)
+			r.Body = io.NopCloser(bytes.NewReader(body))
+			w.WriteHeader(http.StatusNoContent)
 		case r.URL.Path == "/zero/zero-project/tokens" && status == zeroNotFound:
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte(`{"message":"Zero project not found","code":404,"type":"zero_not_found"}`))
@@ -139,7 +147,7 @@ func TestZeroLinksTheDirectoryAndStoresTheKeyAsASession(t *testing.T) {
 	server := zeroServer(t, &requests, zeroActive)
 
 	command, out := captureCommand()
-	if err := runZero(command, server.URL, ""); err != nil {
+	if err := runZero(command, server.URL, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -246,7 +254,7 @@ func TestZeroStatusPointsAtZeroConsole(t *testing.T) {
 			server := zeroServer(t, &requests, zeroActive)
 
 			command, out := captureCommand()
-			if err := runZero(command, server.URL, ""); err != nil {
+			if err := runZero(command, server.URL, "", ""); err != nil {
 				t.Fatal(err)
 			}
 
@@ -281,7 +289,7 @@ func TestZeroConsoleOpensASignInLink(t *testing.T) {
 	server := zeroServer(t, &requests, zeroActive)
 
 	command, out := captureCommand()
-	if err := runZero(command, server.URL, ""); err != nil {
+	if err := runZero(command, server.URL, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -331,7 +339,7 @@ func TestZeroConsoleJSONPrintsTheLinkUnopened(t *testing.T) {
 	server := zeroServer(t, &requests, zeroActive)
 
 	command, out := captureCommand()
-	if err := runZero(command, server.URL, ""); err != nil {
+	if err := runZero(command, server.URL, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -368,7 +376,7 @@ func TestZeroConsoleReportsAProjectNoLongerUnclaimed(t *testing.T) {
 	server := zeroServer(t, &requests, zeroNotFound)
 
 	command, _ := captureCommand()
-	if err := runZero(command, server.URL, ""); err != nil {
+	if err := runZero(command, server.URL, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -407,7 +415,7 @@ func TestZeroJSONManifestCarriesTheOwnerToken(t *testing.T) {
 			server := zeroServer(t, &requests, zeroActive)
 
 			command, out := captureCommand()
-			if err := runZero(command, server.URL, ""); err != nil {
+			if err := runZero(command, server.URL, "", ""); err != nil {
 				t.Fatal(err)
 			}
 
@@ -446,7 +454,7 @@ func TestZeroStatusUsesTheStoredSession(t *testing.T) {
 	server := zeroServer(t, &requests, zeroActive)
 
 	command, _ := captureCommand()
-	if err := runZero(command, server.URL, ""); err != nil {
+	if err := runZero(command, server.URL, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -496,7 +504,7 @@ func TestZeroStatusReportsAnExpiredProject(t *testing.T) {
 	server := zeroServer(t, &requests, zeroExpired)
 
 	command, _ := captureCommand()
-	if err := runZero(command, server.URL, ""); err != nil {
+	if err := runZero(command, server.URL, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -526,7 +534,7 @@ func TestZeroUsesARegionalEndpointAsGiven(t *testing.T) {
 	regionalZeroServer(t, regional, &host, &path)
 
 	command, _ := captureCommand()
-	if err := runZero(command, regional, ""); err != nil {
+	if err := runZero(command, regional, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -557,7 +565,7 @@ func TestZeroStatusReportsAProjectNoLongerUnclaimed(t *testing.T) {
 	server := zeroServer(t, &requests, zeroNotFound)
 
 	command, _ := captureCommand()
-	if err := runZero(command, server.URL, ""); err != nil {
+	if err := runZero(command, server.URL, "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -598,7 +606,7 @@ func TestZeroRegionCreatesOnTheRegionalHost(t *testing.T) {
 	regionalZeroServer(t, regional, &host, &path)
 
 	command, _ := captureCommand()
-	if err := runZero(command, "", "syd"); err != nil {
+	if err := runZero(command, "", "syd", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -638,7 +646,7 @@ func TestZeroRefusesARegionOrEndpointItCannotUse(t *testing.T) {
 			regionalZeroServer(t, "", &host, &path)
 
 			command, _ := captureCommand()
-			err := runZero(command, test.endpoint, test.region)
+			err := runZero(command, test.endpoint, test.region, "")
 			if err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("error = %v, want one mentioning %s", err, test.want)
 			}
@@ -676,7 +684,7 @@ func TestZeroCreatesInTheNearestRegion(t *testing.T) {
 	regionalZeroServer(t, regional, &host, &path)
 
 	command, _ := captureCommand()
-	if err := runZero(command, "", ""); err != nil {
+	if err := runZero(command, "", "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -711,7 +719,7 @@ func TestZeroPrefersCloudsTimeZoneOverTheMachines(t *testing.T) {
 	})
 
 	command, _ := captureCommand()
-	if err := runZero(command, "", ""); err != nil {
+	if err := runZero(command, "", "", ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -759,5 +767,189 @@ func TestZeroOwnerLinksCoverEveryPageOfRules(t *testing.T) {
 	}
 	if len(links) != total || links[total-1] != "https://rule-100.example"+zeroOwnerPath+"owner-token" {
 		t.Errorf("got %d owner links, want %d ending with rule-100", len(links), total)
+	}
+}
+
+func withForce(t *testing.T) {
+	t.Helper()
+
+	previous := app.Flags().Force
+	app.Flags().Force = true
+	t.Cleanup(func() { app.Flags().Force = previous })
+}
+
+// `zero delete` sends the claim code the project was created with, then
+// forgets the session and unlinks the directory so the next `zero` starts clean.
+func TestZeroDeleteRemovesTheProjectAndForgetsIt(t *testing.T) {
+	preferencesWith(t, `{}`)
+	directory := t.TempDir()
+	inDirectory(t, directory)
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroActive)
+
+	command, out := captureCommand()
+	if err := runZero(command, server.URL, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	withForce(t)
+	if err := runZeroDelete(command); err != nil {
+		t.Fatal(err)
+	}
+
+	request := requests[len(requests)-1]
+	if request.Method != http.MethodDelete || request.URL.Path != "/zero/zero-project" {
+		t.Fatalf("last request = %s %s, want DELETE /zero/zero-project", request.Method, request.URL.Path)
+	}
+	body, _ := io.ReadAll(request.Body)
+	var sent map[string]any
+	if err := json.Unmarshal(body, &sent); err != nil || sent["secret"] != "claim-secret" {
+		t.Errorf("sent %s, want the claim secret", body)
+	}
+
+	global, err := preferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if global.SessionData(zeroSessionPrefix+"zero-project") != nil {
+		t.Error("the deleted project's session is still stored")
+	}
+	local, err := config.LoadLocal(config.LocalPath(directory))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := local.Data.GetString("projectId"); got != "" {
+		t.Errorf("the directory is still linked to %s", got)
+	}
+	if !strings.Contains(out.String(), "Deleted Appwrite Zero project zero-project") {
+		t.Errorf("output:\n%s", out)
+	}
+}
+
+// Without a terminal to ask on, delete refuses unless --force answers for it,
+// so an agent cannot delete a project by accident.
+func TestZeroDeleteAsksBeforeDeleting(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroActive)
+
+	command, _ := captureCommand()
+	if err := runZero(command, server.URL, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	err := runZeroDelete(command)
+	if err == nil || !strings.Contains(err.Error(), "--force") {
+		t.Fatalf("err = %v, want one naming --force", err)
+	}
+	for _, request := range requests {
+		if request.Method == http.MethodDelete {
+			t.Fatal("deleted without being told to")
+		}
+	}
+}
+
+// A project the API no longer answers for keeps its session, as `zero status`
+// leaves it: the CLI cannot tell a claimed project from a deleted one.
+func TestZeroDeleteReportsAProjectNoLongerUnclaimed(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroNotFound)
+
+	command, _ := captureCommand()
+	if err := runZero(command, server.URL, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	withForce(t)
+	err := runZeroDelete(command)
+	if err == nil || !strings.Contains(err.Error(), "no longer unclaimed") {
+		t.Fatalf("err = %v, want the claimed-or-deleted explanation", err)
+	}
+
+	global, _ := preferences()
+	if global.SessionData(zeroSessionPrefix+"zero-project") == nil {
+		t.Error("the session was dropped for a project that may still be claimable")
+	}
+}
+
+// `zero list` reads the stored sessions alone, so it works offline and for a
+// project the API no longer answers for.
+func TestZeroListShowsTheStoredProjects(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroActive)
+
+	command, _ := captureCommand()
+	if err := runZero(command, server.URL, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	sent := len(requests)
+
+	withZeroFlags(t, true, false)
+	var err error
+	rendered := stdout(t, func() { err = runZeroList(command) })
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var projects []map[string]any
+	if err := json.Unmarshal([]byte(rendered), &projects); err != nil {
+		t.Fatalf("not a JSON list: %v\n%s", err, rendered)
+	}
+	if len(projects) != 1 {
+		t.Fatalf("got %d projects, want 1:\n%s", len(projects), rendered)
+	}
+	project := projects[0]
+	if project["projectId"] != "zero-project" || project["status"] != zeroActive || project["linked"] != true {
+		t.Errorf("project = %v", project)
+	}
+	if project["claimUrl"] != "https://console.example/claim/code" {
+		t.Errorf("claimUrl = %v", project["claimUrl"])
+	}
+	if len(requests) != sent {
+		t.Error("list called the API")
+	}
+}
+
+// `zero my-app` creates the directory and links it, the way `npm create vite
+// my-app` does, so a new project never lands in an unrelated directory.
+func TestZeroCreatesTheDirectoryItIsGiven(t *testing.T) {
+	preferencesWith(t, `{}`)
+	parent := t.TempDir()
+	inDirectory(t, parent)
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroActive)
+
+	command, out := captureCommand()
+	if err := runZero(command, server.URL, "", "my-app"); err != nil {
+		t.Fatal(err)
+	}
+
+	local, err := config.LoadLocal(config.LocalPath(filepath.Join(parent, "my-app")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := local.Data.GetString("projectId"); got != "zero-project" {
+		t.Errorf("my-app is linked to %q, want zero-project", got)
+	}
+	if _, err := os.Stat(config.LocalPath(parent)); err == nil {
+		t.Error("the current directory was linked too")
+	}
+	if !strings.Contains(out.String(), "cd my-app") {
+		t.Errorf("welcome does not say to cd into it:\n%s", out)
 	}
 }
