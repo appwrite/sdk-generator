@@ -200,15 +200,22 @@ func runZero(command *cobra.Command, endpoint, region, directory string) error {
 	session.Set(config.PreferenceKey, zero.GetString("apiKey"))
 	session.Set(preferenceZero, stored)
 
+	messages := bannerWriter(command)
 	previous := global.CurrentSessionID()
 	global.AddSession(zeroSessionPrefix+projectID, session)
 	if err := global.Write(); err != nil {
+		// The project exists, and this response is the only copy of its claim
+		// link and key, so they are shown before the error.
+		output.Warn(messages, "Appwrite Zero project %s was created but could not be saved. Keep these, they are not stored anywhere else:", projectID)
+		fmt.Fprintf(messages, "  Claim link  %s\n", zero.GetString("claimUrl"))
+		fmt.Fprintf(messages, "  Endpoint    %s\n", projectEndpoint)
+		fmt.Fprintf(messages, "  API key     %s\n", zero.GetString("apiKey"))
+
 		return err
 	}
 
 	// Resource definitions are kept, so an existing config pushes straight
 	// into the new project.
-	messages := bannerWriter(command)
 	if linked := local.Data.GetString("projectId"); linked != "" && linked != projectID {
 		output.Warn(messages, "This directory was linked to project %s and now uses the Zero project.", linked)
 	}
