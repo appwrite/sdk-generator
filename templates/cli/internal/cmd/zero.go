@@ -135,7 +135,7 @@ func newZeroListCommand() *cobra.Command {
 func newZeroDeleteCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "delete",
-		Short: "Delete this directory's Zero project now",
+		Short: "Delete the Zero project linked to this directory now",
 		Long: "Delete this directory's unclaimed Zero project instead of waiting for its claim " +
 			"window to close, and forget its session. It cannot be undone. Asks first; --force " +
 			"skips the question, which is how an agent or a script runs it.",
@@ -338,7 +338,7 @@ func printZeroWelcome(out io.Writer, zero *jsonx.Object, path, directory string)
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, output.Heading("  Next steps"))
 	if directory != "" {
-		fmt.Fprintf(out, "    cd %s\n", directory)
+		fmt.Fprintf(out, "    cd %s\n", shellQuote(directory))
 	}
 	fmt.Fprintf(out, "    %s tablesdb list       Call the project with its API key\n", name)
 	fmt.Fprintf(out, "    %s push                Deploy this directory's resources\n", name)
@@ -483,10 +483,12 @@ func runZeroList(command *cobra.Command) error {
 		}
 		stored := session.GetObject(preferenceZero)
 
+		// Past its claim window a project is claimed or deleted, which the
+		// stored dates cannot tell apart.
 		status := zeroActive
 		switch {
 		case timeLeft(stored.GetString("claimBy"), now) == "":
-			status = "deleted"
+			status = "closed"
 		case timeLeft(stored.GetString("expiresAt"), now) == "":
 			status = zeroExpired
 		}
@@ -520,12 +522,18 @@ func runZeroDelete(command *cobra.Command) error {
 		return err
 	}
 
-	session := zeroSession(global)
-	if session == nil {
-		return fmt.Errorf("no Appwrite Zero project found. Run `%s zero` to create one", app.ExecutableName)
+	// Only the project this directory is linked to: falling back to the active
+	// session, as `zero status` does, could delete an unrelated project.
+	local, err := config.LoadLocal(config.FindLocalPath())
+	if err != nil {
+		return fmt.Errorf("no Appwrite Zero project is linked here. Run `%s zero delete` in its directory", app.ExecutableName)
+	}
+	projectID := local.Data.GetString("projectId")
+	session := global.SessionData(zeroSessionPrefix + projectID)
+	if projectID == "" || session == nil || session.GetObject(preferenceZero) == nil {
+		return fmt.Errorf("this directory is not linked to an Appwrite Zero project on this machine. Run `%s zero list` to see them", app.ExecutableName)
 	}
 	stored := session.GetObject(preferenceZero)
-	projectID := stored.GetString("projectId")
 
 	confirmed, err := prompt.New(app.Flags().Force).Confirm(prompt.Question{
 		Message: fmt.Sprintf("Delete Appwrite Zero project %s? Its data, sites and functions go with it, and it cannot be undone.", projectID),
@@ -558,11 +566,9 @@ func runZeroDelete(command *cobra.Command) error {
 	if err := global.Write(); err != nil {
 		return err
 	}
-	if local, err := config.LoadLocal(config.FindLocalPath()); err == nil && local.Data.GetString("projectId") == projectID {
-		local.Data.Delete("projectId")
-		if err := local.Write(); err != nil {
-			return err
-		}
+	local.Data.Delete("projectId")
+	if err := local.Write(); err != nil {
+		return err
 	}
 
 	output.Success(command.OutOrStdout(), "Deleted Appwrite Zero project %s", projectID)

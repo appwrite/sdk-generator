@@ -935,21 +935,93 @@ func TestZeroCreatesTheDirectoryItIsGiven(t *testing.T) {
 	server := zeroServer(t, &requests, zeroActive)
 
 	command, out := captureCommand()
-	if err := runZero(command, server.URL, "", "my-app"); err != nil {
+	if err := runZero(command, server.URL, "", "my app"); err != nil {
 		t.Fatal(err)
 	}
 
-	local, err := config.LoadLocal(config.LocalPath(filepath.Join(parent, "my-app")))
+	local, err := config.LoadLocal(config.LocalPath(filepath.Join(parent, "my app")))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := local.Data.GetString("projectId"); got != "zero-project" {
-		t.Errorf("my-app is linked to %q, want zero-project", got)
+		t.Errorf("my app is linked to %q, want zero-project", got)
 	}
 	if _, err := os.Stat(config.LocalPath(parent)); err == nil {
 		t.Error("the current directory was linked too")
 	}
-	if !strings.Contains(out.String(), "cd my-app") {
+	// Quoted, so the printed command can be pasted as is
+	if !strings.Contains(out.String(), "cd 'my app'") {
 		t.Errorf("welcome does not say to cd into it:\n%s", out)
+	}
+}
+
+// Past its claim window a stored project may have been claimed rather than
+// deleted, so the list says only that the window closed.
+func TestZeroListDoesNotCallAClosedProjectDeleted(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroActive)
+
+	command, _ := captureCommand()
+	if err := runZero(command, server.URL, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	global, err := preferences()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored := global.SessionData(zeroSessionPrefix + "zero-project").GetObject(preferenceZero)
+	stored.Set("expiresAt", "2000-01-01T00:00:00Z")
+	stored.Set("claimBy", "2000-01-02T00:00:00Z")
+	if err := global.Write(); err != nil {
+		t.Fatal(err)
+	}
+
+	withZeroFlags(t, true, false)
+	rendered := stdout(t, func() { err = runZeroList(command) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	var projects []map[string]any
+	if err := json.Unmarshal([]byte(rendered), &projects); err != nil || len(projects) != 1 {
+		t.Fatalf("not a one-project list: %v\n%s", err, rendered)
+	}
+	if projects[0]["status"] != "closed" {
+		t.Errorf("status = %v, want closed", projects[0]["status"])
+	}
+}
+
+// In a directory linked to another project, delete refuses rather than fall
+// back to the active Zero session and delete a project nobody pointed at.
+func TestZeroDeleteLeavesAProjectThisDirectoryIsNotLinkedTo(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	server := zeroServer(t, &requests, zeroActive)
+
+	command, _ := captureCommand()
+	if err := runZero(command, server.URL, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	other := t.TempDir()
+	if err := os.WriteFile(config.LocalPath(other), []byte(`{"projectId":"other-project"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	inDirectory(t, other)
+
+	withForce(t)
+	if err := runZeroDelete(command); err == nil {
+		t.Fatal("deleted the active Zero project from a directory linked to another")
+	}
+	for _, request := range requests {
+		if request.Method == http.MethodDelete {
+			t.Fatal("sent a delete")
+		}
 	}
 }
