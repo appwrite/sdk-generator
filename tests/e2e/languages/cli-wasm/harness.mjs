@@ -9,8 +9,6 @@ import { fileURLToPath } from 'node:url'
 const here = fileURLToPath(new URL('.', import.meta.url))
 const launcher = join(here, 'run.cjs')
 
-const resultLabel = /^result\s*:?\s+/
-
 // Keep the run isolated from real credentials.
 const home = mkdtempSync(join(tmpdir(), 'appwrite-cli-wasm-conformance-'))
 process.on('exit', () => rmSync(home, { recursive: true, force: true }))
@@ -42,16 +40,13 @@ function runExpectingFailure(...args) {
 }
 
 function value(...args) {
-    for (const line of run(...args).split('\n')) {
-        const trimmed = line.trim()
-        if (trimmed === '') {
-            continue
-        }
+    const output = run(...args, '--raw')
 
-        return trimmed.replace(resultLabel, '').trim()
+    try {
+        return JSON.parse(output).result
+    } catch {
+        return fail(`\`${args.join(' ')} --raw\` did not print the API response\n${output}`)
     }
-
-    return fail(`no value in CLI output for \`${args.join(' ')}\``)
 }
 
 function fail(message) {
@@ -66,7 +61,7 @@ run('client',
     '--self-signed', 'true',
 )
 
-// Base.php compares output positionally after this marker.
+// RuntimeTest.php compares output positionally after this marker.
 console.log('Test Started')
 
 const headers = value('general', 'headers')

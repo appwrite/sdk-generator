@@ -42,6 +42,18 @@ func TestLoginSelfSignedFollowsTheEndpoint(t *testing.T) {
 	}
 }
 
+// A login to another server uses the trust already saved for that server.
+func TestLoginSelfSignedReusesTheTargetEndpointsSavedTrust(t *testing.T) {
+	global := preferencesWith(t, `{"current": "one", "one": {"endpoint": "https://one/v1", "cookie": "zzcookie"}, "two": {"endpoint": "https://two/v1", "selfSigned": true}}`)
+
+	if trusted, _ := loginSelfSigned(global, "https://two/v1", nil); !trusted {
+		t.Error("ignored the trust saved for https://two/v1")
+	}
+	if trusted, _ := loginSelfSigned(global, "https://three/v1", nil); trusted {
+		t.Error("trusted an endpoint no session has agreed to")
+	}
+}
+
 // Two ways to spell "not the current account" that mean different things:
 // --switch moves to one already signed in, --new signs in again. Asking for
 // both is a contradiction, not a preference.

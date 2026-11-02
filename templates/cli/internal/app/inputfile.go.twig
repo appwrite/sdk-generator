@@ -1,20 +1,5 @@
 package app
 
-{% if sdk.test %}
-// InputFile is stubbed for the conformance build.
-//
-// The e2e suite asserts on printed output rather than on uploads, and the mock
-// services take their arguments as `any`, so the real upload type -- and with it
-// the whole SDK dependency -- is not needed to run the harness.
-func InputFile(path string) (any, error) {
-	return path, nil
-}
-
-// DeploymentInputFile is stubbed for the conformance build.
-func DeploymentInputFile(path string) (any, func(), error) {
-	return path, func() {}, nil
-}
-{% else %}
 import (
 	"fmt"
 	"os"
@@ -94,4 +79,3 @@ func inputFileProjectRoot() string {
 
 	return filepath.Dir(path)
 }
-{% endif %}

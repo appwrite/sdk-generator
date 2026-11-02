@@ -3,6 +3,7 @@ package sdk
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -23,11 +24,9 @@ import (
 // generated signature to carry the bytes alongside would be a large change to
 // a published SDK for one consumer's benefit.
 
-// LastResponse holds the most recent JSON response body.
-//
-// Last-wins is deliberate. A chunked upload makes one request per chunk and the
-// command renders the file the final chunk returns, so the final body is the
-// one to keep.
+// LastResponse holds the most recent JSON response body, except that a chunk
+// reporting an unfinished upload never replaces one reporting the finished
+// file: the SDK uploads chunks concurrently, so they do not arrive in order.
 var LastResponse = &responseRecorder{}
 
 type responseRecorder struct {
@@ -55,7 +54,34 @@ func (r *responseRecorder) Record(body []byte) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	if uploadState(r.body) == uploadFinished && uploadState(body) == uploadUnfinished {
+		return
+	}
+
 	r.body = body
+}
+
+type upload int
+
+const (
+	uploadNone upload = iota
+	uploadUnfinished
+	uploadFinished
+)
+
+func uploadState(body []byte) upload {
+	var progress struct {
+		Total    *float64 `json:"chunksTotal"`
+		Uploaded *float64 `json:"chunksUploaded"`
+	}
+	if json.Unmarshal(body, &progress) != nil || progress.Total == nil || progress.Uploaded == nil {
+		return uploadNone
+	}
+	if *progress.Uploaded >= *progress.Total {
+		return uploadFinished
+	}
+
+	return uploadUnfinished
 }
 
 // requestWasMade records that the process reached the API.

@@ -1,0 +1,557 @@
+import './shims/expo-runtime';
+import { useExpoFileSystem } from './shims/metro-require';
+import { written } from './shims/expo-file-system';
+import { Platform } from 'react-native';
+import {
+    Client,
+    Foo,
+    Bar,
+    General,
+    Plaintext,
+    AppwriteException,
+    Realtime,
+    Query,
+    flattenParam,
+    Permission,
+    Role,
+    ID,
+    Topic,
+    Channel,
+    Operator,
+    Condition,
+    MockType,
+} from '../../../sdks/react-native/src/index';
+
+(async () => {
+    let response;
+    let responseRealtime = 'Realtime failed!';
+    let responseRealtimeWithQueries = 'Realtime failed!';
+    let responseRealtimeWithQueriesFailure = 'Realtime failed!';
+
+    let rtsubFailureUnsubscribed = false;
+    let rtsubFailureFiredAfterUnsubscribe = false;
+
+    const client = new Client();
+
+    const foo = new Foo(client);
+    const bar = new Bar(client);
+    const general = new General(client);
+    const sdkHeaders = client.getHeaders();
+
+    console.log(
+        `x-sdk-name: ${sdkHeaders['x-sdk-name']}; x-sdk-platform: ${sdkHeaders['x-sdk-platform']}; x-sdk-language: ${sdkHeaders['x-sdk-language']}; x-sdk-version: ${sdkHeaders['x-sdk-version']}`
+    );
+
+    client.setProject('123456');
+    response = await client.ping();
+    console.log(response.result);
+
+    client.setProject('console');
+    client.setEndpointRealtime('ws://mockapi/v1');
+
+    const realtime = new Realtime(client);
+
+    await realtime.subscribe(['tests'], (message) => {
+        responseRealtime = message.payload.response;
+    });
+
+    const rtsubWithQueries = await realtime.subscribe(
+        ['tests'],
+        (message) => {
+            responseRealtimeWithQueries = message.payload.response;
+        },
+        [[Query.equal('response', ['WS:/v1/realtime:passed'])]],
+    );
+
+    const rtsubWithQueriesFailure = await realtime.subscribe(
+        ['tests'],
+        (message) => {
+            if (rtsubFailureUnsubscribed) rtsubFailureFiredAfterUnsubscribe = true;
+            responseRealtimeWithQueriesFailure = message.payload.response;
+        },
+        [[Query.equal('response', ['failed'])]],
+    );
+
+    const rtPresenceSub = await realtime.subscribe(['presences'], (message) => {
+        if (message.payload?.$id === 'p-test') {
+            console.log('Realtime presence:passed');
+        }
+    });
+
+    let responseRealtimeError = 'Realtime error:failed';
+    realtime.onError(() => { responseRealtimeError = 'Realtime error:passed'; });
+    const rtsubError = await realtime.subscribe(['error'], () => {});
+
+    // Foo
+    response = await foo.get('string', 123, ['string in array']);
+    console.log(response.result);
+    response = await foo.post('string', 123, ['string in array']);
+    console.log(response.result);
+    response = await foo.put('string', 123, ['string in array']);
+    console.log(response.result);
+    response = await foo.patch('string', 123, ['string in array']);
+    console.log(response.result);
+    response = await foo.delete('string', 123, ['string in array']);
+    console.log(response.result);
+
+    // Foo (Object params)
+    response = await foo.get({ x: 'string', y: 123, z: ['string in array'] });
+    console.log(response.result);
+    response = await foo.post({ x: 'string', y: 123, z: ['string in array'] });
+    console.log(response.result);
+    response = await foo.put({ x: 'string', y: 123, z: ['string in array'] });
+    console.log(response.result);
+    response = await foo.patch({ x: 'string', y: 123, z: ['string in array'] });
+    console.log(response.result);
+    response = await foo.delete({ x: 'string', y: 123, z: ['string in array'] });
+    console.log(response.result);
+
+    // Bar
+    response = await bar.get('string', 123, ['string in array']);
+    console.log(response.result);
+    response = await bar.post('string', 123, ['string in array']);
+    console.log(response.result);
+    response = await bar.put('string', 123, ['string in array']);
+    console.log(response.result);
+    response = await bar.patch('string', 123, ['string in array']);
+    console.log(response.result);
+    response = await bar.delete('string', 123, ['string in array']);
+    console.log(response.result);
+
+    // Bar (Object params)
+    response = await bar.get({ required: 'string', xdefault: 123, z: ['string in array'] });
+    console.log(response.result);
+    response = await bar.post({ required: 'string', xdefault: 123, z: ['string in array'] });
+    console.log(response.result);
+    response = await bar.put({ required: 'string', xdefault: 123, z: ['string in array'] });
+    console.log(response.result);
+    response = await bar.patch({ required: 'string', xdefault: 123, z: ['string in array'] });
+    console.log(response.result);
+    response = await bar.delete({ required: 'string', xdefault: 123, z: ['string in array'] });
+    console.log(response.result);
+
+    // General
+    response = await general.redirect();
+    console.log(response.result);
+
+    for (const [id, plain] of [['', '0'], ['0', '']]) {
+        try {
+            await general.validatePath({ id, plain });
+            throw new Error('Empty path parameter was accepted');
+        } catch (error) {
+            if (!(error instanceof AppwriteException)) throw error;
+            console.log(error.message);
+        }
+    }
+    response = await general.validatePath({ id: '0', plain: '0' });
+    console.log(response.result);
+
+    const zone = await new Plaintext(client).getZone();
+    if (typeof zone !== 'string') {
+        throw new Error(`Unexpected zone type: ${typeof zone}`);
+    }
+    console.log(zone);
+    console.log((await general.getMixed()).result);
+
+    const smallFile = {
+        name: 'file.png',
+        type: 'image/png',
+        size: 38756,
+        uri: 'http://localhost:3000/file.png',
+    };
+    const plaintext = new Plaintext(client);
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1'));
+    console.log(await plaintext.importZone('www 3600 IN A 192.0.2.1', smallFile));
+
+    // Download
+    console.log(new TextDecoder().decode(await general.download()));
+
+    // Upload
+    const largeFile = {
+        name: 'large_file.mp4',
+        type: 'video/mp4',
+        size: 16310023,
+        uri: 'http://localhost:3000/large_file.mp4',
+    };
+    const message = 'conversation without a required file';
+    for (const send of [
+        () => general.optionalUpload(message),
+        () => general.optionalUpload(message, undefined),
+        () => general.optionalUpload({ message }),
+        () => general.optionalUpload({ message, attachment: undefined }),
+        () => general.optionalUpload(message, smallFile),
+        () => general.optionalUpload({ message, attachment: smallFile }),
+    ]) {
+        console.log((await send()).result);
+    }
+    try {
+        await general.upload('string', 123, ['string in array']);
+        throw new Error('Missing required file was accepted');
+    } catch (error) {
+        if (!(error instanceof AppwriteException)) throw error;
+        console.log('required-file:rejected');
+    }
+
+    console.log((await general.optionalUpload({ message, metadata: { source: 'sdk', uri: 'café' } })).result);
+    console.log((await general.optionalUpload({ message, attachment: smallFile, metadata: { source: 'sdk', uri: 'café' } })).result);
+
+    response = await general.upload('string', 123, ['string in array'], smallFile);
+    console.log(response.result);
+    response = await general.upload('string', 123, ['string in array'], largeFile);
+    console.log(response.result);
+
+    // Upload (Object params)
+    response = await general.upload({ x: 'string', y: 123, z: ['string in array'], file: smallFile });
+    console.log(response.result);
+    response = await general.upload({ x: 'string', y: 123, z: ['string in array'], file: largeFile });
+    console.log(response.result);
+
+    Platform.OS = 'android';
+    for (const major of [58, 18]) {
+        useExpoFileSystem(major);
+        response = await general.upload('string', 123, ['string in array'], largeFile);
+        console.log(response.result);
+        console.log(`expo-file-system ${major} chunk files left: ${written.size}`);
+    }
+    useExpoFileSystem(58);
+    Platform.OS = 'web';
+
+    response = await general.uploadGeneric({ file: smallFile });
+    console.log(response.prefs.result);
+
+    // Enum
+    response = await general.enum(MockType.First);
+    console.log(response.result);
+
+    // Request model tests
+    response = await general.createPlayer({ id: 'player1', name: 'John Doe', score: 100 });
+    console.log(response.result);
+    response = await general.createPlayers([
+        { id: 'player1', name: 'John Doe', score: 100 },
+        { id: 'player2', name: 'Jane Doe', score: 200 },
+    ]);
+    console.log(response.result);
+
+    // All-optional positional params keep their trailing arguments
+    response = await general.getOptional(undefined, 128, 'omitted');
+    console.log(response.result);
+
+    response = await general.getOptional(0, 64, 'zero');
+    console.log(response.result);
+
+    const preset = await general.getPreset();
+    console.log(`preset: name=${preset.name}, count=${preset.count}, enabled=${preset.enabled}`);
+    const presets = await general.listPresets();
+    for (const item of presets.presets) {
+        console.log(`preset: name=${item.name}, count=${item.count}, enabled=${item.enabled}`);
+    }
+    console.log(`empty presets: ${(await general.listEmptyPresets()).presets.length}`);
+    presets.presets[0].tags.push('mutated');
+    console.log(`preset tags shared: ${presets.presets[1].tags.length}`);
+    console.log(`nested builder: ${JSON.stringify(flattenParam([[Query.builder().limit(1)]])) === JSON.stringify([[Query.limit(1)]]) ? 'passed' : 'failed'}`);
+    console.log(`preset verified: ${preset.verified}`);
+    console.log(`preset toString: ${preset.toString()}`);
+
+    response = await general.nullable({ required: 'required', nullable: null, nullableInteger: null });
+    console.log(response.result);
+
+    // Exception responses
+    try {
+        response = await general.error400();
+    } catch (error) {
+        console.log(error.message);
+        console.log(error.response);
+    }
+    try {
+        response = await general.error500();
+    } catch (error) {
+        console.log(error.message);
+        console.log(error.response);
+    }
+    try {
+        response = await general.error502();
+    } catch (error) {
+        console.log(error.message);
+        console.log(error.response);
+    }
+    try {
+        client.setEndpoint('htp://cloud.appwrite.io/v1');
+    } catch (error) {
+        console.log(error.message);
+    }
+
+    // Realtime waits
+    const delay = (ms) => new Promise((res) => setTimeout(res, ms));
+    await delay(5000);
+    console.log(responseRealtime);
+    console.log(responseRealtimeWithQueries);
+    console.log(responseRealtimeWithQueriesFailure);
+    console.log(responseRealtimeError);
+
+    try {
+        await rtsubWithQueriesFailure.unsubscribe();
+        rtsubFailureUnsubscribed = true;
+        await rtsubWithQueriesFailure.unsubscribe();
+        await delay(500);
+        if (rtsubFailureFiredAfterUnsubscribe) {
+            throw new Error('callback fired after unsubscribe');
+        }
+        console.log('Realtime unsubscribe:passed');
+    } catch (e) {
+        console.log('Realtime unsubscribe:failed');
+    }
+
+    try {
+        await rtsubWithQueries.update({ channels: ['tests'], queries: [] });
+        console.log('Realtime update:passed');
+    } catch (e) {
+        console.log('Realtime update:failed');
+    }
+
+    // Fires the upsert. The "Realtime presence:passed" line is printed by
+    // rtPresenceSub's callback when the fan-out event for this presence
+    // document arrives — verifying the full round-trip rather than just
+    // "no exception thrown".
+    await realtime.upsertPresence({
+        status: 'online',
+        presenceId: 'p-test',
+        metadata: { page: '/home' },
+    });
+    // Give the server time to fan out and the cb to fire before
+    // we tear the socket down with disconnect() below.
+    await delay(1000);
+
+    try {
+        await realtime.disconnect();
+        console.log('Realtime disconnect:passed');
+    } catch (e) {
+        console.log('Realtime disconnect:failed');
+    }
+
+    // Query helper tests
+    console.log(Query.equal('released', [true]));
+    console.log(Query.equal('title', ['Spiderman', 'Dr. Strange']));
+    console.log(Query.notEqual('title', 'Spiderman'));
+    console.log(Query.lessThan('releasedYear', 1990));
+    console.log(Query.greaterThan('releasedYear', 1990));
+    console.log(Query.search('name', 'john'));
+    console.log(Query.isNull('name'));
+    console.log(Query.isNotNull('name'));
+    console.log(Query.between('age', 50, 100));
+    console.log(Query.between('age', 50.5, 100.5));
+    console.log(Query.between('name', 'Anna', 'Brad'));
+    console.log(Query.startsWith('name', 'Ann'));
+    console.log(Query.endsWith('name', 'nne'));
+    console.log(Query.select(['name', 'age']));
+    console.log(Query.orderAsc('title'));
+    console.log(Query.orderDesc('title'));
+    console.log(Query.orderRandom());
+    console.log(Query.cursorAfter('my_movie_id'));
+    console.log(Query.cursorBefore('my_movie_id'));
+    console.log(Query.limit(50));
+    console.log(Query.offset(20));
+    console.log(Query.contains('title', 'Spider'));
+    console.log(Query.contains('labels', 'first'));
+    console.log(Query.containsAny('labels', ['first', 'second']));
+    console.log(Query.containsAll('labels', ['first', 'second']));
+
+    console.log(Query.notContains('title', 'Spider'));
+    console.log(Query.notSearch('name', 'john'));
+    console.log(Query.notBetween('age', 50, 100));
+    console.log(Query.notStartsWith('name', 'Ann'));
+    console.log(Query.notEndsWith('name', 'nne'));
+    console.log(Query.createdBefore('2023-01-01'));
+    console.log(Query.createdAfter('2023-01-01'));
+    console.log(Query.createdBetween('2023-01-01', '2023-12-31'));
+    console.log(Query.updatedBefore('2023-01-01'));
+    console.log(Query.updatedAfter('2023-01-01'));
+    console.log(Query.updatedBetween('2023-01-01', '2023-12-31'));
+
+    console.log(Query.distanceEqual('location', [[40.7128, -74], [40.7128, -74]], 1000));
+    console.log(Query.distanceEqual('location', [40.7128, -74], 1000, true));
+    console.log(Query.distanceNotEqual('location', [40.7128, -74], 1000));
+    console.log(Query.distanceNotEqual('location', [40.7128, -74], 1000, true));
+    console.log(Query.distanceGreaterThan('location', [40.7128, -74], 1000));
+    console.log(Query.distanceGreaterThan('location', [40.7128, -74], 1000, true));
+    console.log(Query.distanceLessThan('location', [40.7128, -74], 1000));
+    console.log(Query.distanceLessThan('location', [40.7128, -74], 1000, true));
+    console.log(Query.vectorDot('embedding', [0.1, 0.2, 0.3]));
+    console.log(Query.vectorCosine('embedding', [0.1, 0.2, 0.3]));
+    console.log(Query.vectorEuclidean('embedding', [0.1, 0.2, 0.3]));
+
+    console.log(Query.intersects('location', [40.7128, -74]));
+    console.log(Query.notIntersects('location', [40.7128, -74]));
+    console.log(Query.crosses('location', [40.7128, -74]));
+    console.log(Query.notCrosses('location', [40.7128, -74]));
+    console.log(Query.overlaps('location', [40.7128, -74]));
+    console.log(Query.notOverlaps('location', [40.7128, -74]));
+    console.log(Query.touches('location', [40.7128, -74]));
+    console.log(Query.notTouches('location', [40.7128, -74]));
+    console.log(Query.contains('location', [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.notContains('location', [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.equal('location', [[40.7128, -74], [40.7128, -74]]));
+    console.log(Query.notEqual('location', [[40.7128, -74], [40.7128, -74]]));
+
+    console.log(Query.or([
+        Query.equal('released', true),
+        Query.lessThan('releasedYear', 1990),
+    ]));
+    console.log(Query.and([
+        Query.equal('released', false),
+        Query.greaterThan('releasedYear', 2015),
+    ]));
+
+    console.log(Query.regex('name', 'pattern.*'));
+    console.log(Query.exists(['attr1', 'attr2']));
+    console.log(Query.notExists(['attr1', 'attr2']));
+    console.log(Query.elemMatch('friends', [
+        Query.equal('name', 'Alice'),
+        Query.greaterThan('age', 18),
+    ]));
+    console.log(Query.relationship('comments', [
+        Query.equal('approved', true),
+        Query.limit(2),
+    ]));
+    const queryTransport = await general.listRows([
+        Query.count('*', 'total'),
+        Query.join('orders', '$id', 'customerId'),
+        Query.groupBy(['status']),
+        Query.distinct(),
+        Query.covers('location', [1, 2]),
+        Query.countDistinct('year', 'uniqueYears'),
+        Query.sum('price', 'total'),
+        Query.avg('price', 'avgPrice'),
+        Query.min('price', 'lowest'),
+        Query.max('price', 'highest'),
+        Query.stddev('price', 'sd'),
+        Query.stddevPop('price', 'sdp'),
+        Query.stddevSamp('price', 'sds'),
+        Query.variance('price', 'var'),
+        Query.varPop('price', 'vp'),
+        Query.varSamp('price', 'vs'),
+        Query.bitAnd('flags', 'band'),
+        Query.bitOr('flags', 'bor'),
+        Query.bitXor('flags', 'bxor'),
+        Query.having([Query.greaterThan('total', 1)]),
+        Query.leftJoin('orders', '$id', 'customerId', '=', 'ord'),
+        Query.rightJoin('orders', '$id', 'customerId'),
+        Query.fullOuterJoin('orders', '$id', 'customerId'),
+        Query.crossJoin('orders', 'ord'),
+        Query.on('$id', 'customerId'),
+        Query.leftJoin('orders', 'ord', [
+            Query.on('$id', 'customerId'),
+            Query.equal('ord.status', 'paid'),
+        ]),
+        Query.notCovers('location', [1, 2]),
+        Query.spatialEquals('location', [1, 2]),
+        Query.notSpatialEquals('location', [1, 2]),
+        ...Query.page(2, 10),
+        Query.builder().limit(1),
+    ]);
+    console.log(queryTransport.result);
+
+    // Permission & Role helper tests
+    console.log(Permission.read(Role.any()));
+    console.log(Permission.write(Role.user(ID.custom('userid'))));
+    console.log(Permission.create(Role.users()));
+    console.log(Permission.update(Role.guests()));
+    console.log(Permission.delete(Role.team('teamId', 'owner')));
+    console.log(Permission.delete(Role.team('teamId')));
+    console.log(Permission.create(Role.member('memberId')));
+    console.log(Permission.update(Role.users('verified')));
+    console.log(Permission.update(Role.user(ID.custom('userid'), 'unverified')));
+    console.log(Permission.create(Role.label('admin')));
+
+    // ID helper tests
+    console.log(ID.unique());
+    console.log(ID.custom('custom_id'));
+
+    // Topic helper tests
+    console.log(Topic.path(['user', '123', 'notification']).toString());
+    console.log(Topic.path(['org', '42', 'user', '123']).path(['notification']).toString());
+    for (const [name, levels] of [
+        ['empty path', []],
+        ['empty level', ['user', '']],
+        ['slash', ['user/123']],
+        ['plus', ['user', 'a+b']],
+        ['hash', ['user', '#']],
+        ['nul', ['user', 'a\u0000b']],
+    ]) {
+        try {
+            Topic.path(levels);
+            console.log(`Topic ${name}:failed`);
+        } catch (e) {
+            console.log(`Topic ${name}:passed`);
+        }
+    }
+
+    // Channel helper tests
+    console.log(Channel.database('db1').collection('col1').document().toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').create().toString());
+    console.log(Channel.database('db1').collection('col1').document('doc1').upsert().toString());
+    console.log(Channel.tablesdb('db1').table('table1').row().toString());
+    console.log(Channel.tablesdb('db1').table('table1').row('row1').toString());
+    console.log(Channel.tablesdb('db1').table('table1').row('row1').update().toString());
+    console.log(Channel.account());
+    console.log(Channel.bucket('bucket1').file().toString());
+    console.log(Channel.bucket('bucket1').file('file1').toString());
+    console.log(Channel.bucket('bucket1').file('file1').delete().toString());
+    console.log(Channel.function('func2').toString());
+    console.log(Channel.function('func1').toString());
+    console.log(Channel.execution('exec2').toString());
+    console.log(Channel.execution('exec1').toString());
+    console.log(Channel.documents());
+    console.log(Channel.rows());
+    console.log(Channel.files());
+    console.log(Channel.executions());
+    console.log(Channel.teams());
+    console.log(Channel.team('team2').toString());
+    console.log(Channel.team('team1').toString());
+    console.log(Channel.team('team1').create().toString());
+    console.log(Channel.memberships());
+    console.log(Channel.membership('membership2').toString());
+    console.log(Channel.membership('membership1').toString());
+    console.log(Channel.membership('membership1').update().toString());
+    console.log(Channel.presences());
+    console.log(Channel.presence('presence2').toString());
+    console.log(Channel.presence('presence1').toString());
+    console.log(Channel.presence('presence1').upsert().toString());
+    console.log(Channel.presence('presence1').update().toString());
+    console.log(Channel.presence('presence1').delete().toString());
+
+    // Operator helper tests
+    console.log(Operator.increment(1));
+    console.log(Operator.increment(5, 100));
+    console.log(Operator.decrement(1));
+    console.log(Operator.decrement(3, 0));
+    console.log(Operator.multiply(2));
+    console.log(Operator.multiply(3, 1000));
+    console.log(Operator.divide(2));
+    console.log(Operator.divide(4, 1));
+    console.log(Operator.modulo(5));
+    console.log(Operator.power(2));
+    console.log(Operator.power(3, 100));
+    console.log(Operator.arrayAppend(['item1', 'item2']));
+    console.log(Operator.arrayPrepend(['first', 'second']));
+    console.log(Operator.arrayInsert(0, 'newItem'));
+    console.log(Operator.arrayRemove('oldItem'));
+    console.log(Operator.arrayUnique());
+    console.log(Operator.arrayIntersect(['a', 'b', 'c']));
+    console.log(Operator.arrayDiff(['x', 'y']));
+    console.log(Operator.arrayFilter(Condition.Equal, 'test'));
+    console.log(Operator.stringConcat('suffix'));
+    console.log(Operator.stringReplace('old', 'new'));
+    console.log(Operator.toggle());
+    console.log(Operator.dateAddDays(7));
+    console.log(Operator.dateSubDays(3));
+    console.log(Operator.dateSetNow());
+
+    response = await general.headers();
+    console.log(response.result);
+
+    window.__APPWRITE_TEST_DONE__ = true;
+})().catch((err) => {
+    console.log('TEST RUNNER ERROR: ' + (err && err.message ? err.message : String(err)));
+    window.__APPWRITE_TEST_DONE__ = true;
+});

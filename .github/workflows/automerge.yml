@@ -1,0 +1,95 @@
+name: automerge
+
+on:
+  workflow_run:
+    workflows: [CI, Validation]
+    types: [completed]
+  issue_comment:
+    types: [created, edited]
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        description: "Dry run (log which PRs would merge, merge nothing)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: automerge
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  automerge:
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && startsWith(github.event.workflow_run.head_branch, 'renovate/')) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.comment.user.login == 'hansi-codes[bot]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: generate app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          owner: appwrite
+          repositories: sdk-generator
+
+      - name: merge tier S renovate PRs with green checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MERGE_TOKEN: ${{ steps.app-token.outputs.token }}
+          DRY_RUN: ${{ inputs.dryRun || false }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          failed=0
+
+          prs=$(gh pr list --repo "$REPOSITORY" --author app/renovate-appwrite --base main --state open \
+            --json number,headRefOid,isDraft --jq '.[] | select(.isDraft | not) | "\(.number) \(.headRefOid)"')
+
+          while read -r number sha; do
+            [ -n "$number" ] || continue
+
+            runs=$(gh api --paginate --slurp "repos/$REPOSITORY/commits/$sha/check-runs?per_page=100" | jq '[.[].check_runs[]]')
+
+            tier=$(jq -r '[.[] | select(.app.slug == "hansi-codes" and .status == "completed")] | last | .output.title // ""' <<< "$runs")
+            if [[ "$tier" != "Tier S:"* ]]; then
+              echo "#$number: no Hansi tier S review for $sha (${tier:-none})"
+              continue
+            fi
+            actions=$(jq '[.[] | select(.app.slug == "github-actions")] | length' <<< "$runs")
+            pending=$(jq '[.[] | select(.status != "completed")] | length' <<< "$runs")
+            unsuccessful=$(jq -r '[.[] | select(.status == "completed" and ([.conclusion] | inside(["success", "skipped", "neutral"]) | not)) | .name] | join(", ")' <<< "$runs")
+            status=$(gh api "repos/$REPOSITORY/commits/$sha/status" --jq 'if .total_count == 0 then "success" else .state end')
+            if [ "$actions" -eq 0 ] || [ "$pending" -ne 0 ] || [ -n "$unsuccessful" ] || [ "$status" != "success" ]; then
+              echo "#$number: checks not green (runs=$actions pending=$pending unsuccessful=[$unsuccessful] status=$status)"
+              continue
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "#$number: would approve and merge $sha"
+              continue
+            fi
+
+            approved=$(gh api "repos/$REPOSITORY/pulls/$number/reviews?per_page=100" \
+              --jq "[.[] | select(.user.login == \"github-actions[bot]\" and .state == \"APPROVED\" and .commit_id == \"$sha\")] | length")
+            if [ "$approved" -eq 0 ]; then
+              gh pr review "$number" --repo "$REPOSITORY" --approve --body "Hansi rated $sha tier S and every check passed."
+            fi
+
+            if GH_TOKEN="$MERGE_TOKEN" gh pr merge "$number" --repo "$REPOSITORY" --merge --match-head-commit "$sha"; then
+              echo "#$number: merged $sha"
+            else
+              echo "::warning::#$number: merge of $sha failed"
+              failed=1
+            fi
+          done <<< "$prs"
+
+          exit "$failed"

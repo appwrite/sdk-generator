@@ -30,12 +30,14 @@ jobs:
           CLIWasmBrowser,
           DartBeta,
           DartStable,
+          DartWasm,
           DotNet60,
           DotNet80,
           DotNet90,
           FlutterStable,
           FlutterBeta,
           FlutterWeb,
+          FlutterWebWasm,
           Go113,
           Go118,
           KotlinJava17,
@@ -92,7 +94,7 @@ jobs:
           composer install
 
       - name: Run Tests
-        run: composer test tests/e2e/${{ matrix.sdk }}Test.php
+        run: composer test -- tests/e2e/RuntimeTest.php --filter '@${{ matrix.sdk }}' --fail-on-empty-test-suite
 
   generation:
     name: Checks / Generation
@@ -115,6 +117,9 @@ jobs:
 
       - name: Run Tests
         run: composer test -- --testsuite Generation
+
+      - name: Harness
+        run: composer test -- tests/e2e/DriverTest.php tests/e2e/JsonTest.php
 
   lint:
     name: Checks / Lint

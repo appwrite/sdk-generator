@@ -1,0 +1,7 @@
+{
+    "name": "cli-wasm-browser-e2e",
+    "private": true,
+    "dependencies": {
+        "playwright": "1.62.0"
+    }
+}

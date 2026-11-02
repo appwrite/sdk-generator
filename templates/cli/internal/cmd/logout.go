@@ -106,7 +106,8 @@ func revokeSession(global *config.Global, store *auth.TokenStore, id string) err
 		return nil
 	}
 
-	api := client.New(endpoint, app.Version)
+	api := client.New(endpoint, app.Version).
+		SetSelfSigned(config.PreferenceBool(session, config.PreferenceSelfSigned))
 
 	// As in hasServerCredential: a token that cannot be read cannot be revoked
 	// at the server either, and the local session is removed regardless.

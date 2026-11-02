@@ -1,9 +1,3 @@
-{% if sdk.test %}
-package sdk
-
-// The SDK-backed client is omitted from the conformance build: generated
-// commands call mock services there, so nothing constructs a client.
-{% else %}
 package sdk
 
 import (
@@ -326,4 +320,3 @@ func (c *Context) localValue(key string) string {
 
 	return local.Data.GetString(key)
 }
-{% endif %}

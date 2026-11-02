@@ -36,7 +36,7 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp-urlconnection")
     implementation("com.squareup.okhttp3:logging-interceptor")
-    implementation("com.google.code.gson:gson:2.14.0")
+    implementation("com.google.code.gson:gson:2.15.0")
 
     testImplementation(kotlin("test-junit"))
 }

@@ -1,4 +1,4 @@
-import { Client, General } from './src';
+import { Client, General } from 'package-name';
 
 // Nullable request params accept null under strict mode, in both call styles.
 const general = new General(new Client());

@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+
+	"github.com/repoowner/reponame/models"
 )
 
 func TestNullableScalars(t *testing.T) {
-	var model Zznullablescalars
+	var model models.Zznullablescalars
 	for _, input := range []string{
 		`{"text":null,"enabled":null,"count":null,"price":null}`,
 		`{"text":"","enabled":false,"count":0,"price":0}`,

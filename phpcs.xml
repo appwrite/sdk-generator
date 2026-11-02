@@ -10,7 +10,6 @@
     <exclude-pattern>./tests/e2e/sdks</exclude-pattern>
     <exclude-pattern>./tests/generation/sdks</exclude-pattern>
     <exclude-pattern>./tests/e2e/languages</exclude-pattern>
-    <exclude-pattern>./tests/e2e/tmp</exclude-pattern>
     <exclude-pattern>./tests/resources</exclude-pattern>
 
     <!-- Ignore max line width -->

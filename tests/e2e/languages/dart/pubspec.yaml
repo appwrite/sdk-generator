@@ -1,0 +1,7 @@
+name: tests
+publish_to: none
+environment:
+  sdk: '>=2.17.0 <4.0.0'
+dependencies:
+  packageName:
+    path: ../../sdks/dart

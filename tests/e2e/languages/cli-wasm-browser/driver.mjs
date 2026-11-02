@@ -25,28 +25,20 @@ import { chromium } from 'playwright'
 
 import { PAGE_ORIGIN, REMOTE_ORIGIN, requests, start, stop } from './server.mjs'
 
-// Base.php discards every line up to and including this one, then compares the
+// RuntimeTest.php discards every line up to and including this one, then compares the
 // rest positionally -- so the checks below are pinned by name in
-// CLIWasmBrowserTest::$expectedOutput, and one being quietly dropped is a
+// the CLIWasmBrowser runtime's expected lines, and one being quietly dropped is a
 // failure rather than a shorter list.
 console.log('Test Started')
 
 const failures = []
 
-// The Go renderer labels a single value; NO_COLOR is not set here because the
-// page has no environment to set it in, so the escapes are stripped too.
-const resultLabel = /^result\s*:?\s+/
-const ansi = /\u001b\[[0-9;]*m/g
-
 function value(run) {
-    for (const line of run.stdout.replace(ansi, '').split('\n')) {
-        const trimmed = line.trim()
-        if (trimmed !== '') {
-            return trimmed.replace(resultLabel, '').trim()
-        }
+    try {
+        return JSON.parse(run.stdout).result
+    } catch {
+        return ''
     }
-
-    return ''
 }
 
 function check(condition, description, detail = '') {
@@ -73,17 +65,14 @@ page.on('pageerror', (error) => failures.push(`page error: ${error.message}`))
 await page.goto(PAGE_ORIGIN)
 await page.evaluate(() => window.ready)
 
-// Index 0 is Base::getExpectedSdkHeaders(). `general headers` is a generated
-// command, and this tree is generated with sdk.test set, so it is a mock that
-// prints the fixture without making a request -- see
-// templates/cli/base/mock.go.twig. It is printed here to satisfy Base.php's
-// positional comparison and proves nothing on its own; the headers are checked
-// for real further down, against what the fixture received on a `whoami`.
-const mocked = await page.evaluate(() => window.runCLI(['general', 'headers']))
-console.log(value(mocked).split('; accept:')[0])
+// Index 0 is the SDK header line RuntimeTest prepends, read from what the fixture
+// received on a generated command.
+const headers = await page.evaluate(
+    (endpoint) => window.runCLI(['general', 'headers', '--raw'], { APPWRITE_ENDPOINT: endpoint, APPWRITE_PROJECT_ID: 'console' }),
+    `${PAGE_ORIGIN}/v1`,
+)
+console.log(value(headers).split('; accept:')[0])
 
-// Everything below drives `whoami`, which is hand-written rather than
-// generated, so it is the CLI's own client and a real request.
 const whoami = (origin) => page.evaluate(
     (endpoint) => window.runCLI(['whoami'], { APPWRITE_ENDPOINT: endpoint }),
     `${origin}/v1`,

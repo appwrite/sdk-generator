@@ -6,9 +6,7 @@ go 1.26.10
 // indirect set and refresh go.sum -- go.mod is regenerated from this template,
 // so anything added by hand to the generated file is lost on the next run.
 require (
-{% if not sdk.test %}
 	{{ language.params.sdkImportPath }} v7.16.0
-{% endif %}
 	github.com/charmbracelet/huh v1.0.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/x/ansi v0.10.1

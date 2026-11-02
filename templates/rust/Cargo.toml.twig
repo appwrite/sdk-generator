@@ -46,12 +46,6 @@ wiremock = "=0.6.4"
 [lib]
 name = "{{ sdk.cratePackage | default('appwrite') | rustCrateName }}"
 path = "src/lib.rs"
-{% if sdk.test == "true" %}
-
-[[bin]]
-name = "tests"
-path = "tests/tests.rs"
-{% endif %}
 
 [package.metadata.docs.rs]
 all-features = true

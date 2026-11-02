@@ -1,25 +1,3 @@
-{% if sdk.test %}
-package app
-
-// Client constructors are stubbed for the conformance build: the generated
-// commands call mock services there, so no client is ever built.
-
-import "errors"
-
-var errNoClientInTestBuild = errors.New("client construction is unavailable in the conformance build")
-
-// ClientForConsole is unavailable in the conformance build.
-func ClientForConsole() (any, error) { return nil, errNoClientInTestBuild }
-
-// ClientForProject is unavailable in the conformance build.
-func ClientForProject(string) (any, error) { return nil, errNoClientInTestBuild }
-
-// ClientForSessionProject is unavailable in the conformance build.
-func ClientForSessionProject(string, string) (any, error) { return nil, errNoClientInTestBuild }
-
-// ClientForOrganization is unavailable in the conformance build.
-func ClientForOrganization(string) (any, error) { return nil, errNoClientInTestBuild }
-{% else %}
 package app
 
 import (
@@ -81,4 +59,3 @@ func ClientForOrganization(organizationID string) (sdkclient.Client, error) {
 
 	return ctx.ForConsoleWithOrganization(organizationID)
 }
-{% endif %}

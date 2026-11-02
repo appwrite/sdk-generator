@@ -204,69 +204,61 @@ After you finish initializing, make a series of HTTP calls using your newly gene
 
 > Note: In your test files, make sure that you begin the test with the following string "\nTest Started\n". We use this string to filter output from the build tool you're using.
 
-Once you're done, create a new test file `tests/e2e/[Language]Test.php` and update as the following.
+Print what the SDK returned, never the line you expect. The harness checks where each line came from:
+
+- The mock server appends a random per-run token to every `METHOD:/v1/...:passed` response. A response line without it was typed by the driver, and the run fails.
+- The mock server records every request it receives. Each response line must be backed by a request the server actually received.
+- `tests/e2e/DriverTest.php` fails if a driver contains a server response or an expected output line as a literal.
+- The output after `Test Started` must match the expected lines exactly, with nothing missing or extra, and the test command must exit with 0. If a test framework runs your driver and prints its own summary afterwards, print `Test Ended` after your last line; the comparison stops there.
+
+Once you're done, add a runtime for each language version to a family file in `tests/e2e/Runtime/[Language].php`:
 
 ```php
 <?php
 
-namespace Tests\E2E;
+declare(strict_types=1);
 
-class [Language]Test extends Base
+namespace Tests\E2E\Runtime;
+
+use Appwrite\SDK\Language;
+use Tests\E2E\Output;
+use Tests\E2E\Runtime;
+
+final class Dart
 {
-    protected string $language = '[language]';
-    protected string $class = 'Appwrite\SDK\Language\[Language]';
-    protected array $build = [
-        //commands required before executing the test
-    ];
-    protected array $envs = [
-        // docker commands that can execute test file to the sdk test. Make sure to add
-        // one command for each language version you wish to support
-    ];
-
-    // list of expected outputs from test based on features supported
-    protected array $expectedOutput = [
-        ...Base::FOO_RESPONSES,
-        ...Base::BAR_RESPONSES,
-        ...Base::GENERAL_RESPONSES,
-        ...Base::EXCEPTION_RESPONSES,
-        ...Base::REALTIME_RESPONSES
-    ];
+    /**
+     * @return iterable<string, Runtime>
+     */
+    public static function runtimes(): iterable
+    {
+        foreach (['Stable' => 'stable', 'Beta' => 'beta'] as $key => $channel) {
+            yield "Dart{$key}" => new Runtime(
+                directory: 'dart',
+                language: new Language\Dart(),
+                name: 'dart',
+                platform: 'server',
+                header: 'dart',
+                build: [
+                    'mkdir -p tests/e2e/sdks/dart/tests',
+                    'cp tests/e2e/languages/dart/tests.dart tests/e2e/sdks/dart/tests/tests.dart',
+                ],
+                command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dart dart:' . $channel . ' sh -c "dart pub get && dart pub run tests/tests.dart"',
+                expected: [
+                    ...Output::FOO_RESPONSES,
+                    ...Output::BAR_RESPONSES,
+                    ...Output::EXCEPTION_RESPONSES,
+                ],
+            );
+        }
+    }
 }
 ```
 
-A good example is the Dart test:
+Register the family in `RuntimeTest::FAMILIES` and add each runtime name to the `sdk` matrix in `.github/workflows/ci.yml`.
 
-```php
-<?php
-
-namespace Tests\E2E;
-
-class DartTest extends Base
-{
-    protected string $language = 'dart';
-    protected string $class = 'Appwrite\SDK\Language\Dart';
-    protected array $build = [
-        'mkdir -p tests/e2e/sdks/dart/tests',
-        'cp tests/e2e/languages/dart/tests.dart tests/e2e/sdks/dart/tests/tests.dart',
-    ];
-    protected array $envs = [
-        'dart-stable' => 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dart dart:stable sh -c "dart pub get && dart pub run tests/tests.dart"',
-        'dart-beta' => 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/dart dart:beta sh -c "dart pub get && dart pub run tests/tests.dart"',
-    ];
-    protected array $expectedOutput = [
-        ...Base::FOO_RESPONSES,
-        ...Base::BAR_RESPONSES,
-        ...Base::GENERAL_RESPONSES,
-        ...Base::EXCEPTION_RESPONSES,
-    ];
-}
-```
-
-Also in `.travis.yml` add new env `SDK=[Language]` so that travis will run a test for this language as well.
-
-Finally, you can run tests using:
+Finally, you can run one runtime using:
 ```sh
-docker run --rm -v $(pwd):$(pwd):rw -w $(pwd) -v /var/run/docker.sock:/var/run/docker.sock php:8.5-cli-alpine sh -c "apk add docker-cli && vendor/bin/phpunit"
+vendor/bin/phpunit tests/e2e/RuntimeTest.php --filter '@DartStable'
 ```
 
 ## SDK Generator Interface

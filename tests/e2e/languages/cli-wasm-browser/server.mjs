@@ -27,6 +27,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
+const sdk = join(here, '..', '..', 'sdks', 'cli-wasm-browser')
 
 export const PAGE_ORIGIN = 'http://127.0.0.1:8111'
 export const REMOTE_ORIGIN = 'http://localhost:8112'
@@ -122,15 +123,6 @@ function api(request, response, { origin, cors }) {
     }
 
     // /v1/account is what `whoami` calls.
-    //
-    // Deliberately not a generated service command. Base.php generates this
-    // tree with sdk.test set, which replaces every generated service with a
-    // mock that returns canned fixtures and makes no request at all -- see
-    // templates/cli/base/mock.go.twig. A cookie assertion written against
-    // one of those passes without a single byte on the wire, which is exactly
-    // the false pass this suite exists to avoid. `whoami`, `sessions` and
-    // `client` are hand-written, go through internal/client, and are the only
-    // commands here that actually make requests.
     if (url.pathname === '/v1/account') {
         const cookie = record(request, url, origin)
 
@@ -148,6 +140,14 @@ function api(request, response, { origin, cors }) {
             name: 'Browser Conformance',
             email: 'conformance@appwrite.io',
         }, headers) ?? true
+    }
+
+    if (url.pathname === '/v1/mock/tests/general/headers') {
+        const result = ['x-sdk-name', 'x-sdk-platform', 'x-sdk-language', 'x-sdk-version', 'accept']
+            .map((name) => `${name}: ${request.headers[name] ?? ''}`)
+            .join('; ')
+
+        return json(response, 200, { result }, headers) ?? true
     }
 
     if (url.pathname === '/v1/health/version') {
@@ -174,7 +174,7 @@ const page = createServer((request, response) => {
     const extension = name.slice(name.lastIndexOf('.'))
 
     try {
-        const body = readFileSync(join(here, name.slice(1)))
+        const body = readFileSync(join(name === '/page.html' ? here : sdk, name.slice(1)))
         response.writeHead(200, {
             'content-type': CONTENT_TYPES[extension] ?? 'application/octet-stream',
             'content-length': body.length,

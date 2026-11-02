@@ -1,0 +1,11 @@
+{
+    "name": "tests",
+    "private": true,
+    "type": "commonjs",
+    "dependencies": {
+        "package-name": "file:../../sdks/node"
+    },
+    "devDependencies": {
+        "typescript": "5.9.3"
+    }
+}

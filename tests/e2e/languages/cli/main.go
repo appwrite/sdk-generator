@@ -1,7 +1,7 @@
 // Conformance harness for the CLI.
 //
 // Drives the built binary against the mock API and prints the values
-// tests/e2e/Base.php compares positionally. It asserts observable CLI behaviour
+// tests/e2e/RuntimeTest.php compares positionally. It asserts observable CLI behaviour
 // only -- what the binary prints and what it exits with -- because that is the
 // whole of the CLI's contract. The Go internals are covered by
 // `go test ./internal/...`, which the same test's build step runs.
@@ -32,17 +32,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"sort"
 	"strings"
 )
 
-// binary is the CLI under test, built by the test's build step next to this file.
-const binary = "./appwrite"
-
-// resultLabel is what the Go table renderer puts in front of a single value.
-var resultLabel = regexp.MustCompile(`^result\s*:?\s+`)
+// binary is the CLI under test, built by the test's build step in the generated tree.
+const binary = "../../sdks/cli/appwrite"
 
 func main() {
 	// A sandboxed HOME keeps the run from reading or writing real credentials,
@@ -63,12 +59,12 @@ func main() {
 		"--self-signed", "true",
 	)
 
-	// Base.php discards every line up to and including `Test Started`, then
+	// RuntimeTest.php discards every line up to and including `Test Started`, then
 	// compares the rest positionally. Order matters, and nothing may be printed
 	// before this.
 	fmt.Println("Test Started")
 
-	// Index 0 is Base::getExpectedSdkHeaders() -- the header string without the
+	// Index 0 is the SDK header line RuntimeTest prepends -- the header string without the
 	// trailing `accept`. Read out of the binary's own output rather than
 	// hardcoded, so it fails if the CLI stops sending them.
 	headers := harness.value("general", "headers")
@@ -383,26 +379,18 @@ func (h *harness) runExpectingFailure(args ...string) string {
 	return combined.String()
 }
 
-// value runs the CLI and returns the bare value out of its rendered output,
-// which is what Base.php compares against.
+// value runs the CLI with --raw and returns the `result` the API responded with.
 func (h *harness) value(args ...string) string {
-	output := h.run(args...)
+	output := h.run(append(args, "--raw")...)
 
-	for line := range strings.SplitSeq(output, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		// Only a leading `result` label is stripped. Splitting on the first
-		// colon would eat into values that contain one, and most fixtures here
-		// do: `GET:/v1/...` and `x-sdk-name: cli; ...`.
-		return strings.TrimSpace(resultLabel.ReplaceAllString(line, ""))
+	var response struct {
+		Result string `json:"result"`
+	}
+	if err := json.Unmarshal([]byte(output), &response); err != nil {
+		fail(fmt.Errorf("`%s --raw` did not print the API response: %w\n%s", strings.Join(args, " "), err, output))
 	}
 
-	fail(fmt.Errorf("no value in CLI output for `%s`", strings.Join(args, " ")))
-
-	return ""
+	return response.Result
 }
 
 // initApns sets up APNs for a project folder against the mock API: both providers and the Apple
@@ -429,9 +417,10 @@ func (h *harness) initApns() {
 		"APNs is set up for io.appwrite.e2e",
 		"Added the Apple platform io.appwrite.e2e to the project",
 		"Skipped the App ID check",
-		"Enable the Appwrite push provider",
-		"AppwriteNotificationService",
 	)
+	if strings.Contains(first, "AppwriteNotificationService") {
+		fail(fmt.Errorf("APNs alone asked for a Notification Service Extension:\n%s", first))
+	}
 
 	again := project.run(true, "--bundle-id", "io.appwrite.e2e")
 	expectOutput(again, "APNs is already set up for io.appwrite.e2e")

@@ -83,7 +83,7 @@ dependencies {
     api("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     api("com.squareup.okhttp3:okhttp:5.5.1")
-    implementation("com.google.code.gson:gson:2.14.0")
+    implementation("com.google.code.gson:gson:2.15.0")
     implementation("com.hivemq:hivemq-mqtt-client-shaded:1.4.1")
 
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
