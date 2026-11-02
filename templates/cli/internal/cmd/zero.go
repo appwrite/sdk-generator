@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/url"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -345,7 +346,7 @@ func printZeroWelcome(out io.Writer, zero *jsonx.Object, path, directory string)
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, output.Heading("  Next steps"))
 	if directory != "" {
-		fmt.Fprintf(out, "    cd %s\n", shellQuote(directory))
+		fmt.Fprintf(out, "    %s\n", cdCommand(directory, runtime.GOOS))
 	}
 	fmt.Fprintf(out, "    %s tablesdb list       Call the project with its API key\n", name)
 	fmt.Fprintf(out, "    %s push                Deploy this directory's resources\n", name)
@@ -669,6 +670,20 @@ func zeroError(err error, endpoint string) error {
 	}
 
 	return err
+}
+
+// cdCommand is the line a user pastes to enter a new directory: quoted for
+// PowerShell on Windows, where a single quote is doubled rather than escaped,
+// and for zsh or bash elsewhere.
+func cdCommand(directory, goos string) string {
+	if goos != "windows" {
+		return "cd " + shellQuote(directory)
+	}
+	if !strings.ContainsAny(directory, " \t'\"`$&|;()[]{}<>#@,") {
+		return "cd " + directory
+	}
+
+	return "cd '" + strings.ReplaceAll(directory, "'", "''") + "'"
 }
 
 // timeLeft renders the time until an ISO 8601 deadline, such as "60 min".

@@ -1065,3 +1065,20 @@ func TestZeroShowsTheClaimLinkWhenItCannotSaveTheSession(t *testing.T) {
 		}
 	}
 }
+
+// The `cd` hint is pasted into the user's shell, so it is quoted the way that
+// shell reads it.
+func TestZeroCdHintQuotesForTheUsersShell(t *testing.T) {
+	for _, test := range []struct{ directory, goos, want string }{
+		{"my-app", "linux", "cd my-app"},
+		{"my app", "darwin", "cd 'my app'"},
+		{"O'Neil", "linux", `cd 'O'\''Neil'`},
+		{"my-app", "windows", "cd my-app"},
+		{"my app", "windows", "cd 'my app'"},
+		{"O'Neil", "windows", "cd 'O''Neil'"},
+	} {
+		if got := cdCommand(test.directory, test.goos); got != test.want {
+			t.Errorf("cdCommand(%q, %q) = %q, want %q", test.directory, test.goos, got, test.want)
+		}
+	}
+}
