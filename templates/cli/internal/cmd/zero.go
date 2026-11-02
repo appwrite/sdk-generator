@@ -683,6 +683,10 @@ func zeroError(err error, endpoint string) error {
 // PowerShell and cmd, for any name without a character one of them expands
 // inside them or a line break; the welcome already names such a directory.
 func cdCommand(directory string) string {
+	// cd would read a leading dash as an option
+	if strings.HasPrefix(directory, "-") {
+		return ""
+	}
 	if !strings.ContainsAny(directory, " \t\r\n'\"`$&|;()[]{}<>#@,!%*?~\\^") {
 		return "cd " + directory
 	}

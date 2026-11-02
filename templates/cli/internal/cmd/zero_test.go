@@ -1086,6 +1086,8 @@ func TestZeroCdHintReadsTheSameInEveryShell(t *testing.T) {
 		{"$HOME app", ""},
 		{"50% off", ""},
 		{"safe\nexit", ""},
+		{"-app", ""},
+		{"-my app", ""},
 	} {
 		if got := cdCommand(test.directory); got != test.want {
 			t.Errorf("cdCommand(%q) = %q, want %q", test.directory, got, test.want)
