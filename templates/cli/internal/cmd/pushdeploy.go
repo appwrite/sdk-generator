@@ -1846,8 +1846,14 @@ func (c *pushContext) ensureDefaultRule(
 			consoleErr = err
 		}
 	}
-	if len(domains) == 0 && resource.Name == "function" && label != "" {
+	if len(domains) == 0 {
+		// Cloud's domains are fixed, so an API key without a console session
+		// still gets a default domain there.
 		domains = cloudFunctionDomains(c.api.Endpoint)
+		if len(domains) > 0 && (resource.Name != "function" || label == "") {
+			// The Sites domain, which Cloud also gives a function by default
+			domains = domains[len(domains)-1:]
+		}
 	}
 	if len(domains) == 0 && consoleErr != nil {
 		output.Warn(out,

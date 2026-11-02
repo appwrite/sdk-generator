@@ -518,6 +518,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'copy',
+                'destination'   => 'internal/config/region.go',
+                'template'      => 'cli/internal/config/region.go',
+            ],
+            [
+                'scope'         => 'copy',
                 'destination'   => 'internal/config/config_test.go',
                 'template'      => 'cli/internal/config/config_test.go',
             ],
@@ -1103,6 +1108,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/zero.go',
+                'template'      => 'cli/internal/cmd/zero.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '.goreleaser.yaml',
                 'template'      => 'cli/.goreleaser.yaml.twig',
             ],
@@ -1360,6 +1370,11 @@ class CLI extends Go
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/client_test.go',
                 'template'      => 'cli/internal/cmd/client_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/zero_test.go',
+                'template'      => 'cli/internal/cmd/zero_test.go',
             ],
             [
                 'scope'         => 'default',

@@ -58,6 +58,11 @@ func registerHostCommands(root *cobra.Command) {
 		"Pushing reads appwrite.config.json and your source files from disk, which a "+
 			"browser tab has no access to. Run `"+app.ExecutableName+" push` from a "+
 			"local checkout of your project."))
+
+	root.AddCommand(newUnavailableCommand("zero",
+		"Get a working project instantly, no signup",
+		"Appwrite Zero links a local directory to a new project, which a browser "+
+			"tab has no access to. Run `"+app.ExecutableName+" zero` from a terminal."))
 }
 
 // Accept all arguments so unavailable subcommands and flags show the same guidance.

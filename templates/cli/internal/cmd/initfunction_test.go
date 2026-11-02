@@ -2,9 +2,12 @@ package cmd
 
 import (
 	"bytes"
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -454,6 +457,74 @@ func TestSelfHostedPushRulesOnTheFunctionsDomain(t *testing.T) {
 
 	if !strings.HasSuffix(domain, ".functions.example.com") {
 		t.Fatalf("rule domain = %q", domain)
+	}
+}
+
+// An API key cannot read /console/variables, which is how a push in CI or on
+// an Appwrite Zero project runs. Cloud's domains are fixed, so the site still
+// gets its default domain instead of a warning to log in.
+func TestCloudPushRulesASiteWithoutAConsoleSession(t *testing.T) {
+	domain := ""
+	server := httptest.NewTLSServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		response.Header().Set("content-type", "application/json")
+		switch {
+		case request.Method == http.MethodGet && request.URL.Path == "/v1/sites/web":
+			response.WriteHeader(http.StatusNotFound)
+			_, _ = response.Write([]byte(`{"message":"not found","code":404}`))
+		case request.Method == http.MethodPost && request.URL.Path == "/v1/sites":
+			response.WriteHeader(http.StatusCreated)
+			_, _ = response.Write([]byte(`{"$id":"web"}`))
+		case request.Method == http.MethodGet && request.URL.Path == "/v1/console/variables":
+			response.WriteHeader(http.StatusUnauthorized)
+			_, _ = response.Write([]byte(`{"message":"missing scopes","code":401}`))
+		case request.Method == http.MethodGet && request.URL.Path == "/v1/proxy/rules":
+			_, _ = response.Write([]byte(`{"total":0,"rules":[]}`))
+		case request.Method == http.MethodPost && request.URL.Path == "/v1/proxy/rules/site":
+			body := jsonx.NewObject()
+			if err := json.NewDecoder(request.Body).Decode(body); err != nil {
+				t.Errorf("decode rule body: %v", err)
+			}
+			domain = body.GetString("domain")
+			response.WriteHeader(http.StatusCreated)
+			_, _ = response.Write([]byte(`{"$id":"rule"}`))
+		default:
+			t.Errorf("unexpected request: %s %s", request.Method, request.URL.String())
+			response.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	previous := http.DefaultTransport
+	transport := previous.(*http.Transport).Clone()
+	transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, server.Listener.Addr().String())
+	}
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	http.DefaultTransport = transport
+	t.Cleanup(func() { http.DefaultTransport = previous })
+
+	preferencesWith(t, `{"current":"zero","zero":{"endpoint":"https://fra.cloud.appwrite.io/v1","key":"standard_secret"}}`)
+	directory := t.TempDir()
+	inDirectory(t, directory)
+	path := filepath.Join(directory, config.LocalFileName)
+	contents := `{"projectId":"project","endpoint":"https://fra.cloud.appwrite.io/v1","sites":[{"$id":"web","name":"Web","framework":"other","buildRuntime":"node-22","buildCommand":"npm run build","outputDirectory":"dist"}]}`
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	output := &bytes.Buffer{}
+	command := &cobra.Command{Use: "push site"}
+	command.SetOut(output)
+	command.SetErr(output)
+	if err := runPushDeployable(command, deployables[1], deployOptions{
+		ResourceID: "web",
+		Code:       false,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.HasSuffix(domain, ".appwrite.network") {
+		t.Fatalf("rule domain = %q, output:\n%s", domain, output)
 	}
 }
 

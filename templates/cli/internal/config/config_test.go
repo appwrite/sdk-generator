@@ -484,3 +484,62 @@ func TestGlobalWriteCreatesTheXDGDirectory(t *testing.T) {
 		t.Errorf("the home directory was created alongside XDG_CONFIG_HOME: %v", err)
 	}
 }
+
+// The console suggests the same region for a new project, so both place a user
+// alike. Country decides: Canada stays in Toronto and the US in a US region.
+func TestSuggestRegion(t *testing.T) {
+	live := []string{"fra", "nyc", "sfo", "sgp", "syd", "tor"}
+	cases := []struct {
+		country, continent, timeZone string
+		available                    []string
+		want                         string
+	}{
+		{"US", "", "America/New_York", nil, ""},
+		{"CA", "", "", live, "tor"},
+		{"CA", "", "America/New_York", live, "tor"},
+		{"ca", "", "America/Vancouver", live, "tor"},
+		{"US", "", "", live, "nyc"},
+		{"US", "", "America/Chicago", live, "nyc"},
+		{"US", "", "America/Toronto", live, "nyc"},
+		{"us", "", "America/Los_Angeles", live, "sfo"},
+		{"US", "", "America/Denver", live, "sfo"},
+		{"US", "", "Pacific/Honolulu", live, "sfo"},
+		{"DE", "", "", live, "fra"},
+		{"SG", "", "", live, "sgp"},
+		{"AU", "", "", live, "syd"},
+		{"FR", "", "", live, "fra"},
+		{"NG", "", "", live, "fra"},
+		{"AE", "", "", live, "fra"},
+		{"IN", "", "", live, "sgp"},
+		{"JP", "", "", live, "sgp"},
+		{"BR", "", "", live, "nyc"},
+		{"NZ", "", "", live, "syd"},
+		{"MX", "", "America/Mexico_City", live, "sfo"},
+		{"MX", "", "America/Cancun", live, "nyc"},
+		{"GB", "", "", append(live, "lon"), "lon"},
+		{"GB", "", "", live, "fra"},
+		{"CA", "", "", []string{"nyc", "fra"}, "nyc"},
+		{"IN", "", "", []string{"fra", "nyc"}, "fra"},
+		{"", "EU", "", live, "fra"},
+		{"", "AS", "", live, "sgp"},
+		{"", "NA", "", live, "nyc"},
+		{"", "OC", "", live, "syd"},
+		{"--", "--", "Europe/Paris", live, "fra"},
+		{"", "", "America/Toronto", live, "tor"},
+		{"", "", "America/Los_Angeles", live, "sfo"},
+		{"", "", "Asia/Tokyo", live, "sgp"},
+		{"", "", "Australia/Sydney", live, "syd"},
+		{"", "", "Asia/Dubai", live, "fra"},
+		{"", "", "", []string{"syd", "sgp"}, "sgp"},
+		{"", "", "", []string{"ams"}, "ams"},
+		{"IN", "NA", "America/New_York", live, "sgp"},
+		{"CA", "NA", "America/Los_Angeles", live, "tor"},
+	}
+
+	for _, test := range cases {
+		if got := SuggestRegion(test.country, test.continent, test.timeZone, test.available); got != test.want {
+			t.Errorf("SuggestRegion(%q, %q, %q, %v) = %q, want %q",
+				test.country, test.continent, test.timeZone, test.available, got, test.want)
+		}
+	}
+}
