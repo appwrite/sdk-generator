@@ -20,6 +20,7 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 )
 
@@ -58,9 +59,10 @@ func newZeroCommand() *cobra.Command {
 	var endpoint, region string
 
 	command := &cobra.Command{
-		Use:   "zero",
+		Use:   "zero [directory]",
 		Short: "Get a working project instantly, no signup",
-		Long: "Create an Appwrite project without an account and link this directory to it.\n\n" +
+		Long: "Create an Appwrite project without an account and link this directory to it, " +
+			"or a new one when a directory is given, such as `zero my-app`.\n\n" +
 			"The project is yours to build on for a limited time. Claim it with the printed " +
 			"link to keep it; unclaimed projects are deleted. Until then its sites are public " +
 			"under a banner saying the project is unclaimed. Deployment previews open for " +
@@ -69,9 +71,14 @@ func newZeroCommand() *cobra.Command {
 			"link and the access token, for agents to hand back.\n\n" +
 			"The project is created in the Cloud region closest to you. --region picks one, " +
 			"such as `zero --region fra`; it cannot be combined with --endpoint.",
-		Args: cobra.NoArgs,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(command *cobra.Command, args []string) error {
-			return runZero(command, endpoint, region)
+			directory := ""
+			if len(args) > 0 {
+				directory = args[0]
+			}
+
+			return runZero(command, endpoint, region, directory)
 		},
 	}
 
@@ -81,6 +88,8 @@ func newZeroCommand() *cobra.Command {
 		"Cloud region to create the project in: "+strings.Join(config.CloudRegions(), ", "))
 	command.AddCommand(newZeroStatusCommand())
 	command.AddCommand(newZeroConsoleCommand())
+	command.AddCommand(newZeroListCommand())
+	command.AddCommand(newZeroDeleteCommand())
 
 	return command
 }
@@ -110,15 +119,53 @@ func newZeroConsoleCommand() *cobra.Command {
 	}
 }
 
-func runZero(command *cobra.Command, endpoint, region string) error {
+func newZeroListCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "list",
+		Short: "List the Zero projects created on this machine",
+		Long: "List the Zero projects this machine holds the claim codes for, with the time " +
+			"left on each and its claim link. Read from the stored sessions, without calling the API.",
+		Args: cobra.NoArgs,
+		RunE: func(command *cobra.Command, args []string) error {
+			return runZeroList(command)
+		},
+	}
+}
+
+func newZeroDeleteCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete",
+		Short: "Delete the Zero project linked to this directory now",
+		Long: "Delete this directory's unclaimed Zero project instead of waiting for its claim " +
+			"window to close, and forget its session. It cannot be undone. Asks first; --force " +
+			"skips the question, which is how an agent or a script runs it.",
+		Args: cobra.NoArgs,
+		RunE: func(command *cobra.Command, args []string) error {
+			return runZeroDelete(command)
+		},
+	}
+}
+
+func runZero(command *cobra.Command, endpoint, region, directory string) error {
 	endpoint, err := zeroEndpoint(endpoint, region)
 	if err != nil {
 		return err
 	}
 
+	path := config.LocalPathOr(config.LocalPath("."))
+	if directory != "" {
+		if config.LocalFile != "" {
+			return errors.New("--config and a directory both choose where the project is linked; pass only one")
+		}
+		if err := os.MkdirAll(directory, 0o755); err != nil {
+			return err
+		}
+		path = config.LocalPath(directory)
+	}
+
 	// Loaded before the project is created, so a config that cannot be read
 	// does not spend one of the day's few Zero projects.
-	local, err := config.LoadOrCreateLocal(config.LocalPathOr(config.LocalPath(".")))
+	local, err := config.LoadOrCreateLocal(path)
 	if err != nil {
 		return err
 	}
@@ -186,7 +233,7 @@ func runZero(command *cobra.Command, endpoint, region string) error {
 		return renderZeroManifest(command.OutOrStdout(), &zero)
 	}
 
-	printZeroWelcome(command.OutOrStdout(), &zero, local.Path())
+	printZeroWelcome(command.OutOrStdout(), &zero, local.Path(), directory)
 
 	return nil
 }
@@ -280,7 +327,7 @@ func renderZeroManifest(out io.Writer, zero *jsonx.Object) error {
 	return renderer.Render(zero)
 }
 
-func printZeroWelcome(out io.Writer, zero *jsonx.Object, path string) {
+func printZeroWelcome(out io.Writer, zero *jsonx.Object, path, directory string) {
 	now := time.Now()
 	name := app.ExecutableName
 
@@ -297,6 +344,11 @@ func printZeroWelcome(out io.Writer, zero *jsonx.Object, path string) {
 	fmt.Fprintf(out, "    %s zero console\n", name)
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, output.Heading("  Next steps"))
+	if directory != "" {
+		if command := cdCommand(directory); command != "" {
+			fmt.Fprintf(out, "    %s\n", command)
+		}
+	}
 	fmt.Fprintf(out, "    %s tablesdb list       Call the project with its API key\n", name)
 	fmt.Fprintf(out, "    %s push                Deploy this directory's resources\n", name)
 	fmt.Fprintf(out, "    %s zero status         Check the time left and get the private links to your sites and functions\n", name)
@@ -417,6 +469,127 @@ func runZeroConsole(command *cobra.Command, open func(string)) error {
 	return nil
 }
 
+// runZeroList reads the stored sessions only: each holds the deadlines the
+// project was created with, which no later call moves, so listing costs no
+// request and works for a project the API no longer answers for.
+func runZeroList(command *cobra.Command) error {
+	global, err := preferences()
+	if err != nil {
+		return err
+	}
+
+	linked := ""
+	if local, err := config.LoadLocal(config.FindLocalPath()); err == nil {
+		linked = local.Data.GetString("projectId")
+	}
+
+	now := time.Now()
+	projects := []any{}
+	for _, id := range global.SessionIDs() {
+		session := global.SessionData(id)
+		if !strings.HasPrefix(id, zeroSessionPrefix) || session == nil || session.GetObject(preferenceZero) == nil {
+			continue
+		}
+		stored := session.GetObject(preferenceZero)
+
+		// Past its claim window a project is claimed or deleted, which the
+		// stored dates cannot tell apart.
+		status := zeroActive
+		switch {
+		case timeLeft(stored.GetString("claimBy"), now) == "":
+			status = "closed"
+		case timeLeft(stored.GetString("expiresAt"), now) == "":
+			status = zeroExpired
+		}
+
+		project := jsonx.NewObject()
+		project.Set("projectId", stored.GetString("projectId"))
+		project.Set("status", status)
+		project.Set("buildTimeLeft", timeLeft(stored.GetString("expiresAt"), now))
+		project.Set("claimTimeLeft", timeLeft(stored.GetString("claimBy"), now))
+		project.Set("claimUrl", stored.GetString("claimUrl"))
+		project.Set("endpoint", session.GetString(config.PreferenceEndpoint))
+		project.Set("linked", stored.GetString("projectId") == linked)
+		projects = append(projects, project)
+	}
+
+	if len(projects) == 0 && !app.Flags().JSON && !app.Flags().Raw {
+		output.Log(command.OutOrStdout(), "No Appwrite Zero projects on this machine. Run `%s zero` to create one.", app.ExecutableName)
+
+		return nil
+	}
+
+	// The shape of the API's lists, which the human renderer draws as a table
+	list := jsonx.NewObject()
+	list.Set("total", len(projects))
+	list.Set("projects", projects)
+
+	return app.RenderValue(list)
+}
+
+// runZeroDelete deletes the project with its claim code, which the API checks
+// as it does for `zero status`, then forgets the session and unlinks the
+// directory so the next `zero` starts clean.
+func runZeroDelete(command *cobra.Command) error {
+	global, err := preferences()
+	if err != nil {
+		return err
+	}
+
+	// Only the project this directory is linked to: falling back to the active
+	// session, as `zero status` does, could delete an unrelated project.
+	local, err := config.LoadLocal(config.FindLocalPath())
+	if err != nil {
+		return fmt.Errorf("no Appwrite Zero project is linked here. Run `%s zero delete` in its directory", app.ExecutableName)
+	}
+	projectID := local.Data.GetString("projectId")
+	session := global.SessionData(zeroSessionPrefix + projectID)
+	if projectID == "" || session == nil || session.GetObject(preferenceZero) == nil {
+		return fmt.Errorf("this directory is not linked to an Appwrite Zero project on this machine. Run `%s zero list` to see them", app.ExecutableName)
+	}
+	stored := session.GetObject(preferenceZero)
+
+	confirmed, err := prompt.New(app.Flags().Force).Confirm(prompt.Question{
+		Message: fmt.Sprintf("Delete Appwrite Zero project %s? Its data, sites and functions go with it, and it cannot be undone.", projectID),
+		Default: false,
+		Flag:    "--force",
+	})
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		output.Log(command.OutOrStdout(), "Delete cancelled.")
+
+		return nil
+	}
+
+	err = client.New(session.GetString(config.PreferenceEndpoint), app.Version).
+		WithoutResponseFormat().
+		SetProject(config.ProjectConsole).
+		SetLocale("en-US").
+		Call("DELETE", pathZero+"/"+url.PathEscape(stored.GetString("$id")), map[string]any{"secret": stored.GetString("secret")}, nil)
+	var apiError *client.APIError
+	if errors.As(err, &apiError) && apiError.Type == zeroNotFound {
+		return zeroGone(session)
+	}
+	if err != nil {
+		return err
+	}
+
+	global.DeleteSession(zeroSessionPrefix + projectID)
+	if err := global.Write(); err != nil {
+		return err
+	}
+	local.Data.Delete("projectId")
+	if err := local.Write(); err != nil {
+		return err
+	}
+
+	output.Success(command.OutOrStdout(), "Deleted Appwrite Zero project %s", projectID)
+
+	return nil
+}
+
 // zeroGone explains zero_not_found, which the API answers alike for a claimed,
 // deleted or unknown project and for a wrong secret. The session is left as it
 // is: the CLI cannot tell which case this is, and a project still unclaimed
@@ -503,6 +676,25 @@ func zeroError(err error, endpoint string) error {
 	}
 
 	return err
+}
+
+// cdCommand is the line a user pastes to enter a new directory, or "" when no
+// one line would read the same in every shell. Double quotes do in bash, zsh,
+// PowerShell and cmd, for any name without a character one of them expands
+// inside them or a line break; the welcome already names such a directory.
+func cdCommand(directory string) string {
+	// cd would read a leading dash as an option
+	if strings.HasPrefix(directory, "-") {
+		return ""
+	}
+	if !strings.ContainsAny(directory, " \t\r\n'\"`$&|;()[]{}<>#@,!%*?~\\^") {
+		return "cd " + directory
+	}
+	if strings.ContainsAny(directory, "\r\n\"`$!%\\") {
+		return ""
+	}
+
+	return `cd "` + directory + `"`
 }
 
 // timeLeft renders the time until an ISO 8601 deadline, such as "60 min".
