@@ -149,5 +149,21 @@ final class Flutter
                 ...Output::PUSH_CREDENTIAL_SWITCH_RESPONSES
             ],
         );
+
+        yield 'FlutterWebWasm' => new Runtime(
+            directory: 'flutter',
+            language: new Language\Flutter(),
+            name: 'flutter',
+            platform: 'client',
+            header: 'flutter',
+            build: [],
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/e2e/languages/flutter ghcr.io/cirruslabs/flutter:stable sh run_web.sh --wasm',
+            expected: [
+                ...Output::PUSH_RESPONSES,
+                ...Output::PUSH_SIGN_IN_SESSION_RESPONSES,
+                ...Output::PUSH_ERROR_RESPONSES,
+                ...Output::PUSH_CREDENTIAL_SWITCH_RESPONSES
+            ],
+        );
     }
 }
