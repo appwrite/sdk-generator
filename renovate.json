@@ -1,10 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "labels": ["dependencies"],
+  "extends": ["github>appwrite/renovate-config"],
   "reviewers": ["ChiragAgg5k"],
-  "dependencyDashboard": true,
-  "branchPrefix": "renovate/",
   "ignorePaths": [
     "examples/**",
     "tests/e2e/languages/go*/go.mod",
@@ -12,71 +9,44 @@
     "vendor/**",
     "node_modules/**"
   ],
-  "vulnerabilityAlerts": {
-    "enabled": false
-  },
   "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["before 5am on monday"]
-  },
-  "postUpgradeTasks": {
-    "commands": []
-  },
-  "npm": {
-    "managerFilePatterns": [
-      "/(^|/)package\\.json$/"
-    ]
-  },
-  "gradle": {
-    "managerFilePatterns": [
-      "/\\.gradle(\\.kts)?$/",
-      "/(^|/)gradle\\.properties$/",
-      "/(^|/)gradle/.+\\.toml$/",
-      "/(^|/)buildSrc/.+\\.kt$/",
-      "/\\.versions\\.toml$/",
-      "/(^|/)versions.props$/",
-      "/(^|/)versions.lock$/"
-    ]
-  },
-  "gradle-wrapper": {
-    "managerFilePatterns": [
-      "/(^|/)gradle/wrapper/gradle-wrapper\\.properties$/"
-    ]
+    "postUpgradeTasks": {
+      "commands": ["./scripts/update-lockfiles.sh renovate"],
+      "executionMode": "branch",
+      "fileFilters": ["templates/**", "examples/**"],
+      "installTools": {
+        "node": {},
+        "php": {},
+        "composer": {}
+      }
+    }
   },
   "cargo": {
-    "managerFilePatterns": [
-      "/(^|/)Cargo\\.toml$/",
-      "/(^|/)Cargo\\.toml\\.twig$/"
-    ]
+    "managerFilePatterns": ["/(^|/)Cargo\\.toml\\.twig$/"]
+  },
+  "github-actions": {
+    "managerFilePatterns": ["/^templates/[^/]+/\\.github/workflows/[^/]+\\.ya?ml\\.twig$/"]
   },
   "gomod": {
-    "managerFilePatterns": [
-      "/(^|/)go\\.mod$/"
-    ]
+    "managerFilePatterns": ["/^templates/(go|cli)/go\\.mod\\.twig$/"]
   },
   "nuget": {
-    "managerFilePatterns": [
-      "/\\.csproj$/",
-      "/\\.csproj\\.twig$/"
-    ]
+    "managerFilePatterns": ["/\\.csproj\\.twig$/"]
+  },
+  "pep621": {
+    "managerFilePatterns": ["/^templates/python/pyproject\\.toml\\.twig$/"]
   },
   "pip_requirements": {
-    "managerFilePatterns": [
-      "/(^|/)([\\w-]*)requirements(?:\\.(?<constraints>constraints|pip))?\\.(?<ext>txt|in)$/",
-      "/(^|/)requirements\\.txt\\.twig$/"
-    ]
+    "managerFilePatterns": ["/(^|/)requirements\\.txt\\.twig$/"]
+  },
+  "pip_setup": {
+    "managerFilePatterns": ["/^templates/python/setup\\.py\\.twig$/"]
   },
   "pub": {
-    "managerFilePatterns": [
-      "/(^|/)pubspec\\.ya?ml$/",
-      "/(^|/)pubspec\\.ya?ml\\.twig$/"
-    ]
+    "managerFilePatterns": ["/(^|/)pubspec\\.ya?ml\\.twig$/"]
   },
   "swift": {
-    "managerFilePatterns": [
-      "/(^|/)Package\\.swift$/",
-      "/(^|/)Package\\.swift\\.twig$/"
-    ]
+    "managerFilePatterns": ["/(^|/)Package\\.swift\\.twig$/"]
   },
   "customManagers": [
     {
@@ -111,11 +81,12 @@
     },
     {
       "customType": "regex",
-      "description": "Cargo crate versions in SDK templates",
+      "description": "Cargo crate versions in SDK templates; twig tags in [package] break TOML parsing. Matches only inside *dependencies sections.",
       "managerFilePatterns": ["/^templates/rust/Cargo\\.toml\\.twig$/"],
+      "matchStringsStrategy": "recursive",
       "matchStrings": [
-        "^[ \\t]*(?<depName>[A-Za-z0-9_-]+)\\s*=\\s*\"(?<currentValue>[^\"]+)\"",
-        "^[ \\t]*(?<depName>[A-Za-z0-9_-]+)\\s*=\\s*\\{[^\\n]*version\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+        "\\[[^\\]\\n]*dependencies\\](?:\\n(?:[^\\[\\n][^\\n]*)?)*",
+        "\\n[ \\t]*(?<depName>[A-Za-z0-9_-]+)\\s*=\\s*(?:\\{[^\\n]*?version\\s*=\\s*)?\"(?<currentValue>[^\"]+)\""
       ],
       "datasourceTemplate": "crate",
       "versioningTemplate": "cargo"
@@ -172,6 +143,39 @@
       ],
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "Pub package versions in the Flutter template; twig expressions in its top-level keys break YAML parsing.",
+      "managerFilePatterns": ["/^templates/flutter/pubspec\\.yaml\\.twig$/"],
+      "matchStringsStrategy": "recursive",
+      "matchStrings": [
+        "(?:dev_)?dependencies:(?:\\n(?: [^\\n]*)?)*",
+        "\\n  (?<depName>[a-z][a-z0-9_]*): '?(?<currentValue>[\\^<>=][^'\\n]*)'?"
+      ],
+      "datasourceTemplate": "dart",
+      "versioningTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "description": "Maven versions in the Flutter and React Native native Android templates; the gradle manager only parses files ending in .gradle.",
+      "managerFilePatterns": ["/^templates/(flutter|react-native)/android/build\\.gradle\\.twig$/"],
+      "matchStrings": [
+        "(?:classpath|implementation)\\(?\\s*\"(?<depName>[^:\"]+:[^:\"]+):(?<currentValue>[^:\"$]+)\""
+      ],
+      "datasourceTemplate": "maven",
+      "versioningTemplate": "maven"
+    },
+    {
+      "customType": "regex",
+      "description": "Kotlin Gradle plugin version in the Flutter native Android template.",
+      "managerFilePatterns": ["/^templates/flutter/android/build\\.gradle\\.twig$/"],
+      "matchStrings": [
+        "ext\\.kotlin_version\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "org.jetbrains.kotlin:kotlin-gradle-plugin",
+      "datasourceTemplate": "maven",
+      "versioningTemplate": "maven"
     }
   ],
   "packageRules": [
@@ -287,7 +291,8 @@
       "description": "Keep native React Native test dependencies aligned with the versions shipped by its SDK template.",
       "matchFileNames": ["tests/e2e/languages/react-native/android-test/build.gradle.kts"],
       "matchDepNames": ["com.hivemq:hivemq-mqtt-client", "androidx.core:core-ktx"],
-      "enabled": false
+      "groupName": "flutter and react-native android dependencies",
+      "dependencyDashboardApproval": true
     },
     {
       "matchManagers": ["pub"],
@@ -308,7 +313,7 @@
       "enabled": false
     },
     {
-      "matchManagers": ["pip_requirements"],
+      "matchManagers": ["pep621", "pip_requirements", "pip_setup"],
       "groupName": "python sdk template dependencies"
     },
     {
@@ -336,6 +341,35 @@
     {
       "matchDatasources": ["npm"],
       "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Rust template ranges are capped by hand to hold its rust-version MSRV; approve bumps from the dashboard.",
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": ["templates/rust/Cargo.toml.twig"],
+      "groupName": "rust sdk template dependencies",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": ["templates/flutter/pubspec.yaml.twig"],
+      "groupName": "dart and flutter sdk template dependencies"
+    },
+    {
+      "description": "Flutter and React Native plugins ship these into consumer Android builds, so a bump raises the compileSdk/AGP floor for every app; approve from the dashboard.",
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": [
+        "templates/flutter/android/build.gradle.twig",
+        "templates/react-native/android/build.gradle.twig"
+      ],
+      "groupName": "flutter and react-native android dependencies",
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "go.mod templates have no go.sum (generated SDKs run go mod tidy), so go cannot update artifacts.",
+      "matchManagers": ["gomod"],
+      "matchFileNames": ["templates/**"],
+      "groupName": "go sdk template dependencies",
+      "skipArtifactsUpdate": true
     },
     {
       "description": "The tracing range is capped below 1.6.0 by hand for Swift 6.1; Renovate rewrites the exclusive bound to drop 1.5.0.",
