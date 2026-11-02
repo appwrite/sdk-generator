@@ -9,7 +9,6 @@ import (
 	"math"
 	"net/url"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -346,9 +345,9 @@ func printZeroWelcome(out io.Writer, zero *jsonx.Object, path, directory string)
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, output.Heading("  Next steps"))
 	if directory != "" {
-		// Git Bash, MSYS and Cygwin on Windows set SHELL; PowerShell and cmd do not
-		powershell := runtime.GOOS == "windows" && os.Getenv("SHELL") == ""
-		fmt.Fprintf(out, "    %s\n", cdCommand(directory, powershell))
+		if command := cdCommand(directory); command != "" {
+			fmt.Fprintf(out, "    %s\n", command)
+		}
 	}
 	fmt.Fprintf(out, "    %s tablesdb list       Call the project with its API key\n", name)
 	fmt.Fprintf(out, "    %s push                Deploy this directory's resources\n", name)
@@ -679,22 +678,19 @@ func zeroError(err error, endpoint string) error {
 	return err
 }
 
-// cdCommand is the line a user pastes to enter a new directory. Double quotes
-// read the same in bash, zsh, PowerShell and cmd, so they are used whenever
-// the name holds nothing those shells expand inside them; only such a name is
-// quoted for one shell, PowerShell's doubled single quote or POSIX escaping.
-func cdCommand(directory string, powershell bool) string {
-	if !strings.ContainsAny(directory, " \t'\"`$&|;()[]{}<>#@,!%*?~\\^") {
+// cdCommand is the line a user pastes to enter a new directory, or "" when no
+// one line would read the same in every shell. Double quotes do in bash, zsh,
+// PowerShell and cmd, for any name without a character one of them expands
+// inside them or a line break; the welcome already names such a directory.
+func cdCommand(directory string) string {
+	if !strings.ContainsAny(directory, " \t\r\n'\"`$&|;()[]{}<>#@,!%*?~\\^") {
 		return "cd " + directory
 	}
-	if !strings.ContainsAny(directory, "\"`$!%\\") {
-		return `cd "` + directory + `"`
-	}
-	if powershell {
-		return "cd '" + strings.ReplaceAll(directory, "'", "''") + "'"
+	if strings.ContainsAny(directory, "\r\n\"`$!%\\") {
+		return ""
 	}
 
-	return "cd " + shellQuote(directory)
+	return `cd "` + directory + `"`
 }
 
 // timeLeft renders the time until an ISO 8601 deadline, such as "60 min".

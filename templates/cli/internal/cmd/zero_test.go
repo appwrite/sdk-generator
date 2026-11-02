@@ -1073,27 +1073,22 @@ func TestZeroShowsTheClaimLinkWhenItCannotSaveTheSession(t *testing.T) {
 	}
 }
 
-// The `cd` hint is pasted into the user's shell, so it is quoted the way that
-// shell reads it.
-func TestZeroCdHintQuotesForTheUsersShell(t *testing.T) {
-	for _, test := range []struct {
-		directory  string
-		powershell bool
-		want       string
-	}{
-		{"my-app", false, "cd my-app"},
+// The `cd` hint is pasted into whichever shell the user runs, so it is only
+// printed when one line reads the same in all of them.
+func TestZeroCdHintReadsTheSameInEveryShell(t *testing.T) {
+	for _, test := range []struct{ directory, want string }{
+		{"my-app", "cd my-app"},
 		// Double quotes, which every shell reads alike
-		{"my app", false, `cd "my app"`},
-		{"O'Neil", false, `cd "O'Neil"`},
-		{"my app", true, `cd "my app"`},
-		{"O'Neil", true, `cd "O'Neil"`},
-		// A name the shells expand inside double quotes, quoted for the one in use
-		{"$HOME app", false, `cd '$HOME app'`},
-		{"$HOME app", true, `cd '$HOME app'`},
-		{"it's $5", true, `cd 'it''s $5'`},
+		{"my app", `cd "my app"`},
+		{"O'Neil", `cd "O'Neil"`},
+		// No one line works everywhere: a shell expands these inside double
+		// quotes, and a line break would make two commands
+		{"$HOME app", ""},
+		{"50% off", ""},
+		{"safe\nexit", ""},
 	} {
-		if got := cdCommand(test.directory, test.powershell); got != test.want {
-			t.Errorf("cdCommand(%q, %v) = %q, want %q", test.directory, test.powershell, got, test.want)
+		if got := cdCommand(test.directory); got != test.want {
+			t.Errorf("cdCommand(%q) = %q, want %q", test.directory, got, test.want)
 		}
 	}
 }
