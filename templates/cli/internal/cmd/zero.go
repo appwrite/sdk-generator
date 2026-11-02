@@ -27,16 +27,18 @@ import (
 // project command works against it without `login`. The claim code stays in
 // prefs.json, never in appwrite.config.json, which is often committed.
 //
-// Until the project is claimed its domains open only for the owner token: a
-// browser visits each domain's owner link once, an agent sends the token in
-// the X-Appwrite-Zero-Token header.
+// Until the project is claimed its sites open to anyone under a banner saying
+// so. Deployment previews ask for a console session, which the owner token
+// stands in for: a browser visits a domain's owner link once, an agent sends
+// the token in the X-Appwrite-Zero-Token header.
 
 const (
 	pathZero   = "/zero"
 	pathRules  = "/proxy/rules"
 	pathTokens = "/tokens"
 
-	// zeroOwnerPath is where a domain of an unclaimed Zero takes the owner token.
+	// zeroOwnerPath is where a domain of an unclaimed Zero takes the owner token,
+	// which opens its deployment previews without a console session.
 	zeroOwnerPath = "/__appwrite/zero?token="
 
 	// preferenceZero is the session field holding what `zero status` needs.
@@ -59,8 +61,9 @@ func newZeroCommand() *cobra.Command {
 		Short: "Get a working project instantly, no signup",
 		Long: "Create an Appwrite project without an account and link this directory to it.\n\n" +
 			"The project is yours to build on for a limited time. Claim it with the printed " +
-			"link to keep it; unclaimed projects are deleted. Until then its domains open only " +
-			"for you: visit a domain's owner link once, or send the access token in the " +
+			"link to keep it; unclaimed projects are deleted. Until then its sites are public " +
+			"under a banner saying the project is unclaimed. Deployment previews open for " +
+			"you through a domain's owner link, or the access token in the " +
 			"X-Appwrite-Zero-Token header. --json prints the manifest, including the claim " +
 			"link and the access token, for agents to hand back.\n\n" +
 			"The project is created in the Cloud region closest to you. --region picks one, " +
@@ -420,8 +423,8 @@ func zeroGone(session *config.Object) error {
 	return errors.New(message)
 }
 
-// zeroOwnerLinks lists the link that opens each of the project's domains for
-// the owner while the project is unclaimed.
+// zeroOwnerLinks lists the link that lets the owner past each of the project's
+// domains' preview sign-in while the project is unclaimed.
 func zeroOwnerLinks(session *config.Object, projectID, token string) ([]string, error) {
 	links := []string{}
 	if token == "" {
