@@ -954,7 +954,7 @@ func TestZeroCreatesTheDirectoryItIsGiven(t *testing.T) {
 		t.Error("the current directory was linked too")
 	}
 	// Quoted, so the printed command can be pasted as is
-	if !strings.Contains(out.String(), "cd 'my app'") {
+	if !strings.Contains(out.String(), `cd "my app"`) {
 		t.Errorf("welcome does not say to cd into it:\n%s", out)
 	}
 }
@@ -1082,11 +1082,15 @@ func TestZeroCdHintQuotesForTheUsersShell(t *testing.T) {
 		want       string
 	}{
 		{"my-app", false, "cd my-app"},
-		{"my app", false, "cd 'my app'"},
-		{"O'Neil", false, `cd 'O'\''Neil'`},
-		{"my-app", true, "cd my-app"},
-		{"my app", true, "cd 'my app'"},
-		{"O'Neil", true, "cd 'O''Neil'"},
+		// Double quotes, which every shell reads alike
+		{"my app", false, `cd "my app"`},
+		{"O'Neil", false, `cd "O'Neil"`},
+		{"my app", true, `cd "my app"`},
+		{"O'Neil", true, `cd "O'Neil"`},
+		// A name the shells expand inside double quotes, quoted for the one in use
+		{"$HOME app", false, `cd '$HOME app'`},
+		{"$HOME app", true, `cd '$HOME app'`},
+		{"it's $5", true, `cd 'it''s $5'`},
 	} {
 		if got := cdCommand(test.directory, test.powershell); got != test.want {
 			t.Errorf("cdCommand(%q, %v) = %q, want %q", test.directory, test.powershell, got, test.want)

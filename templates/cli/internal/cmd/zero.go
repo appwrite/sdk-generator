@@ -679,18 +679,22 @@ func zeroError(err error, endpoint string) error {
 	return err
 }
 
-// cdCommand is the line a user pastes to enter a new directory: quoted for
-// PowerShell, where a single quote is doubled rather than escaped, or for a
-// POSIX shell, including Git Bash on Windows.
+// cdCommand is the line a user pastes to enter a new directory. Double quotes
+// read the same in bash, zsh, PowerShell and cmd, so they are used whenever
+// the name holds nothing those shells expand inside them; only such a name is
+// quoted for one shell, PowerShell's doubled single quote or POSIX escaping.
 func cdCommand(directory string, powershell bool) string {
-	if !powershell {
-		return "cd " + shellQuote(directory)
-	}
-	if !strings.ContainsAny(directory, " \t'\"`$&|;()[]{}<>#@,") {
+	if !strings.ContainsAny(directory, " \t'\"`$&|;()[]{}<>#@,!%*?~\\^") {
 		return "cd " + directory
 	}
+	if !strings.ContainsAny(directory, "\"`$!%\\") {
+		return `cd "` + directory + `"`
+	}
+	if powershell {
+		return "cd '" + strings.ReplaceAll(directory, "'", "''") + "'"
+	}
 
-	return "cd '" + strings.ReplaceAll(directory, "'", "''") + "'"
+	return "cd " + shellQuote(directory)
 }
 
 // timeLeft renders the time until an ISO 8601 deadline, such as "60 min".
