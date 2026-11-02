@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -759,5 +760,45 @@ func TestZeroOwnerLinksCoverEveryPageOfRules(t *testing.T) {
 	}
 	if len(links) != total || links[total-1] != "https://rule-100.example"+zeroOwnerPath+"owner-token" {
 		t.Errorf("got %d owner links, want %d ending with rule-100", len(links), total)
+	}
+}
+
+// When the session cannot be saved, the claim link and key the API returned
+// are the only copy, so they are printed before the error.
+func TestZeroShowsTheClaimLinkWhenItCannotSaveTheSession(t *testing.T) {
+	global := preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+
+	var requests []*http.Request
+	zero := zeroServer(t, &requests, zeroActive)
+	// The prefs file turns into a directory once the project exists, so
+	// loading it worked and saving it cannot
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/zero" {
+			os.Remove(global.Path())
+			os.MkdirAll(filepath.Join(global.Path(), "taken"), 0o755)
+		}
+		proxy, _ := http.NewRequest(r.Method, zero.URL+r.URL.RequestURI(), r.Body)
+		proxy.Header = r.Header
+		response, err := http.DefaultClient.Do(proxy)
+		if err != nil {
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		defer response.Body.Close()
+		w.WriteHeader(response.StatusCode)
+		io.Copy(w, response.Body)
+	}))
+	t.Cleanup(server.Close)
+
+	command, out := captureCommand()
+	if err := runZero(command, server.URL, ""); err == nil {
+		t.Fatal("saving over a directory succeeded")
+	}
+	for _, want := range []string{"https://console.example/claim/code", "standard_zero-api-key"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output lacks %s:\n%s", want, out)
+		}
 	}
 }
