@@ -218,8 +218,10 @@ func zeroEndpoint(endpoint, region string) (string, error) {
 }
 
 // nearestRegion picks the region for a project nobody placed. Cloud answers
-// GET /locale for anyone, from the caller's IP; when that fails, the local time
-// zone still places most users and Frankfurt takes the rest.
+// GET /locale for anyone, from the caller's IP, including the time zone that
+// splits the US between coasts; a remote machine often runs on UTC. When that
+// fails, the local time zone still places most users and Frankfurt takes the
+// rest.
 func nearestRegion(endpoint string) string {
 	var locale jsonx.Object
 	_ = client.New(endpoint, app.Version).
@@ -227,9 +229,9 @@ func nearestRegion(endpoint string) string {
 		SetProject(config.ProjectConsole).
 		Call("GET", "/locale", nil, &locale)
 
-	timeZone := localTimeZone()
+	timeZone := locale.GetString("timeZone")
 	if timeZone == "" {
-		timeZone = locale.GetString("timeZone")
+		timeZone = localTimeZone()
 	}
 
 	return config.SuggestRegion(locale.GetString("countryCode"), locale.GetString("continentCode"),

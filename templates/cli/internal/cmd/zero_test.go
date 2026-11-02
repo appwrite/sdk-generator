@@ -87,10 +87,14 @@ func zeroServer(t *testing.T, requests *[]*http.Request, status string) *httptes
 // regionalZeroServer answers POST /zero for any host: every host dials the
 // test server, so a regional name is never resolved. It records the host and
 // path the CLI called.
-func regionalZeroServer(t *testing.T, endpoint string, host, path *string) {
+func regionalZeroServer(t *testing.T, endpoint string, host, path *string, locale ...map[string]any) {
 	t.Helper()
 
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/locale") && len(locale) > 0 {
+			json.NewEncoder(w).Encode(locale[0])
+			return
+		}
 		*host, *path = r.Host, r.URL.Path
 		json.NewEncoder(w).Encode(map[string]any{
 			"$id":         "zero-row",
@@ -686,5 +690,31 @@ func TestZeroCreatesInTheNearestRegion(t *testing.T) {
 	session := global.SessionData(zeroSessionPrefix + "zero-project")
 	if session == nil || session.GetString(config.PreferenceEndpoint) != regional {
 		t.Errorf("session endpoint is not %s", regional)
+	}
+}
+
+// A remote machine often runs on UTC, so the time zone Cloud reads from the
+// caller's IP places a US user on the right coast before the local one does.
+func TestZeroPrefersCloudsTimeZoneOverTheMachines(t *testing.T) {
+	preferencesWith(t, `{}`)
+	inDirectory(t, t.TempDir())
+	withZeroFlags(t, false, false)
+	t.Setenv(sdk.EnvEndpoint, "")
+	t.Setenv("TZ", "UTC")
+
+	var host, path string
+	regionalZeroServer(t, "https://sfo.cloud.appwrite.io/v1", &host, &path, map[string]any{
+		"countryCode":   "US",
+		"continentCode": "NA",
+		"timeZone":      "America/Los_Angeles",
+	})
+
+	command, _ := captureCommand()
+	if err := runZero(command, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	if host != "sfo.cloud.appwrite.io" {
+		t.Errorf("created the project through %s, want sfo.cloud.appwrite.io", host)
 	}
 }
