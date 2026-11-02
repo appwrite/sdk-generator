@@ -1,6 +1,7 @@
 // Test-only TLS fixtures for the RN push e2e (push.node.js): a private CA and one key with three
 // leaf certificates it signed: "localhost", "wrong.test", and one whose CN is "localhost" but whose
-// subjectAltName is only "other.test". Never trusted outside the test.
+// subjectAltName is only "other.test". A second, ECDSA CA signed an ECDSA "localhost" leaf.
+// Never trusted outside the test.
 export const TLS_CA = `
 -----BEGIN CERTIFICATE-----
 MIIDEDCCAfigAwIBAgIUbvMj3hWTBfRQRuOVcLEPnCGMP1QwDQYJKoZIhvcNAQEL
@@ -111,5 +112,38 @@ jUs1GfG2AgYJloz/iUPYFihNCu7NPkIkFF5pAbsX1Q/SaKaSgO6Q2EkzIvfKFd5N
 RJHKUbBho0FjZHJDI1HUcC2B/7GQTgP9gbpiRfMeOFnQojPIbuM3ROcIzQn6RUIr
 rJJOvPSxYR/lBPhFPz8EdaY8HLq35Qn8cTY1ysLfvh7PqzsmNHXH6RoBwGckjrhe
 Br6jq+ZkyqALr0VvIkQFpWREYO88zSQRQSjuhfrcUPSvkQ9nZjwUHjRbdW9iFZ+r
+-----END CERTIFICATE-----
+`;
+export const TLS_EC_CA = `
+-----BEGIN CERTIFICATE-----
+MIIBjzCCATagAwIBAgIUL+aPNy/M6Cuqe98b0pFHhREmeqswCgYIKoZIzj0EAwIw
+JTEjMCEGA1UEAwwaQXBwd3JpdGUgUk4gcHVzaCBlMmUgRUMgQ0EwIBcNMjYxMTAy
+MTE1MTU4WhgPMjEyNjEwMDkxMTUxNThaMCUxIzAhBgNVBAMMGkFwcHdyaXRlIFJO
+IHB1c2ggZTJlIEVDIENBMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEbAIZ5NRl
+/9B40ay1PO2Ybkv80tT0LsyzSvZn+6Nzp5ELhZRyI31vnO7m13ivnhDBdOu2YeXm
+oQhWrK0YYLY8yqNCMEAwHQYDVR0OBBYEFJfOMKLtA+prX9Ifz7csAh/oXXepMA8G
+A1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgIEMAoGCCqGSM49BAMCA0cAMEQC
+IBuGAwf64PdR64rt+tUivMa468AZuBLKPX3fH0GIuxJsAiAlZgcZ94rbsDLl83lD
+hZhxAOhsGUGsrBPhoEqoBkm3cA==
+-----END CERTIFICATE-----
+`;
+export const TLS_EC_KEY = `
+-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgAGXwT+0xi+qunLh0
+o5tWpWPM5mIIg+eZk3LYXIKsaAShRANCAAS4ik0ArzyAHtGLEo89eSMiKlqaRxPn
+rFJVUKKSSQ50zpJ+A0QHvux6mUJDCpoUlwIxCDFCfGyodKR4skHTh4w5
+-----END PRIVATE KEY-----
+`;
+export const TLS_EC_LOCALHOST = `
+-----BEGIN CERTIFICATE-----
+MIIBgTCCASigAwIBAgIUfXSZ5kKU3EHzrfDHV/PdYYDmyvgwCgYIKoZIzj0EAwIw
+JTEjMCEGA1UEAwwaQXBwd3JpdGUgUk4gcHVzaCBlMmUgRUMgQ0EwIBcNMjYxMTAy
+MTE1MTU4WhgPMjEyNjEwMDkxMTUxNThaMBQxEjAQBgNVBAMMCWxvY2FsaG9zdDBZ
+MBMGByqGSM49AgEGCCqGSM49AwEHA0IABLiKTQCvPIAe0YsSjz15IyIqWppHE+es
+UlVQopJJDnTOkn4DRAe+7HqZQkMKmhSXAjEIMUJ8bKh0pHiyQdOHjDmjRTBDMBQG
+A1UdEQQNMAuCCWxvY2FsaG9zdDAJBgNVHRMEAjAAMAsGA1UdDwQEAwIHgDATBgNV
+HSUEDDAKBggrBgEFBQcDATAKBggqhkjOPQQDAgNHADBEAiA8zMrcOIj5BCYgEjH+
+oHiBQvZIJD6R7yZUbv/mad2atAIgTE6eHYzAp14onlQ1CLzGpm6tW5Mzp1ySa5YU
+kycFVd0=
 -----END CERTIFICATE-----
 `;

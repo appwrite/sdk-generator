@@ -19,19 +19,28 @@ module.exports = {
                 host: options.host,
                 port: options.port,
                 rejectUnauthorized: options.rejectUnauthorized,
-                ca: trust.ca,
+                // As on Android: a string `ca` is the only trusted certificate, and it need not be
+                // a root (Android accepts a chain whose leaf is itself trusted).
+                ca: options.ca ?? trust.ca,
+                allowPartialTrustChain: options.ca !== undefined,
                 // As on Android: the native socket validates the chain but never the hostname.
                 checkServerIdentity: () => undefined,
             },
             callback,
         );
-        // As the library: a Promise of the peer certificate, with only the subject CN as a name
-        // (no subjectAltName) and its SHA-256 fingerprint.
-        const peer = socket.getPeerCertificate.bind(socket);
-        socket.getPeerCertificate = async () => {
-            const certificate = peer();
-            return { subject: { CN: certificate.subject?.CN }, fingerprint256: certificate.fingerprint256 };
-        };
+        // As the library, once connected (Node's handshake reads the original): a Promise of the
+        // peer certificate, which it builds by reading an RSA key's modulus, so any other key
+        // (ECDSA) rejects.
+        socket.once('secureConnect', () => {
+            const peer = socket.getPeerCertificate.bind(socket);
+            socket.getPeerCertificate = async () => {
+                const certificate = peer();
+                if (!certificate.modulus) {
+                    throw new Error('Error processing certificate');
+                }
+                return { subject: { CN: certificate.subject?.CN }, fingerprint256: certificate.fingerprint256 };
+            };
+        });
         return socket;
     },
 };
