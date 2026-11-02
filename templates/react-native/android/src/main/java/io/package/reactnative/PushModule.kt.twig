@@ -14,7 +14,6 @@ import io.{{ spec.info.title | caseLower }}.reactnative.services.PushTaps
 import org.json.JSONObject
 import java.net.InetSocketAddress
 import java.net.Socket
-import java.security.MessageDigest
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLPeerUnverifiedException
@@ -160,10 +159,9 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
         settle(promise) { bridge.defaultClientId(authMethod, credential) }
 
     /**
-     * The SHA-256 fingerprint of the certificate [host]:[port] presents, once verified for [host]
-     * as HTTPS would: the chain, then the hostname against its subjectAltName. JS opens its TLS
-     * socket through react-native-tcp-socket, which checks only the chain, and requires that
-     * socket's certificate to be this one before it writes anything.
+     * The PEM certificate [host]:[port] presents, once verified for [host] as HTTPS would: the
+     * chain, then the hostname against its subjectAltName. JS opens its TLS socket through
+     * react-native-tcp-socket, which checks only the chain, trusting this certificate alone.
      */
     @ReactMethod
     fun verifiedCertificate(host: String, port: Double, promise: Promise) {
@@ -181,9 +179,8 @@ class {{ spec.info.title | caseUcfirst }}PushModule internal constructor(
                         if (!hostnameVerifier.verify(host, socket.session)) {
                             throw SSLPeerUnverifiedException("The push server's TLS certificate is not valid for '$host'.")
                         }
-                        MessageDigest.getInstance("SHA-256")
-                            .digest(socket.session.peerCertificates[0].encoded)
-                            .joinToString(":") { "%02X".format(it) }
+                        val der = Base64.encodeToString(socket.session.peerCertificates[0].encoded, Base64.NO_WRAP)
+                        "-----BEGIN CERTIFICATE-----\n${der.chunked(64).joinToString("\n")}\n-----END CERTIFICATE-----\n"
                     }
                 }
             }
