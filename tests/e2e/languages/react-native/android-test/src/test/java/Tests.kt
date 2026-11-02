@@ -46,7 +46,6 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import java.security.KeyFactory
 import java.security.KeyStore
-import java.security.MessageDigest
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.security.spec.PKCS8EncodedKeySpec
@@ -547,9 +546,8 @@ class PushTlsTest {
         init(null, TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply { init(roots) }.trustManagers, null)
     }.socketFactory
 
-    // Serves the named certificate on localhost, runs verifiedCertificate() against it, and
-    // returns the fingerprint it resolved with, or its rejection.
-    private fun verify(name: String, verifier: HostnameVerifier = HostnameVerifier { _, _ -> true }): Result<Any?> {
+    // Serves the named certificate on localhost for one handshake.
+    private fun serve(name: String): SSLServerSocket {
         val key = KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(pem("TLS_KEY")))
         val identity = KeyStore.getInstance(KeyStore.getDefaultType()).apply {
             load(null)
@@ -561,19 +559,47 @@ class PushTlsTest {
         thread {
             runCatching { server.accept().use { (it as javax.net.ssl.SSLSocket).startHandshake() } }
         }
+        return server
+    }
+
+    // Runs verifiedCertificate() against the named certificate and returns the PEM it resolved
+    // with, or its rejection.
+    private fun verify(name: String, verifier: HostnameVerifier = HostnameVerifier { _, _ -> true }): Result<Any?> {
+        val server = serve(name)
         val module = AppwritePushModule(reactContext, trust, verifier) { _, _ -> }
         val promise = TestPromise()
         module.verifiedCertificate("localhost", server.localPort.toDouble(), promise)
         return promise.await().also { server.close() }
     }
 
-    private fun fingerprint(name: String) = MessageDigest.getInstance("SHA-256")
-        .digest(certificate(name).encoded)
-        .joinToString(":") { "%02X".format(it) }
+    // Whether a handshake with the named certificate succeeds when `pem` is the only trusted
+    // certificate, as react-native-tcp-socket trusts a string `ca`.
+    private fun trustedBy(pem: String, name: String): Boolean {
+        val pinned = KeyStore.getInstance(KeyStore.getDefaultType()).apply {
+            load(null)
+            setCertificateEntry("ca", CertificateFactory.getInstance("X.509").generateCertificate(pem.byteInputStream()))
+        }
+        val factory = SSLContext.getInstance("TLS").apply {
+            init(null, TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply { init(pinned) }.trustManagers, null)
+        }.socketFactory
+        val server = serve(name)
+        return runCatching {
+            (factory.createSocket("localhost", server.localPort) as javax.net.ssl.SSLSocket).use { it.startHandshake() }
+        }.isSuccess.also { server.close() }
+    }
 
     @Test
-    fun testMatchingCertificateResolvesWithItsFingerprint() {
-        assertEquals(fingerprint("TLS_LOCALHOST"), verify("TLS_LOCALHOST").getOrThrow())
+    fun testMatchingCertificateResolvesWithItsPem() {
+        val verified = verify("TLS_LOCALHOST").getOrThrow() as String
+        val parsed = CertificateFactory.getInstance("X.509").generateCertificate(verified.byteInputStream())
+        assertEquals(certificate("TLS_LOCALHOST"), parsed)
+    }
+
+    @Test
+    fun testVerifiedCertificateAloneIsTrusted() {
+        val verified = verify("TLS_LOCALHOST").getOrThrow() as String
+        assertTrue("pinned to itself", trustedBy(verified, "TLS_LOCALHOST"))
+        assertFalse("another certificate from the same root", trustedBy(verified, "TLS_WRONG_HOST"))
     }
 
     @Test
