@@ -36,6 +36,7 @@ var configKeyOrder = []string{
 	"organizationId",
 	"projectId",
 	"projectName",
+	"environmentId",
 	"endpoint",
 	"includes",
 	"settings",

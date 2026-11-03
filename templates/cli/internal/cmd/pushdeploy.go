@@ -99,6 +99,9 @@ func runPushSettings(command *cobra.Command) error {
 	if err != nil {
 		return err
 	}
+	if err := refuseSettingsInEnvironment("push", context.local); err != nil {
+		return err
+	}
 
 	console, _, err := consoleClient()
 	if err != nil {
@@ -1689,7 +1692,9 @@ func (c *pushContext) reportDeployment(
 	if link := c.previewURL(resource, id); link != "" {
 		output.Log(out, "Preview link: %s", link)
 	}
-	output.Log(out, "Deployment page: %s", consoleURL)
+	if consoleURL != "" {
+		output.Log(out, "Deployment page: %s", consoleURL)
+	}
 }
 
 // hasScreenshots reports whether a site deployment has a preview image.
@@ -2031,11 +2036,20 @@ func endpointRegion(endpoint string) string {
 	return region
 }
 
-// deploymentConsoleURL builds the console page for a deployment.
+// deploymentConsoleURL builds the console page for a deployment, or "" when
+// there is none to link to.
+//
+// A console page is addressed by project ID, and an environment has none of its
+// own: the link would open the project it belongs to, where the deployment does
+// not exist.
 func (c *pushContext) deploymentConsoleURL(
 	resource deployable,
 	id, deploymentID string,
 ) string {
+	if linkedEnvironmentID(c.local) != "" {
+		return ""
+	}
+
 	return fmt.Sprintf("%s/projects/%s%s/deployments/%s",
 		consoleBaseURL(c.api.Endpoint), c.local.Data.GetString("projectId"),
 		resource.itemPath(id), deploymentID)
