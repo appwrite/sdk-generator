@@ -283,6 +283,11 @@ final class GenerationTest extends TestCase
             $body->required = [];
             $body->properties = (object) ['zzmissing' => (object) ['type' => 'string']];
         }
+        if ($variant === '-without-environment') {
+            unset($document->components->securitySchemes->Environment);
+            $download = $document->paths->{'/mock/tests/general/download'}->get;
+            unset($download->{'x-appwrite'}->auth->Environment, $download->security[1]->Environment);
+        }
         if ($unionVariant !== '') {
             $union = $document->paths->{'/mock/tests/compound'}->get->responses->{'200'}->content->{'application/json'}->schema;
             foreach ($union->anyOf as $branch) {
@@ -896,6 +901,38 @@ final class GenerationTest extends TestCase
                 if ($flatten !== null && $platform === 'client') {
                     $this->assertStringContainsString($flatten, $files['src/services/general.ts']);
                 }
+            }
+        }
+    }
+
+    /**
+     * A WebSocket cannot carry the environment header, so Cloud reads a project
+     * environment from the `environment` query parameter on a realtime
+     * connection, and an environment's session from the cookie named after the
+     * project and the environment. Every client SDK that builds the realtime URL
+     * adds both, and a document without the Environment scheme leaves no trace
+     * of either.
+     */
+    public function testRealtimeCarriesTheEnvironment(): void
+    {
+        $session = 'a_session_${project}_env_${environment}';
+        $sources = [
+            'web' => ['src/client.ts' => ["'&environment='", $session], 'src/services/realtime.ts' => ['&environment=', $session]],
+            'react-native' => ['src/client.ts' => ["channels.set('environment'", $session], 'src/services/realtime.ts' => ['&environment=', $session]],
+            'flutter' => ['lib/src/realtime_mixin.dart' => ['&environment=']],
+            'apple' => ['Sources/Appwrite/Services/Realtime.swift' => ['&environment=']],
+            'android' => ['library/src/main/java/io/appwrite/services/Realtime.kt' => ['&environment=']],
+            'unity' => ['Runtime/Realtime.cs' => ['"environment=']],
+        ];
+
+        foreach ($sources as $name => $paths) {
+            $with = $this->generate($name, 'client');
+            $without = $this->generate($name, 'client', variant: '-without-environment');
+            foreach ($paths as $path => $tokens) {
+                foreach ($tokens as $token) {
+                    $this->assertStringContainsString($token, $with[$path], "{$name} {$path}");
+                }
+                $this->assertStringNotContainsString('environment', $without[$path], "{$name} {$path} without the scheme");
             }
         }
     }
