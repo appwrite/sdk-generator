@@ -120,7 +120,14 @@ open class Realtime: Service {
             return
         }
 
+{% if globalHeaders.Environment is defined %}
+        var queryParams = "project=\(client.config["project"]!)"
+        if let environment = client.config["environment"], !environment.isEmpty {
+            queryParams += "&environment=\(environment.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? environment)"
+        }
+{% else %}
         let queryParams = "project=\(client.config["project"]!)"
+{% endif %}
 
         let url = "\(client.endPointRealtime!)/realtime?\(queryParams)"
 

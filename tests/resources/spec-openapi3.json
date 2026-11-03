@@ -1554,6 +1554,7 @@
           "packaging": false,
           "auth": {
             "Project": [],
+            "Environment": [],
             "ImpersonateUserId": []
           }
         },
@@ -1567,6 +1568,7 @@
             "Project": [],
             "Key": [],
             "JWT": [],
+            "Environment": [],
             "ImpersonateUserId": []
           }
         ],
@@ -4221,6 +4223,12 @@
         "x-appwrite": {
           "demo": "en"
         }
+      },
+      "Environment": {
+        "type": "apiKey",
+        "name": "X-Appwrite-Environment",
+        "description": "The ID of the project environment to act in, alongside the project ID.",
+        "in": "header"
       },
       "Mode": {
         "type": "apiKey",
