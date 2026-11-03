@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
+	"net/url"
 	"regexp"
 	"runtime"
 	"strings"
@@ -26,6 +27,7 @@ const ResponseFormat = "1.8.1"
 // recorded request traces stay comparable.
 const (
 	headerProject      = "X-Appwrite-Project"
+	headerEnvironment  = "X-Appwrite-Environment"
 	headerKey          = "X-Appwrite-Key"
 	headerJWT          = "X-Appwrite-JWT"
 	headerLocale       = "X-Appwrite-Locale"
@@ -36,6 +38,32 @@ const (
 	headerRange        = "content-range"
 	headerContentType  = "content-type"
 )
+
+// HeaderReason carries why a request was made. The API records it on the
+// request's audit log, where Activity shows it next to the event.
+const HeaderReason = "X-Appwrite-Reason"
+
+// Reason is why the user is running this command, from --reason or
+// APPWRITE_REASON. Every request carries it, through this client and through
+// the SDK client internal/sdk builds.
+var Reason string
+
+// ReasonHeader returns Reason as the X-Appwrite-Reason value, or "" when there
+// is none to send.
+//
+// The API percent-decodes the header, so the reason is encoded the way
+// JavaScript's encodeURIComponent would: that lets a reason in any language
+// through a header that carries only ASCII, and keeps a literal % from being
+// read as an escape. PathEscape rather than QueryEscape, whose + for a space
+// the API would keep as a +.
+func ReasonHeader() string {
+	reason := strings.TrimSpace(Reason)
+	if reason == "" {
+		return ""
+	}
+
+	return url.PathEscape(reason)
+}
 
 // Client is a thin HTTP client for the Appwrite API.
 //
@@ -144,7 +172,7 @@ func NewHTTPClient(selfSigned bool) *http.Client {
 }
 
 func New(endpoint, sdkVersion string) *Client {
-	return &Client{
+	client := &Client{
 		Endpoint:   strings.TrimRight(endpoint, "/"),
 		HTTP:       NewHTTPClient(false),
 		SDKVersion: sdkVersion,
@@ -159,6 +187,11 @@ func New(endpoint, sdkVersion string) *Client {
 				sdkVersion, runtime.GOOS, runtime.GOARCH),
 		},
 	}
+	if reason := ReasonHeader(); reason != "" {
+		client.headers[HeaderReason] = reason
+	}
+
+	return client
 }
 
 // Download fetches a path and returns the raw body.
@@ -244,6 +277,21 @@ func (c *Client) SetHeader(name, value string) *Client {
 
 // SetProject sets the project the request acts on.
 func (c *Client) SetProject(project string) *Client { return c.SetHeader(headerProject, project) }
+
+// SetEnvironment sets the environment of the project the request acts in.
+//
+// An environment is addressed through the project it belongs to, so this goes
+// with SetProject naming that project. An empty environment is the project
+// itself and sends no header.
+func (c *Client) SetEnvironment(environment string) *Client {
+	if environment == "" {
+		delete(c.headers, headerEnvironment)
+
+		return c
+	}
+
+	return c.SetHeader(headerEnvironment, environment)
+}
 
 // SetKey authenticates with an API key.
 func (c *Client) SetKey(key string) *Client { return c.SetHeader(headerKey, key) }

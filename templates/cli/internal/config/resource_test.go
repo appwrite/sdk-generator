@@ -197,3 +197,32 @@ func TestEmptySlicesSurviveAsEmptyArrays(t *testing.T) {
 		t.Errorf("empty attributes array was dropped:\n%s", written)
 	}
 }
+
+// The environment sits next to the project it belongs to, and leaves with it.
+func TestEnvironmentIDFollowsItsProject(t *testing.T) {
+	local := loadFrom(t, `{"projectId": "p", "endpoint": "https://cloud.appwrite.io/v1"}`)
+
+	local.SetEnvironmentID("staging")
+	written := writtenConfig(t, local)
+	if !strings.Contains(written, `"projectId": "p",
+    "environmentId": "staging",
+    "endpoint"`) {
+		t.Errorf("environmentId is not written next to the project:\n%s", written)
+	}
+
+	local.SetProject("p", "Renamed")
+	if got := local.Data.GetString("environmentId"); got != "staging" {
+		t.Errorf("relinking the same project dropped its environment: %q", got)
+	}
+
+	local.SetProject("other", "")
+	if local.Data.Has("environmentId") {
+		t.Error("linking another project kept the old project's environment")
+	}
+
+	local.SetEnvironmentID("preview")
+	local.SetEnvironmentID("")
+	if local.Data.Has("environmentId") {
+		t.Error("an empty environment was written rather than removed")
+	}
+}

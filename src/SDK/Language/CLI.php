@@ -857,6 +857,11 @@ class CLI extends Go
                 'template'      => 'cli/internal/cmd/fanout_test.go',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/environment_test.go',
+                'template'      => 'cli/internal/cmd/environment_test.go',
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => 'internal/cmd/pullpushkeys_test.go',
                 'template'      => 'cli/internal/cmd/pullpushkeys_test.go',
@@ -955,6 +960,11 @@ class CLI extends Go
                 'scope'         => 'copy',
                 'destination'   => 'internal/client/concurrency_test.go',
                 'template'      => 'cli/internal/client/concurrency_test.go',
+            ],
+            [
+                'scope'         => 'copy',
+                'destination'   => 'internal/client/reason_test.go',
+                'template'      => 'cli/internal/client/reason_test.go',
             ],
             [
                 'scope'         => 'default',
