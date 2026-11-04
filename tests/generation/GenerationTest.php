@@ -829,6 +829,11 @@ final class GenerationTest extends TestCase
             'flutter' => ['lib/packageName.dart', 'src/tracking'],
             'web' => ['src/index.ts', 'analytics-tracking'],
         ];
+        // The SDK's own telemetry must not end a bounce: two auto events per tracker.
+        $nonInteractive = [
+            'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,'],
+            'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,'],
+        ];
 
         foreach ($companions as $name => $paths) {
             // The shared fixture carries no analytics service.
@@ -845,6 +850,10 @@ final class GenerationTest extends TestCase
                 $this->assertArrayHasKey($path, $with, "{$name} did not ship {$path} alongside the analytics service");
             }
             $this->assertStringContainsString($token, $with[$entry], "{$name} {$entry} does not export the companion");
+
+            [$tracker, $forward] = $nonInteractive[$name];
+            $this->assertStringContainsString($forward, $with[$tracker], "{$name} {$tracker} does not forward interactive");
+            $this->assertSame(2, \substr_count($with[$tracker], 'interactive: false'), "{$name} {$tracker} auto events are not non-interactive");
         }
     }
 
