@@ -152,6 +152,11 @@ class Python extends Language
                 'template'      => 'python/test/__init__.py.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'test_async/__init__.py',
+                'template'      => 'python/test_async/__init__.py.twig',
+            ],
+            [
                 'scope' => 'default',
                 'destination' => '{{ namespace | caseSnake}}/utils/deprecated.py',
                 'template' => 'python/package/utils/deprecated.py.twig',
@@ -165,6 +170,11 @@ class Python extends Language
                 'scope' => 'default',
                 'destination' => '{{ namespace | caseSnake}}/client.py',
                 'template' => 'python/package/client.py.twig',
+            ],
+            [
+                'scope' => 'default',
+                'destination' => '{{ namespace | caseSnake}}/async_client.py',
+                'template' => 'python/package/async_client.py.twig',
             ],
             [
                 'scope' => 'default',
@@ -272,6 +282,11 @@ class Python extends Language
                 'template'      => 'python/test/services/__init__.py.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'test_async/services/__init__.py',
+                'template'      => 'python/test_async/services/__init__.py.twig',
+            ],
+            [
                 'scope' => 'default',
                 'destination' => '{{ namespace | caseSnake}}/encoders/value_class_encoder.py',
                 'template' => 'python/package/encoders/value_class_encoder.py.twig',
@@ -287,9 +302,24 @@ class Python extends Language
                 'template' => 'python/package/services/service.py.twig',
             ],
             [
+                'scope' => 'default',
+                'destination' => '{{ namespace | caseSnake}}/async_services/__init__.py',
+                'template' => 'python/package/async_services/__init__.py.twig',
+            ],
+            [
+                'scope' => 'service',
+                'destination' => '{{ namespace | caseSnake}}/async_services/{{service.name | caseSnake}}.py',
+                'template' => 'python/package/async_services/service.py.twig',
+            ],
+            [
                 'scope'         => 'service',
                 'destination'   => 'test/services/test_{{service.name | caseSnake}}.py',
                 'template'      => 'python/test/services/test_service.py.twig',
+            ],
+            [
+                'scope'         => 'service',
+                'destination'   => 'test_async/services/test_{{service.name | caseSnake}}.py',
+                'template'      => 'python/test_async/services/test_service.py.twig',
             ],
             [
                 'scope' => 'method',
