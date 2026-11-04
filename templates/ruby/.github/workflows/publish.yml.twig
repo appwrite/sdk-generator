@@ -7,6 +7,11 @@ jobs:
   publish:
     name: Release build and publish
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Exchanged with RubyGems.org for a short-lived API key (trusted
+      # publishing), so no long-lived token is stored on the repository.
+      id-token: write
     steps:
       - name: Check out code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -17,12 +22,8 @@ jobs:
           ruby-version: 2.7
           bundler-cache: true
 
-      - name: Set up RubyGems
-        run: |
-          echo -e "---\n:rubygems_api_key: $RUBYGEMS_TOKEN\n" > ~/.gem/credentials
-          chmod 0600 ~/.gem/credentials
-        env:
-          RUBYGEMS_TOKEN: {{ '${{ secrets.RUBYGEMS_TOKEN }}' | raw }}
+      - name: Configure RubyGems credentials
+        uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
 
       - name: Build gem
         run: gem build {{ spec.info.title | caseLower }}.gemspec
