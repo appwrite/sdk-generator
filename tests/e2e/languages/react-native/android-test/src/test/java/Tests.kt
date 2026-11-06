@@ -341,6 +341,35 @@ class Tests {
         )
         call { module.stop(it) }
 
+        // The same when Android unblocks the app's network (a run's window opens, or the app comes on
+        // screen): the default network callback reconnects at once, with no run involved.
+        val unblockConfig = JSONObject(config("appwrite-session", SESSION)).put("clientId", "e2e-unblock-reconnect").toString()
+        call { module.host(unblockConfig, runSubscriptions, it) }
+        waitFor { PushBackground.isConnected }
+        val connectedBeforeBlock = PushBackground.isConnected
+        waitFor(5_000) { !PushBackground.isConnected }
+        val lostBeforeUnblock = !PushBackground.isConnected
+        val connectivity = context.getSystemService(android.net.ConnectivityManager::class.java)
+        val network = connectivity.activeNetwork ?: org.robolectric.shadows.ShadowNetwork.newInstance(1)
+        val pushCallbacks = shadowOf(connectivity).networkCallbacks.filter { it.javaClass.name.contains("PushBackground") }
+        val unblockedAt = System.currentTimeMillis()
+        pushCallbacks.forEach { it.onBlockedStatusChanged(network, false) }
+        while (!PushBackground.isConnected && System.currentTimeMillis() - unblockedAt < 5_000) {
+            Thread.sleep(10)
+        }
+        val unblockReconnectedAfter = System.currentTimeMillis() - unblockedAt
+        writeToFile(
+            if (connectedBeforeBlock && lostBeforeUnblock && pushCallbacks.isNotEmpty() && PushBackground.isConnected &&
+                unblockReconnectedAfter < 600L
+            ) {
+                "Push background unblock reconnects:passed"
+            } else {
+                "Push background unblock reconnects:failed (connected: $connectedBeforeBlock, lost: $lostBeforeUnblock, " +
+                    "callbacks: ${pushCallbacks.size}, after: ${unblockReconnectedAfter}ms)"
+            },
+        )
+        call { module.stop(it) }
+
         // A scheduled run stays up while a delivery is pending (JS has not acknowledged it yet) and
         // ends shortly after it settles; with nothing pending it ends once deliveries are quiet.
         // Deliveries the earlier sections never acknowledged stay pending until their ten-second
