@@ -158,6 +158,8 @@ On {{ spec.info.title }} Cloud, a project can have environments, such as `stagin
 }
 ```
 
+On Cloud, `{{ language.params.executableName }} init project` lists the region closest to you first when creating a project, and picks it when there is no terminal to ask at. Pass `--region` to choose another.
+
 `{{ language.params.executableName }} init project` asks which environment to use when the project has any, or takes `--environment-id`. To set or clear it later, run `{{ language.params.executableName }} client --environment-id staging` or `{{ language.params.executableName }} client --environment-id ""`. Set `APPWRITE_ENVIRONMENT_ID` to choose an environment for one run; it wins over the config. The config's `environmentId` applies only to its own `projectId`, so `APPWRITE_PROJECT_ID` naming another project never inherits it.
 
 `push settings` and `pull settings` act on the project itself and refuse to run while an environment is in effect; `push all` and `pull all` skip settings there.

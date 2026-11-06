@@ -278,19 +278,24 @@ func zeroEndpoint(endpoint, region string) (string, error) {
 // fails, the local time zone still places most users and Frankfurt takes the
 // rest.
 func nearestRegion(endpoint string) string {
+	country, continent, timeZone := callerLocation(endpoint)
+
+	return config.SuggestRegion(country, continent, timeZone, config.CloudRegions())
+}
+
+func callerLocation(endpoint string) (country, continent, timeZone string) {
 	var locale jsonx.Object
 	_ = client.New(endpoint, app.Version).
 		WithoutResponseFormat().
 		SetProject(config.ProjectConsole).
 		Call("GET", "/locale", nil, &locale)
 
-	timeZone := locale.GetString("timeZone")
+	timeZone = locale.GetString("timeZone")
 	if timeZone == "" {
 		timeZone = localTimeZone()
 	}
 
-	return config.SuggestRegion(locale.GetString("countryCode"), locale.GetString("continentCode"),
-		timeZone, config.CloudRegions())
+	return locale.GetString("countryCode"), locale.GetString("continentCode"), timeZone
 }
 
 // localTimeZone is the IANA name of the machine's zone, from TZ or the
