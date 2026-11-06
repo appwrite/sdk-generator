@@ -134,7 +134,6 @@ trait CliCommandSurface
      */
     protected const array HELP_SUMMARIES = [
         'login' => 'Authenticate with your %title% account',
-        'zero' => 'Get a working project instantly, no signup',
         'list-organizations' => 'Organizations your session can access',
         'list-projects' => 'Projects your session can access',
         'init' => 'Scaffold a project, function, site, or resource',
