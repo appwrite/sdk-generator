@@ -343,29 +343,11 @@
       "minimumReleaseAge": "3 days"
     },
     {
-      "description": "Rust template ranges are capped by hand to hold its rust-version MSRV; approve bumps from the dashboard.",
+      "description": "Rust template bumps can raise the MSRV for consumers, so approve them from the dashboard.",
       "matchManagers": ["custom.regex"],
       "matchFileNames": ["templates/rust/Cargo.toml.twig"],
       "groupName": "rust sdk template dependencies",
       "dependencyDashboardApproval": true
-    },
-    {
-      "description": "These hold rust-version 1.85: newer encoding_rs, idna_adapter (ICU4X) and wiremock need a later compiler, and Renovate's range rewrite drops the lower bound, so bump them by hand.",
-      "matchManagers": ["custom.regex"],
-      "matchFileNames": ["templates/rust/Cargo.toml.twig"],
-      "matchDepNames": [
-        "encoding_rs",
-        "hyper-util",
-        "idna",
-        "idna_adapter",
-        "indexmap",
-        "security-framework",
-        "tokio-util",
-        "url",
-        "wiremock",
-        "zeroize"
-      ],
-      "enabled": false
     },
     {
       "matchManagers": ["custom.regex"],

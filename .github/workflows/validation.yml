@@ -213,7 +213,7 @@ jobs:
 
       - name: Setup Rust
         if: matrix.sdk == 'rust'
-        uses: dtolnay/rust-toolchain@cfcaf53ba4c621917ec7f78a66bff7a8848ddad4 # 1.85.0
+        uses: dtolnay/rust-toolchain@360a4e93673de6630fac2478bc9e35244b01a759 # 1.88.0
         with:
           components: rustfmt
 
@@ -223,7 +223,7 @@ jobs:
 
       - name: Setup Rust for cargo-audit
         if: matrix.sdk == 'rust'
-        run: rustup toolchain install 1.85.0 --profile minimal --no-self-update
+        run: rustup toolchain install 1.88.0 --profile minimal --no-self-update
 
       - name: Cache cargo-audit
         if: matrix.sdk == 'rust'
@@ -386,12 +386,12 @@ jobs:
             rust)
               cargo generate-lockfile
               if ! command -v cargo-audit >/dev/null; then
-                cargo +1.85.0 install cargo-audit --version 0.22.1 --locked
+                cargo +1.88.0 install cargo-audit --version 0.22.1 --locked
               fi
               cargo audit
-              cargo +1.85.0 fmt --check --all
-              cargo +1.85.0 build --release
-              cargo +1.85.0 test --lib
+              cargo +1.88.0 fmt --check --all
+              cargo +1.88.0 build --release
+              cargo +1.88.0 test --lib
               ;;
             zed-extension)
               cargo +1.86.0 fmt --check

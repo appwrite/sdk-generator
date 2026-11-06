@@ -52,7 +52,7 @@ jobs:
           Ruby30,
           Ruby31,
           Ruby40,
-          Rust185,
+          Rust188,
           AppleSwift61,
           Swift61,
           # TODO: Re-enable Unity2021 after the CI Unity license is restored.
