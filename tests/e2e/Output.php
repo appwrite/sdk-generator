@@ -395,6 +395,7 @@ final class Output
     public const array REACT_NATIVE_PUSH_COOKIE_REFRESH_RESPONSES = [
         'Push background cookie refresh:passed',
         'Push background reconnect credential:passed',
+        'Push background run reconnects:passed',
         'Push background drain:passed',
     ];
 

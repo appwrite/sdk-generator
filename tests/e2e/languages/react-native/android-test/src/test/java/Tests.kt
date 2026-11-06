@@ -313,6 +313,34 @@ class Tests {
         )
         call { module.stop(it) }
 
+        // A run that finds the connection lost reconnects at once. Android lets a backgrounded app
+        // reach the network only in the short windows its scheduled runs are given, so the run must
+        // not leave it to the client's own backoff, whose first retry comes 750 ms or more later.
+        // Its own client id, so the mock drops this connection too ("e2e-drop" fires once per id).
+        val runConfig = JSONObject(config("appwrite-session", SESSION)).put("clientId", "e2e-run-reconnect").toString()
+        val runSubscriptions = JSONArray()
+            .put(JSONObject().put("id", "run").put("topic", "e2e-drop/500").put("background", true).put("retry", false))
+            .toString()
+        call { module.host(runConfig, runSubscriptions, it) }
+        waitFor { PushBackground.isConnected }
+        val connectedBeforeDrop = PushBackground.isConnected
+        waitFor(5_000) { !PushBackground.isConnected }
+        val lost = !PushBackground.isConnected
+        val runStartedAt = System.currentTimeMillis()
+        PushBackground.tick(context) {}
+        while (!PushBackground.isConnected && System.currentTimeMillis() - runStartedAt < 5_000) {
+            Thread.sleep(10)
+        }
+        val reconnectedAfter = System.currentTimeMillis() - runStartedAt
+        writeToFile(
+            if (connectedBeforeDrop && lost && PushBackground.isConnected && reconnectedAfter < 600L) {
+                "Push background run reconnects:passed"
+            } else {
+                "Push background run reconnects:failed (connected: $connectedBeforeDrop, lost: $lost, after: ${reconnectedAfter}ms)"
+            },
+        )
+        call { module.stop(it) }
+
         // A scheduled run stays up while a delivery is pending (JS has not acknowledged it yet) and
         // ends shortly after it settles; with nothing pending it ends once deliveries are quiet.
         // Deliveries the earlier sections never acknowledged stay pending until their ten-second
