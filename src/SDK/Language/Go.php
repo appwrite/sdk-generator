@@ -309,7 +309,7 @@ class Go extends Language
                     break;
                 case self::TYPE_OBJECT:
                     $value = \json_decode((string) $example, true);
-                    $output .= \is_array($value)
+                    $output .= \is_array($value) && $value !== []
                         ? $this->formatGoExampleValue($value)
                         : 'map[string]interface{}{}';
                     break;
