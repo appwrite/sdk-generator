@@ -93,7 +93,7 @@ trait CliCommandSurface
         [
             'title' => 'GET STARTED',
             'commands' => [
-                'login', 'zero', 'list-organizations', 'list-projects', 'init',
+                'login', 'list-organizations', 'list-projects', 'init',
                 'pull', 'push', 'run', 'whoami',
             ],
         ],
