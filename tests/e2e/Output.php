@@ -166,6 +166,10 @@ final class Output
         'width=0,height=64,name=zero',
     ];
 
+    public const array UNION_SHARED_MODEL_RESPONSES = [
+        'GET:/v1/mock/tests/union:passed',
+    ];
+
     public const array UNION_RESPONSES = [
         'GET:/v1/mock/tests/union:passed',
         'test-data',

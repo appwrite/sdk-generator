@@ -138,6 +138,8 @@ class ServiceTest {
             writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1"))
             writeToFile(Plaintext(client).importZone("www 3600 IN A 192.0.2.1", InputFile.fromPath("../../../resources/file.png")))
 
+            writeToFile((general.getUnion("shared") as io.appwrite.models.UnionMock).result)
+
             val message = "conversation without a required file"
             writeToFile(general.optionalUpload(message).result)
             writeToFile(general.optionalUpload(message, InputFile.fromPath("../../../resources/file.png")).result)

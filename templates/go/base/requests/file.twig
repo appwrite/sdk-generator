@@ -38,9 +38,9 @@
 		if err := json.Unmarshal(bytes, &response); err != nil {
 			return nil, err
 		}
-{% for modelName, conditions in responseDiscriminator %}
-		if {% for field, expectedValue in conditions %}fmt.Sprint(response["{{ field }}"]) == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %} {
-			parsed := models.{{ modelName | caseUcfirst }}{}.New(bytes)
+{% for case in method | responseCases %}
+		if {% for field, expectedValue in case.conditions %}fmt.Sprint(response["{{ field }}"]) == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %} {
+			parsed := models.{{ case.model | caseUcfirst }}{}.New(bytes)
 			if err := json.Unmarshal(bytes, parsed); err != nil {
 				return nil, err
 			}

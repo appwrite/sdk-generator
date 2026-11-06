@@ -38,10 +38,10 @@
 {% if hasResponseDiscriminator %}
         if not isinstance(response, dict):
             raise AppwriteException('Expected object response when hydrating a response model')
-{% for modelName, conditions in responseDiscriminator %}
+{% for case in method | responseCases %}
 
-        if {% for field, expectedValue in conditions %}response.get('{{ field }}') == '{{ expectedValue }}'{% if not loop.last %} and {% endif %}{% endfor %}:
-            return self._parse_response(response, model={% if (modelName | caseUcfirst) == (service.name | caseUcfirst) %}{{ modelName | caseUcfirst }}Model{% else %}{{ modelName | caseUcfirst }}{% endif %})
+        if {% for field, expectedValue in case.conditions %}response.get('{{ field }}') == '{{ expectedValue }}'{% if not loop.last %} and {% endif %}{% endfor %}:
+            return self._parse_response(response, model={% if (case.model | caseUcfirst) == (service.name | caseUcfirst) %}{{ case.model | caseUcfirst }}Model{% else %}{{ case.model | caseUcfirst }}{% endif %})
 {% endfor %}
 
         raise AppwriteException('Unable to match response to any known model')

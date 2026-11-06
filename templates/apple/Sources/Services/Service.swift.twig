@@ -89,9 +89,9 @@ open class {{ service.name | caseUcfirst | overrideIdentifier }}: Service {
             guard let responseMap = response as? [String: Any] else {
                 throw AppwriteError(message: "Expected object response when hydrating a response model")
             }
-{% for modelName, conditions in responseDiscriminator %}
-            if {% for field, expectedValue in conditions %}String(describing: responseMap["{{ field }}"] ?? "") == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %} {
-                return {{ spec.info.title | caseUcfirst}}Models.{{ modelName | caseUcfirst }}.from(map: responseMap)
+{% for case in method | responseCases %}
+            if {% for field, expectedValue in case.conditions %}String(describing: responseMap["{{ field }}"] ?? "") == "{{ expectedValue }}"{% if not loop.last %} && {% endif %}{% endfor %} {
+                return {{ spec.info.title | caseUcfirst}}Models.{{ case.model | caseUcfirst }}.from(map: responseMap)
             }
 {% endfor %}
             throw AppwriteError(message: "Unable to match response to any expected response model")
