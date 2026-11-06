@@ -350,6 +350,24 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "These hold rust-version 1.85: newer encoding_rs, idna_adapter (ICU4X) and wiremock need a later compiler, and Renovate's range rewrite drops the lower bound, so bump them by hand.",
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": ["templates/rust/Cargo.toml.twig"],
+      "matchDepNames": [
+        "encoding_rs",
+        "hyper-util",
+        "idna",
+        "idna_adapter",
+        "indexmap",
+        "security-framework",
+        "tokio-util",
+        "url",
+        "wiremock",
+        "zeroize"
+      ],
+      "enabled": false
+    },
+    {
       "matchManagers": ["custom.regex"],
       "matchFileNames": ["templates/flutter/pubspec.yaml.twig"],
       "groupName": "dart and flutter sdk template dependencies"
