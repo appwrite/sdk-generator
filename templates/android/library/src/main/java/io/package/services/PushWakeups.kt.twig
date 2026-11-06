@@ -35,8 +35,11 @@ class PushAlarmReceiver : BroadcastReceiver() {
             return
         }
         // On Android 12+ the run goes to an expedited job, which keeps the process runnable while it
-        // connects and the broker replays; it runs here when the system refuses one.
+        // connects and the broker replays; it runs here when the system refuses one. The next alarm
+        // is armed first: an accepted job is not a started one (some phones hold jobs back for
+        // thermal or vendor limits), and the chain must not depend on it.
         if (PushBackground.runExpedited(context)) {
+            PushBackground.armNextAlarm(context)
             return
         }
         val pending = goAsync()
