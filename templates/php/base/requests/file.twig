@@ -13,9 +13,9 @@
             if (!is_array($response)) {
                 throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
             }
-{% for modelName, conditions in responseDiscriminator %}
-            if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-                return \{{ namespace | caseNamespace }}\Models\{{ modelName | caseUcfirst }}::from($response);
+{% for case in method | responseCases %}
+            if ({% for field, expectedValue in case.conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                return \{{ namespace | caseNamespace }}\Models\{{ case.model | caseUcfirst }}::from($response);
             }
 {% endfor %}
             throw new \UnexpectedValueException('Unable to match response to any expected response model.');
@@ -64,9 +64,9 @@
                 if (!is_array($response)) {
                     throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
                 }
-{% for modelName, conditions in responseDiscriminator %}
-                if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-                    return \{{ namespace | caseNamespace }}\Models\{{ modelName | caseUcfirst }}::from($response);
+{% for case in method | responseCases %}
+                if ({% for field, expectedValue in case.conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                    return \{{ namespace | caseNamespace }}\Models\{{ case.model | caseUcfirst }}::from($response);
                 }
 {% endfor %}
                 throw new \UnexpectedValueException('Unable to match response to any expected response model.');
@@ -94,9 +94,9 @@
                 if (!is_array($response)) {
                     throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
                 }
-{% for modelName, conditions in responseDiscriminator %}
-                if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-                    return \{{ namespace | caseNamespace }}\Models\{{ modelName | caseUcfirst }}::from($response);
+{% for case in method | responseCases %}
+                if ({% for field, expectedValue in case.conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                    return \{{ namespace | caseNamespace }}\Models\{{ case.model | caseUcfirst }}::from($response);
                 }
 {% endfor %}
                 throw new \UnexpectedValueException('Unable to match response to any expected response model.');
@@ -179,9 +179,9 @@
             if (!is_array($response)) {
                 throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
             }
-{% for modelName, conditions in responseDiscriminator %}
-            if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-                return \{{ namespace | caseNamespace }}\Models\{{ modelName | caseUcfirst }}::from($response);
+{% for case in method | responseCases %}
+            if ({% for field, expectedValue in case.conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+                return \{{ namespace | caseNamespace }}\Models\{{ case.model | caseUcfirst }}::from($response);
             }
 {% endfor %}
             throw new \UnexpectedValueException('Unable to match response to any expected response model.');
@@ -277,9 +277,9 @@
         if (!is_array($response)) {
             throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
         }
-{% for modelName, conditions in responseDiscriminator %}
-        if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-            return \{{ namespace | caseNamespace }}\Models\{{ modelName | caseUcfirst }}::from($response);
+{% for case in method | responseCases %}
+        if ({% for field, expectedValue in case.conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+            return \{{ namespace | caseNamespace }}\Models\{{ case.model | caseUcfirst }}::from($response);
         }
 {% endfor %}
         throw new \UnexpectedValueException('Unable to match response to any expected response model.');

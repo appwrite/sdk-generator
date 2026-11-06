@@ -109,6 +109,9 @@ void main() async {
   );
   print(imported);
 
+  final union = await general.getUnion(type: 'shared') as UnionMock;
+  print(union.result);
+
   const message = 'conversation without a required file';
   var optional = await general.optionalUpload(message: message);
   print(optional.result);

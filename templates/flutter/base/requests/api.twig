@@ -33,9 +33,9 @@
       }
 
       final response = res.data as Map<String, dynamic>;
-{% for modelName, conditions in responseDiscriminator %}
-      if ({% for field, expectedValue in conditions %}response['{{ field | escapeDollarSign }}'] == {{ expectedValue | dartString }}{% if not loop.last %} && {% endif %}{% endfor %}) {
-        return models.{{ modelName | caseUcfirst | overrideIdentifier }}.fromMap(response);
+{% for case in method | responseCases %}
+      if ({% for field, expectedValue in case.conditions %}response['{{ field | escapeDollarSign }}'] == {{ expectedValue | dartString }}{% if not loop.last %} && {% endif %}{% endfor %}) {
+        return models.{{ case.model | caseUcfirst | overrideIdentifier }}.fromMap(response);
       }
 {% endfor %}
 

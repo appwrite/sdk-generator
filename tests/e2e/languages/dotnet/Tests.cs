@@ -134,6 +134,9 @@ namespace AppwriteTests
             imported = await new Plaintext(client).ImportZone("www 3600 IN A 192.0.2.1", InputFile.FromPath("../../../../../../resources/file.png"));
             TestContext.WriteLine(imported);
 
+            var union = (UnionMock)await general.GetUnion("shared");
+            TestContext.WriteLine(union.Result);
+
             mock = await general.OptionalUpload("conversation without a required file");
             TestContext.WriteLine(mock.Result);
             mock = await general.OptionalUpload("conversation without a required file", InputFile.FromPath("../../../../../../resources/file.png"));

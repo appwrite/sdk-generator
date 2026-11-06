@@ -208,6 +208,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('extension', fn(Schema|Parameter $value, string $key, mixed $default = null): mixed => $this->getSchema($value)->extensions[$key] ?? $default));
         $this->twig->addFilter(new TwigFilter('methodHeaders', fn(Operation $operation): array => $this->getMethodHeaders($operation)));
         $this->twig->addFilter(new TwigFilter('responseDiscriminator', fn(Operation $operation): array => $this->getResponseDiscriminator($operation)));
+        $this->twig->addFilter(new TwigFilter('responseCases', fn(Operation $operation): array => $this->getResponseCases($operation)));
         $this->twig->addFilter(new TwigFilter('securitySchemes', fn(Operation $operation): array => $this->getOperationAuthSchemes($operation)));
         $this->twig->addFilter(new TwigFilter('locationSchemes', fn(Operation $operation): array => $this->getOperationAuthSchemes($operation, true)));
         $this->twig->addFilter(new TwigFilter('securityHeaders', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::HEADER, false)));
@@ -2092,7 +2093,7 @@ class SDK
      * Standard single-property discriminator cases. Compound selection is
      * represented by constrained unions, not vendor extensions.
      *
-     * @return array<string, array<string, string>>
+     * @return list<array{model: string, conditions: array<string, string>}>
      */
     protected function getDiscriminatorCases(Discriminator $discriminator): array
     {
@@ -2103,7 +2104,7 @@ class SDK
             if ($name === '') {
                 continue;
             }
-            $cases[$name] = [$discriminator->propertyName => (string) $value];
+            $cases[] = ['model' => $name, 'conditions' => [$discriminator->propertyName => (string) $value]];
         }
 
         return $cases;
@@ -2141,7 +2142,8 @@ class SDK
         return $cases;
     }
 
-    protected function getResponseDiscriminator(Operation $operation): array
+    /** @return list<array{model: string, conditions: array<string, string>}> */
+    protected function getResponseCases(Operation $operation): array
     {
         foreach ($operation->responses as $response) {
             foreach ($response->content as $mediaType) {
@@ -2149,21 +2151,35 @@ class SDK
                 if (!$schema instanceof CompositeSchema) {
                     continue;
                 }
-                $mapping = $this->getConditionalCases($schema);
-                if ($mapping === [] && $schema->discriminator instanceof Discriminator) {
-                    $mapping = $this->getDiscriminatorCases($schema->discriminator);
+                $cases = [];
+                foreach ($this->getConditionalCases($schema) as $model => $conditions) {
+                    $cases[] = ['model' => $model, 'conditions' => $conditions];
                 }
-                if ($mapping === []) {
+                if ($cases === [] && $schema->discriminator instanceof Discriminator) {
+                    $cases = $this->getDiscriminatorCases($schema->discriminator);
+                }
+                if ($cases === []) {
                     continue;
                 }
 
                 // Most specific first, so a two-condition case is tested before
                 // the one-condition case that would otherwise shadow it.
-                \uksort($mapping, static fn(string $left, string $right): int => \count($mapping[$right]) <=> \count($mapping[$left]));
+                \usort($cases, static fn(array $left, array $right): int => \count($right['conditions']) <=> \count($left['conditions']));
 
-                return $mapping;
+                return $cases;
             }
         }
         return [];
+    }
+
+    /** @return array<string, array<string, string>> */
+    protected function getResponseDiscriminator(Operation $operation): array
+    {
+        $mapping = [];
+        foreach ($this->getResponseCases($operation) as $case) {
+            $mapping[$case['model']] = $case['conditions'];
+        }
+
+        return $mapping;
     }
 }

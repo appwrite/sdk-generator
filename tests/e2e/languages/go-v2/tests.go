@@ -12,6 +12,7 @@ import (
 	"github.com/repoowner/reponame/v2/client"
 	"github.com/repoowner/reponame/v2/file"
 	"github.com/repoowner/reponame/v2/id"
+	"github.com/repoowner/reponame/v2/models"
 	"github.com/repoowner/reponame/v2/operator"
 	"github.com/repoowner/reponame/v2/permission"
 	"github.com/repoowner/reponame/v2/query"
@@ -193,6 +194,12 @@ func testGeneralService(client client.Client, stringInArray []string) {
 		panic(err)
 	}
 	fmt.Println(*imported)
+
+	union, err := general.GetUnion(general.WithGetUnionType("shared"))
+	if err != nil {
+		panic(fmt.Sprintf("general.GetUnion failed: %v", err))
+	}
+	fmt.Println(union.(*models.UnionMock).Result)
 
 	message := "conversation without a required file"
 	optional, err := general.OptionalUpload(message)

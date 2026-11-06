@@ -3233,6 +3233,7 @@
                     "propertyName": "type",
                     "mapping": {
                       "mock": "#\/components\/schemas\/unionMock",
+                      "shared": "#\/components\/schemas\/unionMock",
                       "stub": "#\/components\/schemas\/unionStub"
                     },
                     "x-mapping": {

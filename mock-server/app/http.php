@@ -959,7 +959,7 @@ App::get('/v1/mock/tests/union')
     ->label('sdk.response.type', Response::CONTENT_TYPE_JSON)
     ->label('sdk.response.model', Response::MODEL_MOCK)
     ->label('sdk.mock', true)
-    ->param('type', 'mock', new Text(4), 'Type of model to return (mock or stub)', true)
+    ->param('type', 'mock', new Text(6), 'Type of model to return (mock, shared or stub)', true)
     ->inject('response')
     ->action(function (string $type, UtopiaSwooleResponse $response) {
         if ($type === 'stub') {
@@ -969,7 +969,7 @@ App::get('/v1/mock/tests/union')
             ]);
         } else {
             $response->json([
-                'type' => 'mock',
+                'type' => $type,
                 'result' => stamp('GET:/v1/mock/tests/union:passed'),
             ]);
         }

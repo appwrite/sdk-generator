@@ -100,6 +100,8 @@ print(general.get_mixed().result)
 print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1'))
 print(Plaintext(client).import_zone('www 3600 IN A 192.0.2.1', InputFile.from_path('../../../resources/file.png')))
 
+print(general.get_union('shared').result)
+
 message = 'conversation without a required file'
 print(general.optional_upload(message).result)
 attachment = InputFile.from_path('../../../resources/file.png')
