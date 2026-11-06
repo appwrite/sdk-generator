@@ -13,7 +13,7 @@ permissions:
 jobs:
   generate-and-build:
     name: ${{ matrix.sdk }} (${{ matrix.platform }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ (matrix.sdk == 'apple' || matrix.sdk == 'swift') && 'ubuntu-24.04' || 'ubuntu-latest' }}
     env:
       FLUTTER_VERSION: '3.38.10'
       KTLINT_VERSION: '1.8.0'
