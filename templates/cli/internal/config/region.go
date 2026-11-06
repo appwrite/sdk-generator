@@ -24,6 +24,29 @@ func SuggestRegion(country, continent, timeZone string, available []string) stri
 		return ""
 	}
 
+	if region := ClosestRegion(country, continent, timeZone, available); region != "" {
+		return region
+	}
+	for _, region := range liveRegions {
+		if regions[region] {
+			return region
+		}
+	}
+	for _, region := range available {
+		if region = strings.ToLower(strings.TrimSpace(region)); region != "" {
+			return region
+		}
+	}
+
+	return ""
+}
+
+func ClosestRegion(country, continent, timeZone string, available []string) string {
+	regions := map[string]bool{}
+	for _, region := range available {
+		regions[strings.ToLower(strings.TrimSpace(region))] = true
+	}
+
 	country = normalizeCountry(country)
 	continent = strings.ToUpper(strings.TrimSpace(continent))
 	timeZone = strings.TrimSpace(timeZone)
@@ -39,15 +62,8 @@ func SuggestRegion(country, continent, timeZone string, available []string) stri
 		ranked = timeZoneRegions(timeZone)
 	}
 
-	for _, preferences := range [][]string{ranked, liveRegions} {
-		for _, region := range preferences {
-			if regions[region] {
-				return region
-			}
-		}
-	}
-	for _, region := range available {
-		if region = strings.ToLower(strings.TrimSpace(region)); region != "" {
+	for _, region := range ranked {
+		if regions[region] {
 			return region
 		}
 	}

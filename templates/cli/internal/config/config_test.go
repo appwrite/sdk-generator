@@ -489,6 +489,12 @@ func TestGlobalWriteCreatesTheXDGDirectory(t *testing.T) {
 // alike. Country decides: Canada stays in Toronto and the US in a US region.
 func TestSuggestRegion(t *testing.T) {
 	live := []string{"fra", "nyc", "sfo", "sgp", "syd", "tor"}
+	if got := ClosestRegion("--", "--", "", live); got != "" {
+		t.Errorf("ClosestRegion with nothing to place the user = %q, want none", got)
+	}
+	if got := ClosestRegion("SG", "", "", live); got != "sgp" {
+		t.Errorf("ClosestRegion(SG) = %q, want sgp", got)
+	}
 	cases := []struct {
 		country, continent, timeZone string
 		available                    []string
