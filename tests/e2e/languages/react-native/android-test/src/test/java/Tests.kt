@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.ResolveInfo
+import android.net.ConnectivityManager
 import android.os.Build
 import android.net.Uri
 import android.os.Looper
@@ -38,6 +39,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowNetwork
 import java.io.File
 import java.net.InetAddress
 import java.net.URI
@@ -337,35 +339,6 @@ class Tests {
                 "Push background run reconnects:passed"
             } else {
                 "Push background run reconnects:failed (connected: $connectedBeforeDrop, lost: $lost, after: ${reconnectedAfter}ms)"
-            },
-        )
-        call { module.stop(it) }
-
-        // The same when Android unblocks the app's network (a run's window opens, or the app comes on
-        // screen): the default network callback reconnects at once, with no run involved.
-        val unblockConfig = JSONObject(config("appwrite-session", SESSION)).put("clientId", "e2e-unblock-reconnect").toString()
-        call { module.host(unblockConfig, runSubscriptions, it) }
-        waitFor { PushBackground.isConnected }
-        val connectedBeforeBlock = PushBackground.isConnected
-        waitFor(5_000) { !PushBackground.isConnected }
-        val lostBeforeUnblock = !PushBackground.isConnected
-        val connectivity = context.getSystemService(android.net.ConnectivityManager::class.java)
-        val network = connectivity.activeNetwork ?: org.robolectric.shadows.ShadowNetwork.newInstance(1)
-        val pushCallbacks = shadowOf(connectivity).networkCallbacks.filter { it.javaClass.name.contains("PushBackground") }
-        val unblockedAt = System.currentTimeMillis()
-        pushCallbacks.forEach { it.onBlockedStatusChanged(network, false) }
-        while (!PushBackground.isConnected && System.currentTimeMillis() - unblockedAt < 5_000) {
-            Thread.sleep(10)
-        }
-        val unblockReconnectedAfter = System.currentTimeMillis() - unblockedAt
-        writeToFile(
-            if (connectedBeforeBlock && lostBeforeUnblock && pushCallbacks.isNotEmpty() && PushBackground.isConnected &&
-                unblockReconnectedAfter < 600L
-            ) {
-                "Push background unblock reconnects:passed"
-            } else {
-                "Push background unblock reconnects:failed (connected: $connectedBeforeBlock, lost: $lostBeforeUnblock, " +
-                    "callbacks: ${pushCallbacks.size}, after: ${unblockReconnectedAfter}ms)"
             },
         )
         call { module.stop(it) }
@@ -680,5 +653,78 @@ class PushTlsTest {
 
     private companion object {
         val PASSWORD = "test".toCharArray()
+    }
+}
+
+/**
+ * Android 10+ tells the default network callback when the system blocks or unblocks the app's
+ * network: a backgrounded app reaches it only in the windows its scheduled runs are given, and
+ * again once it comes on screen. An unblock reconnects a lost connection at once, with no run
+ * involved and before the client's own first retry (at least 750 ms after the loss).
+ */
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.Q])
+@RunWith(AndroidJUnit4::class)
+class PushBackgroundUnblockTest {
+    private val context = ApplicationProvider.getApplicationContext<Application>()
+    private val module = AppwritePushModule(BridgeReactContext(context)) { _, _ -> }
+
+    @Test
+    fun testUnblockReconnectsLostConnection() {
+        val config = JSONObject()
+            .put("host", System.getenv("PUSH_HOST") ?: "mqtt")
+            .put("port", 1883)
+            .put("tls", false)
+            .put("authMethod", "appwrite-session")
+            .put("credential", SESSION)
+            .put("project", "console")
+            .put("clientId", "e2e-unblock-reconnect")
+            .toString()
+        // The mock closes this connection 500 ms after the SUBSCRIBE, without a DISCONNECT.
+        val subscriptions = JSONArray()
+            .put(JSONObject().put("id", "unblock").put("topic", "e2e-drop/500").put("background", true).put("retry", false))
+            .toString()
+        call { module.host(config, subscriptions, it) }
+        try {
+            waitFor { PushBackground.isConnected }
+            assertTrue("connected before the drop", PushBackground.isConnected)
+            waitFor { !PushBackground.isConnected }
+            assertFalse("connection lost", PushBackground.isConnected)
+
+            val connectivity = context.getSystemService(ConnectivityManager::class.java)
+            val callbacks = shadowOf(connectivity).networkCallbacks.filter { it.javaClass.name.contains("PushBackground") }
+            assertEquals("network callbacks registered: ${callbacks.map { it.javaClass.name }}", 1, callbacks.size)
+            val network = connectivity.activeNetwork ?: ShadowNetwork.newInstance(1)
+            val unblockedAt = System.currentTimeMillis()
+            callbacks.forEach { it.onBlockedStatusChanged(network, false) }
+            while (!PushBackground.isConnected && System.currentTimeMillis() - unblockedAt < 5_000) {
+                Thread.sleep(10)
+            }
+            val reconnectedAfter = System.currentTimeMillis() - unblockedAt
+            assertTrue("reconnected ${reconnectedAfter}ms after the unblock", PushBackground.isConnected && reconnectedAfter < 600L)
+        } finally {
+            call { module.stop(it) }
+        }
+    }
+
+    private fun call(block: (Promise) -> Unit): Result<Any?> {
+        val promise = TestPromise()
+        block(promise)
+        while (!promise.settled.isDone) {
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(50)
+        }
+        return promise.await()
+    }
+
+    private fun waitFor(timeoutMs: Long = 10_000, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (!condition() && System.currentTimeMillis() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(100)
+        }
+    }
+
+    private companion object {
+        const val SESSION = "eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0="
     }
 }

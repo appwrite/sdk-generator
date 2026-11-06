@@ -396,7 +396,6 @@ final class Output
         'Push background cookie refresh:passed',
         'Push background reconnect credential:passed',
         'Push background run reconnects:passed',
-        'Push background unblock reconnects:passed',
         'Push background drain:passed',
     ];
 
