@@ -68,7 +68,7 @@ Env beats the config: `APPWRITE_PROJECT_ID`, `APPWRITE_ENDPOINT`, `APPWRITE_ORGA
 
 `appwrite whoami` showing `https://cloud.appwrite.io/v1` is the **account** login host. Leave it. Project API calls use the region host (`https://fra.cloud.appwrite.io/v1`, and so on). `init project` and `client --project-id` pin that region into the config. Self-hosted: one endpoint for both.
 
-A new Cloud project from `init project` goes in the region closest to you: first in the list at a terminal, picked for you without one. `--region fra` chooses another. Scripts need `--organization-id`, `--project-id` and `--project-name` too.
+A new Cloud project from `init project` goes in the region closest to you: first in the list at a terminal, picked for you without one. If your location is unknown, the terminal list has no suggestion and without a terminal it falls back to a default, normally Frankfurt. `--region fra` chooses another. Scripts need `--organization-id`, `--project-id` and `--project-name` too.
 
 ```bash
 # Good — project work uses the config's regional endpoint
