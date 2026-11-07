@@ -488,14 +488,32 @@ internal object PushBackground {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             return false
         }
+        val jobs = context.getSystemService(JobScheduler::class.java) ?: return false
+        // The last hand-off never started: the system is holding jobs back, so run in the receiver.
+        if (jobs.getPendingJob(EXPEDITED_JOB_ID) != null) {
+            jobs.cancel(EXPEDITED_JOB_ID)
+            return false
+        }
         return try {
             val job = JobInfo.Builder(EXPEDITED_JOB_ID, ComponentName(context, PushJobService::class.java))
                 .setExpedited(true)
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .build()
-            context.getSystemService(JobScheduler::class.java)?.schedule(job) == JobScheduler.RESULT_SUCCESS
+            jobs.schedule(job) == JobScheduler.RESULT_SUCCESS
         } catch (e: Exception) {
             false
+        }
+    }
+
+    /** Arm the next alarm of the chain without touching the jobs (the alarm handed its run to one). */
+    fun armNextAlarm(context: Context) {
+        val app = context.applicationContext
+        val active = synchronized(lock) {
+            load(app)
+            isActive()
+        }
+        if (active) {
+            schedule(app, INTERVAL_MS, alarmOnly = true)
         }
     }
 

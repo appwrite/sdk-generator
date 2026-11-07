@@ -2,6 +2,7 @@ import android.app.Activity
 import android.app.AlarmManager
 import android.app.Application
 import android.app.Notification
+import android.app.job.JobScheduler
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -23,6 +24,7 @@ import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.network.ForwardingCookieHandler
 import io.appwrite.reactnative.AppwriteCookiesModule
 import io.appwrite.reactnative.AppwritePushModule
+import io.appwrite.reactnative.services.PushAlarmReceiver
 import io.appwrite.reactnative.services.PushBackground
 import io.appwrite.reactnative.services.PushBridge
 import io.appwrite.reactnative.services.PushMessage
@@ -702,6 +704,92 @@ class PushBackgroundUnblockTest {
             val reconnectedAfter = System.currentTimeMillis() - unblockedAt
             assertTrue("reconnected ${reconnectedAfter}ms after the unblock", PushBackground.isConnected && reconnectedAfter < 600L)
         } finally {
+            call { module.stop(it) }
+        }
+    }
+
+    private fun call(block: (Promise) -> Unit): Result<Any?> {
+        val promise = TestPromise()
+        block(promise)
+        while (!promise.settled.isDone) {
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(50)
+        }
+        return promise.await()
+    }
+
+    private fun waitFor(timeoutMs: Long = 10_000, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (!condition() && System.currentTimeMillis() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(100)
+        }
+    }
+
+    private companion object {
+        const val SESSION = "eyJpZCI6ImUyZS1zZXNzaW9uLXVzZXIiLCJzZWNyZXQiOiJlMmUtc2VjcmV0In0="
+    }
+}
+
+/**
+ * Android 12+ hands each alarm's run to an expedited job. Some phones accept the job and never
+ * start it (thermal limits, vendor power managers), and only a run arms the next alarm, so the
+ * alarm arms it itself, and runs the tick in the receiver while its last hand-off is still pending.
+ */
+@Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.S])
+@RunWith(AndroidJUnit4::class)
+class PushAlarmChainTest {
+    private val context = ApplicationProvider.getApplicationContext<Application>()
+    private val module = AppwritePushModule(BridgeReactContext(context)) { _, _ -> }
+
+    @Test
+    fun testAlarmChainSurvivesHeldBackJobs() {
+        val config = JSONObject()
+            .put("host", System.getenv("PUSH_HOST") ?: "mqtt")
+            .put("port", 1883)
+            .put("tls", false)
+            .put("authMethod", "appwrite-session")
+            .put("credential", SESSION)
+            .put("project", "console")
+            .put("clientId", "e2e-alarm-chain")
+            .toString()
+        val subscriptions = JSONArray()
+            .put(JSONObject().put("id", "chain").put("topic", "e2e-alarm-chain").put("background", true).put("retry", true))
+            .toString()
+        call { module.host(config, subscriptions, it) }
+
+        val alarmManager = context.getSystemService(AlarmManager::class.java)
+        val alarms = shadowOf(alarmManager)
+        val jobs = context.getSystemService(JobScheduler::class.java)
+        val receiver = PushAlarmReceiver()
+        context.registerReceiver(receiver, IntentFilter(PushBackground.ACTION_TICK))
+        fun expeditedPending() = jobs.allPendingJobs.any { it.id == PushBackground.EXPEDITED_JOB_ID }
+        // Android fires the pending alarm, which consumes it.
+        fun fire() {
+            alarms.nextScheduledAlarm?.operation?.let { alarmManager.cancel(it) }
+            context.sendBroadcast(Intent(PushBackground.ACTION_TICK))
+            shadowOf(Looper.getMainLooper()).idle()
+        }
+        try {
+            jobs.cancel(PushBackground.EXPEDITED_JOB_ID)
+            fire()
+            assertTrue("the alarm hands its run to an expedited job", expeditedPending())
+            assertTrue("the alarm arms the next one itself", alarms.nextScheduledAlarm != null)
+
+            // Robolectric does not run jobs: the hand-off is still pending, as on a phone that holds
+            // it back. The next alarm runs the tick in the receiver, which re-arms the chain (its
+            // job here; Robolectric does not record alarms set off the main thread).
+            jobs.cancel(PushBackground.JOB_ID)
+            jobs.cancel(PushBackground.NEXT_JOB_ID)
+            fire()
+            waitFor { jobs.allPendingJobs.any { it.id == PushBackground.JOB_ID || it.id == PushBackground.NEXT_JOB_ID } }
+            assertFalse("no second hand-off while the first never started", expeditedPending())
+            assertTrue(
+                "the run in the receiver re-arms the chain",
+                jobs.allPendingJobs.any { it.id == PushBackground.JOB_ID || it.id == PushBackground.NEXT_JOB_ID },
+            )
+        } finally {
+            context.unregisterReceiver(receiver)
             call { module.stop(it) }
         }
     }
