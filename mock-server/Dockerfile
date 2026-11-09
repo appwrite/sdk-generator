@@ -1,4 +1,4 @@
-FROM composer:2.10 AS composer
+FROM composer:2.10@sha256:2cf275428757e5435a667bfc0d038b14520ca02be2b1b70d44a05c8c19e2de48 AS composer
 
 LABEL maintainer="team@appwrite.io"
 
@@ -22,7 +22,7 @@ RUN set -eu; \
         sleep $((n * 5)); \
     done
 
-FROM composer:2.10 AS composer_mqtt
+FROM composer:2.10@sha256:2cf275428757e5435a667bfc0d038b14520ca02be2b1b70d44a05c8c19e2de48 AS composer_mqtt
 
 # The broker keeps its own locked dependencies so it can evolve independently of the HTTP mock.
 WORKDIR /usr/local/src/
@@ -40,7 +40,7 @@ RUN set -eu; \
         sleep $((n * 5)); \
     done
 
-FROM phpswoole/swoole:6.2.3-php8.5-alpine AS final
+FROM phpswoole/swoole:6.2.3-php8.5-alpine@sha256:77a5ff0338270e69aa231ddd338b353d17c75d5993225994d3f92dd24d39d1a6 AS final
 
 RUN apk add docker
 
