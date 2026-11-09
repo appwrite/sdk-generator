@@ -14,12 +14,12 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/terminal/appwrite"
 )
 
-// Options say which instance and project to open, and with which key. Without a key, the cli's
-// login is used, and without a project it opens on the organizations the login can see.
+// Options say which instance and project to open. They sign in as the cli's login, or with the
+// key `appwrite client --key` stored, and without a project open on the organizations the login
+// can see.
 type Options struct {
 	Endpoint string
 	Project  string
-	Key      string
 	// Global is the cli's prefs.json, which holds its login.
 	Global *config.Global
 	// SDKVersion is the cli's version, sent when an access token is renewed.
@@ -46,10 +46,11 @@ type Info struct {
 // asKey is what the header says of a connection made with an api key.
 const asKey = "api key"
 
-// resolve picks the credential: the key when there is one, else the cli's login, which is only
-// sent to the instance it is of. A login's access token is renewed as the cli renews it.
+// resolve picks the credential as the cli does: the login's access token or cookie, else the key
+// `appwrite client --key` stored, sent only to the instance the session is of. A login's access
+// token is renewed as the cli renews it.
 func (o Options) resolve() (appwrite.Options, string, error) {
-	a := appwrite.Options{Endpoint: o.Endpoint, Project: o.Project, Key: o.Key}
+	a := appwrite.Options{Endpoint: o.Endpoint, Project: o.Project}
 	var session *config.Object
 	if o.Global != nil {
 		session = o.Global.Current()
@@ -57,23 +58,21 @@ func (o Options) resolve() (appwrite.Options, string, error) {
 	}
 	cookie := session.GetString(config.PreferenceCookie)
 	token := session.GetString(config.PreferenceAccessToken)
+	key := session.GetString(config.PreferenceKey)
 	sessionEndpoint := cmpOr(session.GetString(config.PreferenceEndpoint), config.DefaultEndpoint)
-	if a.Key == "" && cookie == "" && token == "" {
-		a.Key = session.GetString(config.PreferenceKey)
-	}
-	if a.Key != "" {
-		if a.Project == "" {
-			return a, "", errors.New("missing a project for the api key: pass --project-id, set APPWRITE_PROJECT_ID, or run it in a directory with an appwrite.config.json")
-		}
-		a.Endpoint = cmpOr(a.Endpoint, sessionEndpoint)
-		return a, "", nil
-	}
-	if cookie == "" && token == "" {
-		return a, "", errors.New("no login and no api key: run `appwrite login`, or set APPWRITE_API_KEY and pass --project-id")
+	if cookie == "" && token == "" && key == "" {
+		return a, "", errors.New("not signed in: run `appwrite login`, or store a project's API key with `appwrite client --key`")
 	}
 	if a.Endpoint != "" && !config.EndpointsMatch(a.Endpoint, sessionEndpoint) {
-		return a, "", fmt.Errorf("the cli is signed in to %s, not %s: switch with `appwrite login --switch --endpoint %s`, or set APPWRITE_API_KEY for %s",
-			sessionEndpoint, a.Endpoint, a.Endpoint, a.Endpoint)
+		return a, "", fmt.Errorf("the cli is signed in to %s, not %s: switch with `appwrite login --switch --endpoint %s`",
+			sessionEndpoint, a.Endpoint, a.Endpoint)
+	}
+	if cookie == "" && token == "" {
+		if a.Project == "" {
+			return a, "", errors.New("missing a project for the API key: pass --project-id, set APPWRITE_PROJECT_ID, or run it in a directory with an appwrite.config.json")
+		}
+		a.Endpoint, a.Key = sessionEndpoint, key
+		return a, "", nil
 	}
 	a.Endpoint = sessionEndpoint
 	if token != "" {

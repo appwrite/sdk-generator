@@ -19,13 +19,14 @@ func global(t *testing.T, body string) *config.Global {
 	return config.LoadGlobal(path)
 }
 
-// TestResolve checks which credential the options resolve to: the key over the login, the key
-// `appwrite client --key` stored, the login's cookie or token, and the console project without a
+// TestResolve checks which credential the options resolve to, in the cli's order: the login's
+// token or cookie over the key `appwrite client --key` stored, and the console project without a
 // project; and what stops them.
 func TestResolve(t *testing.T) {
 	cookie := global(t, `{"current":"a1","a1":{"endpoint":"https://appwrite.example.com/v1","email":"ada@example.com","cookie":"a_session_console=abc","selfSigned":"true"}}`)
 	token := global(t, `{"current":"b2","b2":{"endpoint":"https://cloud.appwrite.io/v1","email":"grace@example.com","accessToken":"tok","tokenExpiry":4102444800000}}`)
 	stored := global(t, `{"current":"c3","c3":{"endpoint":"https://appwrite.example.com/v1","key":"stored"}}`)
+	both := global(t, `{"current":"d4","d4":{"endpoint":"https://appwrite.example.com/v1","email":"ada@example.com","cookie":"a_session_console=abc","key":"stored"}}`)
 	empty := global(t, `{"current":"a1","a1":{"endpoint":"https://cloud.appwrite.io/v1"}}`)
 	missing := config.LoadGlobal(filepath.Join(t.TempDir(), "prefs.json"))
 	tests := []struct {
@@ -40,13 +41,13 @@ func TestResolve(t *testing.T) {
 		wantSelf     bool
 		wantErr      string
 	}{
-		{name: "key over the login", opts: Options{Project: "shop", Key: "k", Global: cookie},
-			wantEndpoint: "https://appwrite.example.com/v1", wantProject: "shop", wantKey: "k", wantSelf: true},
-		{name: "key without project", opts: Options{Key: "k", Global: cookie}, wantErr: "missing a project"},
-		{name: "key without a login", opts: Options{Project: "shop", Key: "k", Global: missing},
-			wantEndpoint: config.DefaultEndpoint, wantProject: "shop", wantKey: "k"},
 		{name: "stored key", opts: Options{Project: "shop", Global: stored},
 			wantEndpoint: "https://appwrite.example.com/v1", wantProject: "shop", wantKey: "stored"},
+		{name: "stored key without project", opts: Options{Global: stored}, wantErr: "missing a project"},
+		{name: "stored key of another instance", opts: Options{Project: "shop", Endpoint: "https://other.example.com/v1", Global: stored},
+			wantErr: "signed in to https://appwrite.example.com/v1"},
+		{name: "login over a stored key", opts: Options{Project: "shop", Global: both},
+			wantEndpoint: "https://appwrite.example.com/v1", wantProject: "shop", wantCookie: "a_session_console=abc", wantEmail: "ada@example.com"},
 		{name: "cookie login", opts: Options{Global: cookie},
 			wantEndpoint: "https://appwrite.example.com/v1", wantProject: "console", wantCookie: "a_session_console=abc", wantEmail: "ada@example.com", wantSelf: true},
 		{name: "login with project", opts: Options{Project: "shop", Endpoint: "https://appwrite.example.com/v1/", Global: cookie},
@@ -54,8 +55,8 @@ func TestResolve(t *testing.T) {
 		{name: "token login on a region", opts: Options{Project: "shop", Endpoint: "https://fra.cloud.appwrite.io/v1", Global: token},
 			wantEndpoint: "https://cloud.appwrite.io/v1", wantProject: "shop", wantToken: "tok", wantEmail: "grace@example.com"},
 		{name: "login of another instance", opts: Options{Endpoint: "https://other.example.com/v1", Global: cookie}, wantErr: "signed in to https://appwrite.example.com/v1"},
-		{name: "no credential in the login", opts: Options{Global: empty}, wantErr: "no login and no api key"},
-		{name: "no prefs", opts: Options{Global: missing}, wantErr: "no login and no api key"},
+		{name: "no credential in the login", opts: Options{Global: empty}, wantErr: "not signed in"},
+		{name: "no prefs", opts: Options{Global: missing}, wantErr: "not signed in"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

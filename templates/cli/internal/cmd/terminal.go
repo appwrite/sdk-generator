@@ -22,11 +22,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/terminal/tui/styles"
 )
 
-// envAPIKey is read by the terminal alone. The other commands take a key from
-// `appwrite client --key`, which the terminal honours too; the variable lets a
-// key be used for one session without storing it.
-const envAPIKey = "APPWRITE_API_KEY"
-
 // newTerminalCommand opens the terminal interface on a project, or on the
 // organizations of the login when no project is named or configured.
 func newTerminalCommand() *cobra.Command {
@@ -40,10 +35,9 @@ func newTerminalCommand() *cobra.Command {
 			"with its usage, in an interactive terminal interface.\n\n" +
 			"It opens on the project in --project-id, APPWRITE_PROJECT_ID or the nearest " +
 			config.LocalFileName + ", and on the organizations of your login otherwise. " +
-			"It signs in as your login, or with an API key from APPWRITE_API_KEY.",
+			"It signs in as your login, or with the API key stored by `appwrite client --key`.",
 		Example: "  appwrite terminal\n" +
-			"  appwrite terminal --project-id shop\n" +
-			"  APPWRITE_API_KEY=standard_… appwrite terminal --project-id shop",
+			"  appwrite terminal --project-id shop",
 		Args: cobra.NoArgs,
 		RunE: func(command *cobra.Command, args []string) error {
 			switch theme {
@@ -108,7 +102,6 @@ func newTerminalCommand() *cobra.Command {
 func terminalOptions(global *config.Global, projectID string) terminalclient.Options {
 	opts := terminalclient.Options{
 		Project:    projectID,
-		Key:        os.Getenv(envAPIKey),
 		Endpoint:   os.Getenv(sdk.EnvEndpoint),
 		Global:     global,
 		SDKVersion: app.Version,
