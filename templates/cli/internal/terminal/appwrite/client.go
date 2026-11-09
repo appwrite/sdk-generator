@@ -69,8 +69,26 @@ func New(opts Options) (*Client, error) {
 		cookie:   opts.Cookie,
 		token:    opts.Token,
 		agent:    opts.UserAgent,
-		http:     &http.Client{Transport: transport(opts.SelfSigned)},
+		http:     &http.Client{Transport: transport(opts.SelfSigned), CheckRedirect: sameOrigin},
 	}, nil
+}
+
+// maxRedirects is how many redirects a request follows, as many as net/http follows by default.
+const maxRedirects = 10
+
+// sameOrigin follows a redirect only to the origin the request was sent to. net/http forwards a
+// request's headers on a redirect and drops only Authorization and Cookie when the host changes,
+// so X-Appwrite-Key would otherwise reach whatever host a redirect names.
+func sameOrigin(req *http.Request, via []*http.Request) error {
+	if len(via) >= maxRedirects {
+		return fmt.Errorf("stopped after %d redirects", maxRedirects)
+	}
+	from := via[0].URL
+	if req.URL.Scheme != from.Scheme || !strings.EqualFold(req.URL.Host, from.Host) {
+		return fmt.Errorf("not following a redirect from %s://%s to %s://%s, so the credential stays with the endpoint: sign in to %s://%s if it is the instance",
+			from.Scheme, from.Host, req.URL.Scheme, req.URL.Host, req.URL.Scheme, req.URL.Host)
+	}
+	return nil
 }
 
 // transport is the default transport, which with selfSigned trusts any certificate: the flag

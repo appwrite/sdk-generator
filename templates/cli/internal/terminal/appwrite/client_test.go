@@ -384,3 +384,56 @@ func TestWriteRow(t *testing.T) {
 		t.Error("a user was updated")
 	}
 }
+
+// TestRedirects checks a redirect to another origin is refused before the key is sent there, by
+// a read and by a download, and a redirect within the endpoint's origin is followed.
+func TestRedirects(t *testing.T) {
+	leaked := make(chan string, 4)
+	other := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		leaked <- r.Header.Get("X-Appwrite-Key")
+		_, _ = w.Write([]byte(`{"version":"1.0.0"}`))
+	}))
+	t.Cleanup(other.Close)
+	c := server(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v1/health/version":
+			http.Redirect(w, r, other.URL+r.URL.Path, http.StatusFound)
+		case "/v1/storage/buckets/b1/files/f1/download":
+			http.Redirect(w, r, other.URL+r.URL.Path, http.StatusTemporaryRedirect)
+		case "/v1/project":
+			http.Redirect(w, r, "/v1/moved", http.StatusMovedPermanently)
+		case "/v1/moved":
+			if r.Header.Get("X-Appwrite-Key") != "secret" {
+				t.Errorf("the key did not follow a redirect within the endpoint")
+			}
+			_, _ = w.Write([]byte(`{"$id":"shop","name":"Shop"}`))
+		}
+	})
+	tests := []struct {
+		name string
+		call func() error
+	}{
+		{name: "read", call: func() error { _, err := c.Version(context.Background()); return err }},
+		{name: "download", call: func() error {
+			_, err := c.Download(context.Background(), "b1", "f1", &strings.Builder{})
+			return err
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.call()
+			if err == nil || !strings.Contains(err.Error(), "not following a redirect") {
+				t.Errorf("error %v, want the redirect refused", err)
+			}
+		})
+	}
+	select {
+	case key := <-leaked:
+		t.Errorf("the other origin was asked, with key %q", key)
+	default:
+	}
+	project, err := c.Project(context.Background())
+	if err != nil || project.Str("name") != "Shop" {
+		t.Errorf("project %v, %v, want the redirect within the endpoint followed", project, err)
+	}
+}
