@@ -661,6 +661,219 @@ class CLI extends Go
                 'destination'   => 'internal/cmd/commands_host_stub.go',
                 'template'      => 'cli/internal/cmd/commands_host_stub.go',
             ],
+            // `appwrite terminal`: the terminal interface. internal/terminal is the
+            // interface and its own REST client; internal/cmd/terminal.go wires it
+            // to the CLI's login.
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/terminal.go',
+                'template'      => 'cli/internal/cmd/terminal.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/cmd/terminal_test.go',
+                'template'      => 'cli/internal/cmd/terminal_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/appwrite/api.go',
+                'template'      => 'cli/internal/terminal/appwrite/api.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/appwrite/client.go',
+                'template'      => 'cli/internal/terminal/appwrite/client.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/appwrite/client_test.go',
+                'template'      => 'cli/internal/terminal/appwrite/client_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/appwrite/doc.go',
+                'template'      => 'cli/internal/terminal/appwrite/doc.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/appwrite/filter.go',
+                'template'      => 'cli/internal/terminal/appwrite/filter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/appwrite/kinds.go',
+                'template'      => 'cli/internal/terminal/appwrite/kinds.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/appwrite/usage.go',
+                'template'      => 'cli/internal/terminal/appwrite/usage.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/client/client.go',
+                'template'      => 'cli/internal/terminal/client/client.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/client/client_test.go',
+                'template'      => 'cli/internal/terminal/client/client_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/actions.go',
+                'template'      => 'cli/internal/terminal/tui/actions.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/commands.go',
+                'template'      => 'cli/internal/terminal/tui/commands.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/dashboard.go',
+                'template'      => 'cli/internal/terminal/tui/dashboard.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/dialog.go',
+                'template'      => 'cli/internal/terminal/tui/dialog.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/editor.go',
+                'template'      => 'cli/internal/terminal/tui/editor.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/fake_test.go',
+                'template'      => 'cli/internal/terminal/tui/fake_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/filter.go',
+                'template'      => 'cli/internal/terminal/tui/filter.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/format.go',
+                'template'      => 'cli/internal/terminal/tui/format.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/fuzz_test.go',
+                'template'      => 'cli/internal/terminal/tui/fuzz_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/home.go',
+                'template'      => 'cli/internal/terminal/tui/home.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/item.go',
+                'template'      => 'cli/internal/terminal/tui/item.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/json.go',
+                'template'      => 'cli/internal/terminal/tui/json.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/keys/keys.go',
+                'template'      => 'cli/internal/terminal/tui/keys/keys.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/keys/keys_test.go',
+                'template'      => 'cli/internal/terminal/tui/keys/keys_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/kinds.go',
+                'template'      => 'cli/internal/terminal/tui/kinds.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/list.go',
+                'template'      => 'cli/internal/terminal/tui/list.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/model.go',
+                'template'      => 'cli/internal/terminal/tui/model.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/notes.go',
+                'template'      => 'cli/internal/terminal/tui/notes.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/perf_test.go',
+                'template'      => 'cli/internal/terminal/tui/perf_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/root.go',
+                'template'      => 'cli/internal/terminal/tui/root.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/spark.go',
+                'template'      => 'cli/internal/terminal/tui/spark.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/styles/clean.go',
+                'template'      => 'cli/internal/terminal/tui/styles/clean.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/styles/clean_test.go',
+                'template'      => 'cli/internal/terminal/tui/styles/clean_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/styles/fuzz_test.go',
+                'template'      => 'cli/internal/terminal/tui/styles/fuzz_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/styles/ground.go',
+                'template'      => 'cli/internal/terminal/tui/styles/ground.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/styles/styles.go',
+                'template'      => 'cli/internal/terminal/tui/styles/styles.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/table.go',
+                'template'      => 'cli/internal/terminal/tui/table.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/tui.go',
+                'template'      => 'cli/internal/terminal/tui/tui.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/tui_test.go',
+                'template'      => 'cli/internal/terminal/tui/tui_test.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/usage.go',
+                'template'      => 'cli/internal/terminal/tui/usage.go',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => 'internal/terminal/tui/width.go',
+                'template'      => 'cli/internal/terminal/tui/width.go',
+            ],
             [
                 'scope'         => 'default',
                 'destination'   => 'internal/cmd/endpoint.go',
