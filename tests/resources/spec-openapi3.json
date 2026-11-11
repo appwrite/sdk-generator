@@ -3925,6 +3925,20 @@
           "result"
         ]
       },
+      "environment": {
+        "description": "Environment",
+        "type": "object",
+        "properties": {
+          "$id": {
+            "type": "string",
+            "description": "Environment ID.",
+            "example": "staging"
+          }
+        },
+        "required": [
+          "$id"
+        ]
+      },
       "player": {
         "description": "Player",
         "type": "object",
