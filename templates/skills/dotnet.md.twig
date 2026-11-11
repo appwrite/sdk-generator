@@ -20,8 +20,8 @@ using {{ spec.info.title }}.Models;
 
 var client = new Client()
     .SetEndpoint("https://<REGION>.cloud.appwrite.io/v1")
-    .SetProject(Environment.GetEnvironmentVariable("{{ spec.info.title | caseUpper }}_PROJECT_ID"))
-    .SetKey(Environment.GetEnvironmentVariable("{{ spec.info.title | caseUpper }}_API_KEY"));
+    .SetProject(System.Environment.GetEnvironmentVariable("{{ spec.info.title | caseUpper }}_PROJECT_ID"))
+    .SetKey(System.Environment.GetEnvironmentVariable("{{ spec.info.title | caseUpper }}_API_KEY"));
 ```
 
 ## Code Examples
