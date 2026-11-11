@@ -599,7 +599,10 @@ final class GenerationTest extends TestCase
             'components' => ['schemas' => ['zzreport' => [
                 'type' => 'object',
                 'required' => ['zz-field'],
-                'properties' => ['zz-field' => ['type' => 'integer']],
+                'properties' => [
+                    'zz-field' => ['type' => 'integer'],
+                    'zzschedule' => ['type' => 'object', 'additionalProperties' => true, 'nullable' => true],
+                ],
             ]]],
         ];
 
@@ -608,6 +611,8 @@ final class GenerationTest extends TestCase
 
         $swift = $this->generateDocument($document, 'swift', 'ident')['Sources/TestModels/Zzreport.swift'] ?? '';
         $this->assertStringContainsString('case zzField = "zz-field"', $swift);
+        // A nullable object the server sends as null stays nil instead of becoming [:].
+        $this->assertStringContainsString('zzschedule: (map["zzschedule"] as? [String: Any])?.mapValues { AnyCodable($0) }', $swift);
 
         $dart = $this->generateDocument($document, 'dart', 'ident')['lib/src/enums/zzresource.dart'] ?? '';
         $this->assertStringContainsString('xIndex2(value: "index")', $dart);
