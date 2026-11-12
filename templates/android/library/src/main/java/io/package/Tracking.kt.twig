@@ -115,11 +115,11 @@ class Tracking @JvmOverloads constructor(
             try {
                 val prefs = context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE)
                 var pending = prefs.getString(INSTALL_PENDING, null)
+                // Before anything else: the app's first request can save cookies meanwhile.
+                val ranBefore = pending == null && context.getSharedPreferences(Client.COOKIE_PREFS, Context.MODE_PRIVATE).all.isNotEmpty()
+                val saved = prefs.getString(INSTALL_MARKER, null)
+                val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
                 if (pending == null) {
-                    // Before anything else: the app's first request can save cookies meanwhile.
-                    val ranBefore = context.getSharedPreferences(Client.COOKIE_PREFS, Context.MODE_PRIVATE).all.isNotEmpty()
-                    val saved = prefs.getString(INSTALL_MARKER, null)
-                    val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
                     if (saved == version) {
                         return@launch
                     }
@@ -130,8 +130,11 @@ class Tracking @JvmOverloads constructor(
                         !ranBefore -> JSONObject().put("name", "first_open")
                         else -> null
                     }?.toString()
-                    // Marker and pending event in one write, before sending, so no start sends it twice.
-                    prefs.edit().putString(INSTALL_MARKER, version).putString(INSTALL_PENDING, pending).commit()
+                }
+                // Pending event and marker in one atomic write, before sending, so no start sends it
+                // twice and a retried event does not leave the marker on an older version.
+                if (saved != version) {
+                    prefs.edit().putString(INSTALL_PENDING, pending).putString(INSTALL_MARKER, version).commit()
                 }
                 val event = JSONObject(pending ?: return@launch)
                 val props = event.optJSONObject("props")?.let { json -> json.keys().asSequence().associateWith { json.getString(it) } }

@@ -136,6 +136,20 @@ class TrackingTest {
     }
 
     @Test
+    fun aPendingEventIsSentOnceAndMovesAStaleMarker() {
+        context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE).edit()
+            .putString("trackingInstallVersion", "1.0.0")
+            .putString("trackingInstallPending", "{\"name\":\"first_open\"}")
+            .commit()
+
+        start("1.1.0")
+        start("1.1.0")
+
+        assertEquals(listOf("first_open"), events.map { it.getString("name") })
+        assertNull(pending())
+    }
+
+    @Test
     fun anInstallThatRanTheSdkBeforeGetsNoFirstOpen() {
         context.getSharedPreferences(Client.COOKIE_PREFS, Context.MODE_PRIVATE).edit().putString("cookie", "saved").commit()
 
