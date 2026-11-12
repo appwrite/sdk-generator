@@ -84,6 +84,27 @@ final class TrackingTests {
         #expect(tracking.events[2].props == nil)
     }
 
+    @Test func optionalPropsAreUnwrappedAndNilOnesDropped() {
+        let campaign: String? = "sale"
+        let missing: String? = nil
+        let props: [String: Any] = ["campaign": campaign as Any, "missing": missing as Any]
+        #expect(Tracking.flatten(props) == ["campaign", "sale"])
+    }
+
+    @Test func screenNamesAreEncodedIntoTheUrl() {
+        let tracking = RecordingTracking(analytics, propertyId: "property")
+        tracking.screenView("My Screen")
+        #expect(tracking.events.first?.url == "My%20Screen")
+        #expect(tracking.events.first?.props?["screen"] as? String == "My Screen")
+    }
+
+    @Test func anEmptyMessageIdIsLeftOut() {
+        let tracking = RecordingTracking(analytics, propertyId: "property")
+        tracking.pushReceived(messageId: "")
+        #expect(tracking.events.first?.props == nil)
+        #expect(Push.RemoteMessage.id(payload: Array(#"{"appwrite":{"messageId":""}}"#.utf8)) == nil)
+    }
+
     @Test func eachTapIsTrackedOnce() {
         let tracking = RecordingTracking(analytics, propertyId: "property")
         let opened = PushNotificationOpened(topic: "news", data: [:], messageId: UUID().uuidString)
@@ -100,16 +121,16 @@ final class TrackingTests {
     }
 }
 
-private final class RecordingTracking: Tracking {
-    var events: [(name: String, props: [String: Any]?, interactive: Bool?)] = []
+private final class RecordingTracking: Tracking, @unchecked Sendable {
+    var events: [(name: String, url: String?, props: [String: Any]?, interactive: Bool?)] = []
     var failing = false
 
     override func event(_ name: String, url: String? = nil, props: [String: Any]? = nil, engagementTime: Int? = nil, interactive: Bool? = nil) {
-        events.append((name, props, interactive))
+        events.append((name, url, props, interactive))
     }
 
     override func send(_ name: String, url: String? = nil, props: [String: Any]? = nil, engagementTime: Int? = nil, interactive: Bool? = nil) async -> Bool {
-        events.append((name, props, interactive))
+        events.append((name, url, props, interactive))
         return !failing
     }
 }

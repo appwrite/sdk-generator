@@ -1,6 +1,6 @@
 import Foundation
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
     import UIKit
 #elseif os(macOS)
     import AppKit
@@ -28,13 +28,13 @@ import Foundation
 ///     let tracking = Tracking(Analytics(client), propertyId: "<PROPERTY_ID>")
 ///     tracking.start()
 ///     tracking.screenView("Home")
-open class Tracking {
+open class Tracking: @unchecked Sendable {
     static let versionKey = "{{ spec.info.title | caseLower }}.tracking.version"
     static let pendingKey = "{{ spec.info.title | caseLower }}.tracking.pending"
 
     // The install check runs once per process, however many trackers start.
     private static let installLock = NSLock()
-    static var install: Task<Void, Never>?
+    nonisolated(unsafe) static var install: Task<Void, Never>?
 
     private let analytics: Analytics
 
@@ -47,7 +47,8 @@ open class Tracking {
 
     private let lock = NSLock()
     private var observers: [NSObjectProtocol] = []
-    private var foregroundSince: Date?
+    // `systemUptime`, which a wall-clock change does not move.
+    private var foregroundSince: TimeInterval?
 
     // Sub-second engagement left over from the previous flush, so many short foreground stretches
     // do not each lose a fraction of a second to truncation.
@@ -64,6 +65,8 @@ open class Tracking {
             self.url = url ?? "app://tvos"
         #elseif os(watchOS)
             self.url = url ?? "app://watchos"
+        #elseif os(visionOS)
+            self.url = url ?? "app://visionos"
         #else
             self.url = url ?? "app://linux"
         #endif
@@ -124,28 +127,46 @@ open class Tracking {
     }
 
     /// Start emitting `app_backgrounded` and `app_foregrounded` events when the app changes
-    /// lifecycle state. Idempotent. Lifecycle events are sent on iOS, tvOS and macOS.
+    /// lifecycle state. Idempotent. Lifecycle events are sent on iOS, tvOS, visionOS and macOS.
     public func enableAutoLifecycleEvents() {
-        #if os(iOS) || os(tvOS) || os(macOS)
-            #if os(macOS)
-                let background = NSApplication.didHideNotification
-                let foreground = NSApplication.didUnhideNotification
-            #else
-                let background = UIApplication.didEnterBackgroundNotification
-                let foreground = UIApplication.willEnterForegroundNotification
-            #endif
+        #if os(iOS) || os(tvOS) || os(visionOS) || os(macOS)
             lock.lock()
             defer { lock.unlock() }
             guard observers.isEmpty else {
                 return
             }
-            foregroundSince = Date()
             engagementCarry = 0
             let center = NotificationCenter.default
-            observers = [
-                center.addObserver(forName: background, object: nil, queue: .main) { [weak self] _ in self?.backgrounded() },
-                center.addObserver(forName: foreground, object: nil, queue: .main) { [weak self] _ in self?.foregrounded() },
-            ]
+            #if os(macOS)
+                foregroundSince = ProcessInfo.processInfo.systemUptime
+                observers = [
+                    center.addObserver(forName: NSApplication.didChangeOcclusionStateNotification, object: nil, queue: .main) { [weak self] _ in
+                        let visible = MainActor.assumeIsolated { NSApplication.shared.occlusionState.contains(.visible) }
+                        if visible {
+                            self?.foregrounded()
+                        } else {
+                            self?.backgrounded()
+                        }
+                    }
+                ]
+            #else
+                observers = [
+                    center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in self?.backgrounded() },
+                    center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in self?.foregrounded() },
+                ]
+                // A process launched in the background (a push, a fetch) accrues no engagement; its
+                // first real foreground sends `app_foregrounded`.
+                Task { @MainActor [weak self] in
+                    guard let self, UIApplication.shared.applicationState != .background else {
+                        return
+                    }
+                    self.lock.lock()
+                    if !self.observers.isEmpty && self.foregroundSince == nil {
+                        self.foregroundSince = ProcessInfo.processInfo.systemUptime
+                    }
+                    self.lock.unlock()
+                }
+            #endif
         #endif
     }
 
@@ -174,8 +195,6 @@ open class Tracking {
         guard let resolved = url.map({ URL(string: $0, relativeTo: URL(string: self.url))?.absoluteString }) ?? self.url else {
             return false
         }
-        // The endpoint takes props as a flat alternating key/value list.
-        let flattened = props?.flatMap { [$0.key, "\($0.value)"] }
         do {
             _ = try await analytics.createEvent(
                 propertyId: propertyId,
@@ -183,12 +202,24 @@ open class Tracking {
                 url: resolved,
                 screenWidth: await Self.viewportWidth(),
                 engagementTime: engagementTime,
-                props: flattened,
+                props: props.map(Self.flatten),
                 interactive: interactive
             )
             return true
         } catch {
             return false
+        }
+    }
+
+    // The endpoint takes props as a flat alternating key/value list. An Optional held in `Any` is
+    // unwrapped, and a nil one dropped, so no "nil" or "Optional(...)" is sent.
+    static func flatten(_ props: [String: Any]) -> [String] {
+        props.flatMap { key, value -> [String] in
+            let mirror = Mirror(reflecting: value)
+            guard mirror.displayStyle == .optional else {
+                return [key, "\(value)"]
+            }
+            return mirror.children.first.map { [key, "\($0.value)"] } ?? []
         }
     }
 
@@ -201,7 +232,8 @@ open class Tracking {
             merged["screenClass"] = className
         }
         merged.merge(props ?? [:]) { $1 }
-        event("screen_view", url: name, props: merged)
+        // A name with spaces or other characters a URL cannot hold would not resolve.
+        event("screen_view", url: name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name, props: merged)
     }
 
     /// Report that a push notification arrived. Best effort: the app's code often does not run
@@ -218,7 +250,7 @@ open class Tracking {
 
     private func pushProps(messageId: String?, campaign: String?) -> [String: Any]? {
         var props: [String: Any] = [:]
-        props["messageId"] = messageId
+        props["messageId"] = messageId?.isEmpty == false ? messageId : nil
         props["campaign"] = campaign
         return props.isEmpty ? nil : props
     }
@@ -238,7 +270,7 @@ open class Tracking {
             return
         }
         foregroundSince = nil
-        let elapsed = engagementCarry + Date().timeIntervalSince(since)
+        let elapsed = engagementCarry + ProcessInfo.processInfo.systemUptime - since
         let seconds = Int(elapsed)
         engagementCarry = elapsed - TimeInterval(seconds)
         lock.unlock()
@@ -251,21 +283,27 @@ open class Tracking {
             lock.unlock()
             return
         }
-        foregroundSince = Date()
+        foregroundSince = ProcessInfo.processInfo.systemUptime
         lock.unlock()
         event("app_foregrounded", interactive: false)
     }
 
+    // Kept for events sent once the key window is gone, such as `app_backgrounded`.
+    @MainActor private static var lastWidth: Int?
+
     // Viewport width in points, matching the Web helper's `innerWidth`.
     @MainActor
     private static func viewportWidth() -> Int? {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(tvOS) || os(visionOS)
             let width = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first?.bounds.width
         #elseif os(macOS)
             let width = NSApplication.shared.keyWindow?.frame.width
         #else
             let width: Double? = nil
         #endif
-        return width.flatMap { $0 > 0 ? Int($0.rounded()) : nil }
+        if let width, width > 0 {
+            lastWidth = Int(width.rounded())
+        }
+        return lastWidth
     }
 }

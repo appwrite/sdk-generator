@@ -2104,7 +2104,7 @@ extension Push {
         /// From an APNs `userInfo`: Appwrite's data under `appwrite`, `data`, `aps.data` or at the top level. Nil when it is not Appwrite's.
         init?(userInfo: [AnyHashable: Any]) {
             if let appwrite = userInfo["appwrite"] as? [String: Any] {
-                id = appwrite["messageId"] as? String
+                id = (appwrite["messageId"] as? String).flatMap { $0.isEmpty ? nil : $0 }
                 topic = appwrite["topic"] as? String
                 data = appwrite["data"] as? [String: Any] ?? [:]
                 wake = (appwrite["type"] as? String) == "wake"
@@ -2131,7 +2131,8 @@ extension Push {
             if let id = json["messageId"] as? String, !id.isEmpty {
                 return id
             }
-            return (json["appwrite"] as? [String: Any])?["messageId"] as? String
+            let id = (json["appwrite"] as? [String: Any])?["messageId"] as? String
+            return id?.isEmpty == false ? id : nil
         }
     }
 
