@@ -40,6 +40,9 @@ type Options struct {
 	// it has expired, so a session open longer than a token lives keeps working.
 	Token      func() (string, error)
 	SelfSigned bool
+	// Cloud says the endpoint is Appwrite Cloud, which lists organisations at a route of its own.
+	// The caller decides it, as the cli knows Cloud's hosts.
+	Cloud bool
 	// UserAgent names the program in every request.
 	UserAgent string
 }
@@ -52,6 +55,7 @@ type Client struct {
 	cookie   string
 	token    func() (string, error)
 	agent    string
+	cloud    bool
 	http     *http.Client
 }
 
@@ -69,6 +73,7 @@ func New(opts Options) (*Client, error) {
 		cookie:   opts.Cookie,
 		token:    opts.Token,
 		agent:    opts.UserAgent,
+		cloud:    opts.Cloud,
 		http:     &http.Client{Transport: transport(opts.SelfSigned), CheckRedirect: sameOrigin},
 	}, nil
 }
@@ -133,15 +138,8 @@ func (c *Client) AsProject(project string) *Client {
 	return &other
 }
 
-// Cloud reports whether the endpoint is Appwrite Cloud, or one of its regions.
-func (c *Client) Cloud() bool {
-	u, err := url.Parse(c.endpoint)
-	if err != nil {
-		return false
-	}
-	host := u.Hostname()
-	return host == "cloud.appwrite.io" || strings.HasSuffix(host, ".cloud.appwrite.io")
-}
+// Cloud reports whether the endpoint is Appwrite Cloud, as the options said.
+func (c *Client) Cloud() bool { return c.cloud }
 
 // Console reports whether the client calls with a console session rather than a project's key.
 func (c *Client) Console() bool { return c.key == "" && (c.cookie != "" || c.token != nil) }
