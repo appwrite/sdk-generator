@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 private const val LOG_TAG = "{{ spec.info.title | caseUcfirst }}Push"
 
 /** A background notification the user tapped. */
-data class PushNotificationOpened(
+data class PushNotificationOpened @JvmOverloads constructor(
     /** The topic the message was published to. */
     val topic: String,
     /** The `data` sent with the message (e.g. `createPush`), parsed; empty when it had none. */
@@ -51,7 +51,7 @@ data class PushNotificationOpened(
             } catch (e: JSONException) {
                 null
             }
-            return PushNotificationOpened(tap.topic, json?.optJSONObject("data")?.toMap() ?: emptyMap(), json?.opt("messageId") as? String)
+            return PushNotificationOpened(tap.topic, json?.optJSONObject("data")?.toMap() ?: emptyMap(), (json?.opt("messageId") as? String)?.takeIf { it.isNotEmpty() })
         }
 
         private fun JSONObject.toMap(): Map<String, Any?> = keys().asSequence().associateWith { jsonValue(get(it)) }
@@ -319,7 +319,7 @@ class Push(
     private fun opened(tap: PushTap): PushNotificationOpened {
         val opened = PushNotificationOpened.of(tap)
         val tracking = tracking
-        if (tracking != null && TrackedPush.first("opened\n${tap.topic}\n${opened.messageId ?: tap.payload}")) {
+        if (tracking != null && TrackedPush.first("opened\n${tap.topic}\n${opened.messageId ?: JSONObject(opened.data)}")) {
             tracking.pushOpened(opened.messageId)
         }
         return opened
@@ -331,7 +331,7 @@ class Push(
         if (subscriptions[id]?.background != true || !PushBackground.notificationContent(message).visible) {
             return
         }
-        val messageId = runCatching { JSONObject(message.data).opt("messageId") as? String }.getOrNull()
+        val messageId = runCatching { JSONObject(message.data).opt("messageId") as? String }.getOrNull()?.takeIf { it.isNotEmpty() }
         if (TrackedPush.first("received\n${message.topic}\n${messageId ?: message.data}")) {
             tracking.pushReceived(messageId)
         }

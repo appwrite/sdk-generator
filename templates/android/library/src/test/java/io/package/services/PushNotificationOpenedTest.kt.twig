@@ -19,5 +19,7 @@ class PushNotificationOpenedTest {
         assertEquals("message", opened.messageId)
         assertEquals(mapOf("saleId" to "42"), opened.data)
         assertNull(PushNotificationOpened.of(PushTap("users/user", "raw")).messageId)
+        assertNull(PushNotificationOpened.of(PushTap("users/user", "{\"messageId\":\"\"}")).messageId)
+        assertNull(PushNotificationOpened("users/user", emptyMap()).messageId)
     }
 }

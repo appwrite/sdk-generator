@@ -208,9 +208,10 @@ class TrackingTest {
     @Test
     fun screenNamesResolveAgainstTheBaseUrl() {
         val tracking = Tracking(analytics, "property")
-        tracking.screenView("Home Screen")
+        tracking.screenView("Home Screen", props = mapOf("tab" to null))
         waitFor { events.isNotEmpty() }
 
         assertEquals("app://android/Home%20Screen", events.single().getString("url"))
+        assertEquals("[\"screen\",\"Home Screen\"]", events.single().getJSONArray("props").toString())
     }
 }

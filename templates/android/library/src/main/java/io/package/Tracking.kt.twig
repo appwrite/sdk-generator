@@ -6,6 +6,7 @@ import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import android.os.SystemClock
+import androidx.annotation.MainThread
 import {{ sdk.namespace | caseDot }}.services.Analytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -104,6 +105,7 @@ class Tracking @JvmOverloads constructor(
      * The check runs once per process. An event whose request fails is kept and sent again on the
      * next start; a crash after it was sent but before it was cleared sends it once more.
      */
+    @MainThread
     fun start() {
         enableAutoLifecycleEvents()
         if (!installChecked.compareAndSet(false, true)) {
@@ -146,6 +148,7 @@ class Tracking @JvmOverloads constructor(
      * Start emitting `app_backgrounded` and `app_foregrounded` events when the app leaves or
      * returns to the screen. Idempotent: repeat calls no-op.
      */
+    @MainThread
     fun enableAutoLifecycleEvents() {
         val app = context as? Application ?: return
         if (lifecycleAttached) {
@@ -163,6 +166,7 @@ class Tracking @JvmOverloads constructor(
     }
 
     /** Stop emitting lifecycle events. Safe to call when auto-lifecycle was never enabled. */
+    @MainThread
     fun disableAutoLifecycleEvents() {
         if (!lifecycleAttached) {
             return
@@ -209,7 +213,7 @@ class Tracking @JvmOverloads constructor(
             screenWidth = context.resources.configuration.screenWidthDp.takeIf { it > 0 }?.toLong(),
             engagementTime = engagementTime,
             // The endpoint takes props as a flat alternating key/value list.
-            props = props?.flatMap { listOf(it.key, "${it.value}") },
+            props = props?.filterValues { it != null }?.flatMap { listOf(it.key, "${it.value}") },
             interactive = interactive,
         )
         true
