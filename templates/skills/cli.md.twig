@@ -20,7 +20,7 @@ appwrite list-projects --json
 appwrite init project --project-id <ID>
 appwrite pull table
 # edit appwrite.config.json, then:
-appwrite push table --force
+appwrite push table
 
 # Bad — project treated as a pile of API calls
 appwrite tablesdb create-table --database-id main --table-id songs ...
@@ -61,6 +61,21 @@ appwrite client --key 'standard_....'
 Env beats the config: `APPWRITE_PROJECT_ID`, `APPWRITE_ENDPOINT`, `APPWRITE_ORGANIZATION_ID`. Check in the config (no secrets). Put keys in the environment.
 
 `--force` skips prompts. Agents and CI have no TTY, so a push that needs confirmation fails without it (`Pass --force instead`). Ask the user, then pass `--force`. Do not use it to skip a change table whose local column is empty.
+
+`push table` never deletes what the config does not list. Databases, tables and columns missing from `appwrite.config.json`, and columns whose type changed, are shown as `(not in config)` and left alone. `--force` does not change that. Only `--prune` deletes them, after the plan shows each one with its table count, row count and backup coverage. Without a terminal, `--prune` also needs `--reason`, which is recorded on the audit log.
+
+Never pass `--prune` unless the user saw the listed deletions and approved them. If the plan lists resources you did not expect, the config is missing them: run `appwrite pull table` instead.
+
+```bash
+# Good — agent or CI: pushes creates and updates, leaves everything else
+appwrite push table --all --force
+
+# Good — the user approved deleting exactly what the plan listed
+appwrite push table --all --force --prune --reason "Drop the legacy orders database"
+
+# Bad — pruning to make a warning go away
+appwrite push table --all --force --prune --reason "cleanup"
+```
 
 `appwrite login --switch` rotates saved accounts. `appwrite client --debug` prints the effective endpoint/project with credentials masked. `appwrite client --reset` signs out of everything.
 

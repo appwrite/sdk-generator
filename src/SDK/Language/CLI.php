@@ -1711,6 +1711,11 @@ class CLI extends Go
             ],
             [
                 'scope'         => 'default',
+                'destination'   => 'internal/cmd/pushprune.go',
+                'template'      => 'cli/internal/cmd/pushprune.go',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => 'internal/cmd/pushpreview_test.go',
                 'template'      => 'cli/internal/cmd/pushpreview_test.go',
             ],

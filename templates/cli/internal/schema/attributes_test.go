@@ -232,6 +232,11 @@ func TestPlanClassifiesAdditionsAndDeletions(t *testing.T) {
 	if plan.Deleting[0].Action != "deleting" || plan.Adding[0].Action != "adding" {
 		t.Errorf("actions = %q/%q", plan.Deleting[0].Action, plan.Adding[0].Action)
 	}
+
+	kept := plan.WithoutDataLoss()
+	if len(plan.DataLoss()) != 1 || len(kept.Deleting) != 0 || len(kept.Adding) != 1 {
+		t.Errorf("without data loss = %v deleting, %v adding", reasons(kept.Deleting), kept.Adding)
+	}
 }
 
 // TestChildSideRelationshipsAreInvisible guards the case that would otherwise

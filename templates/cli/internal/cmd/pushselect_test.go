@@ -1,6 +1,10 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,9 +12,11 @@ import (
 	"time"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
+	"github.com/spf13/cobra"
 )
 
 const configWithOneSite = `{
@@ -216,11 +222,146 @@ func TestPushResourcesRejectAnUnknownArgument(t *testing.T) {
 	}
 }
 
+const configWithOnlyFinance = `{
+    "projectId": "probe",
+    "projectName": "probe",
+    "tablesDB": [
+        { "$id": "finance", "name": "Finance", "enabled": true }
+    ]
+}`
+
+type fakeTablesDB struct {
+	requests []string
+}
+
+func (f *fakeTablesDB) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	f.requests = append(f.requests, r.Method+" "+r.URL.Path)
+
+	switch {
+	case r.Method == "GET" && r.URL.Path == "/tablesdb":
+		_ = json.NewEncoder(w).Encode(map[string]any{"total": 1, "databases": []map[string]any{
+			{"$id": "main", "name": "Main", "enabled": true},
+		}})
+	case r.Method == "GET" && r.URL.Path == "/tablesdb/main/tables":
+		_ = json.NewEncoder(w).Encode(map[string]any{"total": 1, "tables": []map[string]any{
+			{"$id": "orders", "name": "Orders"},
+		}})
+	case r.Method == "GET" && r.URL.Path == "/tablesdb/main/tables/orders/rows":
+		_ = json.NewEncoder(w).Encode(map[string]any{"total": 5, "rows": []any{map[string]any{"$id": "1"}}})
+	case r.Method == "GET" && r.URL.Path == "/backups/policies":
+		_ = json.NewEncoder(w).Encode(map[string]any{"total": 0, "policies": []map[string]any{}})
+	case r.Method == "POST" || r.Method == "DELETE":
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]any{})
+	default:
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]any{"message": "not found", "code": 404})
+	}
+}
+
+func (f *fakeTablesDB) mutations() []string {
+	var mutations []string
+	for _, request := range f.requests {
+		if !strings.HasPrefix(request, "GET ") {
+			mutations = append(mutations, request)
+		}
+	}
+
+	return mutations
+}
+
+func pushTablesWith(t *testing.T, prune bool, reason string) (*fakeTablesDB, string, error) {
+	t.Helper()
+
+	fake := &fakeTablesDB{}
+	server := httptest.NewServer(fake)
+	t.Cleanup(server.Close)
+
+	restore := client.Reason
+	client.Reason = reason
+	t.Cleanup(func() { client.Reason = restore })
+
+	context := &pushContext{
+		api:      client.New(server.URL, "test").SetProject("project"),
+		local:    loadConfig(t, configWithOnlyFinance),
+		prompter: prompt.Forced{Prompter: prompt.NonInteractive{}},
+	}
+
+	var out bytes.Buffer
+	command := &cobra.Command{}
+	command.SetOut(&out)
+	addPruneFlag(command)
+	if prune {
+		if err := command.Flags().Set("prune", "true"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err := context.pushTables(command, pushTable)
+
+	return fake, out.String(), err
+}
+
+// A config that lists only `finance` deleted every other database in the
+// project under --force. A database the config does not mention is unmanaged:
+// listed, never deleted.
+func TestPushTableLeavesDatabasesMissingFromTheConfig(t *testing.T) {
+	fake, out, err := pushTablesWith(t, false, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if mutations := fake.mutations(); len(mutations) != 1 || mutations[0] != "POST /tablesdb" {
+		t.Errorf("mutations = %v, want only the finance database created", mutations)
+	}
+	for _, want := range []string{"(not in config)", "--prune"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output does not mention %s:\n%s", want, out)
+		}
+	}
+}
+
+// --prune without a terminal is refused without --reason, before anything is
+// written.
+func TestPushTablePruneWithoutATerminalNeedsAReason(t *testing.T) {
+	fake, _, err := pushTablesWith(t, true, "")
+	if err == nil || !strings.Contains(err.Error(), "--reason") {
+		t.Fatalf("error = %v, want one naming --reason", err)
+	}
+	if mutations := fake.mutations(); len(mutations) != 0 {
+		t.Errorf("mutations = %v, want none", mutations)
+	}
+}
+
+// --prune deletes last, after showing what the deletion takes with it.
+func TestPushTablePruneDeletesLastAndShowsTheImpact(t *testing.T) {
+	fake, out, err := pushTablesWith(t, true, "drop the old schema")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mutations := fake.mutations()
+	if len(mutations) != 2 || mutations[0] != "POST /tablesdb" || mutations[1] != "DELETE /tablesdb/main" {
+		t.Errorf("mutations = %v, want finance created, then main deleted", mutations)
+	}
+	for _, want := range []string{"1 tables, 5 rows, backup: none", "no backup policy covers it"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output does not mention %q:\n%s", want, out)
+		}
+	}
+}
+
 func loadProbeConfig(t *testing.T) *config.Local {
 	t.Helper()
 
+	return loadConfig(t, configWithOneSite)
+}
+
+func loadConfig(t *testing.T, contents string) *config.Local {
+	t.Helper()
+
 	path := filepath.Join(t.TempDir(), config.LocalFileName)
-	if err := os.WriteFile(path, []byte(configWithOneSite), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
