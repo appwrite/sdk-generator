@@ -145,8 +145,9 @@ export class Tracking {
      * existing install upgrading to this SDK is not counted when it has a saved
      * session; without one its first start after the upgrade counts once.
      * Neither event is sent on the web, and `app_updated` needs the SDK's native
-     * module (not in Expo Go). An event the server did not accept is kept and
-     * retried on the next start.
+     * module (not in Expo Go). The event is saved until the endpoint accepts it,
+     * so a failed send is retried on the next app start. The check runs once per
+     * run, whatever the number of `Tracking` instances or `start` calls.
      */
     public start(): void {
         this.enableAutoLifecycleEvents();
@@ -163,73 +164,61 @@ export class Tracking {
         const cookies = NativeModules?.{{ spec.info.title | caseUcfirst }}Cookies as
             NativeCookies | undefined;
         const { endpoint, project } = this.analytics.client.config;
-        // Before anything else: the app's first request can save a session meanwhile.
-        const ranBefore = cookies
-            ? (await cookies.session(endpoint, project).catch(() => null)) !==
-              null
-            : false;
         const directory = FileSystem.documentDirectory;
         const read = async (path: string): Promise<string | null> =>
             (await FileSystem.getInfoAsync(path)).exists
                 ? await FileSystem.readAsStringAsync(path)
                 : null;
-        const marker = `${directory}{{ spec.info.title | caseLower }}_tracking_install`;
-        // Install events not yet accepted by the server, kept next to the marker.
+        // The install event (`{"name", "props"}` JSON), kept next to the marker until it is sent.
         const pending = `${directory}{{ spec.info.title | caseLower }}_tracking_pending`;
-        const saved = await read(marker);
-        const events = JSON.parse(
-            (await read(pending)) ?? '[]',
-        ) as InstallEvent[];
-        // Empty without the native module, which also leaves app_updated unsent.
-        const version = cookies?.appVersion ?? '';
-        if (saved !== version) {
-            const event: InstallEvent | undefined =
-                saved === null
-                    ? ranBefore
-                        ? undefined
-                        : { name: 'first_open' }
-                    : saved !== '' && version !== ''
-                      ? {
-                            name: 'app_updated',
-                            props: { previousVersion: saved, version },
-                        }
-                      : undefined;
-            // Saved before the marker; the duplicate check covers a crash between the two writes.
+        const sendPending = async (json: string): Promise<void> => {
+            const event = JSON.parse(json) as InstallEvent;
+            // A crash after a successful send but before clearing sends it once more.
             if (
-                event &&
-                !events.some((e) => JSON.stringify(e) === JSON.stringify(event))
-            ) {
-                events.push(event);
-                await FileSystem.writeAsStringAsync(
-                    pending,
-                    JSON.stringify(events),
-                );
-            }
-            await FileSystem.writeAsStringAsync(marker, version);
-        }
-        if (events.length === 0) {
-            return;
-        }
-        const unsent: InstallEvent[] = [];
-        for (const event of events) {
-            if (
-                !(await this.send(event.name, {
+                await this.send(event.name, {
                     props: event.props,
                     interactive: false,
-                }))
+                })
             ) {
-                unsent.push(event);
+                await FileSystem.deleteAsync(pending, { idempotent: true });
             }
+        };
+        const saved = await read(pending);
+        if (saved !== null) {
+            await sendPending(saved);
+            return;
         }
-        // A crash after a send succeeded but before this write sends that event once more.
-        if (unsent.length === 0) {
-            await FileSystem.deleteAsync(pending, { idempotent: true });
-        } else if (unsent.length < events.length) {
-            await FileSystem.writeAsStringAsync(
-                pending,
-                JSON.stringify(unsent),
-            );
+        // Before the marker: the app's first request can save a session meanwhile.
+        const ranBefore = cookies
+            ? (await cookies.session(endpoint, project).catch(() => null)) !==
+              null
+            : false;
+        const marker = `${directory}{{ spec.info.title | caseLower }}_tracking_install`;
+        const previous = await read(marker);
+        // Empty without the native module, which also leaves app_updated unsent.
+        const version = cookies?.appVersion ?? '';
+        if (previous === version) {
+            return;
         }
+        const install: InstallEvent | undefined =
+            previous === null
+                ? ranBefore
+                    ? undefined
+                    : { name: 'first_open' }
+                : previous !== '' && version !== ''
+                  ? {
+                        name: 'app_updated',
+                        props: { previousVersion: previous, version },
+                    }
+                  : undefined;
+        // Saved before sending, so neither a crash nor a failed send loses it.
+        await FileSystem.writeAsStringAsync(marker, version);
+        if (!install) {
+            return;
+        }
+        const json = JSON.stringify(install);
+        await FileSystem.writeAsStringAsync(pending, json);
+        await sendPending(json);
     }
 
     /**
