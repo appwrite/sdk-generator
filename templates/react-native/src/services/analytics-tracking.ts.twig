@@ -189,6 +189,16 @@ export class Tracking {
         const saved = await read(pending);
         if (saved !== null) {
             const event = JSON.parse(saved) as InstallEvent;
+            // Rolled back to where the unsent update started: no net change to report.
+            if (
+                event.name === 'app_updated' &&
+                version !== '' &&
+                event.props?.previousVersion === version
+            ) {
+                await FileSystem.writeAsStringAsync(marker, version);
+                await FileSystem.deleteAsync(pending, { idempotent: true });
+                return;
+            }
             // An unsent update followed by another upgrade is reported as one previous → current update.
             const json =
                 event.name === 'app_updated' &&
