@@ -4,6 +4,9 @@ export { {{service.name | caseUcfirst}} } from './services/{{service.name | case
 {% endfor %}
 export { Realtime } from './services/realtime';
 export { Push } from './services/push';
+{% if services['analytics'] is defined %}
+export { Tracking, trackNavigation } from './services/analytics-tracking';
+{% endif %}
 export type {
     PushBackgroundStatus,
     PushMessage,
@@ -19,6 +22,16 @@ export type {
     UploadProgress,
 } from './client';
 export type { RealtimeSubscription } from './services/realtime';
+{% if services['analytics'] is defined %}
+export type {
+    NavigationTrackingOptions,
+    PushTrackingOptions,
+    ScreenViewOptions,
+    TrackingEventOptions,
+    TrackedNavigationRef,
+    TrackingOptions,
+} from './services/analytics-tracking';
+{% endif %}
 export type { QueryTypes, QueryTypesList, QueryInput } from './query';
 export { Query, QueryBuilder, flattenParam } from './query';
 export { Permission } from './permission';

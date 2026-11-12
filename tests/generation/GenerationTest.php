@@ -829,11 +829,13 @@ final class GenerationTest extends TestCase
         $companions = [
             'flutter' => ['lib/src/tracking.dart', 'lib/src/tracking_observer.dart'],
             'web' => ['src/services/analytics-tracking.ts', 'src/tracker.ts'],
+            'react-native' => ['src/services/analytics-tracking.ts'],
             'android' => ['library/src/main/java/io/appwrite/Tracking.kt', 'library/src/test/java/io/appwrite/TrackingTest.kt'],
         ];
         $entrypoints = [
             'flutter' => ['lib/packageName.dart', 'src/tracking'],
             'web' => ['src/index.ts', 'analytics-tracking'],
+            'react-native' => ['src/index.ts', 'analytics-tracking'],
             'android' => ['library/src/main/java/io/appwrite/services/Push.kt', 'settracking'],
         ];
         // The SDK's own telemetry must not end a bounce: lifecycle on every tracker, plus
@@ -841,6 +843,7 @@ final class GenerationTest extends TestCase
         $nonInteractive = [
             'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,', 4],
             'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,', 2],
+            'react-native' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,', 4],
             'android' => ['library/src/main/java/io/appwrite/Tracking.kt', 'interactive = interactive,', 4],
         ];
 
