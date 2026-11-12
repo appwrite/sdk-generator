@@ -127,6 +127,23 @@ void main() {
     expect(pending().existsSync(), isFalse);
   });
 
+  test('a crash between the pending and marker writes sends once', () async {
+    await marker().writeAsString('1.0.0');
+    await pending().writeAsString(
+      jsonEncode({
+        'name': 'app_updated',
+        'props': {'previousVersion': '1.0.0', 'version': '1.1.0'},
+      }),
+    );
+
+    await start('1.1.0');
+    await start('1.1.0');
+
+    expect(events.map((event) => event['name']), ['app_updated']);
+    expect(marker().readAsStringSync(), '1.1.0');
+    expect(pending().existsSync(), isFalse);
+  });
+
   test('a pending first_open survives cookies saved meanwhile', () async {
     status = 500;
     await start('1.0.0');

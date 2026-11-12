@@ -113,6 +113,8 @@ class Tracking with WidgetsBindingObserver {
     try {
       final pending = await readPendingInstallEvent();
       if (pending != null) {
+        // A crash between the two writes below leaves the marker stale.
+        await writeInstallMarker((await PackageInfo.fromPlatform()).version);
         await _sendPending(pending);
         return;
       }
@@ -131,13 +133,15 @@ class Tracking with WidgetsBindingObserver {
           : ranBefore
           ? null
           : {'name': 'first_open'};
-      // Saved before sending, so neither a crash nor a failed send loses it.
-      await writeInstallMarker(version);
       if (install == null) {
+        await writeInstallMarker(version);
         return;
       }
+      // Saved before the marker and the send, so neither a crash nor a failed
+      // send loses it.
       final json = jsonEncode(install);
       await writePendingInstallEvent(json);
+      await writeInstallMarker(version);
       await _sendPending(json);
     } catch (_) {
       // Analytics never surface errors to the host app.
