@@ -80,6 +80,18 @@ final class TrackingTests {
         #expect(await launch().events.isEmpty)
     }
 
+    @Test func aPendingUpdateAcrossAnotherUpdateIsSentOnceToTheCurrentVersion() async {
+        let pending = #"{"name":"app_updated","props":{"previousVersion":"1.0","version":"1.1"}}"#
+        UserDefaults.standard.set(Data(pending.utf8), forKey: Tracking.pendingKey)
+        UserDefaults.standard.set("1.1", forKey: Tracking.versionKey)
+        let events = await launch().events
+        #expect(events.map(\.name) == ["app_updated"])
+        #expect(events.first?.props?["previousVersion"] as? String == "1.0")
+        #expect(events.first?.props?["version"] as? String == version)
+        #expect(UserDefaults.standard.string(forKey: Tracking.versionKey) == version)
+        #expect(UserDefaults.standard.data(forKey: Tracking.pendingKey) == nil)
+    }
+
     @Test func pushEventsCarryOnlyThePropsThatAreSet() {
         let tracking = RecordingTracking(analytics, propertyId: "property")
         tracking.pushReceived(messageId: "m1")

@@ -92,8 +92,20 @@ open class Tracking: @unchecked Sendable {
     func trackInstall(ranBefore: Bool) async {
         let defaults = UserDefaults.standard
         let version = OSPackageInfo.get().version
-        if let pending = defaults.data(forKey: Self.pendingKey) {
-            // A crash between the two writes leaves the marker stale; this start decides nothing more.
+        if var pending = defaults.data(forKey: Self.pendingKey) {
+            // An update since the failed send folds into one app_updated from the original version.
+            if defaults.string(forKey: Self.versionKey) != version,
+                var event = (try? JSONSerialization.jsonObject(with: pending)) as? [String: Any],
+                event["name"] as? String == "app_updated",
+                var props = event["props"] as? [String: Any]
+            {
+                props["version"] = version
+                event["props"] = props
+                if let data = try? JSONSerialization.data(withJSONObject: event) {
+                    pending = data
+                    defaults.set(data, forKey: Self.pendingKey)
+                }
+            }
             defaults.set(version, forKey: Self.versionKey)
             await sendPending(pending)
             return
