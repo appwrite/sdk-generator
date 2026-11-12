@@ -1698,28 +1698,43 @@ class SDK
     }
 
     /**
-     * The names of every response model property that holds a secret, sorted.
+     * The names of the response model properties that hold a secret, sorted, for
+     * clients that redact by field name alone. A name that is an ordinary string
+     * on another model (`code` on `MFAChallengeSecret` and on `Country`) is left
+     * out: matched by name, it would hide every one of them.
      *
      * @param array<string, Schema> $definitions
      * @return list<string>
      */
     protected function getSecretFields(array $definitions): array
     {
-        $fields = [];
+        $secret = [];
+        $plain = [];
         foreach ($definitions as $definition) {
             if (!$definition instanceof ObjectSchema) {
                 continue;
             }
             foreach ($definition->properties as $name => $property) {
                 if ($this->isSecret($property)) {
-                    $fields[$name] = true;
+                    $secret[$name] = true;
+                } elseif ($this->isString($property)) {
+                    $plain[$name] = true;
                 }
             }
         }
-        $fields = \array_keys($fields);
+        $fields = \array_keys(\array_diff_key($secret, $plain));
         \sort($fields);
 
         return $fields;
+    }
+
+    protected function isString(Schema $schema): bool
+    {
+        if ($schema instanceof ArraySchema) {
+            $schema = $schema->items;
+        }
+
+        return $schema instanceof StringSchema;
     }
 
     protected function getSchemaType(Schema|Parameter $value): string
