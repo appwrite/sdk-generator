@@ -829,15 +829,19 @@ final class GenerationTest extends TestCase
         $companions = [
             'flutter' => ['lib/src/tracking.dart', 'lib/src/tracking_observer.dart'],
             'web' => ['src/services/analytics-tracking.ts', 'src/tracker.ts'],
+            'react-native' => ['src/services/analytics-tracking.ts'],
         ];
         $entrypoints = [
             'flutter' => ['lib/packageName.dart', 'src/tracking'],
             'web' => ['src/index.ts', 'analytics-tracking'],
+            'react-native' => ['src/index.ts', 'analytics-tracking'],
         ];
-        // The SDK's own telemetry must not end a bounce: two auto events per tracker.
+        // The SDK's own telemetry must not end a bounce: lifecycle on each tracker, plus
+        // the install events (one send) and push_received on React Native.
         $nonInteractive = [
-            'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,'],
-            'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,'],
+            'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,', 2],
+            'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,', 2],
+            'react-native' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,', 4],
         ];
 
         foreach ($companions as $name => $paths) {
@@ -856,9 +860,9 @@ final class GenerationTest extends TestCase
             }
             $this->assertStringContainsString($token, $with[$entry], "{$name} {$entry} does not export the companion");
 
-            [$tracker, $forward] = $nonInteractive[$name];
+            [$tracker, $forward, $auto] = $nonInteractive[$name];
             $this->assertStringContainsString($forward, $with[$tracker], "{$name} {$tracker} does not forward interactive");
-            $this->assertSame(2, \substr_count($with[$tracker], 'interactive: false'), "{$name} {$tracker} auto events are not non-interactive");
+            $this->assertSame($auto, \substr_count($with[$tracker], 'interactive: false'), "{$name} {$tracker} auto events are not non-interactive");
         }
     }
 

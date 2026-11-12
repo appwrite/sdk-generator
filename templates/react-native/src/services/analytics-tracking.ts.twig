@@ -67,6 +67,11 @@ type NativeCookies = {
     session(url: string, project: string): Promise<string | null>;
 };
 
+type InstallEvent = { name: string; props?: Record<string, string> };
+
+// One install check per app run, shared by every Tracking, so overlapping starts send once.
+let installCheck: Promise<void> | undefined;
+
 export class Tracking {
     private readonly analytics: Analytics;
     private readonly propertyId: string;
@@ -106,11 +111,12 @@ export class Tracking {
      * existing install upgrading to this SDK is not counted when it has a saved
      * session; without one its first start after the upgrade counts once.
      * Neither event is sent on the web, and `app_updated` needs the SDK's native
-     * module (not in Expo Go).
+     * module (not in Expo Go). An event the server did not accept is kept and
+     * retried on the next start.
      */
     public start(): void {
         this.enableAutoLifecycleEvents();
-        this.trackInstall().catch((error) => {
+        installCheck ??= this.trackInstall().catch((error) => {
             console.warn('Tracking: failed to record the install', error);
         });
     }
@@ -128,26 +134,67 @@ export class Tracking {
             ? (await cookies.session(endpoint, project).catch(() => null)) !==
               null
             : false;
-        const marker = `${FileSystem.documentDirectory}{{ spec.info.title | caseLower }}_tracking_install`;
-        const saved = (await FileSystem.getInfoAsync(marker)).exists
-            ? await FileSystem.readAsStringAsync(marker)
-            : null;
+        const directory = FileSystem.documentDirectory;
+        const read = async (path: string): Promise<string | null> =>
+            (await FileSystem.getInfoAsync(path)).exists
+                ? await FileSystem.readAsStringAsync(path)
+                : null;
+        const marker = `${directory}{{ spec.info.title | caseLower }}_tracking_install`;
+        // Install events not yet accepted by the server, kept next to the marker.
+        const pending = `${directory}{{ spec.info.title | caseLower }}_tracking_pending`;
+        const saved = await read(marker);
+        const events = JSON.parse(
+            (await read(pending)) ?? '[]',
+        ) as InstallEvent[];
         // Empty without the native module, which also leaves app_updated unsent.
         const version = cookies?.appVersion ?? '';
-        if (saved === version) {
+        if (saved !== version) {
+            const event: InstallEvent | undefined =
+                saved === null
+                    ? ranBefore
+                        ? undefined
+                        : { name: 'first_open' }
+                    : saved !== '' && version !== ''
+                      ? {
+                            name: 'app_updated',
+                            props: { previousVersion: saved, version },
+                        }
+                      : undefined;
+            // Saved before the marker; the duplicate check covers a crash between the two writes.
+            if (
+                event &&
+                !events.some((e) => JSON.stringify(e) === JSON.stringify(event))
+            ) {
+                events.push(event);
+                await FileSystem.writeAsStringAsync(
+                    pending,
+                    JSON.stringify(events),
+                );
+            }
+            await FileSystem.writeAsStringAsync(marker, version);
+        }
+        if (events.length === 0) {
             return;
         }
-        // Marked before sending, so a crash or a second start never sends it twice.
-        await FileSystem.writeAsStringAsync(marker, version);
-        if (saved === null) {
-            if (!ranBefore) {
-                this.track('first_open', { interactive: false });
+        const unsent: InstallEvent[] = [];
+        for (const event of events) {
+            if (
+                !(await this.send(event.name, {
+                    props: event.props,
+                    interactive: false,
+                }))
+            ) {
+                unsent.push(event);
             }
-        } else if (saved !== '' && version !== '') {
-            this.track('app_updated', {
-                props: { previousVersion: saved, version },
-                interactive: false,
-            });
+        }
+        // A crash after a send succeeded but before this write sends that event once more.
+        if (unsent.length === 0) {
+            await FileSystem.deleteAsync(pending, { idempotent: true });
+        } else if (unsent.length < events.length) {
+            await FileSystem.writeAsStringAsync(
+                pending,
+                JSON.stringify(unsent),
+            );
         }
     }
 
@@ -205,37 +252,39 @@ export class Tracking {
      * never surfaces errors to the host app.
      */
     public track(name: string, options: TrackingEventOptions = {}): void {
+        void this.send(name, options);
+    }
+
+    /** Send an event; resolves true once the server accepted it (2xx). */
+    private async send(
+        name: string,
+        options: TrackingEventOptions,
+    ): Promise<boolean> {
         const url = options.url;
         try {
-            // Missing required params throw synchronously rather than rejecting.
-            this.analytics
-                .createEvent({
-                    propertyId: this.propertyId,
-                    name,
-                    url:
-                        url === undefined || /^[a-z][a-z0-9+.-]*:/i.test(url)
-                            ? (url ?? this.url)
-                            : `${this.url}/${url.replace(/^\//, '')}`,
-                    // Density-independent pixels, matching the Web helper's `innerWidth`.
-                    screenWidth:
-                        Math.round(Dimensions.get('window').width) || undefined,
-                    engagementTime: options.engagementTime,
-                    interactive: options.interactive,
-                    // The endpoint takes props as a flat alternating key/value list.
-                    props: options.props
-                        ? Object.entries(options.props).flatMap(
-                              ([key, value]) =>
-                                  value === undefined
-                                      ? []
-                                      : [key, String(value)],
-                          )
-                        : undefined,
-                })
-                .catch((error) => {
-                    console.warn('Tracking: failed to send event', error);
-                });
+            await this.analytics.createEvent({
+                propertyId: this.propertyId,
+                name,
+                url:
+                    url === undefined || /^[a-z][a-z0-9+.-]*:/i.test(url)
+                        ? (url ?? this.url)
+                        : `${this.url}/${url.replace(/^\//, '')}`,
+                // Density-independent pixels, matching the Web helper's `innerWidth`.
+                screenWidth:
+                    Math.round(Dimensions.get('window').width) || undefined,
+                engagementTime: options.engagementTime,
+                interactive: options.interactive,
+                // The endpoint takes props as a flat alternating key/value list.
+                props: options.props
+                    ? Object.entries(options.props).flatMap(([key, value]) =>
+                          value === undefined ? [] : [key, String(value)],
+                      )
+                    : undefined,
+            });
+            return true;
         } catch (error) {
             console.warn('Tracking: failed to send event', error);
+            return false;
         }
     }
 
