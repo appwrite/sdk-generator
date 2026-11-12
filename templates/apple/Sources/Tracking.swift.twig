@@ -99,6 +99,12 @@ open class Tracking: @unchecked Sendable {
                 event["name"] as? String == "app_updated",
                 var props = event["props"] as? [String: Any]
             {
+                // Rolled back to the version it updated from: there is no change left to report.
+                if props["previousVersion"] as? String == version {
+                    defaults.removeObject(forKey: Self.pendingKey)
+                    defaults.set(version, forKey: Self.versionKey)
+                    return
+                }
                 props["version"] = version
                 event["props"] = props
                 if let data = try? JSONSerialization.data(withJSONObject: event) {

@@ -92,6 +92,15 @@ final class TrackingTests {
         #expect(UserDefaults.standard.data(forKey: Tracking.pendingKey) == nil)
     }
 
+    @Test func aRollbackWhileAnUpdateIsPendingSendsNothing() async {
+        let pending = #"{"name":"app_updated","props":{"previousVersion":"\#(version)","version":"0.0.0-next"}}"#
+        UserDefaults.standard.set(Data(pending.utf8), forKey: Tracking.pendingKey)
+        UserDefaults.standard.set("0.0.0-next", forKey: Tracking.versionKey)
+        #expect(await launch().events.isEmpty)
+        #expect(UserDefaults.standard.string(forKey: Tracking.versionKey) == version)
+        #expect(UserDefaults.standard.data(forKey: Tracking.pendingKey) == nil)
+    }
+
     @Test func pushEventsCarryOnlyThePropsThatAreSet() {
         let tracking = RecordingTracking(analytics, propertyId: "property")
         tracking.pushReceived(messageId: "m1")
