@@ -63,10 +63,19 @@ final class TrackingTests {
         #expect(tracking.events[2].props == nil)
     }
 
-    @Test func eachReceiptIsTrackedOnce() {
-        let key = "receipt-\(UUID().uuidString)"
-        #expect(Push.firstReceipt(key))
-        #expect(!Push.firstReceipt(key))
+    @Test func eachTapIsTrackedOnce() {
+        let tracking = RecordingTracking(analytics, propertyId: "property")
+        let opened = PushNotificationOpened(topic: "news", data: [:], messageId: UUID().uuidString)
+        Push.trackOpened(opened, tracking)
+        Push.trackOpened(opened, tracking)
+        #expect(tracking.events.map(\.name) == ["push_opened"])
+        #expect(tracking.events.first?.props?["messageId"] as? String == opened.messageId)
+    }
+
+    @Test func eachMessageIsTrackedOnce() {
+        let key = "received\nnews\n\(UUID().uuidString)"
+        #expect(Push.firstTracked(key))
+        #expect(!Push.firstTracked(key))
     }
 }
 

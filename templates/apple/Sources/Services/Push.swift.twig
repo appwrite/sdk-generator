@@ -122,7 +122,7 @@ public struct PushNotificationOpened {
             {%~ if services['analytics'] is defined %}
             // Once per tap however many listeners get it; a held tap counts when it is taken.
             if !callbacks.isEmpty {
-                tracking?.pushOpened(messageId: opened.messageId)
+                Push.trackOpened(opened, tracking)
             }
             {%~ endif %}
             callbacks.forEach { $0(opened) }
@@ -147,7 +147,7 @@ public struct PushNotificationOpened {
             lock.unlock()
             {%~ if services['analytics'] is defined %}
             if let opened {
-                tracking?.pushOpened(messageId: opened.messageId)
+                Push.trackOpened(opened, tracking)
             }
             {%~ endif %}
             return opened
@@ -409,14 +409,20 @@ open class Push: Service {
         return self
     }
 
-    // Recently tracked receipts: a message without an id can reach the app once per overlapping
-    // subscription, and once per `Push`, so each counts once.
-    static func firstReceipt(_ key: String) -> Bool {
+    // Recently tracked push events. A message can reach the app through MQTT, APNs and the
+    // extension's hand-off, once per overlapping subscription and `Push`, so each counts once.
+    static func firstTracked(_ key: String) -> Bool {
         receivedLock.lock()
         defer { receivedLock.unlock() }
         let now = Date()
         received = received.filter { now.timeIntervalSince($0.value) < 10 }
         return received.updateValue(now, forKey: key) == nil
+    }
+
+    static func trackOpened(_ opened: PushNotificationOpened, _ tracking: Tracking?) {
+        if let tracking, firstTracked("opened\n\(opened.topic)\n\(opened.messageId ?? "\(opened.data)")") {
+            tracking.pushOpened(messageId: opened.messageId)
+        }
     }
 
     {%~ endif %}
@@ -1230,7 +1236,7 @@ open class Push: Service {
         {%~ if services['analytics'] is defined %}
         let messageId = RemoteMessage.id(payload: pushMessage.payload)
         if (shown || notification.visible) && matched.contains(where: { $0.background }),
-            Push.firstReceipt(messageId ?? "\(pushMessage.topic)\n\(pushMessage.data)")
+            Push.firstTracked("received\n\(pushMessage.topic)\n\(messageId ?? pushMessage.data)")
         {
             sync.sync { tracking }?.pushReceived(messageId: messageId)
         }
