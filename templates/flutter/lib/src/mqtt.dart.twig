@@ -105,7 +105,7 @@ class PushNotificationOpened {
     return PushNotificationOpened(
       topic: topic,
       data: data is Map<String, dynamic> ? data : <String, dynamic>{},
-      messageId: messageId is String ? messageId : null,
+      messageId: messageId is String && messageId.isNotEmpty ? messageId : null,
     );
   }
 }

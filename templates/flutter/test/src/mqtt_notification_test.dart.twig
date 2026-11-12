@@ -94,6 +94,19 @@ void main() {
       expect(PushNotificationContent.of(pushMessage('raw')).messageId, isNull);
     });
 
+    test('is null when empty', () {
+      final empty = jsonEncode({
+        'messageId': '',
+        'notification': {'title': 'Sale'},
+      });
+
+      expect(PushNotificationContent.of(pushMessage(empty)).messageId, isNull);
+      expect(
+        PushNotificationOpened.fromPayload('users/user', empty).messageId,
+        isNull,
+      );
+    });
+
     test('is exposed on the opened notification', () {
       final opened = PushNotificationOpened.fromPayload('users/user', payload);
 

@@ -9,6 +9,8 @@ import '../{{ language.params.packageName }}.dart' show Analytics;
 import 'tracking_install_stub.dart'
     if (dart.library.io) 'tracking_install_io.dart';
 
+part 'tracking_observer.dart';
+
 /// Auto-tracking helpers for the generated [Analytics] service: install, update
 /// and app-lifecycle events, push helpers, and manual `screenView` / `event`
 /// calls, all sent through `Analytics.createEvent`.
@@ -58,7 +60,10 @@ class Tracking with WidgetsBindingObserver {
   final String url;
 
   bool _lifecycleAttached = false;
-  DateTime? _foregroundSince;
+
+  /// Runs while the app is in the foreground; monotonic, so a wall-clock change
+  /// cannot skew engagement.
+  Stopwatch? _foreground;
 
   /// Sub-second engagement left over from the previous flush. Carried forward
   /// so a session made of many short foreground stretches does not lose a
@@ -95,6 +100,10 @@ class Tracking with WidgetsBindingObserver {
   }
 
   static Future<void>? _installCheck;
+
+  /// The install check [start] runs, for tests to await.
+  @visibleForTesting
+  static Future<void>? get debugInstallCheck => _installCheck;
 
   /// Let the next [start] run the install check again, for tests.
   @visibleForTesting
@@ -162,7 +171,15 @@ class Tracking with WidgetsBindingObserver {
     // ensure the binding here — the call is idempotent.
     WidgetsFlutterBinding.ensureInitialized();
     _lifecycleAttached = true;
-    _foregroundSince = DateTime.now();
+    // A process launched in the background (a push, a background fetch) is
+    // not engagement: its first real foreground sends `app_foregrounded`.
+    final state = WidgetsBinding.instance.lifecycleState;
+    _foreground =
+        state == null ||
+            state == AppLifecycleState.resumed ||
+            state == AppLifecycleState.inactive
+        ? (Stopwatch()..start())
+        : null;
     _engagementCarry = Duration.zero;
     WidgetsBinding.instance.addObserver(this);
   }
@@ -174,7 +191,7 @@ class Tracking with WidgetsBindingObserver {
       return;
     }
     _lifecycleAttached = false;
-    _foregroundSince = null;
+    _foreground = null;
     _engagementCarry = Duration.zero;
     WidgetsBinding.instance.removeObserver(this);
   }
@@ -220,6 +237,7 @@ class Tracking with WidgetsBindingObserver {
         interactive: interactive,
         // The endpoint takes props as a flat alternating key/value list.
         props: props?.entries
+            .where((entry) => entry.value != null)
             .expand((entry) => [entry.key, '${entry.value}'])
             .toList(),
       );
@@ -248,14 +266,21 @@ class Tracking with WidgetsBindingObserver {
     String? className,
     Map<String, dynamic>? props,
   }) {
-    final merged = <String, dynamic>{'screen': name};
-    if (className != null) {
-      merged['screenClass'] = className;
-    }
-    if (props != null) {
-      merged.addAll(props);
-    }
-    event('screen_view', url: name, props: merged);
+    _screenEvent('screen_view', name, className: className, props: props);
+  }
+
+  // Shared with [TrackingObserver], so its events carry the same props.
+  void _screenEvent(
+    String eventName,
+    String name, {
+    String? className,
+    Map<String, dynamic>? props,
+  }) {
+    event(
+      eventName,
+      url: name,
+      props: {'screen': name, 'screenClass': ?className, ...?props},
+    );
   }
 
   /// Send `push_received` for a push notification the device got. Call it from
@@ -292,16 +317,16 @@ class Tracking with WidgetsBindingObserver {
       case AppLifecycleState.hidden:
         // On Flutter desktop and web the lifecycle transitions through both
         // `hidden` and `paused` when the window is minimised / closed. Guard
-        // on `_foregroundSince` so we emit `app_backgrounded` exactly once
+        // on `_foreground` so we emit `app_backgrounded` exactly once
         // per background transition instead of firing a second empty event —
         // which is also what keeps the engagement delta from being billed
         // twice for one transition.
-        final since = _foregroundSince;
-        if (since == null) {
+        final foreground = _foreground;
+        if (foreground == null) {
           break;
         }
-        _foregroundSince = null;
-        final elapsed = _engagementCarry + DateTime.now().difference(since);
+        _foreground = null;
+        final elapsed = _engagementCarry + foreground.elapsed;
         final seconds = elapsed.inSeconds;
         _engagementCarry = elapsed - Duration(seconds: seconds);
         event(
@@ -315,10 +340,10 @@ class Tracking with WidgetsBindingObserver {
         // never reaches `hidden`/`paused`, so the interval is still open.
         // Restarting it would discard the engagement accrued before the
         // interruption and emit a foreground event for no background.
-        if (_foregroundSince != null) {
+        if (_foreground != null) {
           break;
         }
-        _foregroundSince = DateTime.now();
+        _foreground = Stopwatch()..start();
         event('app_foregrounded', interactive: false);
         break;
       case AppLifecycleState.inactive:

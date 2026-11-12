@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
@@ -39,16 +40,12 @@ void main() {
     return tracking;
   }
 
-  // An app start in a new process. start() does not wait for the install check, so wait for
-  // its marker, then its event.
+  // An app start in a new process.
   Future<void> start(String version) async {
     appVersion(version);
     Tracking.debugResetInstallCheck();
     tracker().start();
-    while (!marker().existsSync() || marker().readAsStringSync() != version) {
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-    }
-    await Future<void>.delayed(const Duration(milliseconds: 200));
+    await Tracking.debugInstallCheck;
   }
 
   setUp(() async {
@@ -112,7 +109,7 @@ void main() {
     Tracking.debugResetInstallCheck();
     tracker().start();
     tracker().start();
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    await Tracking.debugInstallCheck;
 
     expect(events.map((event) => event['name']), ['first_open']);
   });
@@ -186,6 +183,81 @@ void main() {
       'sale',
     ]);
     expect(byName['push_opened']!['interactive'], true);
+  });
+
+  Future<List<Map<String, dynamic>>> sent(int count) async {
+    while (events.length < count) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    return events;
+  }
+
+  test('null props are dropped', () async {
+    tracker().event('custom', props: {'plan': 'pro', 'coupon': null});
+
+    expect((await sent(1)).single['props'], ['plan', 'pro']);
+  });
+
+  group('lifecycle', () {
+    final binding = TestWidgetsFlutterBinding.instance;
+
+    tearDown(
+      () => binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed),
+    );
+
+    test('a background launch counts from its first foreground', () async {
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      final tracking = tracker()..enableAutoLifecycleEvents();
+
+      tracking.didChangeAppLifecycleState(AppLifecycleState.hidden);
+      tracking.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      tracking.didChangeAppLifecycleState(AppLifecycleState.paused);
+
+      // Requests run concurrently, so they can arrive in any order.
+      expect(
+        (await sent(2)).map((event) => event['name']),
+        unorderedEquals(['app_foregrounded', 'app_backgrounded']),
+      );
+    });
+
+    test('a foreground launch counts from the start', () async {
+      binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      final tracking = tracker()..enableAutoLifecycleEvents();
+
+      tracking.didChangeAppLifecycleState(AppLifecycleState.paused);
+
+      expect((await sent(1)).map((event) => event['name']), [
+        'app_backgrounded',
+      ]);
+    });
+  });
+
+  test('TrackingObserver skips a repeated screen', () async {
+    Route<void> route(String name) => PageRouteBuilder<void>(
+      settings: RouteSettings(name: name),
+      pageBuilder: (_, _, _) => const SizedBox(),
+    );
+    final observer = TrackingObserver(tracker());
+    final home = route('/home');
+    final again = route('/home');
+
+    observer.didPush(home, null);
+    observer.didPush(again, home);
+    observer.didPush(route('/sale'), again);
+
+    final screens = await sent(2);
+    expect(
+      screens.map((event) => event['props']),
+      unorderedEquals([
+        ['screen', '/home', 'trigger', 'push'],
+        ['screen', '/sale', 'trigger', 'push', 'previous', '/home'],
+      ]),
+    );
+    expect(screens.map((event) => event['name']), [
+      'screen_view',
+      'screen_view',
+    ]);
   });
 
   group('Push on Android', () {

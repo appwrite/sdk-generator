@@ -44,7 +44,7 @@ class PushNotificationContent {
       field('title'),
       field('body'),
       field('image'),
-      messageId is String ? messageId : null,
+      messageId is String && messageId.isNotEmpty ? messageId : null,
     );
   }
 
