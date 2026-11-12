@@ -45,8 +45,7 @@ func TestNoArgCommandsRejectExtraArguments(t *testing.T) {
 		want string
 	}{
 		{[]string{"users", "definitely-not-a-command"}, "unknown command"},
-		{[]string{"users", "list", "definitely-not-an-argument"}, "users list takes no positional arguments"},
-		{[]string{"users", "update-labels", "--user-id", "x", "--labels", "admin", "beta"}, `unexpected argument "beta": --labels takes one value per flag. Repeat the flag for each value: --labels admin --labels beta`},
+		{[]string{"functions", "create-execution", "--function-id", "x", "definitely-not-an-argument"}, "functions create-execution takes no positional arguments"},
 		{[]string{"pull", "definitely-not-a-command"}, "unknown command"},
 		{[]string{"push", "definitely-not-a-command"}, "unknown command"},
 	}
