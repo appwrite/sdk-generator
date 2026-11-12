@@ -883,9 +883,9 @@ final class GenerationTest extends TestCase
             $this->assertArrayHasKey($path, $with, "apple did not ship {$path} alongside the analytics service");
         }
         $this->assertStringContainsString('public func settracking(_ tracking: tracking) -> self', $with[$push], 'apple Push has no setTracking');
-        // Lifecycle, install, update and push_received are the SDK's own telemetry.
+        // Lifecycle, the pending install or update event and push_received are the SDK's own telemetry.
         $this->assertStringContainsString('interactive: interactive', $with[$paths[0]], 'apple Tracking does not forward interactive');
-        $this->assertSame(5, \substr_count($with[$paths[0]], 'interactive: false'), 'apple Tracking auto events are not non-interactive');
+        $this->assertSame(4, \substr_count($with[$paths[0]], 'interactive: false'), 'apple Tracking auto events are not non-interactive');
     }
 
     /**

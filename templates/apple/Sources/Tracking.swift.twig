@@ -21,13 +21,20 @@ import Foundation
 /// `first_open` is sent once per install and `app_updated` on the first start after the app's
 /// version changes. The marker lives in `UserDefaults`, so deleting the app counts as a new
 /// install. Call `start()` at launch, before signing in: an install that already holds a session
-/// cookie is taken to be one that ran an older SDK, and sends no `first_open`.
+/// cookie is taken to be one that ran an older SDK, and sends no `first_open`. A send that fails is
+/// kept and retried on the next start; a crash between a successful send and clearing it sends it
+/// once more.
 ///
 ///     let tracking = Tracking(Analytics(client), propertyId: "<PROPERTY_ID>")
 ///     tracking.start()
 ///     tracking.screenView("Home")
 open class Tracking {
     static let versionKey = "{{ spec.info.title | caseLower }}.tracking.version"
+    static let pendingKey = "{{ spec.info.title | caseLower }}.tracking.pending"
+
+    // The install check runs once per process, however many trackers start.
+    private static let installLock = NSLock()
+    static var install: Task<Void, Never>?
 
     private let analytics: Analytics
 
@@ -69,21 +76,51 @@ open class Tracking {
     /// Start the default auto-tracking set: `first_open` / `app_updated`, then app-lifecycle
     /// events, as `enableAutoLifecycleEvents()`.
     public func start() {
-        // Before anything else: the app's first request can save cookies meanwhile.
-        let ranBefore = hasSessionCookies()
+        Self.installLock.lock()
+        if Self.install == nil {
+            // Before anything else: the app's first request can save cookies meanwhile.
+            let ranBefore = hasSessionCookies()
+            Self.install = Task { await trackInstall(ranBefore: ranBefore) }
+        }
+        Self.installLock.unlock()
+        enableAutoLifecycleEvents()
+    }
+
+    func trackInstall(ranBefore: Bool) async {
         let defaults = UserDefaults.standard
+        if let pending = defaults.data(forKey: Self.pendingKey) {
+            await sendPending(pending)
+            return
+        }
         let version = OSPackageInfo.get().version
         let previous = defaults.string(forKey: Self.versionKey)
-        if previous != version {
-            // Marked before sending, so a second start never sends it twice.
-            defaults.set(version, forKey: Self.versionKey)
-            if let previous {
-                event("app_updated", props: ["previousVersion": previous, "version": version], interactive: false)
-            } else if !ranBefore {
-                event("first_open", interactive: false)
-            }
+        guard previous != version else {
+            return
         }
-        enableAutoLifecycleEvents()
+        var pending: [String: Any]?
+        if let previous {
+            pending = ["name": "app_updated", "props": ["previousVersion": previous, "version": version]]
+        } else if !ranBefore {
+            pending = ["name": "first_open"]
+        }
+        // Both written before sending: a failed send stays pending, and the version is never re-decided.
+        defaults.set(version, forKey: Self.versionKey)
+        guard let pending, let data = try? JSONSerialization.data(withJSONObject: pending) else {
+            return
+        }
+        defaults.set(data, forKey: Self.pendingKey)
+        await sendPending(data)
+    }
+
+    private func sendPending(_ data: Data) async {
+        let pending = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        guard let name = pending?["name"] as? String else {
+            UserDefaults.standard.removeObject(forKey: Self.pendingKey)
+            return
+        }
+        if await send(name, props: pending?["props"] as? [String: Any], interactive: false) {
+            UserDefaults.standard.removeObject(forKey: Self.pendingKey)
+        }
     }
 
     /// Start emitting `app_backgrounded` and `app_foregrounded` events when the app changes
@@ -126,22 +163,32 @@ open class Tracking {
     /// Emit an ad-hoc analytics event. `url` may be absolute or a path resolved against
     /// `Tracking.url`. Request failures are swallowed so analytics never surface errors to the app.
     open func event(_ name: String, url: String? = nil, props: [String: Any]? = nil, engagementTime: Int? = nil, interactive: Bool? = nil) {
+        Task {
+            await send(name, url: url, props: props, engagementTime: engagementTime, interactive: interactive)
+        }
+    }
+
+    /// Send an event and report whether the endpoint accepted it.
+    @discardableResult
+    func send(_ name: String, url: String? = nil, props: [String: Any]? = nil, engagementTime: Int? = nil, interactive: Bool? = nil) async -> Bool {
         guard let resolved = url.map({ URL(string: $0, relativeTo: URL(string: self.url))?.absoluteString }) ?? self.url else {
-            return
+            return false
         }
         // The endpoint takes props as a flat alternating key/value list.
         let flattened = props?.flatMap { [$0.key, "\($0.value)"] }
-        Task {
-            let screenWidth = await Self.viewportWidth()
-            _ = try? await analytics.createEvent(
+        do {
+            _ = try await analytics.createEvent(
                 propertyId: propertyId,
                 name: name,
                 url: resolved,
-                screenWidth: screenWidth,
+                screenWidth: await Self.viewportWidth(),
                 engagementTime: engagementTime,
                 props: flattened,
                 interactive: interactive
             )
+            return true
+        } catch {
+            return false
         }
     }
 

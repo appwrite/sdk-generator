@@ -18,37 +18,58 @@ final class TrackingTests {
     }
 
     private static func reset() {
+        Tracking.install = nil
         UserDefaults.standard.removeObject(forKey: Tracking.versionKey)
+        UserDefaults.standard.removeObject(forKey: Tracking.pendingKey)
         UserDefaults.standard.removeObject(forKey: host)
     }
 
-    private func start() -> RecordingTracking {
+    // A launch: a new process runs the install check again.
+    private func launch(failing: Bool = false) async -> RecordingTracking {
+        Tracking.install = nil
         let tracking = RecordingTracking(analytics, propertyId: "property")
+        tracking.failing = failing
         tracking.start()
+        await Tracking.install?.value
         return tracking
     }
 
-    @Test func firstOpenIsSentOncePerInstall() {
-        let first = start()
+    @Test func firstOpenIsSentOncePerInstall() async {
+        let first = await launch()
         #expect(first.events.map(\.name) == ["first_open"])
         #expect(first.events.first?.interactive == false)
-        #expect(start().events.isEmpty)
+        #expect(await launch().events.isEmpty)
     }
 
-    @Test func anInstallThatRanTheSdkBeforeGetsNoFirstOpen() {
+    @Test func anInstallThatRanTheSdkBeforeGetsNoFirstOpen() async {
         UserDefaults.standard.set(["a_session=1"], forKey: Self.host)
-        #expect(start().events.isEmpty)
+        #expect(await launch().events.isEmpty)
         #expect(UserDefaults.standard.string(forKey: Tracking.versionKey) == version)
     }
 
-    @Test func appUpdatedIsSentOnTheFirstStartOfANewVersion() {
+    @Test func appUpdatedIsSentOnTheFirstStartOfANewVersion() async {
         UserDefaults.standard.set("0.0.0-previous", forKey: Tracking.versionKey)
-        let updated = start()
+        let updated = await launch()
         #expect(updated.events.map(\.name) == ["app_updated"])
         #expect(updated.events.first?.props?["previousVersion"] as? String == "0.0.0-previous")
         #expect(updated.events.first?.props?["version"] as? String == version)
         #expect(updated.events.first?.interactive == false)
-        #expect(start().events.isEmpty)
+        #expect(await launch().events.isEmpty)
+    }
+
+    @Test func concurrentStartsSendOneFirstOpen() async {
+        let trackers = (0..<8).map { _ in RecordingTracking(analytics, propertyId: "property") }
+        DispatchQueue.concurrentPerform(iterations: trackers.count) { trackers[$0].start() }
+        await Tracking.install?.value
+        #expect(trackers.flatMap(\.events).map(\.name) == ["first_open"])
+    }
+
+    @Test func aFailedSendIsRetriedOnTheNextStart() async {
+        #expect(await launch(failing: true).events.map(\.name) == ["first_open"])
+        #expect(UserDefaults.standard.data(forKey: Tracking.pendingKey) != nil)
+        #expect(await launch().events.map(\.name) == ["first_open"])
+        #expect(UserDefaults.standard.data(forKey: Tracking.pendingKey) == nil)
+        #expect(await launch().events.isEmpty)
     }
 
     @Test func pushEventsCarryOnlyThePropsThatAreSet() {
@@ -81,8 +102,14 @@ final class TrackingTests {
 
 private final class RecordingTracking: Tracking {
     var events: [(name: String, props: [String: Any]?, interactive: Bool?)] = []
+    var failing = false
 
     override func event(_ name: String, url: String? = nil, props: [String: Any]? = nil, engagementTime: Int? = nil, interactive: Bool? = nil) {
         events.append((name, props, interactive))
+    }
+
+    override func send(_ name: String, url: String? = nil, props: [String: Any]? = nil, engagementTime: Int? = nil, interactive: Bool? = nil) async -> Bool {
+        events.append((name, props, interactive))
+        return !failing
     }
 }
