@@ -2,6 +2,7 @@ package output
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
@@ -27,6 +28,15 @@ var sensitiveKeys = []string{
 	"sessionsecret",
 }
 
+// secretFields are the response fields the API spec marks `format: password`,
+// matched by exact name. sensitiveKeys stays as the fallback for names the spec
+// does not describe, such as headers and config keys.
+var secretFields = []string{
+{% for field in secretFields %}
+	"{{ field }}",
+{% endfor %}
+}
+
 // normalizeKey lower-cases and strips everything that is not alphanumeric, so
 // `API-Key`, `api_key` and `apiKey` all collapse to `apikey`.
 func normalizeKey(key string) string {
@@ -46,6 +56,9 @@ func normalizeKey(key string) string {
 // Suffix matching is deliberate: it catches `providerAccessToken` and
 // `x-appwrite-key` style names without an exhaustive list.
 func IsSensitiveKey(key string) bool {
+	if slices.Contains(secretFields, key) {
+		return true
+	}
 	normalized := normalizeKey(key)
 	for _, sensitive := range sensitiveKeys {
 		if normalized == sensitive || strings.HasSuffix(normalized, sensitive) {
