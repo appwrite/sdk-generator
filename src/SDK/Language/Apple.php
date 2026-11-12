@@ -283,6 +283,12 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Tracking.swift',
+                'requires'      => 'analytics',
+                'template'      => '/apple/Sources/Tracking.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/WebSockets/HTTPHandler.swift',
                 'template'      => '/swift/Sources/WebSockets/HTTPHandler.swift.twig',
             ],

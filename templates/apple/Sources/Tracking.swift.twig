@@ -1,0 +1,221 @@
+import Foundation
+
+#if os(iOS) || os(tvOS)
+    import UIKit
+#elseif os(macOS)
+    import AppKit
+#endif
+
+/// Auto-tracking helpers for the generated `Analytics` service: install, update and app-lifecycle
+/// events, push events, and manual `screenView` / `event` calls, all sent through
+/// `Analytics.createEvent`.
+///
+/// Auto-emitted event names are `snake_case` (`screen_view`, `app_backgrounded`,
+/// `app_foregrounded`, `first_open`, `app_updated`, `push_received`, `push_opened`). Prop keys use
+/// camelCase to match the endpoint's parameter naming.
+///
+/// Engagement time is reported as a **delta** attached to each `app_backgrounded` event, covering
+/// only the foreground time accrued since the last foregrounding, the same way the Web and Flutter
+/// helpers report it.
+///
+/// `first_open` is sent once per install and `app_updated` on the first start after the app's
+/// version changes. The marker lives in `UserDefaults`, so deleting the app counts as a new
+/// install. Call `start()` at launch, before signing in: an install that already holds a session
+/// cookie is taken to be one that ran an older SDK, and sends no `first_open`.
+///
+///     let tracking = Tracking(Analytics(client), propertyId: "<PROPERTY_ID>")
+///     tracking.start()
+///     tracking.screenView("Home")
+open class Tracking {
+    private static let versionKey = "{{ spec.info.title | caseLower }}.tracking.version"
+
+    private let analytics: Analytics
+
+    /// Analytics property every event is recorded against.
+    public let propertyId: String
+
+    /// Base URL events are reported under; screen names resolve against it. Defaults to
+    /// `app://<platform>`, since the endpoint only accepts absolute URLs.
+    public let url: String
+
+    private let lock = NSLock()
+    private var observers: [NSObjectProtocol] = []
+    private var foregroundSince: Date?
+
+    // Sub-second engagement left over from the previous flush, so many short foreground stretches
+    // do not each lose a fraction of a second to truncation.
+    private var engagementCarry: TimeInterval = 0
+
+    public init(_ analytics: Analytics, propertyId: String, url: String? = nil) {
+        self.analytics = analytics
+        self.propertyId = propertyId
+        #if os(iOS)
+            self.url = url ?? "app://ios"
+        #elseif os(macOS)
+            self.url = url ?? "app://macos"
+        #elseif os(tvOS)
+            self.url = url ?? "app://tvos"
+        #elseif os(watchOS)
+            self.url = url ?? "app://watchos"
+        #else
+            self.url = url ?? "app://linux"
+        #endif
+    }
+
+    deinit {
+        observers.forEach(NotificationCenter.default.removeObserver)
+    }
+
+    /// Start the default auto-tracking set: `first_open` / `app_updated`, then app-lifecycle
+    /// events, as `enableAutoLifecycleEvents()`.
+    public func start() {
+        let defaults = UserDefaults.standard
+        let version = OSPackageInfo.get().version
+        let previous = defaults.string(forKey: Self.versionKey)
+        defaults.set(version, forKey: Self.versionKey)
+        if let previous {
+            if previous != version {
+                event("app_updated", props: ["previousVersion": previous, "version": version], interactive: false)
+            }
+        } else if !hasSessionCookies() {
+            event("first_open", interactive: false)
+        }
+        enableAutoLifecycleEvents()
+    }
+
+    /// Start emitting `app_backgrounded` and `app_foregrounded` events when the app changes
+    /// lifecycle state. Idempotent. Lifecycle events are sent on iOS, tvOS and macOS.
+    public func enableAutoLifecycleEvents() {
+        #if os(iOS) || os(tvOS) || os(macOS)
+            #if os(macOS)
+                let background = NSApplication.didHideNotification
+                let foreground = NSApplication.didUnhideNotification
+            #else
+                let background = UIApplication.didEnterBackgroundNotification
+                let foreground = UIApplication.willEnterForegroundNotification
+            #endif
+            lock.lock()
+            defer { lock.unlock() }
+            guard observers.isEmpty else {
+                return
+            }
+            foregroundSince = Date()
+            engagementCarry = 0
+            let center = NotificationCenter.default
+            observers = [
+                center.addObserver(forName: background, object: nil, queue: .main) { [weak self] _ in self?.backgrounded() },
+                center.addObserver(forName: foreground, object: nil, queue: .main) { [weak self] _ in self?.foregrounded() },
+            ]
+        #endif
+    }
+
+    /// Stop emitting lifecycle events. Safe to call when auto-lifecycle was never enabled.
+    public func disableAutoLifecycleEvents() {
+        lock.lock()
+        let removed = observers
+        observers = []
+        foregroundSince = nil
+        engagementCarry = 0
+        lock.unlock()
+        removed.forEach(NotificationCenter.default.removeObserver)
+    }
+
+    /// Emit an ad-hoc analytics event. `url` may be absolute or a path resolved against
+    /// `Tracking.url`. Request failures are swallowed so analytics never surface errors to the app.
+    public func event(_ name: String, url: String? = nil, props: [String: Any]? = nil, engagementTime: Int? = nil, interactive: Bool? = nil) {
+        guard let resolved = url.map({ URL(string: $0, relativeTo: URL(string: self.url))?.absoluteString }) ?? self.url else {
+            return
+        }
+        // The endpoint takes props as a flat alternating key/value list.
+        let flattened = props?.flatMap { [$0.key, "\($0.value)"] }
+        Task {
+            let screenWidth = await Self.viewportWidth()
+            _ = try? await analytics.createEvent(
+                propertyId: propertyId,
+                name: name,
+                url: resolved,
+                screenWidth: screenWidth,
+                engagementTime: engagementTime,
+                props: flattened,
+                interactive: interactive
+            )
+        }
+    }
+
+    /// Mobile-idiomatic screen-view shortcut. Renders as a `screen_view` analytics event with
+    /// `screen`, optional `screenClass` and any caller-supplied properties. `name` is also the
+    /// event URL's path.
+    public func screenView(_ name: String, className: String? = nil, props: [String: Any]? = nil) {
+        var merged: [String: Any] = ["screen": name]
+        if let className {
+            merged["screenClass"] = className
+        }
+        merged.merge(props ?? [:]) { $1 }
+        event("screen_view", url: name, props: merged)
+    }
+
+    /// Report that a push notification arrived. Best effort: the app's code often does not run
+    /// when one arrives. `Push` sends this itself for the notifications it handles.
+    public func pushReceived(messageId: String? = nil, campaign: String? = nil) {
+        event("push_received", props: pushProps(messageId: messageId, campaign: campaign), interactive: false)
+    }
+
+    /// Report that the user opened a push notification. `Push` sends this itself for the
+    /// notifications it handles.
+    public func pushOpened(messageId: String? = nil, campaign: String? = nil) {
+        event("push_opened", props: pushProps(messageId: messageId, campaign: campaign), interactive: true)
+    }
+
+    private func pushProps(messageId: String?, campaign: String?) -> [String: Any]? {
+        var props: [String: Any] = [:]
+        props["messageId"] = messageId
+        props["campaign"] = campaign
+        return props.isEmpty ? nil : props
+    }
+
+    // The SDK keeps the session cookies it was given under the endpoint's host.
+    private func hasSessionCookies() -> Bool {
+        guard let host = URL(string: analytics.client.endPoint)?.host else {
+            return false
+        }
+        return UserDefaults.standard.stringArray(forKey: host)?.isEmpty == false
+    }
+
+    private func backgrounded() {
+        lock.lock()
+        guard let since = foregroundSince else {
+            lock.unlock()
+            return
+        }
+        foregroundSince = nil
+        let elapsed = engagementCarry + Date().timeIntervalSince(since)
+        let seconds = Int(elapsed)
+        engagementCarry = elapsed - TimeInterval(seconds)
+        lock.unlock()
+        event("app_backgrounded", engagementTime: seconds > 0 ? seconds : nil, interactive: false)
+    }
+
+    private func foregrounded() {
+        lock.lock()
+        guard foregroundSince == nil else {
+            lock.unlock()
+            return
+        }
+        foregroundSince = Date()
+        lock.unlock()
+        event("app_foregrounded", interactive: false)
+    }
+
+    // Viewport width in points, matching the Web helper's `innerWidth`.
+    @MainActor
+    private static func viewportWidth() -> Int? {
+        #if os(iOS) || os(tvOS)
+            let width = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.keyWindow }.first?.bounds.width
+        #elseif os(macOS)
+            let width = NSApplication.shared.keyWindow?.frame.width
+        #else
+            let width: Double? = nil
+        #endif
+        return width.flatMap { $0 > 0 ? Int($0.rounded()) : nil }
+    }
+}

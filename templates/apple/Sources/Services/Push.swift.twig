@@ -46,15 +46,20 @@ public struct PushNotificationOpened {
     /// The `data` sent with the message (e.g. `createPush`), parsed; empty when it had none.
     public let data: [String: Any]
 
+    /// The {{ spec.info.title | caseUcfirst }} Messaging message id, when the server sent one.
+    public let messageId: String?
+
     init(topic: String, payload: String) {
         self.topic = topic
         let object = (try? JSONSerialization.jsonObject(with: Data(payload.utf8))) as? [String: Any]
         self.data = object?["data"] as? [String: Any] ?? [:]
+        self.messageId = Push.RemoteMessage.id(payload: Array(payload.utf8))
     }
 
-    init(topic: String, data: [String: Any]) {
+    init(topic: String, data: [String: Any], messageId: String?) {
         self.topic = topic
         self.data = data
+        self.messageId = messageId
     }
 }
 
@@ -70,6 +75,9 @@ public struct PushNotificationOpened {
         private var pending: PushNotificationOpened?
         private var listeners: [UUID: (PushNotificationOpened) -> Void] = [:]
         private weak var forwarded: UNUserNotificationCenterDelegate?
+        {%~ if services['analytics'] is defined %}
+        private var tracking: Tracking?
+        {%~ endif %}
 
         func install() {
             // The notification center needs an app bundle; command-line tools have none.
@@ -98,7 +106,7 @@ public struct PushNotificationOpened {
             if let topic = info["topic"] as? String, let payload = info["payload"] as? String {
                 opened = PushNotificationOpened(topic: topic, payload: payload)
             } else if let remote = Push.RemoteMessage(userInfo: info), !remote.wake {
-                opened = PushNotificationOpened(topic: remote.topic ?? "", data: remote.data)
+                opened = PushNotificationOpened(topic: remote.topic ?? "", data: remote.data, messageId: remote.id)
             } else {
                 return false
             }
@@ -107,11 +115,25 @@ public struct PushNotificationOpened {
             if callbacks.isEmpty {
                 pending = opened
             }
+            {%~ if services['analytics'] is defined %}
+            let tracking = self.tracking
+            {%~ endif %}
             lock.unlock()
+            {%~ if services['analytics'] is defined %}
+            tracking?.pushOpened(messageId: opened.messageId)
+            {%~ endif %}
             callbacks.forEach { $0(opened) }
             return true
         }
 
+        {%~ if services['analytics'] is defined %}
+        func track(_ tracking: Tracking) {
+            lock.lock()
+            self.tracking = tracking
+            lock.unlock()
+        }
+
+        {%~ endif %}
         func take() -> PushNotificationOpened? {
             lock.lock()
             defer { lock.unlock() }
@@ -278,6 +300,9 @@ open class Push: Service {
     private var onOpenCb: (() -> Void)?
     private var onCloseCb: (() -> Void)?
     private var onErrorCb: ((Swift.Error) -> Void)?
+    {%~ if services['analytics'] is defined %}
+    private var tracking: Tracking?
+    {%~ endif %}
 
     // Set by close() so the close listener does not try to reconnect a deliberate teardown.
     private var closing = false
@@ -357,6 +382,20 @@ open class Push: Service {
         return self
     }
 
+    {%~ if services['analytics'] is defined %}
+    /// Send `push_received` and `push_opened` through `tracking` for the notifications this `Push`
+    /// shows, with their `messageId`. Taps go to the `Tracking` set last; set it at launch so the tap
+    /// that opened the app is counted.
+    @discardableResult
+    public func setTracking(_ tracking: Tracking) -> Self {
+        sync.sync { self.tracking = tracking }
+        #if canImport(UserNotifications)
+            PushNotificationTaps.shared.track(tracking)
+        #endif
+        return self
+    }
+
+    {%~ endif %}
     /// The background notification whose tap launched the app, or nil. Reported once. The tap
     /// reaches the SDK just after launch, so create `Push` while the app launches and call this
     /// once it is running, or register `onNotificationOpened(_:)` at launch, which receives it.
@@ -1147,8 +1186,9 @@ open class Push: Service {
         deliver(pushMessage)
     }
 
-    // `notifyLocally` is false for a message APNs delivered: iOS already showed it.
-    private func deliver(_ pushMessage: PushMessage, notifyLocally: Bool = true) {
+    // `notifyLocally` is false for a message APNs delivered: iOS already showed it. `shown` is true
+    // when iOS showed one whose payload no longer carries the notification.
+    private func deliver(_ pushMessage: PushMessage, notifyLocally: Bool = true, shown: Bool = false) {
         // Notification is per-subscription: only subs that opted in post one, each title once, as
         // their callbacks return. A title the server sent replaces theirs, so it is posted once.
         let matched = sync.sync {
@@ -1163,6 +1203,11 @@ open class Push: Service {
                 notify(pushMessage, title: title, notification: notification)
             }
         }
+        {%~ if services['analytics'] is defined %}
+        if (shown || notification.visible) && matched.contains(where: { $0.background }) {
+            sync.sync { tracking }?.pushReceived(messageId: RemoteMessage.id(payload: pushMessage.payload))
+        }
+        {%~ endif %}
     }
 
     private func notify(_ message: PushMessage, title: String, notification: PushNotificationContent) {
@@ -1832,7 +1877,7 @@ extension Push {
             body["messageId"] = id
         }
         let payload = (try? JSONSerialization.data(withJSONObject: body)) ?? Data()
-        deliver(PushMessage(topic: topic, payload: [UInt8](payload), qos: 1), notifyLocally: false)
+        deliver(PushMessage(topic: topic, payload: [UInt8](payload), qos: 1), notifyLocally: false, shown: true)
     }
 
     /// Reconnect MQTT for a silent wake, then give the broker a moment to replay the backlog.
