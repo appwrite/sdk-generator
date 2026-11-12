@@ -441,14 +441,27 @@ export class Push extends Service {
     }
 
     private opened(opened: PushNotificationOpened): PushNotificationOpened {
-        this.tracking?.pushOpened({ messageId: opened.messageId });
+        if (
+            this.tracking &&
+            firstTracked(
+                `opened\n${opened.topic}\n${opened.messageId ?? JSON.stringify(opened.data)}`,
+            )
+        ) {
+            this.tracking.pushOpened({ messageId: opened.messageId });
+        }
         return opened;
     }
 
     // Called for messages of background subscriptions, the ones a notification is posted for.
     private received(message: PushMessage): void {
         const content = notificationContent(message);
-        if (this.tracking && content.visible) {
+        if (
+            this.tracking &&
+            content.visible &&
+            firstTracked(
+                `received\n${message.topic}\n${content.messageId ?? message.data}`,
+            )
+        ) {
             this.tracking.pushReceived({ messageId: content.messageId });
         }
     }
@@ -1715,6 +1728,26 @@ const livePushes = new Set<Push>();
 let nativeQueue: Promise<unknown> = Promise.resolve();
 
 let notificationPermissionRequested = false;
+{% if services['analytics'] is defined %}
+
+// Recently tracked push events. A tap reaches every onNotificationOpened listener, and the
+// native host forwards a message once per matching subscription, so each counts once.
+const trackedPushes = new Map<string, number>();
+
+function firstTracked(key: string): boolean {
+    const now = Date.now();
+    for (const [tracked, at] of trackedPushes) {
+        if (now - at > 10_000) {
+            trackedPushes.delete(tracked);
+        }
+    }
+    if (trackedPushes.has(key)) {
+        return false;
+    }
+    trackedPushes.set(key, now);
+    return true;
+}
+{% endif %}
 
 /**
  * Android 13+: ask once per run for the notification permission that background messages are
