@@ -1786,7 +1786,10 @@ function toOpened(topic: string, payload: string): PushNotificationOpened {
             typeof data === 'object' && data !== null && !Array.isArray(data)
                 ? (data as Record<string, unknown>)
                 : {},
-        messageId: typeof messageId === 'string' ? messageId : undefined,
+        messageId:
+            typeof messageId === 'string' && messageId !== ''
+                ? messageId
+                : undefined,
     };
 }
 
@@ -1863,7 +1866,7 @@ function notificationContent(message: PushMessage): NotificationContent {
         body,
         image: field('image'),
         messageId:
-            typeof envelope?.messageId === 'string'
+            typeof envelope?.messageId === 'string' && envelope.messageId !== ''
                 ? envelope.messageId
                 : undefined,
     };

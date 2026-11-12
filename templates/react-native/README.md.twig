@@ -152,6 +152,10 @@ const navigationRef = createNavigationContainerRef();
 
 <NavigationContainer ref={navigationRef} {...trackNavigation(tracking, navigationRef)}>
 ```
+
+Pass your own `onReady` and `onStateChange` in the third argument, `trackNavigation(tracking, navigationRef, { onStateChange })`, so they run alongside the tracking.
+
+On Android, React Native reports the app as backgrounded when its activity pauses, so system dialogs and pickers (permissions, the photo picker, sharing) send `app_backgrounded` and then `app_foregrounded`. `app_updated` needs the SDK's native module, so it is not sent in Expo Go.
 {% endif %}
 
 Foreground mode runs a `remoteMessaging` foreground service, which Google Play asks apps to declare in the Play Console. Apps that never enable it can remove the service from their merged manifest with `tools:node="remove"` on `io.{{ spec.info.title | caseLower }}.reactnative.services.PushService` and `android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING`.

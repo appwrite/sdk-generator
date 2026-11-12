@@ -35,7 +35,8 @@ export type TrackingEventOptions = {
 export type TrackingOptions = {
     /**
      * Base URL events are reported under; screen names resolve against it.
-     * Defaults to `app://<platform>`, since the endpoint only accepts absolute URLs.
+     * Defaults to the page origin on the web and `app://<platform>` elsewhere,
+     * since the endpoint only accepts absolute URLs.
      */
     url?: string;
 };
@@ -52,13 +53,16 @@ export type PushTrackingOptions = {
 };
 
 /** The slice of a React Navigation container ref that screen tracking reads. */
-export type NavigationContainerRef = {
+export type TrackedNavigationRef = {
     getCurrentRoute(): { name: string } | undefined;
 };
 
 export type NavigationTrackingOptions = {
     /** Screen name for a route; return undefined to skip it. Defaults to the route name. */
     screenName?: (route: { name: string }) => string | undefined;
+    /** Your own `NavigationContainer` handlers, called after the screen is reported. */
+    onReady?(): void;
+    onStateChange?(state: unknown): void;
 };
 
 /** The SDK's native cookie module, which also exports the app's version. */
@@ -68,6 +72,32 @@ type NativeCookies = {
 };
 
 type InstallEvent = { name: string; props?: Record<string, string> };
+
+// Monotonic where available, so a wall-clock change does not skew engagement time.
+const now = (): number =>
+    typeof performance !== 'undefined' ? performance.now() : Date.now();
+
+/**
+ * Resolve `reference` against `base` as RFC 3986 does (`new URL` semantics, without
+ * dot-segment removal), percent-encoding its path. React Native's URL polyfill cannot.
+ */
+function resolveUrl(base: string, reference: string): string {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(reference)) {
+        return reference;
+    }
+    // Keep escapes already in the name rather than encoding their `%` again.
+    const path = encodeURI(reference).replace(/%25([0-9a-f]{2})/gi, '%$1');
+    const [, origin = base, basePath = ''] =
+        /^([a-z][a-z0-9+.-]*:\/\/[^/?#]*)([^?#]*)/i.exec(base) ?? [];
+    if (path.startsWith('/')) {
+        return origin + path;
+    }
+    const directory =
+        basePath === ''
+            ? '/'
+            : basePath.slice(0, basePath.lastIndexOf('/') + 1);
+    return origin + directory + path;
+}
 
 // One install check per app run, shared by every Tracking, so overlapping starts send once.
 let installCheck: Promise<void> | undefined;
@@ -96,7 +126,11 @@ export class Tracking {
     ) {
         this.analytics = analytics;
         this.propertyId = propertyId;
-        this.url = options.url ?? `app://${Platform.OS}`;
+        this.url =
+            options.url ??
+            (Platform.OS === 'web' && typeof window !== 'undefined'
+                ? window.location.origin
+                : `app://${Platform.OS}`);
     }
 
     /**
@@ -208,7 +242,7 @@ export class Tracking {
         }
         // A headless start (a background push task) has no foreground time to count.
         this.foregroundSince =
-            AppState.currentState === 'background' ? undefined : Date.now();
+            AppState.currentState === 'background' ? undefined : now();
         this.engagementCarryMs = 0;
         this.lifecycle = AppState.addEventListener('change', (state) => {
             if (state === 'background') {
@@ -217,7 +251,7 @@ export class Tracking {
                     return;
                 }
                 this.foregroundSince = undefined;
-                const elapsed = this.engagementCarryMs + Date.now() - since;
+                const elapsed = this.engagementCarryMs + now() - since;
                 const seconds = Math.floor(elapsed / 1000);
                 this.engagementCarryMs = elapsed - seconds * 1000;
                 this.track('app_backgrounded', {
@@ -230,7 +264,7 @@ export class Tracking {
                 if (this.foregroundSince !== undefined) {
                     return;
                 }
-                this.foregroundSince = Date.now();
+                this.foregroundSince = now();
                 this.track('app_foregrounded', { interactive: false });
             }
         });
@@ -260,15 +294,14 @@ export class Tracking {
         name: string,
         options: TrackingEventOptions,
     ): Promise<boolean> {
-        const url = options.url;
         try {
             await this.analytics.createEvent({
                 propertyId: this.propertyId,
                 name,
                 url:
-                    url === undefined || /^[a-z][a-z0-9+.-]*:/i.test(url)
-                        ? (url ?? this.url)
-                        : `${this.url}/${url.replace(/^\//, '')}`,
+                    options.url === undefined
+                        ? this.url
+                        : resolveUrl(this.url, options.url),
                 // Density-independent pixels, matching the Web helper's `innerWidth`.
                 screenWidth:
                     Math.round(Dimensions.get('window').width) || undefined,
@@ -277,7 +310,9 @@ export class Tracking {
                 // The endpoint takes props as a flat alternating key/value list.
                 props: options.props
                     ? Object.entries(options.props).flatMap(([key, value]) =>
-                          value === undefined ? [] : [key, String(value)],
+                          value === undefined || value === null
+                              ? []
+                              : [key, String(value)],
                       )
                     : undefined,
             });
@@ -310,7 +345,10 @@ export class Tracking {
      */
     public pushReceived(options: PushTrackingOptions = {}): void {
         this.track('push_received', {
-            props: { messageId: options.messageId, campaign: options.campaign },
+            props: {
+                messageId: options.messageId || undefined,
+                campaign: options.campaign,
+            },
             interactive: false,
         });
     }
@@ -318,7 +356,10 @@ export class Tracking {
     /** Send `push_opened` when the user taps a push notification. */
     public pushOpened(options: PushTrackingOptions = {}): void {
         this.track('push_opened', {
-            props: { messageId: options.messageId, campaign: options.campaign },
+            props: {
+                messageId: options.messageId || undefined,
+                campaign: options.campaign,
+            },
             interactive: true,
         });
     }
@@ -332,14 +373,16 @@ export class Tracking {
  * <NavigationContainer ref={navigationRef} {...trackNavigation(tracking, navigationRef)}>
  * ```
  *
- * A screen is reported when its name differs from the previous one, so param
- * changes and nested state updates on the same screen are not counted twice.
+ * Pass your own `onReady` / `onStateChange` in `options` rather than on the
+ * container, which would replace these. A screen is reported when its name
+ * differs from the previous one, so param changes and nested state updates on
+ * the same screen are not counted twice.
  */
 export function trackNavigation(
     tracking: Tracking,
-    ref: NavigationContainerRef,
+    ref: TrackedNavigationRef,
     options: NavigationTrackingOptions = {},
-): { onReady: () => void; onStateChange: () => void } {
+): { onReady: () => void; onStateChange: (state: unknown) => void } {
     const screenName = options.screenName ?? ((route) => route.name);
     let previous: string | undefined;
     const report = (): void => {
@@ -354,5 +397,14 @@ export function trackNavigation(
         });
         previous = name;
     };
-    return { onReady: report, onStateChange: report };
+    return {
+        onReady: () => {
+            report();
+            options.onReady?.();
+        },
+        onStateChange: (state) => {
+            report();
+            options.onStateChange?.(state);
+        },
+    };
 }

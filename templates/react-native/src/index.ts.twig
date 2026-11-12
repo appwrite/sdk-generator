@@ -24,11 +24,11 @@ export type {
 export type { RealtimeSubscription } from './services/realtime';
 {% if services['analytics'] is defined %}
 export type {
-    NavigationContainerRef,
     NavigationTrackingOptions,
     PushTrackingOptions,
     ScreenViewOptions,
     TrackingEventOptions,
+    TrackedNavigationRef,
     TrackingOptions,
 } from './services/analytics-tracking';
 {% endif %}
