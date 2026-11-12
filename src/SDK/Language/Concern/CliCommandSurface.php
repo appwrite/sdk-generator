@@ -402,6 +402,13 @@ trait CliCommandSurface
             return 'Raw GraphQL document, or a JSON request object or array for variables, operation names, or batching.';
         }
 
+        if ($this->getSchemaType($parameter) === self::TYPE_ARRAY) {
+            $description = rtrim($parameter->description);
+            $separator = $description === '' || str_ends_with($description, '.') ? '' : '.';
+
+            return trim($description . $separator . ' Repeat the flag for each value.');
+        }
+
         return $parameter->description;
     }
 
