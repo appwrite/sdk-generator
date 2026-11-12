@@ -270,7 +270,13 @@ func (f *fakeTablesDB) mutations() []string {
 	return mutations
 }
 
-func pushTablesWith(t *testing.T, prune bool, reason string) (*fakeTablesDB, string, error) {
+func pushTablesWith(
+	t *testing.T,
+	prune bool,
+	reason string,
+	interactive bool,
+	prompter prompt.Prompter,
+) (*fakeTablesDB, string, error) {
 	t.Helper()
 
 	fake := &fakeTablesDB{}
@@ -282,9 +288,10 @@ func pushTablesWith(t *testing.T, prune bool, reason string) (*fakeTablesDB, str
 	t.Cleanup(func() { client.Reason = restore })
 
 	context := &pushContext{
-		api:      client.New(server.URL, "test").SetProject("project"),
-		local:    loadConfig(t, configWithOnlyFinance),
-		prompter: prompt.Forced{Prompter: prompt.NonInteractive{}},
+		api:         client.New(server.URL, "test").SetProject("project"),
+		local:       loadConfig(t, configWithOnlyFinance),
+		prompter:    prompter,
+		interactive: interactive,
 	}
 
 	var out bytes.Buffer
@@ -306,7 +313,7 @@ func pushTablesWith(t *testing.T, prune bool, reason string) (*fakeTablesDB, str
 // project under --force. A database the config does not mention is unmanaged:
 // listed, never deleted.
 func TestPushTableLeavesDatabasesMissingFromTheConfig(t *testing.T) {
-	fake, out, err := pushTablesWith(t, false, "")
+	fake, out, err := pushTablesWith(t, false, "", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -324,7 +331,7 @@ func TestPushTableLeavesDatabasesMissingFromTheConfig(t *testing.T) {
 // --prune without a terminal is refused without --reason, before anything is
 // written.
 func TestPushTablePruneWithoutATerminalNeedsAReason(t *testing.T) {
-	fake, _, err := pushTablesWith(t, true, "")
+	fake, _, err := pushTablesWith(t, true, "", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
 	if err == nil || !strings.Contains(err.Error(), "--reason") {
 		t.Fatalf("error = %v, want one naming --reason", err)
 	}
@@ -335,7 +342,7 @@ func TestPushTablePruneWithoutATerminalNeedsAReason(t *testing.T) {
 
 // --prune deletes last, after showing what the deletion takes with it.
 func TestPushTablePruneDeletesLastAndShowsTheImpact(t *testing.T) {
-	fake, out, err := pushTablesWith(t, true, "drop the old schema")
+	fake, out, err := pushTablesWith(t, true, "drop the old schema", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -348,6 +355,26 @@ func TestPushTablePruneDeletesLastAndShowsTheImpact(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("output does not mention %q:\n%s", want, out)
 		}
+	}
+}
+
+// At a terminal, --prune still asks before deleting, and the answer defaults
+// to no.
+func TestPushTablePruneAtATerminalAsksBeforeDeleting(t *testing.T) {
+	prompter := &prompt.Scripted{Confirms: map[string]bool{
+		"Would you like to apply these changes?": true,
+	}}
+
+	fake, _, err := pushTablesWith(t, true, "", true, prompter)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if mutations := fake.mutations(); len(mutations) != 1 || mutations[0] != "POST /tablesdb" {
+		t.Errorf("mutations = %v, want only the finance database created", mutations)
+	}
+	if len(prompter.Asked) != 2 || !strings.HasPrefix(prompter.Asked[1], "Delete the 1 resources") {
+		t.Errorf("asked = %v, want the deletion confirmed separately", prompter.Asked)
 	}
 }
 
