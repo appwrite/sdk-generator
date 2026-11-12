@@ -218,25 +218,50 @@ func TestNormalizeEndpoint(t *testing.T) {
 	}
 }
 
-// TestCloud checks Appwrite Cloud is told apart from a self-hosted instance, its regions too.
-func TestCloud(t *testing.T) {
+// TestOrganisations checks organisations are listed and read at /organizations on Cloud, which
+// refuses /teams for the console project, and at /teams on a self-hosted instance.
+func TestOrganisations(t *testing.T) {
 	tests := []struct {
-		endpoint string
-		want     bool
+		name  string
+		cloud bool
+		want  string
 	}{
-		{"https://cloud.appwrite.io/v1", true},
-		{"https://fra.cloud.appwrite.io/v1", true},
-		{"https://appwrite.example.com/v1", false},
-		{"https://cloud.appwrite.io.example.com/v1", false},
+		{name: "cloud", cloud: true, want: "/v1/organizations"},
+		{name: "self-hosted", want: "/v1/teams"},
 	}
 	for _, tt := range tests {
-		c, err := New(Options{Endpoint: tt.endpoint})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if c.Cloud() != tt.want {
-			t.Errorf("Cloud() for %s = %v", tt.endpoint, !tt.want)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			var paths []string
+			s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				paths = append(paths, r.URL.Path)
+				if r.Header.Get("X-Appwrite-Project") != ConsoleProject {
+					t.Errorf("project %q, want the console", r.Header.Get("X-Appwrite-Project"))
+				}
+				_, _ = w.Write([]byte(`{"total":1,"teams":[{"$id":"acme"}],"$id":"acme"}`))
+			}))
+			t.Cleanup(s.Close)
+			c, err := New(Options{Endpoint: s.URL + "/v1", Project: "shop", Cookie: "a_session_console=abc", Cloud: tt.cloud})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if c.Cloud() != tt.cloud {
+				t.Errorf("Cloud() = %v, want %v", c.Cloud(), tt.cloud)
+			}
+			ref := Ref{Kind: Organisations}
+			p, err := c.List(context.Background(), ref, ListOptions{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(p.Docs) != 1 || p.Docs[0].ID() != "acme" {
+				t.Errorf("page %+v", p)
+			}
+			if _, err := c.Get(context.Background(), ref, "acme"); err != nil {
+				t.Fatal(err)
+			}
+			if want := []string{tt.want, tt.want + "/acme"}; !slices.Equal(paths, want) {
+				t.Errorf("paths %v, want %v", paths, want)
+			}
+		})
 	}
 }
 

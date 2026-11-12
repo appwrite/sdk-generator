@@ -44,6 +44,9 @@ const (
 type kindInfo struct {
 	// path is the route of the list, its parents' ids in place of the {}s in order.
 	path string
+	// cloud is the route of the list on Appwrite Cloud, where it differs: Cloud answers the
+	// console's teams at /organizations, and refuses /teams for the console project.
+	cloud string
 	// key is the field of a list's answer that holds the resources.
 	key string
 	// docs is the reference of the list.
@@ -106,7 +109,7 @@ var kinds = map[Kind]kindInfo{
 		docs: "https://appwrite.io/docs/references/cloud/server-rest/teams#list"},
 	Memberships: {path: "/teams/{}/memberships", key: "memberships", search: true, paged: true, get: true,
 		docs: "https://appwrite.io/docs/references/cloud/server-rest/teams#listMemberships"},
-	Organisations: {path: "/teams", key: "teams", search: true, paged: true, get: true, console: true,
+	Organisations: {path: "/teams", cloud: "/organizations", key: "teams", search: true, paged: true, get: true, console: true,
 		docs: "https://appwrite.io/docs/references/cloud/client-rest/teams#list"},
 	Projects: {path: "/projects", key: "projects", search: true, paged: true, get: true, console: true,
 		docs: "https://appwrite.io/docs/references/cloud/client-rest/projects"},
@@ -156,6 +159,14 @@ func (k Kind) Deletable() bool { return kinds[k].remove }
 type Ref struct {
 	Kind    Kind
 	Parents []string
+}
+
+// route is the route of a ref's list on the client's instance.
+func (c *Client) route(r Ref) (string, error) {
+	if info := kinds[r.Kind]; info.cloud != "" && c.cloud {
+		return info.cloud, nil
+	}
+	return r.path()
 }
 
 // path is the route of the list.

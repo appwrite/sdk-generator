@@ -72,9 +72,11 @@ func (o Options) resolve() (appwrite.Options, string, error) {
 			return a, "", errors.New("missing a project for the API key: pass --project-id, set APPWRITE_PROJECT_ID, or run it in a directory with an appwrite.config.json")
 		}
 		a.Endpoint, a.Key = sessionEndpoint, key
+		_, a.Cloud = config.CloudBaseHost(a.Endpoint)
 		return a, "", nil
 	}
 	a.Endpoint = sessionEndpoint
+	_, a.Cloud = config.CloudBaseHost(a.Endpoint)
 	if token != "" {
 		a.Token = renewer(auth.NewAuthenticator(o.Global, o.SDKVersion))
 	} else {

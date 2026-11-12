@@ -93,7 +93,7 @@ func (c *Client) clientFor(r Ref) *Client {
 
 // List reads a page of the resources of a ref.
 func (c *Client) List(ctx context.Context, r Ref, opts ListOptions) (Page, error) {
-	path, err := r.path()
+	path, err := c.route(r)
 	if err != nil {
 		return Page{}, err
 	}
@@ -125,7 +125,7 @@ func (c *Client) Get(ctx context.Context, r Ref, id string) (Doc, error) {
 	if !kinds[r.Kind].get {
 		return Doc{}, fmt.Errorf("a single one of the %s cannot be read", kinds[r.Kind].key)
 	}
-	path, err := r.path()
+	path, err := c.route(r)
 	if err != nil {
 		return Doc{}, err
 	}
@@ -141,7 +141,7 @@ func (c *Client) Delete(ctx context.Context, r Ref, id string) error {
 	if !kinds[r.Kind].remove {
 		return fmt.Errorf("the %s cannot be deleted from here", kinds[r.Kind].key)
 	}
-	path, err := r.path()
+	path, err := c.route(r)
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func (c *Client) Update(ctx context.Context, r Ref, id string, data map[string]a
 	if kinds[r.Kind].write == "" {
 		return Doc{}, fmt.Errorf("the %s cannot be changed from here", kinds[r.Kind].key)
 	}
-	path, err := r.path()
+	path, err := c.route(r)
 	if err != nil {
 		return Doc{}, err
 	}
@@ -175,7 +175,7 @@ func (c *Client) Create(ctx context.Context, r Ref, data map[string]any) (Doc, e
 	if info.write == "" {
 		return Doc{}, fmt.Errorf("the %s cannot be created from here", info.key)
 	}
-	path, err := r.path()
+	path, err := c.route(r)
 	if err != nil {
 		return Doc{}, err
 	}
