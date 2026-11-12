@@ -11,7 +11,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.net.URI
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Auto-tracking helpers for the generated [Analytics] service: install, update and app-lifecycle
@@ -98,25 +100,41 @@ class Tracking @JvmOverloads constructor(
      * shared preferences, so a reinstall or "clear data" counts as a new install. An existing
      * install upgrading to this SDK is not counted when the client has saved cookies; without them
      * its first start after the upgrade counts once.
+     *
+     * The check runs once per process. An event whose request fails is kept and sent again on the
+     * next start; a crash after it was sent but before it was cleared sends it once more.
      */
     fun start() {
         enableAutoLifecycleEvents()
+        if (!installChecked.compareAndSet(false, true)) {
+            return
+        }
         scope.launch {
             try {
-                // Before anything else: the app's first request can save cookies meanwhile.
-                val ranBefore = context.getSharedPreferences(Client.COOKIE_PREFS, Context.MODE_PRIVATE).all.isNotEmpty()
                 val prefs = context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE)
-                val saved = prefs.getString(INSTALL_MARKER, null)
-                val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
-                if (saved == version) {
-                    return@launch
+                var pending = prefs.getString(INSTALL_PENDING, null)
+                if (pending == null) {
+                    // Before anything else: the app's first request can save cookies meanwhile.
+                    val ranBefore = context.getSharedPreferences(Client.COOKIE_PREFS, Context.MODE_PRIVATE).all.isNotEmpty()
+                    val saved = prefs.getString(INSTALL_MARKER, null)
+                    val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
+                    if (saved == version) {
+                        return@launch
+                    }
+                    pending = when {
+                        saved != null -> JSONObject()
+                            .put("name", "app_updated")
+                            .put("props", JSONObject().put("previousVersion", saved).put("version", version))
+                        !ranBefore -> JSONObject().put("name", "first_open")
+                        else -> null
+                    }?.toString()
+                    // Marker and pending event in one write, before sending, so no start sends it twice.
+                    prefs.edit().putString(INSTALL_MARKER, version).putString(INSTALL_PENDING, pending).commit()
                 }
-                // Marked before sending, so a crash or a second start never sends it twice.
-                prefs.edit().putString(INSTALL_MARKER, version).commit()
-                if (saved != null) {
-                    event("app_updated", props = mapOf("previousVersion" to saved, "version" to version), interactive = false)
-                } else if (!ranBefore) {
-                    event("first_open", interactive = false)
+                val event = JSONObject(pending ?: return@launch)
+                val props = event.optJSONObject("props")?.let { json -> json.keys().asSequence().associateWith { json.getString(it) } }
+                if (send(event.getString("name"), props = props, interactive = false)) {
+                    prefs.edit().remove(INSTALL_PENDING).commit()
                 }
             } catch (e: Exception) {
                 // Analytics never surface errors to the host app.
@@ -169,31 +187,34 @@ class Tracking @JvmOverloads constructor(
         engagementTime: Long? = null,
         interactive: Boolean? = null,
     ) {
-        val target = try {
-            val base = URI(this.url)
-            // java.net.URI drops the "/" RFC 3986 puts between a path-less base and a relative path.
-            url?.let { (if (base.rawPath.isNullOrEmpty()) base.resolve("/") else base).resolve(URI(null, null, it, null)).toString() }
-                ?: this.url
-        } catch (e: Exception) {
-            return
-        }
-        // The endpoint buckets this as viewport width in dp, like the Web helper's `innerWidth`.
-        val screenWidth = context.resources.configuration.screenWidthDp.takeIf { it > 0 }?.toLong()
-        scope.launch {
-            try {
-                analytics.createEvent(
-                    propertyId = propertyId,
-                    name = name,
-                    url = target,
-                    screenWidth = screenWidth,
-                    engagementTime = engagementTime,
-                    // The endpoint takes props as a flat alternating key/value list.
-                    props = props?.flatMap { listOf(it.key, "${it.value}") },
-                    interactive = interactive,
-                )
-            } catch (e: Exception) {
-            }
-        }
+        scope.launch { send(name, url, props, engagementTime, interactive) }
+    }
+
+    // Whether the endpoint accepted the event; failures, including a malformed [url], are swallowed.
+    private suspend fun send(
+        name: String,
+        url: String? = null,
+        props: Map<String, Any?>? = null,
+        engagementTime: Long? = null,
+        interactive: Boolean? = null,
+    ): Boolean = try {
+        val base = URI(this.url)
+        // java.net.URI drops the "/" RFC 3986 puts between a path-less base and a relative path.
+        val target = url?.let { (if (base.rawPath.isNullOrEmpty()) base.resolve("/") else base).resolve(URI(null, null, it, null)).toString() }
+        analytics.createEvent(
+            propertyId = propertyId,
+            name = name,
+            url = target ?: this.url,
+            // The endpoint buckets this as viewport width in dp, like the Web helper's `innerWidth`.
+            screenWidth = context.resources.configuration.screenWidthDp.takeIf { it > 0 }?.toLong(),
+            engagementTime = engagementTime,
+            // The endpoint takes props as a flat alternating key/value list.
+            props = props?.flatMap { listOf(it.key, "${it.value}") },
+            interactive = interactive,
+        )
+        true
+    } catch (e: Exception) {
+        false
     }
 
     /**
@@ -241,7 +262,11 @@ class Tracking @JvmOverloads constructor(
         campaign?.let { put("campaign", it) }
     }
 
-    private companion object {
-        const val INSTALL_MARKER = "trackingInstallVersion"
+    internal companion object {
+        private const val INSTALL_MARKER = "trackingInstallVersion"
+        private const val INSTALL_PENDING = "trackingInstallPending"
+
+        // Shared by every instance, so concurrent or repeated start() calls never race on the marker.
+        internal val installChecked = AtomicBoolean(false)
     }
 }
