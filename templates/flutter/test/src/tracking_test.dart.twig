@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
 import 'package:{{ language.params.packageName }}/src/client_io.dart';
+import 'package:{{ language.params.packageName }}/src/mqtt_native.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +15,7 @@ void main() {
 
   late HttpServer server;
   late Directory documents;
+  late ClientIO client;
   late Analytics analytics;
   late List<Map<String, dynamic>> events;
   final trackers = <Tracking>[];
@@ -61,7 +63,7 @@ void main() {
       await request.response.close();
     });
 
-    final client = ClientIO(endPoint: 'http://127.0.0.1:${server.port}/v1');
+    client = ClientIO(endPoint: 'http://127.0.0.1:${server.port}/v1');
     client.config['project'] = 'project';
     analytics = Analytics(client);
   });
@@ -134,5 +136,107 @@ void main() {
       'sale',
     ]);
     expect(byName['push_opened']!['interactive'], true);
+  });
+
+  group('Push on Android', () {
+    const channel = '{{ spec.info.title | caseLower }}.push';
+    late MockStreamHandlerEventSink nativeEvents;
+    late List<String> hosted;
+    late Push push;
+
+    final payload = jsonEncode({
+      'messageId': 'message',
+      'notification': {'title': 'Sale'},
+    });
+
+    Future<void> settle() =>
+        Future<void>.delayed(const Duration(milliseconds: 200));
+
+    setUp(() async {
+      hosted = [];
+      messenger.setMockMethodCallHandler(const MethodChannel(channel), (
+        call,
+      ) async {
+        if (call.method == 'host') {
+          final subscriptions =
+              jsonDecode((call.arguments as Map)['subscriptions'] as String)
+                  as List;
+          hosted = [for (final sub in subscriptions) sub['id'] as String];
+          return true;
+        }
+        return call.method == 'hasSaved' ? false : null;
+      });
+      messenger.setMockStreamHandler(
+        const EventChannel('$channel/events'),
+        MockStreamHandler.inline(
+          onListen: (_, sink) => nativeEvents = sink,
+        ),
+      );
+      PushNative.debugInstance = PushNative.forMessenger(messenger);
+      client.setJWT('jwt');
+      push = Push(client).setTracking(Tracking(analytics, 'property'));
+    });
+
+    tearDown(() {
+      push.close();
+      PushNative.debugInstance = null;
+      messenger.setMockMethodCallHandler(const MethodChannel(channel), null);
+      messenger.setMockStreamHandler(
+        const EventChannel('$channel/events'),
+        null,
+      );
+    });
+
+    test('push_opened is sent once per tap, whatever the listeners', () async {
+      final opened = <String?>[];
+      push.onNotificationOpened((tap) => opened.add(tap.messageId));
+      push.onNotificationOpened((tap) => opened.add(tap.messageId));
+      await settle();
+
+      nativeEvents.success({
+        'type': 'opened',
+        'topic': 'users/user',
+        'payload': payload,
+      });
+      await settle();
+
+      expect(opened, ['message', 'message']);
+      expect(events.map((event) => event['name']), ['push_opened']);
+      expect(events.single['props'], ['messageId', 'message']);
+    });
+
+    test(
+      'push_received is sent once per message, whatever the subscriptions',
+      () async {
+        final received = <String>[];
+        await push.subscribe(
+          'news',
+          (message) => received.add(message.topic),
+          background: true,
+        );
+        await push.subscribe(
+          'news',
+          (message) => received.add(message.topic),
+          background: true,
+        );
+        expect(hosted, hasLength(2));
+
+        for (final id in hosted) {
+          nativeEvents.success({
+            'type': 'message',
+            'id': id,
+            'topic': 'news',
+            'payload': Uint8List.fromList(utf8.encode(payload)),
+            'qos': 1,
+            'ackToken': id,
+          });
+        }
+        await settle();
+
+        expect(received, ['news', 'news']);
+        expect(events.map((event) => event['name']), ['push_received']);
+        expect(events.single['props'], ['messageId', 'message']);
+      },
+    );
   });
 }

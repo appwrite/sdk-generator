@@ -387,8 +387,30 @@ class PushIO implements Push {
     return this;
   }
 
+  // Recently tracked push events. A tap reaches every onNotificationOpened listener, and the
+  // native host forwards a message once per matching subscription, so each counts once.
+  static final Map<String, DateTime> _tracked = {};
+
+  static bool _firstTracked(String key) {
+    final now = DateTime.now();
+    _tracked.removeWhere(
+      (_, at) => now.difference(at) > const Duration(seconds: 10),
+    );
+    if (_tracked.containsKey(key)) {
+      return false;
+    }
+    _tracked[key] = now;
+    return true;
+  }
+
   PushNotificationOpened _opened(PushNotificationOpened opened) {
-    _tracking?.pushOpened(messageId: opened.messageId);
+    final tracking = _tracking;
+    if (tracking != null &&
+        _firstTracked(
+          'opened\n${opened.topic}\n${opened.messageId ?? jsonEncode(opened.data)}',
+        )) {
+      tracking.pushOpened(messageId: opened.messageId);
+    }
     return opened;
   }
 
@@ -400,7 +422,10 @@ class PushIO implements Push {
       return;
     }
     final content = PushNotificationContent.of(message);
-    if (content.visible) {
+    if (content.visible &&
+        _firstTracked(
+          'received\n${message.topic}\n${content.messageId ?? message.data}',
+        )) {
       tracking.pushReceived(messageId: content.messageId);
     }
   }
