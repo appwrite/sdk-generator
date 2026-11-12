@@ -116,6 +116,14 @@ class Tracking with WidgetsBindingObserver {
         final version = (await PackageInfo.fromPlatform()).version;
         final install = jsonDecode(pending) as Map<String, dynamic>;
         final props = install['props'] as Map<String, dynamic>?;
+        // Rolled back to the version an unsent update started from: nothing
+        // changed. Marker first, so a crash in between repeats this branch.
+        if (install['name'] == 'app_updated' &&
+            props?['previousVersion'] == version) {
+          await writeInstallMarker(version);
+          await writePendingInstallEvent(null);
+          return;
+        }
         // An unsent update followed by another one is reported as a single
         // update from the old version to this one.
         if (install['name'] == 'app_updated' &&
