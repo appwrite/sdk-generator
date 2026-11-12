@@ -133,8 +133,9 @@ class Tracking @JvmOverloads constructor(
                 } else if (saved != version) {
                     // A failed update retried on a newer version reports one previousVersion→current event.
                     val retried = JSONObject(pending)
-                    retried.optJSONObject("props")?.takeIf { retried.getString("name") == "app_updated" }?.put("version", version)
-                    pending = retried.toString()
+                    val update = retried.optJSONObject("props")?.takeIf { retried.getString("name") == "app_updated" }
+                    // Rolled back to the version it updated from: no net change, so nothing to report.
+                    pending = if (update?.optString("previousVersion") == version) null else retried.also { update?.put("version", version) }.toString()
                 }
                 // Pending event and marker in one atomic write, before sending, so no start sends it
                 // twice and a retried event does not leave the marker on an older version.

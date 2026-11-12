@@ -39,6 +39,9 @@ class TrackingTest {
     @Volatile
     private var failures = 0
 
+    @Volatile
+    private var requests = 0
+
     @Before
     fun setUp() {
         Tracking.installChecked.set(false)
@@ -46,7 +49,10 @@ class TrackingTest {
         client.endpointPush = "mqtt://127.0.0.1:1"
         client.http = client.http.newBuilder()
             .addInterceptor { chain ->
-                val failed = synchronized(this) { (failures > 0).also { if (it) failures-- } }
+                val failed = synchronized(this) {
+                    requests++
+                    (failures > 0).also { if (it) failures-- }
+                }
                 val body = Buffer().also { chain.request().body!!.writeTo(it) }.readUtf8()
                 if (!failed) {
                     events.add(JSONObject(body))
@@ -80,14 +86,15 @@ class TrackingTest {
     }
 
     // A start in a new process: start() does not wait for the install check, so wait for its
-    // marker, then its event.
+    // marker and for its send to settle; the marker is written before the send.
     private fun start(version: String) {
         Tracking.installChecked.set(false)
+        val before = requests
         shadowOf(context.packageManager).getInternalMutablePackageInfo(context.packageName).versionName = version
         val tracking = Tracking(analytics, "property")
         trackers.add(tracking)
         tracking.start()
-        waitFor { marker() == version }
+        waitFor { marker() == version && (pending() == null || requests > before) }
         Thread.sleep(200)
     }
 
@@ -162,6 +169,21 @@ class TrackingTest {
         assertEquals(listOf("app_updated"), events.map { it.getString("name") })
         assertEquals("[\"previousVersion\",\"1.0.0\",\"version\",\"1.2.0\"]", events.single().getJSONArray("props").toString())
         assertEquals("1.2.0", marker())
+        assertNull(pending())
+    }
+
+    @Test
+    fun aRollbackWhileAnUpdateIsPendingSendsNothing() {
+        context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE).edit()
+            .putString("trackingInstallVersion", "1.1.0")
+            .putString("trackingInstallPending", "{\"name\":\"app_updated\",\"props\":{\"previousVersion\":\"1.0.0\",\"version\":\"1.1.0\"}}")
+            .commit()
+
+        start("1.0.0")
+        start("1.0.0")
+
+        assertEquals(0, events.size)
+        assertEquals("1.0.0", marker())
         assertNull(pending())
     }
 
