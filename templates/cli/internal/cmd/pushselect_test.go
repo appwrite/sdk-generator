@@ -7,7 +7,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -230,11 +232,37 @@ const configWithOnlyFinance = `{
     ]
 }`
 
+const configWithOrders = `{
+    "projectId": "probe",
+    "projectName": "probe",
+    "tablesDB": [
+        { "$id": "main", "name": "Main", "enabled": true }
+    ],
+    "tables": [
+        {
+            "$id": "orders",
+            "databaseId": "main",
+            "name": "Orders",
+            "columns": [
+                { "key": "total", "type": "integer", "required": false, "array": false }
+            ],
+            "indexes": []
+        }
+    ]
+}`
+
+const ordersAttributes = "/databases/main/collections/orders/attributes"
+
 type fakeTablesDB struct {
+	mutex    sync.Mutex
 	requests []string
+	columns  []map[string]any
 }
 
 func (f *fakeTablesDB) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
 	f.requests = append(f.requests, r.Method+" "+r.URL.Path)
 
 	switch {
@@ -246,10 +274,33 @@ func (f *fakeTablesDB) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"total": 1, "tables": []map[string]any{
 			{"$id": "orders", "name": "Orders"},
 		}})
+	case r.Method == "GET" && r.URL.Path == "/tablesdb/main/tables/orders":
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"$id": "orders", "databaseId": "main", "name": "Orders",
+			"columns": f.columns, "indexes": []any{},
+		})
 	case r.Method == "GET" && r.URL.Path == "/tablesdb/main/tables/orders/rows":
 		_ = json.NewEncoder(w).Encode(map[string]any{"total": 5, "rows": []any{map[string]any{"$id": "1"}}})
+	case r.Method == "GET" && r.URL.Path == ordersAttributes:
+		_ = json.NewEncoder(w).Encode(map[string]any{"total": len(f.columns), "attributes": f.columns})
+	case r.Method == "GET" && r.URL.Path == "/databases/main/collections/orders/indexes":
+		_ = json.NewEncoder(w).Encode(map[string]any{"total": 0, "indexes": []any{}})
 	case r.Method == "GET" && r.URL.Path == "/backups/policies":
 		_ = json.NewEncoder(w).Encode(map[string]any{"total": 0, "policies": []map[string]any{}})
+	case r.Method == "DELETE" && strings.HasPrefix(r.URL.Path, ordersAttributes+"/"):
+		key := strings.TrimPrefix(r.URL.Path, ordersAttributes+"/")
+		f.columns = slices.DeleteFunc(f.columns, func(column map[string]any) bool {
+			return column["key"] == key
+		})
+		w.WriteHeader(http.StatusNoContent)
+	case r.Method == "POST" && strings.HasPrefix(r.URL.Path, ordersAttributes+"/"):
+		var column map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&column)
+		column["type"] = strings.TrimPrefix(r.URL.Path, ordersAttributes+"/")
+		column["status"] = "available"
+		f.columns = append(f.columns, column)
+		w.WriteHeader(http.StatusAccepted)
+		_ = json.NewEncoder(w).Encode(column)
 	case r.Method == "POST" || r.Method == "DELETE":
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(map[string]any{})
@@ -272,6 +323,7 @@ func (f *fakeTablesDB) mutations() []string {
 
 func pushTablesWith(
 	t *testing.T,
+	contents string,
 	prune bool,
 	reason string,
 	interactive bool,
@@ -279,7 +331,10 @@ func pushTablesWith(
 ) (*fakeTablesDB, string, error) {
 	t.Helper()
 
-	fake := &fakeTablesDB{}
+	fake := &fakeTablesDB{columns: []map[string]any{
+		{"key": "total", "type": "double", "required": false, "array": false, "status": "available"},
+		{"key": "legacy", "type": "string", "size": 64, "required": false, "array": false, "status": "available"},
+	}}
 	server := httptest.NewServer(fake)
 	t.Cleanup(server.Close)
 
@@ -287,9 +342,13 @@ func pushTablesWith(
 	client.Reason = reason
 	t.Cleanup(func() { client.Reason = restore })
 
+	all := app.Flags().All
+	app.Flags().All = true
+	t.Cleanup(func() { app.Flags().All = all })
+
 	context := &pushContext{
 		api:         client.New(server.URL, "test").SetProject("project"),
-		local:       loadConfig(t, configWithOnlyFinance),
+		local:       loadConfig(t, contents),
 		prompter:    prompter,
 		interactive: interactive,
 	}
@@ -313,7 +372,7 @@ func pushTablesWith(
 // project under --force. A database the config does not mention is unmanaged:
 // listed, never deleted.
 func TestPushTableLeavesDatabasesMissingFromTheConfig(t *testing.T) {
-	fake, out, err := pushTablesWith(t, false, "", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
+	fake, out, err := pushTablesWith(t, configWithOnlyFinance, false, "", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +390,7 @@ func TestPushTableLeavesDatabasesMissingFromTheConfig(t *testing.T) {
 // --prune without a terminal is refused without --reason, before anything is
 // written.
 func TestPushTablePruneWithoutATerminalNeedsAReason(t *testing.T) {
-	fake, _, err := pushTablesWith(t, true, "", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
+	fake, _, err := pushTablesWith(t, configWithOnlyFinance, true, "", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
 	if err == nil || !strings.Contains(err.Error(), "--reason") {
 		t.Fatalf("error = %v, want one naming --reason", err)
 	}
@@ -342,7 +401,7 @@ func TestPushTablePruneWithoutATerminalNeedsAReason(t *testing.T) {
 
 // --prune deletes last, after showing what the deletion takes with it.
 func TestPushTablePruneDeletesLastAndShowsTheImpact(t *testing.T) {
-	fake, out, err := pushTablesWith(t, true, "drop the old schema", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
+	fake, out, err := pushTablesWith(t, configWithOnlyFinance, true, "drop the old schema", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,7 +424,7 @@ func TestPushTablePruneAtATerminalAsksBeforeDeleting(t *testing.T) {
 		"Would you like to apply these changes?": true,
 	}}
 
-	fake, _, err := pushTablesWith(t, true, "", true, prompter)
+	fake, _, err := pushTablesWith(t, configWithOnlyFinance, true, "", true, prompter)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -375,6 +434,68 @@ func TestPushTablePruneAtATerminalAsksBeforeDeleting(t *testing.T) {
 	}
 	if len(prompter.Asked) != 2 || !strings.HasPrefix(prompter.Asked[1], "Delete the 1 resources") {
 		t.Errorf("asked = %v, want the deletion confirmed separately", prompter.Asked)
+	}
+}
+
+// Without --prune, a column the config dropped is not deleted and a column
+// whose type changed is not recreated. Both are listed as left alone.
+func TestPushTableLeavesColumnChangesThatLoseData(t *testing.T) {
+	fake, out, err := pushTablesWith(t, configWithOrders, false, "", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if mutations := fake.mutations(); len(mutations) != 0 {
+		t.Errorf("mutations = %v, want none", mutations)
+	}
+	for _, want := range []string{"Left as they are", "legacy", "type changed from double to integer", "--prune"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output does not mention %q:\n%s", want, out)
+		}
+	}
+}
+
+// --prune with a reason deletes the dropped column and recreates the retyped
+// one.
+func TestPushTablePruneDeletesAndRecreatesColumns(t *testing.T) {
+	fake, _, err := pushTablesWith(t, configWithOrders, true, "retype the totals", false, prompt.Forced{Prompter: prompt.NonInteractive{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mutations := fake.mutations()
+	want := []string{
+		"DELETE " + ordersAttributes + "/legacy",
+		"DELETE " + ordersAttributes + "/total",
+		"POST " + ordersAttributes + "/integer",
+	}
+	if len(mutations) != len(want) {
+		t.Fatalf("mutations = %v, want %v", mutations, want)
+	}
+	deletions := slices.Sorted(slices.Values(mutations[:2]))
+	if !slices.Equal(append(deletions, mutations[2]), want) {
+		t.Errorf("mutations = %v, want both columns deleted, then total created", mutations)
+	}
+}
+
+// At a terminal, --prune asks separately before deleting columns, and
+// declining leaves them as they are.
+func TestPushTablePruneAtATerminalAsksBeforeDeletingColumns(t *testing.T) {
+	prompter := &prompt.Scripted{}
+
+	fake, out, err := pushTablesWith(t, configWithOrders, true, "", true, prompter)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if mutations := fake.mutations(); len(mutations) != 0 {
+		t.Errorf("mutations = %v, want none", mutations)
+	}
+	if len(prompter.Asked) != 1 || !strings.HasPrefix(prompter.Asked[0], "Delete the 2 resources") {
+		t.Errorf("asked = %v, want the deletion of both columns confirmed", prompter.Asked)
+	}
+	if !strings.Contains(out, "Nothing was deleted") {
+		t.Errorf("output does not say nothing was deleted:\n%s", out)
 	}
 }
 
