@@ -841,7 +841,7 @@ final class GenerationTest extends TestCase
         $nonInteractive = [
             'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,', 2],
             'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,', 2],
-            'android' => ['library/src/main/java/io/appwrite/Tracking.kt', 'interactive = interactive,', 5],
+            'android' => ['library/src/main/java/io/appwrite/Tracking.kt', 'interactive = interactive,', 4],
         ];
 
         foreach ($companions as $name => $paths) {
