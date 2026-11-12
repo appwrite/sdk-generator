@@ -18,6 +18,7 @@ void main() {
   late ClientIO client;
   late Analytics analytics;
   late List<Map<String, dynamic>> events;
+  late int status;
   final trackers = <Tracking>[];
 
   void appVersion(String version) => PackageInfo.setMockInitialValues(
@@ -30,12 +31,20 @@ void main() {
 
   File marker() => File('${documents.path}/{{ spec.info.title | caseLower }}_tracking_install');
 
-  // start() does not wait for the install check, so wait for its marker, then its event.
-  Future<void> start(String version) async {
-    appVersion(version);
+  File pending() => File('${documents.path}/{{ spec.info.title | caseLower }}_tracking_pending');
+
+  Tracking tracker() {
     final tracking = Tracking(analytics, 'property');
     trackers.add(tracking);
-    tracking.start();
+    return tracking;
+  }
+
+  // An app start in a new process. start() does not wait for the install check, so wait for
+  // its marker, then its event.
+  Future<void> start(String version) async {
+    appVersion(version);
+    Tracking.debugResetInstallCheck();
+    tracker().start();
     while (!marker().existsSync() || marker().readAsStringSync() != version) {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
@@ -51,6 +60,7 @@ void main() {
     );
 
     events = [];
+    status = 200;
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
       events.add(
@@ -58,6 +68,7 @@ void main() {
             as Map<String, dynamic>,
       );
       request.response
+        ..statusCode = status
         ..headers.contentType = ContentType.json
         ..write('{}');
       await request.response.close();
@@ -90,10 +101,49 @@ void main() {
     expect(events.single['interactive'], false);
   });
 
-  test('an install that ran the SDK before gets no first_open', () async {
+  Future<void> saveCookies() async {
     final cookies = Directory('${documents.path}/cookies/ie0_ps1');
     await cookies.create(recursive: true);
     await File('${cookies.path}/.index').writeAsString('{}');
+  }
+
+  test('concurrent starts send one first_open', () async {
+    appVersion('1.0.0');
+    Tracking.debugResetInstallCheck();
+    tracker().start();
+    tracker().start();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+
+    expect(events.map((event) => event['name']), ['first_open']);
+  });
+
+  test('a failed first_open is retried on the next start', () async {
+    status = 500;
+    await start('1.0.0');
+    expect(pending().existsSync(), isTrue);
+
+    status = 200;
+    await start('1.0.0');
+    await start('1.0.0');
+
+    expect(events.map((event) => event['name']), ['first_open', 'first_open']);
+    expect(pending().existsSync(), isFalse);
+  });
+
+  test('a pending first_open survives cookies saved meanwhile', () async {
+    status = 500;
+    await start('1.0.0');
+    await saveCookies();
+
+    status = 200;
+    await start('1.0.0');
+
+    expect(events.map((event) => event['name']), ['first_open', 'first_open']);
+    expect(pending().existsSync(), isFalse);
+  });
+
+  test('an install that ran the SDK before gets no first_open', () async {
+    await saveCookies();
 
     await start('1.0.0');
 

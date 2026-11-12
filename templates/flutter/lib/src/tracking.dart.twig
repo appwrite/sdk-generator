@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -83,33 +84,66 @@ class Tracking with WidgetsBindingObserver {
   /// upgrading to this SDK is not counted when the client has saved cookies;
   /// without them its first start after the upgrade counts once. Neither event
   /// is sent on the web.
+  ///
+  /// The event is saved until the endpoint accepts it, so a failed send is
+  /// retried on the next app start. A crash between the send and clearing it
+  /// can send it twice. The check runs once per process, whatever the number of
+  /// [Tracking] instances or [start] calls.
   void start() {
     enableAutoLifecycleEvents();
-    unawaited(_trackInstall());
+    unawaited(_installCheck ??= _trackInstall());
   }
+
+  static Future<void>? _installCheck;
+
+  /// Let the next [start] run the install check again, for tests.
+  @visibleForTesting
+  static void debugResetInstallCheck() => _installCheck = null;
 
   Future<void> _trackInstall() async {
     try {
-      // Before anything else: the app's first request can save cookies meanwhile.
+      final pending = await readPendingInstallEvent();
+      if (pending != null) {
+        await _sendPending(pending);
+        return;
+      }
+      // Before the marker: the app's first request can save cookies meanwhile.
       final ranBefore = await sdkRanBefore();
       final saved = await readInstallMarker();
       final version = (await PackageInfo.fromPlatform()).version;
       if (saved == version) {
         return;
       }
-      // Marked before sending, so a crash or a second start never sends it twice.
+      final Map<String, dynamic>? install = saved != null
+          ? {
+              'name': 'app_updated',
+              'props': {'previousVersion': saved, 'version': version},
+            }
+          : ranBefore
+          ? null
+          : {'name': 'first_open'};
+      // Saved before sending, so neither a crash nor a failed send loses it.
       await writeInstallMarker(version);
-      if (saved != null) {
-        event(
-          'app_updated',
-          props: {'previousVersion': saved, 'version': version},
-          interactive: false,
-        );
-      } else if (!ranBefore) {
-        event('first_open', interactive: false);
+      if (install == null) {
+        return;
       }
+      final json = jsonEncode(install);
+      await writePendingInstallEvent(json);
+      await _sendPending(json);
     } catch (_) {
       // Analytics never surface errors to the host app.
+    }
+  }
+
+  Future<void> _sendPending(String json) async {
+    final pending = jsonDecode(json) as Map<String, dynamic>;
+    final sent = await _send(
+      pending['name'] as String,
+      props: pending['props'] as Map<String, dynamic>?,
+      interactive: false,
+    );
+    if (sent) {
+      await writePendingInstallEvent(null);
     }
   }
 
@@ -155,29 +189,44 @@ class Tracking with WidgetsBindingObserver {
     int? engagementTime,
     bool? interactive,
   }) {
+    unawaited(
+      _send(
+        name,
+        url: url,
+        props: props,
+        engagementTime: engagementTime,
+        interactive: interactive,
+      ),
+    );
+  }
+
+  // [event], awaitable: completes with whether the endpoint accepted the event.
+  Future<bool> _send(
+    String name, {
+    String? url,
+    Map<String, dynamic>? props,
+    int? engagementTime,
+    bool? interactive,
+  }) async {
     try {
-      unawaited(
-        _analytics
-            .createEvent(
-              propertyId: propertyId,
-              name: name,
-              url:
-                  url == null
-                      ? this.url
-                      : Uri.parse(this.url).resolve(url).toString(),
-              screenWidth: _viewportWidth(),
-              engagementTime: engagementTime,
-              interactive: interactive,
-              // The endpoint takes props as a flat alternating key/value list.
-              props:
-                  props?.entries
-                      .expand((entry) => [entry.key, '${entry.value}'])
-                      .toList(),
-            )
-            .catchError((Object _) {}),
+      await _analytics.createEvent(
+        propertyId: propertyId,
+        name: name,
+        url: url == null
+            ? this.url
+            : Uri.parse(this.url).resolve(url).toString(),
+        screenWidth: _viewportWidth(),
+        engagementTime: engagementTime,
+        interactive: interactive,
+        // The endpoint takes props as a flat alternating key/value list.
+        props: props?.entries
+            .expand((entry) => [entry.key, '${entry.value}'])
+            .toList(),
       );
+      return true;
     } catch (_) {
-      // A malformed [url] throws before the request starts.
+      // Request failures, and a malformed [url] that throws before it starts.
+      return false;
     }
   }
 

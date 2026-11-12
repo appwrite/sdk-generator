@@ -837,7 +837,7 @@ final class GenerationTest extends TestCase
         // The SDK's own telemetry must not end a bounce: lifecycle on both, plus install,
         // update and push_received on Flutter.
         $nonInteractive = [
-            'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,', 5],
+            'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,', 4],
             'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,', 2],
         ];
 
