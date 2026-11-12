@@ -67,6 +67,12 @@ class ReactNative extends Web
                 'template'      => 'react-native/src/services/push.ts.twig',
             ],
             [
+                'scope'         => 'default',
+                'destination'   => 'src/services/analytics-tracking.ts',
+                'requires'      => 'analytics',
+                'template'      => 'react-native/src/services/analytics-tracking.ts.twig',
+            ],
+            [
                 'scope'         => 'copy',
                 'destination'   => 'android/.editorconfig',
                 'template'      => '/kotlin/.editorconfig',
