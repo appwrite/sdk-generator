@@ -16,8 +16,8 @@ import (
 // wording of each cell: those are what tells a user their `title` column is
 // about to be dropped and rebuilt.
 
-// printChanges renders the attribute change table.
-func printChanges(writer io.Writer, changes []Change) {
+// PrintChanges renders the attribute change table.
+func PrintChanges(writer io.Writer, changes []Change) {
 	rows := make([][]string, 0, len(changes))
 	for _, entry := range changes {
 		rows = append(rows, []string{entry.Key, entry.Action, entry.Reason})
@@ -26,12 +26,12 @@ func printChanges(writer io.Writer, changes []Change) {
 	fmt.Fprintf(writer, "\n%s\n\n", output.RenderTable([]string{"Key", "Action", "Reason"}, rows))
 }
 
-// printBanner writes one of the boxed data-loss warnings.
+// PrintBanner writes one of the boxed data-loss warnings.
 //
 // They are shouted
 // rather than logged because the confirmation that follows is the last point at
 // which a column's data can be saved.
-func printBanner(writer io.Writer, message string) {
+func PrintBanner(writer io.Writer, message string) {
 	rule := strings.Repeat("-", len([]rune(message))+4)
 	fmt.Fprintf(writer, "%s\n| %s |\n%s\n\n", rule, message, rule)
 }

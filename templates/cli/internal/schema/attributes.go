@@ -18,7 +18,6 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
-	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
 
 // Attribute types, as the API reports them in an attribute's `type`.
@@ -215,6 +214,32 @@ func (p Plan) All() []Change {
 
 // Empty reports whether the plan would do nothing.
 func (p Plan) Empty() bool { return len(p.All()) == 0 }
+
+// DataLoss lists the attribute deletions and recreations, which lose the data
+// stored in them. Index changes are never listed: an index holds no data.
+func (p Plan) DataLoss() []Change {
+	if p.isIndex {
+		return nil
+	}
+
+	loss := make([]Change, 0, len(p.Deleting)+len(p.Conflicts))
+	loss = append(loss, p.Deleting...)
+	loss = append(loss, p.Conflicts...)
+
+	return loss
+}
+
+// WithoutDataLoss drops the changes DataLoss lists.
+func (p Plan) WithoutDataLoss() Plan {
+	if p.isIndex {
+		return p
+	}
+
+	p.Deleting = nil
+	p.Conflicts = nil
+
+	return p
+}
 
 // BuildPlan classifies a remote snapshot against the config.
 //
@@ -504,63 +529,25 @@ func compareField(remote, local any, reason, key string, immutable bool) string 
 
 // Reconciler applies a plan against one table or collection.
 type Reconciler struct {
-	API      *client.Client
-	Out      io.Writer
-	Prompter prompt.Prompter
-	Poller   *Poller
-	// Force mirrors --force: it suppresses the warnings and the confirmation.
-	Force bool
-	// SkipConfirmation answers the confirmation without suppressing the
-	// warnings. `push all` sets it, having already approved the whole run.
-	SkipConfirmation bool
+	API    *client.Client
+	Out    io.Writer
+	Poller *Poller
 }
 
-// Reconcile diffs a remote snapshot against the config and applies everything
-// that is not a creation, returning what still has to be created.
+// Apply runs everything in an approved plan that is not a creation, returning
+// what still has to be created.
 //
 // The order is the contract -- renames, in-place updates, deletions, then a
 // wait -- so that a failure at any step cannot destroy data the next step
 // needed, and no create races a key still being deleted.
-func (r *Reconciler) Reconcile(
-	remote, local []*jsonx.Object,
-	container Container,
-	isIndex bool,
-) (Result, error) {
-	noun := "attribute"
-	if isIndex {
-		noun = "index"
-	}
-
-	plan := BuildPlan(remote, local, container, isIndex, func(format string, arguments ...any) {
-		output.Warn(r.Out, format, arguments...)
-	})
-
+func (r *Reconciler) Apply(plan Plan) (Result, error) {
 	if plan.Empty() {
 		return Result{}, nil
 	}
 
-	if r.Force {
-		output.Log(r.Out, "List of applied changes")
-	} else {
-		output.Log(r.Out, "There are pending changes in your collection deployment")
-	}
-	printChanges(r.Out, plan.All())
-
-	if !r.Force {
-		if len(plan.Deleting) > 0 && !isIndex {
-			printBanner(r.Out, "WARNING: Attribute deletion may cause loss of data")
-		}
-		if len(plan.Conflicts) > 0 && !isIndex {
-			printBanner(r.Out, "WARNING: Attribute recreation may cause loss of data")
-		}
-
-		confirmed, err := r.confirm()
-		if err != nil {
-			return Result{}, err
-		}
-		if !confirmed {
-			return Result{}, nil
-		}
+	noun := "attribute"
+	if plan.isIndex {
+		noun = "index"
 	}
 
 	if err := r.applyRenames(plan); err != nil {
@@ -570,7 +557,7 @@ func (r *Reconciler) Reconcile(
 		return Result{}, err
 	}
 
-	remaining, err := r.applyDeletions(plan, isIndex, noun)
+	remaining, err := r.applyDeletions(plan, plan.isIndex, noun)
 	if err != nil {
 		return Result{}, err
 	}
@@ -583,22 +570,6 @@ func (r *Reconciler) Reconcile(
 	}
 
 	return Result{Attributes: created, HasChanges: true, Renames: plan.Renames}, nil
-}
-
-// confirm asks whether to apply the changes.
-//
-// --force is checked by the caller as well: it both suppresses the warnings on
-// the way in and short-circuits the question here.
-func (r *Reconciler) confirm() (bool, error) {
-	if r.Force || r.SkipConfirmation {
-		return true, nil
-	}
-
-	return r.Prompter.Confirm(prompt.Question{
-		Message: "Would you like to apply these changes?",
-		Default: false,
-		Flag:    "--force",
-	})
 }
 
 // applyRenames issues the update calls for resolved previousKey hints and waits

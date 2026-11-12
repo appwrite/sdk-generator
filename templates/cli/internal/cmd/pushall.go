@@ -123,6 +123,7 @@ func newPushAllCommand() *cobra.Command {
 	}
 
 	negatableBool(command.Flags(), &logs, "logs", "Stream deployment build logs")
+	addPruneFlag(command)
 
 	return command
 }

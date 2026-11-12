@@ -72,6 +72,7 @@ func newPushTableCommand() *cobra.Command {
 		},
 	}
 	addAttemptsFlag(command)
+	addPruneFlag(command)
 
 	return command
 }
@@ -89,6 +90,7 @@ func newPushCollectionCommand() *cobra.Command {
 		},
 	}
 	addAttemptsFlag(command)
+	addPruneFlag(command)
 
 	return command
 }
@@ -104,52 +106,24 @@ func addAttemptsFlag(command *cobra.Command) {
 
 // runPushTable pushes the tables named in the config.
 func runPushTable(command *cobra.Command, resource pushDatabaseResource) error {
-	out := command.OutOrStdout()
-
 	context, err := newPushContext()
 	if err != nil {
 		return err
 	}
 
-	sync, err := schema.SyncTablesDBs(context.api, out, context.prompter, context.local)
+	return context.pushTables(command, resource)
+}
+
+// pushTables plans the whole push before writing anything: selection, the
+// database diff, the table and column diffs and what --prune would delete. One
+// approval covers the plan, and deletions run last.
+func (c *pushContext) pushTables(command *cobra.Command, resource pushDatabaseResource) error {
+	out := command.OutOrStdout()
+
+	prune, err := pruneRequested(command)
 	if err != nil {
 		return err
 	}
-	if sync.ResyncNeeded {
-		if err := context.resyncTables(command); err != nil {
-			return err
-		}
-	}
-
-	if err := context.deleteRemovedTables(command, resource); err != nil {
-		return err
-	}
-
-	tables, err := context.selectDatabaseResources(resource)
-	if err != nil {
-		return err
-	}
-	if len(tables) == 0 {
-		output.Log(out, "No %s found.", resource.Label)
-		output.Hint(out, "%s", resource.syncHint())
-
-		return nil
-	}
-
-	approved, err := context.approveChanges(command, approvalRequest{
-		Resources: tables,
-		Fetch: func(local *jsonx.Object) (*jsonx.Object, error) {
-			return context.getChild(resource, local)
-		},
-		Keys:     resource.ChildKeys,
-		SkipKeys: []string{"columns", "indexes"},
-		Plural:   resource.Label,
-	})
-	if err != nil || !approved {
-		return err
-	}
-
-	output.Log(out, "Pushing tables ...")
 
 	// Looked up rather than read directly: `push all` fans out to this
 	// function through its own command, which does not declare --attempts, and
@@ -163,17 +137,59 @@ func runPushTable(command *cobra.Command, resource pushDatabaseResource) error {
 		attempts = parsed
 	}
 
-	pushed, err := context.pushDatabaseChildren(command, resource, tables, attempts)
+	tables, err := c.selectDatabaseResources(resource)
 	if err != nil {
 		return err
 	}
 
-	// No Failed count: pushDatabaseChildren returns an error rather than
-	// tallying failures, so the "no %s were pushed" failure branch is not
-	// reachable from here.
-	pushTally{Pushed: pushed}.report(out, resource.Label)
+	databases, err := schema.PlanTablesDBs(c.api, out, c.local)
+	if err != nil {
+		return err
+	}
 
-	return nil
+	removals, err := c.planRemovedTables(command, resource, databases.Unmanaged)
+	if err != nil {
+		return err
+	}
+
+	children, losses, err := c.planDatabaseChildren(command, resource, tables, prune)
+	if err != nil {
+		return err
+	}
+
+	plan := schemaPlan{
+		databases: databases,
+		children:  children,
+		deletions: append(removals, losses...),
+	}
+
+	proceed, err := c.approveSchemaPlan(command, resource, &plan, prune)
+	if err != nil || !proceed {
+		return err
+	}
+
+	if err := schema.ApplyTablesDBs(c.api, out, plan.databases); err != nil {
+		return err
+	}
+
+	if len(tables) == 0 {
+		output.Log(out, "No %s found.", resource.Label)
+		output.Hint(out, "%s", resource.syncHint())
+	} else {
+		output.Log(out, "Pushing tables ...")
+
+		pushed, err := c.pushDatabaseChildren(command, resource, plan.children, attempts)
+		if err != nil {
+			return err
+		}
+
+		// No Failed count: pushDatabaseChildren returns an error rather than
+		// tallying failures, so the "no %s were pushed" failure branch is not
+		// reachable from here.
+		pushTally{Pushed: pushed}.report(out, resource.Label)
+	}
+
+	return c.applyDeletions(command, plan.deletions)
 }
 
 // runPushCollection pushes the collections named in the config.
@@ -184,6 +200,11 @@ func runPushCollection(command *cobra.Command, resource pushDatabaseResource) er
 		"'%s push tables' instead", app.ExecutableName, app.ExecutableName)
 
 	context, err := newPushContext()
+	if err != nil {
+		return err
+	}
+
+	prune, err := pruneRequested(command)
 	if err != nil {
 		return err
 	}
@@ -199,16 +220,15 @@ func runPushCollection(command *cobra.Command, resource pushDatabaseResource) er
 		return nil
 	}
 
-	approved, err := context.approveChanges(command, approvalRequest{
-		Resources: collections,
-		Fetch: func(local *jsonx.Object) (*jsonx.Object, error) {
-			return context.getChild(resource, local)
-		},
-		Keys:     resource.ChildKeys,
-		SkipKeys: []string{"attributes", "indexes"},
-		Plural:   resource.Label,
-	})
-	if err != nil || !approved {
+	children, losses, err := context.planDatabaseChildren(command, resource, collections, prune)
+	if err != nil {
+		return err
+	}
+
+	plan := schemaPlan{children: children, deletions: losses}
+
+	proceed, err := context.approveSchemaPlan(command, resource, &plan, prune)
+	if err != nil || !proceed {
 		return err
 	}
 
@@ -222,7 +242,7 @@ func runPushCollection(command *cobra.Command, resource pushDatabaseResource) er
 	// registered but the child pass builds its pool with the default. Passing
 	// it through would change behaviour on a live project, so it is left as it
 	// is until that is a deliberate change.
-	pushed, err := context.pushDatabaseChildren(command, resource, collections, 0)
+	pushed, err := context.pushDatabaseChildren(command, resource, plan.children, 0)
 	if err != nil {
 		return err
 	}
@@ -232,67 +252,96 @@ func runPushCollection(command *cobra.Command, resource pushDatabaseResource) er
 	return nil
 }
 
-// resyncTables drops config entries whose database no longer exists.
-//
-// A deleted database takes its tables with it, so the config's `tables` array
-// would otherwise keep pushing into a database that is gone.
-func (c *pushContext) resyncTables(command *cobra.Command) error {
-	out := command.OutOrStdout()
-	output.Log(out, "Resyncing configuration due to tables deletions ...")
-
-	remote, err := c.page(schema.TablesDBPath, "databases")
-	if err != nil {
-		return err
-	}
-
-	live := map[string]bool{}
-	for _, database := range remote {
-		live[database.GetString("$id")] = true
-	}
-
-	keep := func(resource, key string) {
-		entries := c.local.ResourceEntries(resource)
-		filtered := make([]*jsonx.Object, 0, len(entries))
-		for _, entry := range entries {
-			if live[entry.GetString(key)] {
-				filtered = append(filtered, entry)
-			}
-		}
-		c.local.ReplaceResource(resource, filtered)
-	}
-
-	keep("tables", "databaseId")
-	keep("tablesDB", "$id")
-
-	if err := c.local.Write(); err != nil {
-		return err
-	}
-
-	output.Success(out, "Configuration resynced successfully.")
-
-	return nil
+// childPlan is one table or collection's share of the plan.
+type childPlan struct {
+	local *jsonx.Object
+	// remote is nil when the table or collection does not exist yet.
+	remote  *jsonx.Object
+	fields  []change
+	members schema.Plan
+	indexes schema.Plan
 }
 
-// deleteRemovedTables offers to delete tables that exist remotely but not in
-// the config.
-//
-// A failure to delete one table is reported and the rest continue.
-func (c *pushContext) deleteRemovedTables(
+// planDatabaseChildren reads each selected table or collection and diffs it
+// against the config. Without prune, column deletions and recreations are
+// dropped from the plan and returned as deletions to report.
+func (c *pushContext) planDatabaseChildren(
 	command *cobra.Command,
 	resource pushDatabaseResource,
-) error {
+	entries []*jsonx.Object,
+	prune bool,
+) ([]*childPlan, []deletion, error) {
 	out := command.OutOrStdout()
-	output.Log(out, "Checking for deleted tables ...")
+	warn := func(format string, arguments ...any) { output.Warn(out, format, arguments...) }
+
+	plans := make([]*childPlan, 0, len(entries))
+	var losses []deletion
+
+	for _, entry := range entries {
+		current := &childPlan{local: entry}
+		plans = append(plans, current)
+
+		remote, err := c.getChild(resource, entry)
+		if isNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		current.remote = remote
+		current.fields = fieldChanges(entry, remote, resource.ChildKeys,
+			[]string{resource.MembersKey, "indexes"})
+
+		container := schema.Container{
+			DatabaseID: entry.GetString("databaseId"),
+			ID:         entry.GetString("$id"),
+			Name:       entry.GetString("name"),
+		}
+
+		members := schema.BuildPlan(remote.GetObjects(resource.MembersKey),
+			entry.GetObjects(resource.MembersKey), container, false, warn)
+		for _, loss := range members.DataLoss() {
+			losses = append(losses, deletion{
+				Resource: strings.TrimSuffix(resource.MembersKey, "s"),
+				ID:       loss.Attribute.GetString("key"),
+				Name:     fmt.Sprintf("%s ( %s - %s )", container.Name, container.DatabaseID, container.ID),
+				Action:   loss.Action,
+				Reason:   loss.Reason,
+				Rows:     unknown,
+				Tables:   unknown,
+			})
+		}
+		if !prune {
+			members = members.WithoutDataLoss()
+		}
+		current.members = members
+
+		// The server rewrites an index's member references when a column is
+		// renamed. The remote snapshot was read BEFORE the rename, so the
+		// same rewrite is mirrored onto it -- otherwise the index pass sees
+		// the old name, calls it a difference, and recreates a live index.
+		applyRenamesToIndexes(remote, resource.MembersKey, members.Renames)
+
+		current.indexes = schema.BuildPlan(remote.GetObjects("indexes"),
+			entry.GetObjects("indexes"), container, true, warn)
+	}
+
+	return plans, losses, nil
+}
+
+// planRemovedTables lists tables that exist remotely, in a database the config
+// lists, but not in the config, followed by the unmanaged databases.
+func (c *pushContext) planRemovedTables(
+	command *cobra.Command,
+	resource pushDatabaseResource,
+	unmanaged []*jsonx.Object,
+) ([]deletion, error) {
+	out := command.OutOrStdout()
+	output.Log(out, "Checking for tables not in the config ...")
 
 	localTables := c.local.ResourceEntries(resource.ConfigKey)
 
-	type removal struct {
-		databaseID   string
-		databaseName string
-		id           string
-		name         string
-	}
-	var removals []removal
+	var removals []deletion
 
 	for _, database := range c.local.ResourceEntries(resource.DatabaseConfigKey) {
 		databaseID := database.GetString("$id")
@@ -300,8 +349,8 @@ func (c *pushContext) deleteRemovedTables(
 		remoteTables, err := c.page(
 			resource.Path+"/"+url.PathEscape(databaseID)+resource.ChildPath, "tables")
 		if err != nil {
-			// Swallowed deliberately, so a database that has just been deleted
-			// elsewhere does not abort the push.
+			// Swallowed deliberately: a database the config lists may not
+			// have been created yet.
 			continue
 		}
 
@@ -320,54 +369,35 @@ func (c *pushContext) deleteRemovedTables(
 				continue
 			}
 
-			removals = append(removals, removal{
-				databaseID: databaseID, databaseName: database.GetString("name"),
-				id: id, name: remote.GetString("name"),
+			removals = append(removals, deletion{
+				Resource:   "table",
+				DatabaseID: databaseID,
+				ID:         id,
+				Name:       fmt.Sprintf("%s ( %s - %s )", remote.GetString("name"), databaseID, id),
+				Path: resource.Path + "/" + url.PathEscape(databaseID) +
+					resource.ChildPath + "/" + url.PathEscape(id),
+				Action: "deleting",
+				Tables: unknown,
+				Rows:   unknown,
 			})
 		}
 	}
 
-	if len(removals) == 0 {
-		return nil
-	}
-
-	output.Log(out, "Found tables that exist remotely but not locally:")
-	rows := make([]change, 0, len(removals))
-	for _, entry := range removals {
-		rows = append(rows, change{
-			ID: entry.id, Key: "Table", Remote: entry.name, Local: "(deleted locally)",
+	for _, database := range unmanaged {
+		id := database.GetString("$id")
+		removals = append(removals, deletion{
+			Resource:   "database",
+			DatabaseID: id,
+			ID:         id,
+			Name:       database.GetString("name"),
+			Path:       schema.TablesDBPath + "/" + url.PathEscape(id),
+			Action:     "deleting",
+			Tables:     unknown,
+			Rows:       unknown,
 		})
 	}
-	printChanges(command, rows)
 
-	confirmed, err := c.prompter.Confirm(prompt.Question{
-		Message: "Would you like to apply these changes?",
-		Default: true,
-		Flag:    "--force",
-	})
-	if err != nil {
-		return err
-	}
-	if !confirmed {
-		return nil
-	}
-
-	for _, entry := range removals {
-		output.Log(out, "Deleting table %s ( %s ) from database %s ...",
-			entry.name, entry.id, entry.databaseName)
-
-		path := resource.Path + "/" + url.PathEscape(entry.databaseID) +
-			resource.ChildPath + "/" + url.PathEscape(entry.id)
-		if err := c.api.Call("DELETE", path, nil, nil); err != nil {
-			output.Failure(out, "Failed to delete table %s ( %s ): %s",
-				entry.name, entry.id, err)
-
-			continue
-		}
-		output.Success(out, "Deleted %s ( %s )", entry.name, entry.id)
-	}
-
-	return nil
+	return removals, nil
 }
 
 // pushCollectionDatabases creates or renames the databases the collections need.
@@ -446,73 +476,55 @@ func (c *pushContext) localDatabase(
 }
 
 // pushDatabaseChildren creates or updates the tables and collections, then
-// reconciles their schema. A newly created collection carries its attributes and
-// indexes in the create body and is complete; a new table does not, and has its
-// columns pushed afterwards.
+// applies their approved schema plans. A newly created collection carries its
+// attributes and indexes in the create body and is complete; a new table does
+// not, and has its columns pushed afterwards.
 func (c *pushContext) pushDatabaseChildren(
 	command *cobra.Command,
 	resource pushDatabaseResource,
-	entries []*jsonx.Object,
+	plans []*childPlan,
 	attempts int,
 ) (int, error) {
 	out := command.OutOrStdout()
 
 	poller := schema.NewPoller(c.api, out, attempts)
 	reconciler := &schema.Reconciler{
-		API:      c.api,
-		Out:      out,
-		Prompter: c.prompter,
-		Poller:   poller,
-		Force:    app.Flags().Force,
+		API:    c.api,
+		Out:    out,
+		Poller: poller,
 	}
 
-	// state carries what the create-or-update pass learned into the schema
-	// pass. A struct rather than three fields hung off the config object, which
-	// keeps the config immutable.
-	type state struct {
-		local        *jsonx.Object
-		remote       *jsonx.Object
-		existed      bool
-		newlyCreated bool
-	}
-
-	states := make([]*state, 0, len(entries))
+	newlyCreated := make(map[*childPlan]bool, len(plans))
 	changed := map[string]bool{}
 
-	for _, entry := range entries {
-		current := &state{local: entry}
-		states = append(states, current)
+	for _, current := range plans {
+		entry := current.local
 
-		remote, err := c.getChild(resource, entry)
-		switch {
-		case err == nil:
-			current.remote = remote
-			current.existed = true
-
-			updated, err := c.updateChild(command, resource, entry, remote)
+		if current.remote != nil {
+			updated, err := c.updateChild(command, resource, entry, current.remote)
 			if err != nil {
 				return 0, err
 			}
 			if updated {
-				changed[entry.GetString("$id")] = true
+				changed[identityOf(entry)] = true
 			}
-		case isNotFound(err):
-			output.Log(out, "%s %s does not exist in the project. Creating ... ",
-				strings.ToUpper(resource.Singular[:1])+resource.Singular[1:],
-				entry.GetString("name"))
 
-			carriedSchema, err := c.createChild(command, resource, entry)
-			if err != nil {
-				return 0, err
-			}
-			// A collection created with its attributes and indexes needs no
-			// schema pass; a table does, because createTable takes neither.
-			current.newlyCreated = carriedSchema
-			if !carriedSchema {
-				changed[entry.GetString("$id")] = true
-			}
-		default:
+			continue
+		}
+
+		output.Log(out, "%s %s does not exist in the project. Creating ... ",
+			strings.ToUpper(resource.Singular[:1])+resource.Singular[1:],
+			entry.GetString("name"))
+
+		carriedSchema, err := c.createChild(command, resource, entry)
+		if err != nil {
 			return 0, err
+		}
+		// A collection created with its attributes and indexes needs no
+		// schema pass; a table does, because createTable takes neither.
+		newlyCreated[current] = carriedSchema
+		if !carriedSchema {
+			changed[identityOf(entry)] = true
 		}
 	}
 
@@ -520,7 +532,7 @@ func (c *pushContext) pushDatabaseChildren(
 
 	// Serial from here. Two schema changes against the same collection race,
 	// and the poll after each phase is what makes the next one legal.
-	for _, current := range states {
+	for _, current := range plans {
 		entry := current.local
 		id := entry.GetString("$id")
 		container := schema.Container{
@@ -529,7 +541,7 @@ func (c *pushContext) pushDatabaseChildren(
 			Name:       entry.GetString("name"),
 		}
 
-		if current.newlyCreated {
+		if newlyCreated[current] {
 			pushed++
 			output.Success(out, "Successfully pushed %s ( %s )", entry.GetString("name"), id)
 
@@ -538,33 +550,24 @@ func (c *pushContext) pushDatabaseChildren(
 
 		members := entry.GetObjects(resource.MembersKey)
 		indexes := entry.GetObjects("indexes")
-		hadChanges := false
 
-		if current.existed {
-			membersResult, err := reconciler.Reconcile(
-				current.remote.GetObjects(resource.MembersKey), members, container, false)
+		if current.remote != nil {
+			membersResult, err := reconciler.Apply(current.members)
 			if err != nil {
 				return pushed, err
 			}
 
-			// The server rewrites an index's member references when a column is
-			// renamed. The remote snapshot was read BEFORE the rename, so the
-			// same rewrite is mirrored onto it -- otherwise the index pass sees
-			// the old name, calls it a difference, and recreates a live index.
-			applyRenamesToIndexes(current.remote, resource.MembersKey, membersResult.Renames)
-
-			indexesResult, err := reconciler.Reconcile(
-				current.remote.GetObjects("indexes"), indexes, container, true)
+			indexesResult, err := reconciler.Apply(current.indexes)
 			if err != nil {
 				return pushed, err
 			}
 
 			members = membersResult.Attributes
 			indexes = indexesResult.Attributes
-			hadChanges = membersResult.HasChanges || indexesResult.HasChanges
+			hadChanges := membersResult.HasChanges || indexesResult.HasChanges
 
 			if !hadChanges && len(members) == 0 && len(indexes) == 0 {
-				if !changed[id] {
+				if !changed[identityOf(entry)] {
 					output.Log(out, "No changes detected for %s %s. Skipping.",
 						resource.Singular, entry.GetString("name"))
 				}
@@ -587,7 +590,7 @@ func (c *pushContext) pushDatabaseChildren(
 			return pushed, err
 		}
 
-		changed[id] = true
+		changed[identityOf(entry)] = true
 		pushed++
 		output.Success(out, "Successfully pushed %s ( %s )", entry.GetString("name"), id)
 	}
@@ -752,12 +755,8 @@ func (c *pushContext) selectDatabaseResources(
 	resource pushDatabaseResource,
 ) ([]*jsonx.Object, error) {
 	entries := c.local.ResourceEntries(resource.ConfigKey)
-	if app.Flags().All {
+	if app.Flags().All || len(entries) == 0 {
 		return entries, nil
-	}
-
-	identity := func(entry *jsonx.Object) string {
-		return entry.GetString("databaseId") + "|" + entry.GetString("$id")
 	}
 
 	options := make([]prompt.Option, 0, len(entries))
@@ -765,7 +764,7 @@ func (c *pushContext) selectDatabaseResources(
 		options = append(options, prompt.Option{
 			Label: fmt.Sprintf("%s (%s - %s)", entry.GetString("name"),
 				entry.GetString("databaseId"), entry.GetString("$id")),
-			Value: identity(entry),
+			Value: identityOf(entry),
 		})
 	}
 
@@ -786,12 +785,17 @@ func (c *pushContext) selectDatabaseResources(
 
 	filtered := make([]*jsonx.Object, 0, len(chosen))
 	for _, entry := range entries {
-		if selected[identity(entry)] {
+		if selected[identityOf(entry)] {
 			filtered = append(filtered, entry)
 		}
 	}
 
 	return filtered, nil
+}
+
+// identityOf keys a table or collection by its database and its own id.
+func identityOf(entry *jsonx.Object) string {
+	return entry.GetString("databaseId") + "|" + entry.GetString("$id")
 }
 
 // applyRenamesToIndexes rewrites member references on a stale remote snapshot.
