@@ -1,0 +1,28 @@
+import 'dart:io';
+
+import 'package:path_provider/path_provider.dart';
+
+// Next to the client's cookie store, so a reinstall or "clear data" removes both.
+Future<File> _markerFile() async {
+  final dir = await getApplicationDocumentsDirectory();
+  return File('${dir.path}/{{ spec.info.title | caseLower }}_tracking_install');
+}
+
+/// The app version saved by the last start, or null when this install has no marker yet.
+Future<String?> readInstallMarker() async {
+  final file = await _markerFile();
+  return await file.exists() ? file.readAsString() : null;
+}
+
+/// Whether the client has saved cookies before, i.e. an install that ran an SDK release
+/// without the marker.
+Future<bool> sdkRanBefore() async {
+  final dir = await getApplicationDocumentsDirectory();
+  final cookies = Directory('${dir.path}/cookies');
+  return await cookies.exists() &&
+      await cookies.list(recursive: true).any((entry) => entry is File);
+}
+
+Future<void> writeInstallMarker(String version) async {
+  await (await _markerFile()).writeAsString(version, flush: true);
+}

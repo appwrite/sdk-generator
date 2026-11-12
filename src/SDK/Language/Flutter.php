@@ -345,6 +345,18 @@ class Flutter extends Dart
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/lib/src/tracking_install_stub.dart',
+                'requires'      => 'analytics',
+                'template'      => 'flutter/lib/src/tracking_install_stub.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/lib/src/tracking_install_io.dart',
+                'requires'      => 'analytics',
+                'template'      => 'flutter/lib/src/tracking_install_io.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/lib/src/cookie_manager.dart',
                 'template'      => 'flutter/lib/src/cookie_manager.dart.twig',
             ],
@@ -477,6 +489,12 @@ class Flutter extends Dart
                 'scope'         => 'default',
                 'destination'   => '/test/src/mqtt_notification_test.dart',
                 'template'      => 'flutter/test/src/mqtt_notification_test.dart.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/test/src/tracking_test.dart',
+                'requires'      => 'analytics',
+                'template'      => 'flutter/test/src/tracking_test.dart.twig',
             ],
             [
                 'scope'         => 'default',

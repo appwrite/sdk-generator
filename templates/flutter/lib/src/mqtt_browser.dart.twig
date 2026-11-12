@@ -14,6 +14,9 @@ import 'exception.dart';
 import 'mqtt.dart';
 import 'mqtt_message.dart';
 import 'mqtt_notification.dart';
+{% if services['analytics'] is defined %}
+import 'tracking.dart';
+{% endif %}
 
 Push createPush(Client client) => PushWeb(client);
 
@@ -476,6 +479,16 @@ class PushWeb implements Push {
     final subscription = _opened.stream.listen(callback);
     return () => unawaited(subscription.cancel());
   }
+{% if services['analytics'] is defined %}
+
+  Tracking? _tracking;
+
+  @override
+  Push setTracking(Tracking tracking) {
+    _tracking = tracking;
+    return this;
+  }
+{% endif %}
 
   @override
   void close() {
@@ -692,13 +705,23 @@ class PushWeb implements Push {
               title,
               web.NotificationOptions(body: content.bodyFor(message) ?? ''),
             ).onclick = ((web.Event _) {
-              _opened.add(
-                PushNotificationOpened.fromPayload(topic, message.data),
+              final opened = PushNotificationOpened.fromPayload(
+                topic,
+                message.data,
               );
+{% if services['analytics'] is defined %}
+              _tracking?.pushOpened(messageId: opened.messageId);
+{% endif %}
+              _opened.add(opened);
             }).toJS;
           }
         }
       }
+{% if services['analytics'] is defined %}
+      if (shownTitles.isNotEmpty) {
+        _tracking?.pushReceived(messageId: content.messageId);
+      }
+{% endif %}
     }
   }
 

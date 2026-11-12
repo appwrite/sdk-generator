@@ -1,0 +1,138 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
+import 'package:{{ language.params.packageName }}/src/client_io.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  final messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+
+  late HttpServer server;
+  late Directory documents;
+  late Analytics analytics;
+  late List<Map<String, dynamic>> events;
+  final trackers = <Tracking>[];
+
+  void appVersion(String version) => PackageInfo.setMockInitialValues(
+    appName: 'app',
+    packageName: 'io.example.app',
+    version: version,
+    buildNumber: '1',
+    buildSignature: '',
+  );
+
+  File marker() => File('${documents.path}/{{ spec.info.title | caseLower }}_tracking_install');
+
+  // start() does not wait for the install check, so wait for its marker, then its event.
+  Future<void> start(String version) async {
+    appVersion(version);
+    final tracking = Tracking(analytics, 'property');
+    trackers.add(tracking);
+    tracking.start();
+    while (!marker().existsSync() || marker().readAsStringSync() != version) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+  }
+
+  setUp(() async {
+    HttpOverrides.global = null;
+    documents = await Directory.systemTemp.createTemp();
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async => documents.path,
+    );
+
+    events = [];
+    server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      events.add(
+        jsonDecode(await utf8.decoder.bind(request).join())
+            as Map<String, dynamic>,
+      );
+      request.response
+        ..headers.contentType = ContentType.json
+        ..write('{}');
+      await request.response.close();
+    });
+
+    final client = ClientIO(endPoint: 'http://127.0.0.1:${server.port}/v1');
+    client.config['project'] = 'project';
+    analytics = Analytics(client);
+  });
+
+  tearDown(() async {
+    for (final tracking in trackers) {
+      tracking.disableAutoLifecycleEvents();
+    }
+    trackers.clear();
+    messenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      null,
+    );
+    await server.close(force: true);
+    await documents.delete(recursive: true);
+  });
+
+  test('first_open is sent once per install', () async {
+    await start('1.0.0');
+    await start('1.0.0');
+
+    expect(events, hasLength(1));
+    expect(events.single['name'], 'first_open');
+    expect(events.single['interactive'], false);
+  });
+
+  test('an install that ran the SDK before gets no first_open', () async {
+    final cookies = Directory('${documents.path}/cookies/ie0_ps1');
+    await cookies.create(recursive: true);
+    await File('${cookies.path}/.index').writeAsString('{}');
+
+    await start('1.0.0');
+
+    expect(events, isEmpty);
+    expect(marker().readAsStringSync(), '1.0.0');
+  });
+
+  test('app_updated is sent on the first start of a new version', () async {
+    await marker().writeAsString('1.0.0');
+
+    await start('1.1.0');
+    await start('1.1.0');
+
+    expect(events, hasLength(1));
+    expect(events.single['name'], 'app_updated');
+    expect(events.single['props'], [
+      'previousVersion',
+      '1.0.0',
+      'version',
+      '1.1.0',
+    ]);
+    expect(events.single['interactive'], false);
+  });
+
+  test('push helpers send messageId and campaign', () async {
+    final tracking = Tracking(analytics, 'property');
+    tracking.pushReceived(messageId: 'message');
+    tracking.pushOpened(messageId: 'message', campaign: 'sale');
+    while (events.length < 2) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+
+    final byName = {for (final event in events) event['name']: event};
+    expect(byName['push_received']!['props'], ['messageId', 'message']);
+    expect(byName['push_received']!['interactive'], false);
+    expect(byName['push_opened']!['props'], [
+      'messageId',
+      'message',
+      'campaign',
+      'sale',
+    ]);
+    expect(byName['push_opened']!['interactive'], true);
+  });
+}

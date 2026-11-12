@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../{{ language.params.packageName }}.dart' show Analytics;
+import 'tracking_install_stub.dart'
+    if (dart.library.io) 'tracking_install_io.dart';
 
-/// Auto-tracking helpers for the generated [Analytics] service: app-lifecycle
-/// events (backgrounded / foregrounded) and manual `screenView` / `event`
+/// Auto-tracking helpers for the generated [Analytics] service: install, update
+/// and app-lifecycle events, push helpers, and manual `screenView` / `event`
 /// calls, all sent through `Analytics.createEvent`.
 ///
 /// Auto-emitted event names follow `snake_case` + lowercase (`screen_view`,
@@ -70,10 +73,44 @@ class Tracking with WidgetsBindingObserver {
               : 'app://${defaultTargetPlatform.name.toLowerCase()}');
 
   /// Start the default auto-tracking set: app-lifecycle events, as
-  /// [enableAutoLifecycleEvents]. Route tracking is opt-in via
-  /// [TrackingObserver].
+  /// [enableAutoLifecycleEvents], plus `first_open` and `app_updated`. Route
+  /// tracking is opt-in via [TrackingObserver].
+  ///
+  /// `first_open` is sent once per install, `app_updated` (with
+  /// `previousVersion` and `version`) on the first start after the app's version
+  /// changes. Both rely on a marker file in the app documents directory, so a
+  /// reinstall or "clear data" counts as a new install. An existing install
+  /// upgrading to this SDK is not counted when the client has saved cookies;
+  /// without them its first start after the upgrade counts once. Neither event
+  /// is sent on the web.
   void start() {
     enableAutoLifecycleEvents();
+    unawaited(_trackInstall());
+  }
+
+  Future<void> _trackInstall() async {
+    try {
+      // Before anything else: the app's first request can save cookies meanwhile.
+      final ranBefore = await sdkRanBefore();
+      final saved = await readInstallMarker();
+      final version = (await PackageInfo.fromPlatform()).version;
+      if (saved == version) {
+        return;
+      }
+      // Marked before sending, so a crash or a second start never sends it twice.
+      await writeInstallMarker(version);
+      if (saved != null) {
+        event(
+          'app_updated',
+          props: {'previousVersion': saved, 'version': version},
+          interactive: false,
+        );
+      } else if (!ranBefore) {
+        event('first_open', interactive: false);
+      }
+    } catch (_) {
+      // Analytics never surface errors to the host app.
+    }
   }
 
   /// Start emitting `app_backgrounded` and `app_foregrounded` events when the
@@ -171,6 +208,33 @@ class Tracking with WidgetsBindingObserver {
     }
     event('screen_view', url: name, props: merged);
   }
+
+  /// Send `push_received` for a push notification the device got. Call it from
+  /// your push handler; best effort, since on iOS, and on Android while the app
+  /// is killed, the app's code often does not run when a notification arrives.
+  /// [messageId] is the {{ spec.info.title | caseUcfirst }} Messaging message id.
+  void pushReceived({String? messageId, String? campaign}) {
+    event(
+      'push_received',
+      props: _pushProps(messageId, campaign),
+      interactive: false,
+    );
+  }
+
+  /// Send `push_opened` when the user taps a push notification. [messageId] is
+  /// the {{ spec.info.title | caseUcfirst }} Messaging message id.
+  void pushOpened({String? messageId, String? campaign}) {
+    event(
+      'push_opened',
+      props: _pushProps(messageId, campaign),
+      interactive: true,
+    );
+  }
+
+  Map<String, dynamic> _pushProps(String? messageId, String? campaign) => {
+    'messageId': ?messageId,
+    'campaign': ?campaign,
+  };
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {

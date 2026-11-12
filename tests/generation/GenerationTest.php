@@ -834,10 +834,11 @@ final class GenerationTest extends TestCase
             'flutter' => ['lib/packageName.dart', 'src/tracking'],
             'web' => ['src/index.ts', 'analytics-tracking'],
         ];
-        // The SDK's own telemetry must not end a bounce: two auto events per tracker.
+        // The SDK's own telemetry must not end a bounce: lifecycle on both, plus install,
+        // update and push_received on Flutter.
         $nonInteractive = [
-            'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,'],
-            'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,'],
+            'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,', 5],
+            'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,', 2],
         ];
 
         foreach ($companions as $name => $paths) {
@@ -856,9 +857,9 @@ final class GenerationTest extends TestCase
             }
             $this->assertStringContainsString($token, $with[$entry], "{$name} {$entry} does not export the companion");
 
-            [$tracker, $forward] = $nonInteractive[$name];
+            [$tracker, $forward, $auto] = $nonInteractive[$name];
             $this->assertStringContainsString($forward, $with[$tracker], "{$name} {$tracker} does not forward interactive");
-            $this->assertSame(2, \substr_count($with[$tracker], 'interactive: false'), "{$name} {$tracker} auto events are not non-interactive");
+            $this->assertSame($auto, \substr_count($with[$tracker], 'interactive: false'), "{$name} {$tracker} auto events are not non-interactive");
         }
     }
 
