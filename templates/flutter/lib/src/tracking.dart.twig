@@ -111,10 +111,22 @@ class Tracking with WidgetsBindingObserver {
 
   Future<void> _trackInstall() async {
     try {
-      final pending = await readPendingInstallEvent();
+      var pending = await readPendingInstallEvent();
       if (pending != null) {
+        final version = (await PackageInfo.fromPlatform()).version;
+        final install = jsonDecode(pending) as Map<String, dynamic>;
+        final props = install['props'] as Map<String, dynamic>?;
+        // An unsent update followed by another one is reported as a single
+        // update from the old version to this one.
+        if (install['name'] == 'app_updated' &&
+            props != null &&
+            props['version'] != version) {
+          props['version'] = version;
+          pending = jsonEncode(install);
+          await writePendingInstallEvent(pending);
+        }
         // A crash between the two writes below leaves the marker stale.
-        await writeInstallMarker((await PackageInfo.fromPlatform()).version);
+        await writeInstallMarker(version);
         await _sendPending(pending);
         return;
       }

@@ -144,6 +144,28 @@ void main() {
     expect(pending().existsSync(), isFalse);
   });
 
+  test('a pending app_updated is carried to the current version', () async {
+    await marker().writeAsString('1.0.0');
+    status = 500;
+    await start('1.1.0');
+    events.clear();
+
+    status = 200;
+    await start('1.2.0');
+    await start('1.2.0');
+
+    expect(events, hasLength(1));
+    expect(events.single['name'], 'app_updated');
+    expect(events.single['props'], [
+      'previousVersion',
+      '1.0.0',
+      'version',
+      '1.2.0',
+    ]);
+    expect(marker().readAsStringSync(), '1.2.0');
+    expect(pending().existsSync(), isFalse);
+  });
+
   test('a pending first_open survives cookies saved meanwhile', () async {
     status = 500;
     await start('1.0.0');
