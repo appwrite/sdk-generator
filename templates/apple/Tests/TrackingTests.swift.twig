@@ -1,0 +1,79 @@
+import Foundation
+import Testing
+
+@testable import {{ spec.info.title | caseUcfirst }}
+
+@Suite(.serialized)
+final class TrackingTests {
+    private static let host = "tracking-tests.invalid"
+    private let analytics = Analytics(Client().setEndpoint("http://\(TrackingTests.host)/v1"))
+    private let version = OSPackageInfo.get().version
+
+    init() {
+        Self.reset()
+    }
+
+    deinit {
+        Self.reset()
+    }
+
+    private static func reset() {
+        UserDefaults.standard.removeObject(forKey: Tracking.versionKey)
+        UserDefaults.standard.removeObject(forKey: host)
+    }
+
+    private func start() -> RecordingTracking {
+        let tracking = RecordingTracking(analytics, propertyId: "property")
+        tracking.start()
+        return tracking
+    }
+
+    @Test func firstOpenIsSentOncePerInstall() {
+        let first = start()
+        #expect(first.events.map(\.name) == ["first_open"])
+        #expect(first.events.first?.interactive == false)
+        #expect(start().events.isEmpty)
+    }
+
+    @Test func anInstallThatRanTheSdkBeforeGetsNoFirstOpen() {
+        UserDefaults.standard.set(["a_session=1"], forKey: Self.host)
+        #expect(start().events.isEmpty)
+        #expect(UserDefaults.standard.string(forKey: Tracking.versionKey) == version)
+    }
+
+    @Test func appUpdatedIsSentOnTheFirstStartOfANewVersion() {
+        UserDefaults.standard.set("0.0.0-previous", forKey: Tracking.versionKey)
+        let updated = start()
+        #expect(updated.events.map(\.name) == ["app_updated"])
+        #expect(updated.events.first?.props?["previousVersion"] as? String == "0.0.0-previous")
+        #expect(updated.events.first?.props?["version"] as? String == version)
+        #expect(updated.events.first?.interactive == false)
+        #expect(start().events.isEmpty)
+    }
+
+    @Test func pushEventsCarryOnlyThePropsThatAreSet() {
+        let tracking = RecordingTracking(analytics, propertyId: "property")
+        tracking.pushReceived(messageId: "m1")
+        tracking.pushOpened(messageId: "m1", campaign: "sale")
+        tracking.pushOpened()
+        #expect(tracking.events.map(\.name) == ["push_received", "push_opened", "push_opened"])
+        #expect(tracking.events.map(\.interactive) == [false, true, true])
+        #expect(tracking.events[0].props?.keys.sorted() == ["messageId"])
+        #expect(tracking.events[1].props?["campaign"] as? String == "sale")
+        #expect(tracking.events[2].props == nil)
+    }
+
+    @Test func eachReceiptIsTrackedOnce() {
+        let key = "receipt-\(UUID().uuidString)"
+        #expect(Push.firstReceipt(key))
+        #expect(!Push.firstReceipt(key))
+    }
+}
+
+private final class RecordingTracking: Tracking {
+    var events: [(name: String, props: [String: Any]?, interactive: Bool?)] = []
+
+    override func event(_ name: String, url: String? = nil, props: [String: Any]? = nil, engagementTime: Int? = nil, interactive: Bool? = nil) {
+        events.append((name, props, interactive))
+    }
+}

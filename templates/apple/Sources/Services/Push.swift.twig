@@ -120,7 +120,10 @@ public struct PushNotificationOpened {
             {%~ endif %}
             lock.unlock()
             {%~ if services['analytics'] is defined %}
-            tracking?.pushOpened(messageId: opened.messageId)
+            // Once per tap however many listeners get it; a held tap counts when it is taken.
+            if !callbacks.isEmpty {
+                tracking?.pushOpened(messageId: opened.messageId)
+            }
             {%~ endif %}
             callbacks.forEach { $0(opened) }
             return true
@@ -136,9 +139,17 @@ public struct PushNotificationOpened {
         {%~ endif %}
         func take() -> PushNotificationOpened? {
             lock.lock()
-            defer { lock.unlock() }
             let opened = pending
             pending = nil
+            {%~ if services['analytics'] is defined %}
+            let tracking = self.tracking
+            {%~ endif %}
+            lock.unlock()
+            {%~ if services['analytics'] is defined %}
+            if let opened {
+                tracking?.pushOpened(messageId: opened.messageId)
+            }
+            {%~ endif %}
             return opened
         }
 
@@ -302,6 +313,9 @@ open class Push: Service {
     private var onErrorCb: ((Swift.Error) -> Void)?
     {%~ if services['analytics'] is defined %}
     private var tracking: Tracking?
+
+    private static let receivedLock = NSLock()
+    private static var received: [String: Date] = [:]
     {%~ endif %}
 
     // Set by close() so the close listener does not try to reconnect a deliberate teardown.
@@ -383,9 +397,9 @@ open class Push: Service {
     }
 
     {%~ if services['analytics'] is defined %}
-    /// Send `push_received` and `push_opened` through `tracking` for the notifications this `Push`
-    /// shows, with their `messageId`. Taps go to the `Tracking` set last; set it at launch so the tap
-    /// that opened the app is counted.
+    /// Send `push_received` for each message a background subscription gets with a notification to
+    /// show, and `push_opened` for each tap reported by `getInitialNotification()` or
+    /// `onNotificationOpened(_:)`, both with the message's `messageId`. Taps go to the `Tracking` set last.
     @discardableResult
     public func setTracking(_ tracking: Tracking) -> Self {
         sync.sync { self.tracking = tracking }
@@ -393,6 +407,16 @@ open class Push: Service {
             PushNotificationTaps.shared.track(tracking)
         #endif
         return self
+    }
+
+    // Recently tracked receipts: a message without an id can reach the app once per overlapping
+    // subscription, and once per `Push`, so each counts once.
+    static func firstReceipt(_ key: String) -> Bool {
+        receivedLock.lock()
+        defer { receivedLock.unlock() }
+        let now = Date()
+        received = received.filter { now.timeIntervalSince($0.value) < 10 }
+        return received.updateValue(now, forKey: key) == nil
     }
 
     {%~ endif %}
@@ -1204,8 +1228,11 @@ open class Push: Service {
             }
         }
         {%~ if services['analytics'] is defined %}
-        if (shown || notification.visible) && matched.contains(where: { $0.background }) {
-            sync.sync { tracking }?.pushReceived(messageId: RemoteMessage.id(payload: pushMessage.payload))
+        let messageId = RemoteMessage.id(payload: pushMessage.payload)
+        if (shown || notification.visible) && matched.contains(where: { $0.background }),
+            Push.firstReceipt(messageId ?? "\(pushMessage.topic)\n\(pushMessage.data)")
+        {
+            sync.sync { tracking }?.pushReceived(messageId: messageId)
         }
         {%~ endif %}
     }

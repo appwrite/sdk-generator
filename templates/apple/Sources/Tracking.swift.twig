@@ -27,7 +27,7 @@ import Foundation
 ///     tracking.start()
 ///     tracking.screenView("Home")
 open class Tracking {
-    private static let versionKey = "{{ spec.info.title | caseLower }}.tracking.version"
+    static let versionKey = "{{ spec.info.title | caseLower }}.tracking.version"
 
     private let analytics: Analytics
 
@@ -69,16 +69,19 @@ open class Tracking {
     /// Start the default auto-tracking set: `first_open` / `app_updated`, then app-lifecycle
     /// events, as `enableAutoLifecycleEvents()`.
     public func start() {
+        // Before anything else: the app's first request can save cookies meanwhile.
+        let ranBefore = hasSessionCookies()
         let defaults = UserDefaults.standard
         let version = OSPackageInfo.get().version
         let previous = defaults.string(forKey: Self.versionKey)
-        defaults.set(version, forKey: Self.versionKey)
-        if let previous {
-            if previous != version {
+        if previous != version {
+            // Marked before sending, so a second start never sends it twice.
+            defaults.set(version, forKey: Self.versionKey)
+            if let previous {
                 event("app_updated", props: ["previousVersion": previous, "version": version], interactive: false)
+            } else if !ranBefore {
+                event("first_open", interactive: false)
             }
-        } else if !hasSessionCookies() {
-            event("first_open", interactive: false)
         }
         enableAutoLifecycleEvents()
     }
@@ -122,7 +125,7 @@ open class Tracking {
 
     /// Emit an ad-hoc analytics event. `url` may be absolute or a path resolved against
     /// `Tracking.url`. Request failures are swallowed so analytics never surface errors to the app.
-    public func event(_ name: String, url: String? = nil, props: [String: Any]? = nil, engagementTime: Int? = nil, interactive: Bool? = nil) {
+    open func event(_ name: String, url: String? = nil, props: [String: Any]? = nil, engagementTime: Int? = nil, interactive: Bool? = nil) {
         guard let resolved = url.map({ URL(string: $0, relativeTo: URL(string: self.url))?.absoluteString }) ?? self.url else {
             return
         }
