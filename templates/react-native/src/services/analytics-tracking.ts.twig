@@ -183,8 +183,13 @@ export class Tracking {
                 await FileSystem.deleteAsync(pending, { idempotent: true });
             }
         };
+        const marker = `${directory}{{ spec.info.title | caseLower }}_tracking_install`;
+        // Empty without the native module, which also leaves app_updated unsent.
+        const version = cookies?.appVersion ?? '';
         const saved = await read(pending);
         if (saved !== null) {
+            // A crash may have come between the two writes: finish the marker, keep the decision.
+            await FileSystem.writeAsStringAsync(marker, version);
             await sendPending(saved);
             return;
         }
@@ -193,10 +198,7 @@ export class Tracking {
             ? (await cookies.session(endpoint, project).catch(() => null)) !==
               null
             : false;
-        const marker = `${directory}{{ spec.info.title | caseLower }}_tracking_install`;
         const previous = await read(marker);
-        // Empty without the native module, which also leaves app_updated unsent.
-        const version = cookies?.appVersion ?? '';
         if (previous === version) {
             return;
         }
@@ -211,14 +213,15 @@ export class Tracking {
                         props: { previousVersion: previous, version },
                     }
                   : undefined;
-        // Saved before sending, so neither a crash nor a failed send loses it.
-        await FileSystem.writeAsStringAsync(marker, version);
-        if (!install) {
-            return;
+        // Pending before the marker, so neither a crash nor a failed send loses it.
+        const json = install ? JSON.stringify(install) : undefined;
+        if (json) {
+            await FileSystem.writeAsStringAsync(pending, json);
         }
-        const json = JSON.stringify(install);
-        await FileSystem.writeAsStringAsync(pending, json);
-        await sendPending(json);
+        await FileSystem.writeAsStringAsync(marker, version);
+        if (json) {
+            await sendPending(json);
+        }
     }
 
     /**
