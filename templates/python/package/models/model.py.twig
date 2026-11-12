@@ -81,7 +81,9 @@ class {{ definitionName | caseUcfirst }}(AppwriteModel{% if isGeneric %}, Generi
         data = dict(data)
 {% for property in defaulted %}
 {% set fieldName = property | getModelFieldName(definition.properties) %}
-        if '{{ property | schemaName }}' not in data{% if fieldName != (property | schemaName) %} and '{{ fieldName }}' not in data{% endif %}:
+{% set clauses = ["'" ~ (property | schemaName) ~ "' not in data"] %}
+{% if fieldName != (property | schemaName) %}{% set clauses = clauses | merge(["'" ~ fieldName ~ "' not in data"]) %}{% endif %}
+{{ clauses | formatCondition(8) | raw }}
             data['{{ property | schemaName }}'] = {{ property | modelDefault | pythonLiteral | raw }}
 {% endfor %}
         return data
