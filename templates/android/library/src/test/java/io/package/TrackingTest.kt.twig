@@ -1,0 +1,247 @@
+package {{ sdk.namespace | caseDot }}
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import {{ sdk.namespace | caseDot }}.services.Analytics
+import {{ sdk.namespace | caseDot }}.services.Push
+import {{ sdk.namespace | caseDot }}.services.PushBackground
+import {{ sdk.namespace | caseDot }}.services.PushMessage
+import {{ sdk.namespace | caseDot }}.services.PushTap
+import {{ sdk.namespace | caseDot }}.services.PushTaps
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
+import org.json.JSONObject
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
+import java.util.Collections
+
+@Config(manifest = Config.NONE)
+@RunWith(AndroidJUnit4::class)
+class TrackingTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+    private val events: MutableList<JSONObject> = Collections.synchronizedList(mutableListOf())
+    private val trackers = mutableListOf<Tracking>()
+    private lateinit var client: Client
+    private lateinit var analytics: Analytics
+
+    // Requests to fail before the endpoint accepts events again.
+    @Volatile
+    private var failures = 0
+
+    @Before
+    fun setUp() {
+        Tracking.installChecked.set(false)
+        client = Client(context).setProject("project").setJWT("jwt")
+        client.endpointPush = "mqtt://127.0.0.1:1"
+        client.http = client.http.newBuilder()
+            .addInterceptor { chain ->
+                val failed = synchronized(this) { (failures > 0).also { if (it) failures-- } }
+                val body = Buffer().also { chain.request().body!!.writeTo(it) }.readUtf8()
+                if (!failed) {
+                    events.add(JSONObject(body))
+                }
+                Response.Builder()
+                    .request(chain.request())
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(if (failed) 500 else 200)
+                    .message(if (failed) "Error" else "OK")
+                    .body((if (failed) "{\"message\":\"failed\",\"code\":500}" else "{}").toResponseBody("application/json".toMediaType()))
+                    .build()
+            }
+            .build()
+        analytics = Analytics(client)
+    }
+
+    @After
+    fun tearDown() {
+        trackers.forEach { it.disableAutoLifecycleEvents() }
+    }
+
+    private fun marker(): String? = context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE).getString("trackingInstallVersion", null)
+
+    private fun pending(): String? = context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE).getString("trackingInstallPending", null)
+
+    private fun waitFor(condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + 5000
+        while (!condition() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10)
+        }
+    }
+
+    // A start in a new process: start() does not wait for the install check, so wait for its
+    // marker, then its event.
+    private fun start(version: String) {
+        Tracking.installChecked.set(false)
+        shadowOf(context.packageManager).getInternalMutablePackageInfo(context.packageName).versionName = version
+        val tracking = Tracking(analytics, "property")
+        trackers.add(tracking)
+        tracking.start()
+        waitFor { marker() == version }
+        Thread.sleep(200)
+    }
+
+    private fun payload(messageId: String, notification: Boolean = true): String = JSONObject()
+        .put("messageId", messageId)
+        .put(if (notification) "notification" else "data", JSONObject().put("title", "Sale"))
+        .toString()
+
+    @Test
+    fun firstOpenIsSentOncePerInstall() {
+        start("1.0.0")
+        start("1.0.0")
+
+        assertEquals(1, events.size)
+        assertEquals("first_open", events.single().getString("name"))
+        assertEquals(false, events.single().getBoolean("interactive"))
+    }
+
+    @Test
+    fun concurrentStartsSendOneFirstOpen() {
+        shadowOf(context.packageManager).getInternalMutablePackageInfo(context.packageName).versionName = "1.0.0"
+        val first = Tracking(analytics, "property")
+        val second = Tracking(analytics, "property")
+        trackers.addAll(listOf(first, second))
+        first.start()
+        second.start()
+        second.start()
+        waitFor { marker() == "1.0.0" }
+        Thread.sleep(300)
+
+        assertEquals(listOf("first_open"), events.map { it.getString("name") })
+    }
+
+    @Test
+    fun aFailedInstallEventIsSentOnTheNextStart() {
+        failures = 1
+        start("1.0.0")
+
+        assertEquals(0, events.size)
+        assertNotNull(pending())
+
+        start("1.0.0")
+
+        assertEquals(listOf("first_open"), events.map { it.getString("name") })
+        assertNull(pending())
+    }
+
+    @Test
+    fun aPendingEventIsSentOnceAndMovesAStaleMarker() {
+        context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE).edit()
+            .putString("trackingInstallVersion", "1.0.0")
+            .putString("trackingInstallPending", "{\"name\":\"first_open\"}")
+            .commit()
+
+        start("1.1.0")
+        start("1.1.0")
+
+        assertEquals(listOf("first_open"), events.map { it.getString("name") })
+        assertNull(pending())
+    }
+
+    @Test
+    fun aPendingUpdateRetriedOnANewerVersionReportsTheCurrentVersion() {
+        context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE).edit()
+            .putString("trackingInstallVersion", "1.1.0")
+            .putString("trackingInstallPending", "{\"name\":\"app_updated\",\"props\":{\"previousVersion\":\"1.0.0\",\"version\":\"1.1.0\"}}")
+            .commit()
+
+        start("1.2.0")
+        start("1.2.0")
+
+        assertEquals(listOf("app_updated"), events.map { it.getString("name") })
+        assertEquals("[\"previousVersion\",\"1.0.0\",\"version\",\"1.2.0\"]", events.single().getJSONArray("props").toString())
+        assertEquals("1.2.0", marker())
+        assertNull(pending())
+    }
+
+    @Test
+    fun anInstallThatRanTheSdkBeforeGetsNoFirstOpen() {
+        context.getSharedPreferences(Client.COOKIE_PREFS, Context.MODE_PRIVATE).edit().putString("cookie", "saved").commit()
+
+        start("1.0.0")
+
+        assertEquals(0, events.size)
+        assertEquals("1.0.0", marker())
+    }
+
+    @Test
+    fun appUpdatedIsSentOnTheFirstStartOfANewVersion() {
+        context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE).edit().putString("trackingInstallVersion", "1.0.0").commit()
+
+        start("1.1.0")
+        start("1.1.0")
+
+        assertEquals(1, events.size)
+        assertEquals("app_updated", events.single().getString("name"))
+        assertEquals("[\"previousVersion\",\"1.0.0\",\"version\",\"1.1.0\"]", events.single().getJSONArray("props").toString())
+        assertEquals(false, events.single().getBoolean("interactive"))
+    }
+
+    @Test
+    fun pushHelpersSendMessageIdAndCampaign() {
+        val tracking = Tracking(analytics, "property")
+        tracking.pushReceived(messageId = "message")
+        tracking.pushOpened(messageId = "message", campaign = "sale")
+        waitFor { events.size >= 2 }
+
+        val byName = events.associateBy { it.getString("name") }
+        assertEquals("[\"messageId\",\"message\"]", byName.getValue("push_received").getJSONArray("props").toString())
+        assertEquals(false, byName.getValue("push_received").getBoolean("interactive"))
+        assertEquals("[\"messageId\",\"message\",\"campaign\",\"sale\"]", byName.getValue("push_opened").getJSONArray("props").toString())
+        assertEquals(true, byName.getValue("push_opened").getBoolean("interactive"))
+    }
+
+    @Test
+    fun pushSendsOneReceivedPerMessageAcrossOverlappingSubscriptions() {
+        val push = Push(client, context).setTracking(Tracking(analytics, "property"))
+        push.subscribe(listOf("users/user", "users/#"), background = true) {}
+        PushBackground.deliverMessage(context, PushMessage("users/user", payload("received").toByteArray(), 1)) { {} }
+        PushBackground.deliverMessage(context, PushMessage("users/user", payload("silent", notification = false).toByteArray(), 1)) { {} }
+        waitFor { events.isNotEmpty() }
+        Thread.sleep(300)
+        push.close()
+
+        assertEquals(1, events.size)
+        assertEquals("push_received", events.single().getString("name"))
+        assertEquals("[\"messageId\",\"received\"]", events.single().getJSONArray("props").toString())
+        assertEquals(false, events.single().getBoolean("interactive"))
+    }
+
+    @Test
+    fun pushSendsOneOpenedPerTapAcrossListeners() {
+        val push = Push(client, context).setTracking(Tracking(analytics, "property"))
+        val stops = listOf(push.onNotificationOpened {}, push.onNotificationOpened {})
+        PushTaps.record(PushTap("users/user", payload("listened")))
+        stops.forEach { it() }
+        PushTaps.record(PushTap("users/user", payload("launched")))
+        push.getInitialNotification()
+        waitFor { events.size >= 2 }
+        Thread.sleep(300)
+        push.close()
+
+        assertEquals(listOf("push_opened", "push_opened"), events.map { it.getString("name") })
+        assertEquals(setOf("[\"messageId\",\"listened\"]", "[\"messageId\",\"launched\"]"), events.map { it.getJSONArray("props").toString() }.toSet())
+        assertEquals(true, events.first().getBoolean("interactive"))
+    }
+
+    @Test
+    fun screenNamesResolveAgainstTheBaseUrl() {
+        val tracking = Tracking(analytics, "property")
+        tracking.screenView("Home Screen", props = mapOf("tab" to null))
+        waitFor { events.isNotEmpty() }
+
+        assertEquals("app://android/Home%20Screen", events.single().getString("url"))
+        assertEquals("[\"screen\",\"Home Screen\"]", events.single().getJSONArray("props").toString())
+    }
+}

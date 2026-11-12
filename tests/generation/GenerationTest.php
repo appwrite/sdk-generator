@@ -829,16 +829,19 @@ final class GenerationTest extends TestCase
         $companions = [
             'flutter' => ['lib/src/tracking.dart', 'lib/src/tracking_observer.dart'],
             'web' => ['src/services/analytics-tracking.ts', 'src/tracker.ts'],
+            'android' => ['library/src/main/java/io/appwrite/Tracking.kt', 'library/src/test/java/io/appwrite/TrackingTest.kt'],
         ];
         $entrypoints = [
             'flutter' => ['lib/packageName.dart', 'src/tracking'],
             'web' => ['src/index.ts', 'analytics-tracking'],
+            'android' => ['library/src/main/java/io/appwrite/services/Push.kt', 'settracking'],
         ];
-        // The SDK's own telemetry must not end a bounce: lifecycle on both, plus install,
-        // update and push_received on Flutter.
+        // The SDK's own telemetry must not end a bounce: lifecycle on every tracker, plus
+        // install, update and push_received on the mobile ones.
         $nonInteractive = [
             'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,', 4],
             'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,', 2],
+            'android' => ['library/src/main/java/io/appwrite/Tracking.kt', 'interactive = interactive,', 4],
         ];
 
         foreach ($companions as $name => $paths) {
@@ -859,8 +862,34 @@ final class GenerationTest extends TestCase
 
             [$tracker, $forward, $auto] = $nonInteractive[$name];
             $this->assertStringContainsString($forward, $with[$tracker], "{$name} {$tracker} does not forward interactive");
-            $this->assertSame($auto, \substr_count($with[$tracker], 'interactive: false'), "{$name} {$tracker} auto events are not non-interactive");
+            $this->assertSame($auto, \substr_count($with[$tracker], 'interactive: false') + \substr_count($with[$tracker], 'interactive = false'), "{$name} {$tracker} auto events are not non-interactive");
         }
+    }
+
+    /**
+     * Apple has no entry-point export: `Push` naming `Tracking` without the analytics service is
+     * what would stop the package compiling.
+     */
+    public function testAppleTrackingFollowsTheService(): void
+    {
+        $paths = ['Sources/Appwrite/Tracking.swift', 'Tests/AppwriteTests/TrackingTests.swift'];
+        $push = 'Sources/Appwrite/Services/Push.swift';
+
+        $without = $this->generate('apple', 'client');
+        foreach ($paths as $path) {
+            $this->assertArrayNotHasKey($path, $without, "apple shipped {$path} without the analytics service");
+        }
+        $this->assertStringNotContainsString('tracking', \strtolower($without[$push]), 'apple Push names Tracking without the analytics service');
+        $this->assertStringContainsString('public let messageid: string?', \strtolower($without[$push]), 'apple PushNotificationOpened lost messageId');
+
+        $with = $this->generateWithAnalytics('apple');
+        foreach ($paths as $path) {
+            $this->assertArrayHasKey($path, $with, "apple did not ship {$path} alongside the analytics service");
+        }
+        $this->assertStringContainsString('public func settracking(_ tracking: tracking) -> self', $with[$push], 'apple Push has no setTracking');
+        // Lifecycle, the pending install or update event and push_received are the SDK's own telemetry.
+        $this->assertStringContainsString('interactive: interactive', $with[$paths[0]], 'apple Tracking does not forward interactive');
+        $this->assertSame(4, \substr_count($with[$paths[0]], 'interactive: false'), 'apple Tracking auto events are not non-interactive');
     }
 
     /**
@@ -883,7 +912,7 @@ final class GenerationTest extends TestCase
             ->setName('test')
             ->setVersion('0.0.1')
             ->setPlatform('client')
-            ->setNamespace('appwrite')
+            ->setNamespace(\in_array($name, ['android', 'kotlin'], true) ? 'io.appwrite' : 'appwrite')
             ->setTest('true')
             ->generate($dir);
 
