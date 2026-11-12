@@ -373,7 +373,7 @@ func (c *pushContext) planRemovedTables(
 				Resource:   "table",
 				DatabaseID: databaseID,
 				ID:         id,
-				Name:       remote.GetString("name"),
+				Name:       fmt.Sprintf("%s ( %s - %s )", remote.GetString("name"), databaseID, id),
 				Path: resource.Path + "/" + url.PathEscape(databaseID) +
 					resource.ChildPath + "/" + url.PathEscape(id),
 				Action: "deleting",
