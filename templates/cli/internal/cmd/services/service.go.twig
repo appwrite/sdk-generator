@@ -148,13 +148,13 @@ func new{{ service.name | caseUcfirst }}{{ (method | methodName) | caseUcfirst }
 {% if implementation == 'listOrganizationsForSession' %}
 		Example: "  " + app.ExecutableName + " list-organizations --search <NAME>\n" +
 			"  " + app.ExecutableName + " organization get --organization-id <ORGANIZATION_ID>",
-		Args: cobra.NoArgs,
+		Args: app.NoArgs,
 {% elseif implementation == 'listProjectsForSession' %}
 		Example: "  " + app.ExecutableName + " list-projects --organization-id <ORGANIZATION_ID>\n" +
 			"  " + app.ExecutableName + " project get --project-id <PROJECT_ID>",
-		Args: cobra.NoArgs,
+		Args: app.NoArgs,
 {% else %}
-		{{ commandKeyFormat|format('Args:') }}cobra.NoArgs,
+		{{ commandKeyFormat|format('Args:') }}app.NoArgs,
 {% endif %}
 		RunE: func(cmd *cobra.Command, args []string) error {
 {% set plan = getGoCallPlan(method, service) %}

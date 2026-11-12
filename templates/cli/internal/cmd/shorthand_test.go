@@ -40,17 +40,21 @@ func TestNoCommandHasAShorthandCollision(t *testing.T) {
 }
 
 func TestNoArgCommandsRejectExtraArguments(t *testing.T) {
-	tests := [][]string{
-		{"users", "definitely-not-a-command"},
-		{"users", "list", "definitely-not-an-argument"},
-		{"pull", "definitely-not-a-command"},
-		{"push", "definitely-not-a-command"},
+	tests := []struct {
+		args []string
+		want string
+	}{
+		{[]string{"users", "definitely-not-a-command"}, "unknown command"},
+		{[]string{"users", "list", "definitely-not-an-argument"}, "users list takes no positional arguments"},
+		{[]string{"users", "update-labels", "--user-id", "x", "--labels", "admin", "beta"}, `unexpected argument "beta": --labels takes one value per flag. Repeat the flag for each value: --labels admin --labels beta`},
+		{[]string{"pull", "definitely-not-a-command"}, "unknown command"},
+		{[]string{"push", "definitely-not-a-command"}, "unknown command"},
 	}
 
-	for _, args := range tests {
-		t.Run(strings.Join(args, " "), func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(strings.Join(test.args, " "), func(t *testing.T) {
 			root := NewRootCommand()
-			root.SetArgs(args)
+			root.SetArgs(test.args)
 			root.SetOut(&bytes.Buffer{})
 			root.SetErr(&bytes.Buffer{})
 
@@ -58,8 +62,8 @@ func TestNoArgCommandsRejectExtraArguments(t *testing.T) {
 			if err == nil {
 				t.Fatal("command accepted an unexpected positional argument")
 			}
-			if !strings.Contains(err.Error(), "unknown command") {
-				t.Fatalf("error = %q, want an unknown command error", err)
+			if !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %q, want %q", err, test.want)
 			}
 		})
 	}
