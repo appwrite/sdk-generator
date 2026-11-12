@@ -192,6 +192,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('schemaType', fn(Schema|Parameter $value): string => $this->getSchemaType($value)));
         $this->twig->addFilter(new TwigFilter('schemaModel', fn(Schema|Parameter $value): string => $this->getSchemaModel($value)));
         $this->twig->addFilter(new TwigFilter('schemaModels', fn(Schema|Parameter $value): array => $this->getSchemaModels($value)));
+        $this->twig->addFilter(new TwigFilter('schemaSecret', fn(Schema|Parameter $value): bool => $this->isSecret($this->getSchema($value))));
         $this->twig->addFilter(new TwigFilter('schemaRequired', fn(Schema|Parameter $value): bool => $value instanceof Parameter ? $value->required : isset($this->requiredSchemas[\spl_object_id($value)])));
         $this->twig->addFilter(new TwigFilter('schemaExample', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->example));
         $this->twig->addFilter(new TwigFilter('schemaDefault', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->default));
@@ -1055,6 +1056,7 @@ class SDK
             'responseEnums' => $filteredResponseEnums,
             'allEnums' => $filteredAllEnums,
             'definitions' => $filteredDefinitions,
+            'secretFields' => $this->getSecretFields($filteredDefinitions),
             'requestModels' => $filteredRequestModels,
             'globalHeaders' => $this->getGlobalHeaders(),
             'defaultHeaders' => array_merge(
@@ -1680,6 +1682,44 @@ class SDK
     protected function getSchema(Schema|Parameter $value): Schema
     {
         return $value instanceof Parameter ? ($value->schema ?? new AnySchema()) : $value;
+    }
+
+    /**
+     * A secret: a string, or a list of strings, the spec marks `format: password`.
+     * Clients keep these values out of their output unless asked.
+     */
+    protected function isSecret(Schema $schema): bool
+    {
+        if ($schema instanceof ArraySchema) {
+            $schema = $schema->items;
+        }
+
+        return $schema instanceof StringSchema && $schema->format === 'password';
+    }
+
+    /**
+     * The names of every response model property that holds a secret, sorted.
+     *
+     * @param array<string, Schema> $definitions
+     * @return list<string>
+     */
+    protected function getSecretFields(array $definitions): array
+    {
+        $fields = [];
+        foreach ($definitions as $definition) {
+            if (!$definition instanceof ObjectSchema) {
+                continue;
+            }
+            foreach ($definition->properties as $name => $property) {
+                if ($this->isSecret($property)) {
+                    $fields[$name] = true;
+                }
+            }
+        }
+        $fields = \array_keys($fields);
+        \sort($fields);
+
+        return $fields;
     }
 
     protected function getSchemaType(Schema|Parameter $value): string
