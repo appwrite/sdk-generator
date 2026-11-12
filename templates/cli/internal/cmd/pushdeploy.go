@@ -140,7 +140,16 @@ func runPushSettings(command *cobra.Command) error {
 	output.Log(out, "Checking for changes ...")
 
 	var changes []change
+	if name := context.local.Data.GetString("projectName"); name != "" && name != project.GetString("name") {
+		changes = append(changes, change{
+			ID:     "Project",
+			Key:    "name",
+			Remote: project.GetString("name"),
+			Local:  name,
+		})
+	}
 	changes = append(changes, settingsChanges(remote, local, "services", "Service")...)
+	changes = append(changes, settingsChanges(remote, local, "protocols", "Protocol")...)
 	changes = append(changes, settingsChanges(
 		remote.GetObject("auth"), local.GetObject("auth"), "methods", "Auth method")...)
 	changes = append(changes, settingsChanges(
@@ -414,34 +423,25 @@ func desiredMockNumbers(security *jsonx.Object) (map[string]string, []string) {
 
 // settingsChanges compares one nested settings group.
 //
-// It iterates the REMOTE keys,
-// so a setting the config invents but the project does not have is not a
-// change -- there is nothing to overwrite.
+// Only keys both sides have are compared: a setting the config invents but the
+// project does not have has nothing to overwrite, and one the config omits is
+// left alone by the push.
 func settingsChanges(remote, local *jsonx.Object, group, label string) []change {
-	if remote == nil {
+	if remote == nil || local == nil {
 		return nil
 	}
 
-	remoteGroup := remote.GetObject(group)
-	if remoteGroup == nil {
+	remoteGroup, localGroup := remote.GetObject(group), local.GetObject(group)
+	if remoteGroup == nil || localGroup == nil {
 		return nil
-	}
-
-	var localGroup *jsonx.Object
-	if local != nil {
-		localGroup = local.GetObject(group)
 	}
 
 	var changes []change
 	for _, key := range remoteGroup.Keys() {
 		remoteValue, _ := remoteGroup.Get(key)
 
-		var localValue any
-		if localGroup != nil {
-			localValue, _ = localGroup.Get(key)
-		}
-
-		if equalValues(remoteValue, localValue) {
+		localValue, ok := localGroup.Get(key)
+		if !ok || equalValues(remoteValue, localValue) {
 			continue
 		}
 
