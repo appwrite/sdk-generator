@@ -118,6 +118,19 @@ val stop = push.onNotificationOpened { opened -> openSale(opened.data["saleId"])
 ```
 
 A tap made while nothing listens is kept for `getInitialNotification()`. The tap intent still carries `Push.EXTRA_TOPIC` and `Push.EXTRA_PAYLOAD` for apps that read their activity's intent.
+{% if services['analytics'] is defined %}
+
+### Push analytics
+
+Attach a `Tracking` to send `push_received` for each message a background subscription gets with a notification to show while the app is running, and `push_opened` for each tap reported by `getInitialNotification` or `onNotificationOpened`. Both carry the message's `messageId`, also exposed as `opened.messageId`.
+
+```kotlin
+val tracking = Tracking(Analytics(client), "<PROPERTY_ID>").also { it.start() }
+val push = Push(client, context).setTracking(tracking)
+```
+
+`tracking.start()` also sends `first_open` once per install and `app_updated` on the first start after the app's version name changes. A reinstall or "clear data" counts as a new install. Call it from `Application.onCreate`. With another push provider, call `tracking.pushReceived(messageId = ..., campaign = ...)` and `tracking.pushOpened(...)` from its handlers. `push_received` is best effort: while the app is killed, its code often does not run when a notification arrives.
+{% endif %}
 
 ## Learn more
 

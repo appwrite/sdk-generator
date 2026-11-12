@@ -8,6 +8,9 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+{% if services['analytics'] is defined %}
+import android.os.SystemClock
+{% endif %}
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -16,6 +19,9 @@ import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import {{ sdk.namespace | caseDot }}.Client
 import {{ sdk.namespace | caseDot }}.Service
 import {{ sdk.namespace | caseDot }}.Topic
+{% if services['analytics'] is defined %}
+import {{ sdk.namespace | caseDot }}.Tracking
+{% endif %}
 import {{ sdk.namespace | caseDot }}.exceptions.{{ spec.info.title | caseUcfirst }}Exception
 import org.json.JSONArray
 import org.json.JSONException
@@ -35,15 +41,17 @@ data class PushNotificationOpened(
     val topic: String,
     /** The `data` sent with the message (e.g. `createPush`), parsed; empty when it had none. */
     val data: Map<String, Any?>,
+    /** The {{ spec.info.title | caseUcfirst }} Messaging message id, when the message was sent through Messaging. */
+    val messageId: String? = null,
 ) {
     internal companion object {
         fun of(tap: PushTap): PushNotificationOpened {
-            val data = try {
-                JSONObject(tap.payload).optJSONObject("data")?.toMap()
+            val json = try {
+                JSONObject(tap.payload)
             } catch (e: JSONException) {
                 null
             }
-            return PushNotificationOpened(tap.topic, data ?: emptyMap())
+            return PushNotificationOpened(tap.topic, json?.optJSONObject("data")?.toMap() ?: emptyMap(), json?.opt("messageId") as? String)
         }
 
         private fun JSONObject.toMap(): Map<String, Any?> = keys().asSequence().associateWith { jsonValue(get(it)) }
@@ -278,7 +286,7 @@ class Push(
      * push.getInitialNotification()?.let { openSale(it.data["saleId"]) }
      * ```
      */
-    fun getInitialNotification(): PushNotificationOpened? = PushTaps.take()?.let { PushNotificationOpened.of(it) }
+    fun getInitialNotification(): PushNotificationOpened? = PushTaps.take()?.let { opened(it) }
 
     /**
      * Call [callback] on the main thread each time the user taps a background notification while
@@ -291,7 +299,47 @@ class Push(
      * ```
      */
     fun onNotificationOpened(callback: (PushNotificationOpened) -> Unit): () -> Unit =
-        PushTaps.listen { callback(PushNotificationOpened.of(it)) }
+        PushTaps.listen { callback(opened(it)) }
+{% if services['analytics'] is defined %}
+
+    @Volatile
+    private var tracking: Tracking? = null
+
+    /**
+     * Send push analytics through [tracking]: `push_received` for each message a background
+     * subscription gets with a notification to show while the app is running, and `push_opened`
+     * for each tap reported by [getInitialNotification] or [onNotificationOpened], both with the
+     * message's `messageId`.
+     */
+    fun setTracking(tracking: Tracking): Push {
+        this.tracking = tracking
+        return this
+    }
+
+    private fun opened(tap: PushTap): PushNotificationOpened {
+        val opened = PushNotificationOpened.of(tap)
+        val tracking = tracking
+        if (tracking != null && TrackedPush.first("opened\n${tap.topic}\n${opened.messageId ?: tap.payload}")) {
+            tracking.pushOpened(opened.messageId)
+        }
+        return opened
+    }
+
+    // Checked on delivery, since PushSubscription.update can toggle background later.
+    private fun received(id: String, message: PushMessage) {
+        val tracking = tracking ?: return
+        if (subscriptions[id]?.background != true || !PushBackground.notificationContent(message).visible) {
+            return
+        }
+        val messageId = runCatching { JSONObject(message.data).opt("messageId") as? String }.getOrNull()
+        if (TrackedPush.first("received\n${message.topic}\n${messageId ?: message.data}")) {
+            tracking.pushReceived(messageId)
+        }
+    }
+{% else %}
+
+    private fun opened(tap: PushTap): PushNotificationOpened = PushNotificationOpened.of(tap)
+{% endif %}
 
     /**
      * Subscribe to the signed-in user's own topic, `users/<userId>` — "messages for me"
@@ -415,7 +463,15 @@ class Push(
         for (topic in topics) {
             val id = UUID.randomUUID().toString()
             ids.add(id)
+{% if services['analytics'] is defined %}
+            val tracked: (PushMessage) -> Unit = { message ->
+                received(id, message)
+                callback(message)
+            }
+            subscriptions[id] = Sub(topic, tracked, background, title, retry, notifyInForeground)
+{% else %}
             subscriptions[id] = Sub(topic, callback, background, title, retry, notifyInForeground)
+{% endif %}
         }
 
         // If any SUBSCRIBE fails, roll this call's registrations back and return to a
@@ -918,6 +974,21 @@ internal fun resolvePushUserId(client: Client): String {
 // Asks once per process for POST_NOTIFICATIONS (Android 13+) when background delivery starts, from
 // the app's visible activity, or from the next one to resume when none is. An activity Push is
 // created with counts as visible, since it resumed before the lifecycle callbacks were registered.
+{% if services['analytics'] is defined %}
+// Recently tracked push events, process-wide: a tap reaches every onNotificationOpened listener and
+// a message every overlapping subscription, so each counts once.
+private object TrackedPush {
+    private val tracked = mutableMapOf<String, Long>()
+
+    @Synchronized
+    fun first(key: String): Boolean {
+        val now = SystemClock.elapsedRealtime()
+        tracked.values.removeAll { now - it > 10_000 }
+        return tracked.putIfAbsent(key, now) == null
+    }
+}
+
+{% endif %}
 private object NotificationPermissionPrompt {
     private const val REQUEST_CODE = 9412
 

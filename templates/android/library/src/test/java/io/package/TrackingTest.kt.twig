@@ -1,0 +1,128 @@
+package {{ sdk.namespace | caseDot }}
+
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import {{ sdk.namespace | caseDot }}.services.Analytics
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
+import org.json.JSONObject
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
+import java.util.Collections
+
+@Config(manifest = Config.NONE)
+@RunWith(AndroidJUnit4::class)
+class TrackingTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+    private val events: MutableList<JSONObject> = Collections.synchronizedList(mutableListOf())
+    private val trackers = mutableListOf<Tracking>()
+    private lateinit var analytics: Analytics
+
+    @Before
+    fun setUp() {
+        val client = Client(context).setProject("project")
+        client.http = client.http.newBuilder()
+            .addInterceptor { chain ->
+                val body = Buffer().also { chain.request().body!!.writeTo(it) }.readUtf8()
+                events.add(JSONObject(body))
+                Response.Builder()
+                    .request(chain.request())
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .body("{}".toResponseBody("application/json".toMediaType()))
+                    .build()
+            }
+            .build()
+        analytics = Analytics(client)
+    }
+
+    @After
+    fun tearDown() {
+        trackers.forEach { it.disableAutoLifecycleEvents() }
+    }
+
+    private fun marker(): String? = context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE).getString("trackingInstallVersion", null)
+
+    private fun waitFor(condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + 5000
+        while (!condition() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10)
+        }
+    }
+
+    // start() does not wait for the install check, so wait for its marker, then its event.
+    private fun start(version: String) {
+        shadowOf(context.packageManager).getInternalMutablePackageInfo(context.packageName).versionName = version
+        val tracking = Tracking(analytics, "property")
+        trackers.add(tracking)
+        tracking.start()
+        waitFor { marker() == version }
+        Thread.sleep(200)
+    }
+
+    @Test
+    fun firstOpenIsSentOncePerInstall() {
+        start("1.0.0")
+        start("1.0.0")
+
+        assertEquals(1, events.size)
+        assertEquals("first_open", events.single().getString("name"))
+        assertEquals(false, events.single().getBoolean("interactive"))
+    }
+
+    @Test
+    fun anInstallThatRanTheSdkBeforeGetsNoFirstOpen() {
+        context.getSharedPreferences(Client.COOKIE_PREFS, Context.MODE_PRIVATE).edit().putString("cookie", "saved").commit()
+
+        start("1.0.0")
+
+        assertEquals(0, events.size)
+        assertEquals("1.0.0", marker())
+    }
+
+    @Test
+    fun appUpdatedIsSentOnTheFirstStartOfANewVersion() {
+        context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE).edit().putString("trackingInstallVersion", "1.0.0").commit()
+
+        start("1.1.0")
+        start("1.1.0")
+
+        assertEquals(1, events.size)
+        assertEquals("app_updated", events.single().getString("name"))
+        assertEquals("[\"previousVersion\",\"1.0.0\",\"version\",\"1.1.0\"]", events.single().getJSONArray("props").toString())
+        assertEquals(false, events.single().getBoolean("interactive"))
+    }
+
+    @Test
+    fun pushHelpersSendMessageIdAndCampaign() {
+        val tracking = Tracking(analytics, "property")
+        tracking.pushReceived(messageId = "message")
+        tracking.pushOpened(messageId = "message", campaign = "sale")
+        waitFor { events.size >= 2 }
+
+        val byName = events.associateBy { it.getString("name") }
+        assertEquals("[\"messageId\",\"message\"]", byName.getValue("push_received").getJSONArray("props").toString())
+        assertEquals(false, byName.getValue("push_received").getBoolean("interactive"))
+        assertEquals("[\"messageId\",\"message\",\"campaign\",\"sale\"]", byName.getValue("push_opened").getJSONArray("props").toString())
+        assertEquals(true, byName.getValue("push_opened").getBoolean("interactive"))
+    }
+
+    @Test
+    fun screenNamesResolveAgainstTheBaseUrl() {
+        val tracking = Tracking(analytics, "property")
+        tracking.screenView("Home Screen")
+        waitFor { events.isNotEmpty() }
+
+        assertEquals("app://android/Home%20Screen", events.single().getString("url"))
+    }
+}

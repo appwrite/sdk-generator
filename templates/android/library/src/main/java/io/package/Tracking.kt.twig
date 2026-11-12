@@ -1,0 +1,247 @@
+package {{ sdk.namespace | caseDot }}
+
+import android.app.Activity
+import android.app.ActivityManager
+import android.app.Application
+import android.content.Context
+import android.os.Bundle
+import android.os.SystemClock
+import {{ sdk.namespace | caseDot }}.services.Analytics
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import java.net.URI
+
+/**
+ * Auto-tracking helpers for the generated [Analytics] service: install, update and app-lifecycle
+ * events, push helpers, and manual [screenView] / [event] calls, all sent through
+ * `Analytics.createEvent`.
+ *
+ * Auto-emitted event names follow `snake_case` + lowercase (`screen_view`, `app_backgrounded`,
+ * `app_foregrounded`, etc.). Prop keys use camelCase to match the endpoint's parameter naming.
+ *
+ * Engagement time is reported as a **delta** attached to each `app_backgrounded` event, covering
+ * only the foreground time accrued since the app last came to the foreground, the same way the
+ * Web and Flutter helpers report it.
+ *
+ * Call [start] from `Application.onCreate` or before the first activity starts, so the lifecycle
+ * callbacks see every activity:
+ *
+ * ```kotlin
+ * val tracking = Tracking(Analytics(client), "<PROPERTY_ID>")
+ * tracking.start()
+ * ```
+ *
+ * @param url Base URL events are reported under; screen names resolve against it. The endpoint
+ * only accepts absolute URLs.
+ */
+class Tracking @JvmOverloads constructor(
+    private val analytics: Analytics,
+    /** Analytics property every event is recorded against. */
+    val propertyId: String,
+    val url: String = "app://android",
+) {
+    private val context: Context = analytics.client.appContext
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private var lifecycleAttached = false
+    private var startedActivities = 0
+    private var foregroundSince: Long? = null
+
+    // Sub-second engagement left over from the previous flush, so many short foreground
+    // stretches do not each lose a fraction of a second to truncation.
+    private var engagementCarry = 0L
+
+    private val lifecycle = object : Application.ActivityLifecycleCallbacks {
+        override fun onActivityStarted(activity: Activity) {
+            startedActivities++
+            // Another activity starting while the app is on screen keeps the interval open.
+            if (foregroundSince != null) {
+                return
+            }
+            foregroundSince = SystemClock.elapsedRealtime()
+            event("app_foregrounded", interactive = false)
+        }
+
+        override fun onActivityStopped(activity: Activity) {
+            startedActivities = (startedActivities - 1).coerceAtLeast(0)
+            // A rotation stops and restarts the activity without the app leaving the screen.
+            if (startedActivities > 0 || activity.isChangingConfigurations) {
+                return
+            }
+            val since = foregroundSince ?: return
+            foregroundSince = null
+            val elapsed = engagementCarry + SystemClock.elapsedRealtime() - since
+            val seconds = elapsed / 1000
+            engagementCarry = elapsed % 1000
+            event("app_backgrounded", engagementTime = seconds.takeIf { it > 0 }, interactive = false)
+        }
+
+        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+
+        override fun onActivityResumed(activity: Activity) = Unit
+
+        override fun onActivityPaused(activity: Activity) = Unit
+
+        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+
+        override fun onActivityDestroyed(activity: Activity) = Unit
+    }
+
+    /**
+     * Start the default auto-tracking set: app-lifecycle events, as [enableAutoLifecycleEvents],
+     * plus `first_open` and `app_updated`.
+     *
+     * `first_open` is sent once per install, `app_updated` (with `previousVersion` and `version`)
+     * on the first start after the app's version name changes. Both rely on a marker in the SDK's
+     * shared preferences, so a reinstall or "clear data" counts as a new install. An existing
+     * install upgrading to this SDK is not counted when the client has saved cookies; without them
+     * its first start after the upgrade counts once.
+     */
+    fun start() {
+        enableAutoLifecycleEvents()
+        scope.launch {
+            try {
+                // Before anything else: the app's first request can save cookies meanwhile.
+                val ranBefore = context.getSharedPreferences(Client.COOKIE_PREFS, Context.MODE_PRIVATE).all.isNotEmpty()
+                val prefs = context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE)
+                val saved = prefs.getString(INSTALL_MARKER, null)
+                val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
+                if (saved == version) {
+                    return@launch
+                }
+                // Marked before sending, so a crash or a second start never sends it twice.
+                prefs.edit().putString(INSTALL_MARKER, version).commit()
+                if (saved != null) {
+                    event("app_updated", props = mapOf("previousVersion" to saved, "version" to version), interactive = false)
+                } else if (!ranBefore) {
+                    event("first_open", interactive = false)
+                }
+            } catch (e: Exception) {
+                // Analytics never surface errors to the host app.
+            }
+        }
+    }
+
+    /**
+     * Start emitting `app_backgrounded` and `app_foregrounded` events when the app leaves or
+     * returns to the screen. Idempotent: repeat calls no-op.
+     */
+    fun enableAutoLifecycleEvents() {
+        val app = context as? Application ?: return
+        if (lifecycleAttached) {
+            return
+        }
+        lifecycleAttached = true
+        // A process started in the background (e.g. by push delivery) is not on screen yet, so
+        // its first activity sends app_foregrounded.
+        val onScreen = ActivityManager.RunningAppProcessInfo()
+            .also { ActivityManager.getMyMemoryState(it) }
+            .importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        foregroundSince = if (onScreen) SystemClock.elapsedRealtime() else null
+        engagementCarry = 0
+        app.registerActivityLifecycleCallbacks(lifecycle)
+    }
+
+    /** Stop emitting lifecycle events. Safe to call when auto-lifecycle was never enabled. */
+    fun disableAutoLifecycleEvents() {
+        if (!lifecycleAttached) {
+            return
+        }
+        lifecycleAttached = false
+        startedActivities = 0
+        foregroundSince = null
+        engagementCarry = 0
+        (context as Application).unregisterActivityLifecycleCallbacks(lifecycle)
+    }
+
+    /**
+     * Emit an ad-hoc analytics event. [url] may be absolute or a path resolved against
+     * [Tracking.url]. Request failures are swallowed so analytics never surface errors to the
+     * host app.
+     */
+    @JvmOverloads
+    fun event(
+        name: String,
+        url: String? = null,
+        props: Map<String, Any?>? = null,
+        engagementTime: Long? = null,
+        interactive: Boolean? = null,
+    ) {
+        val target = try {
+            val base = URI(this.url)
+            // java.net.URI drops the "/" RFC 3986 puts between a path-less base and a relative path.
+            url?.let { (if (base.rawPath.isNullOrEmpty()) base.resolve("/") else base).resolve(URI(null, null, it, null)).toString() }
+                ?: this.url
+        } catch (e: Exception) {
+            return
+        }
+        // The endpoint buckets this as viewport width in dp, like the Web helper's `innerWidth`.
+        val screenWidth = context.resources.configuration.screenWidthDp.takeIf { it > 0 }?.toLong()
+        scope.launch {
+            try {
+                analytics.createEvent(
+                    propertyId = propertyId,
+                    name = name,
+                    url = target,
+                    screenWidth = screenWidth,
+                    engagementTime = engagementTime,
+                    // The endpoint takes props as a flat alternating key/value list.
+                    props = props?.flatMap { listOf(it.key, "${it.value}") },
+                    interactive = interactive,
+                )
+            } catch (e: Exception) {
+            }
+        }
+    }
+
+    /**
+     * Mobile-idiomatic screen-view shortcut. Renders as a `screen_view` analytics event with
+     * `screen`, optional `screenClass` and any caller-supplied properties. [name] is also the
+     * event URL's path.
+     */
+    @JvmOverloads
+    fun screenView(
+        name: String,
+        className: String? = null,
+        props: Map<String, Any?>? = null,
+    ) {
+        val merged = mutableMapOf<String, Any?>("screen" to name)
+        if (className != null) {
+            merged["screenClass"] = className
+        }
+        if (props != null) {
+            merged.putAll(props)
+        }
+        event("screen_view", url = name, props = merged)
+    }
+
+    /**
+     * Send `push_received` for a push notification the device got. Call it from your push
+     * handler; best effort, since while the app is killed its code often does not run when a
+     * notification arrives. [messageId] is the {{ spec.info.title | caseUcfirst }} Messaging message id.
+     */
+    @JvmOverloads
+    fun pushReceived(messageId: String? = null, campaign: String? = null) {
+        event("push_received", props = pushProps(messageId, campaign), interactive = false)
+    }
+
+    /**
+     * Send `push_opened` when the user taps a push notification. [messageId] is the
+     * {{ spec.info.title | caseUcfirst }} Messaging message id.
+     */
+    @JvmOverloads
+    fun pushOpened(messageId: String? = null, campaign: String? = null) {
+        event("push_opened", props = pushProps(messageId, campaign), interactive = true)
+    }
+
+    private fun pushProps(messageId: String?, campaign: String?): Map<String, Any?> = buildMap {
+        messageId?.let { put("messageId", it) }
+        campaign?.let { put("campaign", it) }
+    }
+
+    private companion object {
+        const val INSTALL_MARKER = "trackingInstallVersion"
+    }
+}

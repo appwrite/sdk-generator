@@ -1,0 +1,23 @@
+package {{ sdk.namespace | caseDot }}.services
+
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
+
+@Config(manifest = Config.NONE)
+@RunWith(AndroidJUnit4::class)
+class PushNotificationOpenedTest {
+    @Test
+    fun messageIdIsReadFromTheEnvelope() {
+        val payload = """{"messageId":"message","notification":{"title":"Sale"},"data":{"saleId":"42"}}"""
+
+        val opened = PushNotificationOpened.of(PushTap("users/user", payload))
+
+        assertEquals("message", opened.messageId)
+        assertEquals(mapOf("saleId" to "42"), opened.data)
+        assertNull(PushNotificationOpened.of(PushTap("users/user", "raw")).messageId)
+    }
+}

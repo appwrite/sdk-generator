@@ -101,6 +101,8 @@ class Client @JvmOverloads constructor(
 
     val config: MutableMap<String, String>
 
+    internal val appContext: Context = context.applicationContext ?: context
+
     internal val cookieJar = ListenableCookieJar(CookieManager(
         SharedPreferencesCookieStore(context.getSharedPreferences(COOKIE_PREFS, Context.MODE_PRIVATE)),
         CookiePolicy.ACCEPT_ALL

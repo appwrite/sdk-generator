@@ -829,15 +829,19 @@ final class GenerationTest extends TestCase
         $companions = [
             'flutter' => ['lib/src/tracking.dart', 'lib/src/tracking_observer.dart'],
             'web' => ['src/services/analytics-tracking.ts', 'src/tracker.ts'],
+            'android' => ['library/src/main/java/io/appwrite/Tracking.kt', 'library/src/test/java/io/appwrite/TrackingTest.kt'],
         ];
         $entrypoints = [
             'flutter' => ['lib/packageName.dart', 'src/tracking'],
             'web' => ['src/index.ts', 'analytics-tracking'],
+            'android' => ['library/src/main/java/io/appwrite/services/Push.kt', 'settracking'],
         ];
-        // The SDK's own telemetry must not end a bounce: two auto events per tracker.
+        // The SDK's own telemetry must not end a bounce: lifecycle on every tracker, plus
+        // install, update and push_received on the mobile ones.
         $nonInteractive = [
-            'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,'],
-            'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,'],
+            'flutter' => ['lib/src/tracking.dart', 'interactive: interactive,', 2],
+            'web' => ['src/services/analytics-tracking.ts', 'interactive: options.interactive,', 2],
+            'android' => ['library/src/main/java/io/appwrite/Tracking.kt', 'interactive = interactive,', 5],
         ];
 
         foreach ($companions as $name => $paths) {
@@ -856,9 +860,9 @@ final class GenerationTest extends TestCase
             }
             $this->assertStringContainsString($token, $with[$entry], "{$name} {$entry} does not export the companion");
 
-            [$tracker, $forward] = $nonInteractive[$name];
+            [$tracker, $forward, $auto] = $nonInteractive[$name];
             $this->assertStringContainsString($forward, $with[$tracker], "{$name} {$tracker} does not forward interactive");
-            $this->assertSame(2, \substr_count($with[$tracker], 'interactive: false'), "{$name} {$tracker} auto events are not non-interactive");
+            $this->assertSame($auto, \substr_count($with[$tracker], 'interactive: false') + \substr_count($with[$tracker], 'interactive = false'), "{$name} {$tracker} auto events are not non-interactive");
         }
     }
 
@@ -882,7 +886,7 @@ final class GenerationTest extends TestCase
             ->setName('test')
             ->setVersion('0.0.1')
             ->setPlatform('client')
-            ->setNamespace('appwrite')
+            ->setNamespace(\in_array($name, ['android', 'kotlin'], true) ? 'io.appwrite' : 'appwrite')
             ->setTest('true')
             ->generate($dir);
 
