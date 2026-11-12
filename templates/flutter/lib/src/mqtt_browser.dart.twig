@@ -14,6 +14,9 @@ import 'exception.dart';
 import 'mqtt.dart';
 import 'mqtt_message.dart';
 import 'mqtt_notification.dart';
+{% if services['analytics'] is defined %}
+import 'tracking.dart';
+{% endif %}
 
 Push createPush(Client client) => PushWeb(client);
 
@@ -476,6 +479,16 @@ class PushWeb implements Push {
     final subscription = _opened.stream.listen(callback);
     return () => unawaited(subscription.cancel());
   }
+{% if services['analytics'] is defined %}
+
+  Tracking? _tracking;
+
+  @override
+  Push setTracking(Tracking tracking) {
+    _tracking = tracking;
+    return this;
+  }
+{% endif %}
 
   @override
   void close() {
@@ -675,9 +688,15 @@ class PushWeb implements Push {
       );
       final content = PushNotificationContent.of(message);
       final shownTitles = <String>{};
+{% if services['analytics'] is defined %}
+      var notified = false;
+{% endif %}
       for (final subscription in _subscriptions.values) {
         if (_matches(subscription.filter, topic)) {
           subscription.callback(message);
+{% if services['analytics'] is defined %}
+          notified |= subscription.background && content.visible;
+{% endif %}
           // Notification is per-subscription: only subs that opted in show one, each
           // title once. A title the server sent replaces theirs, so it is shown once.
           final title = content.titleOr(subscription.title ?? topic);
@@ -692,13 +711,23 @@ class PushWeb implements Push {
               title,
               web.NotificationOptions(body: content.bodyFor(message) ?? ''),
             ).onclick = ((web.Event _) {
-              _opened.add(
-                PushNotificationOpened.fromPayload(topic, message.data),
+              final opened = PushNotificationOpened.fromPayload(
+                topic,
+                message.data,
               );
+{% if services['analytics'] is defined %}
+              _tracking?.pushOpened(messageId: opened.messageId);
+{% endif %}
+              _opened.add(opened);
             }).toJS;
           }
         }
       }
+{% if services['analytics'] is defined %}
+      if (notified) {
+        _tracking?.pushReceived(messageId: content.messageId);
+      }
+{% endif %}
     }
   }
 
