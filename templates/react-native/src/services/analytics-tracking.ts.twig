@@ -188,9 +188,23 @@ export class Tracking {
         const version = cookies?.appVersion ?? '';
         const saved = await read(pending);
         if (saved !== null) {
+            const event = JSON.parse(saved) as InstallEvent;
+            // An unsent update followed by another upgrade is reported as one previous → current update.
+            const json =
+                event.name === 'app_updated' &&
+                version !== '' &&
+                event.props?.version !== version
+                    ? JSON.stringify({
+                          ...event,
+                          props: { ...event.props, version },
+                      })
+                    : saved;
+            if (json !== saved) {
+                await FileSystem.writeAsStringAsync(pending, json);
+            }
             // A crash may have come between the two writes: finish the marker, keep the decision.
             await FileSystem.writeAsStringAsync(marker, version);
-            await sendPending(saved);
+            await sendPending(json);
             return;
         }
         // Before the marker: the app's first request can save a session meanwhile.
