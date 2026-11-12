@@ -72,6 +72,14 @@ final class TrackingTests {
         #expect(await launch().events.isEmpty)
     }
 
+    @Test func aPendingEventWithAStaleMarkerIsSentOnceAndTheMarkerUpdated() async {
+        UserDefaults.standard.set(Data(#"{"name":"first_open"}"#.utf8), forKey: Tracking.pendingKey)
+        UserDefaults.standard.set("0.0.0-previous", forKey: Tracking.versionKey)
+        #expect(await launch().events.map(\.name) == ["first_open"])
+        #expect(UserDefaults.standard.string(forKey: Tracking.versionKey) == version)
+        #expect(await launch().events.isEmpty)
+    }
+
     @Test func pushEventsCarryOnlyThePropsThatAreSet() {
         let tracking = RecordingTracking(analytics, propertyId: "property")
         tracking.pushReceived(messageId: "m1")

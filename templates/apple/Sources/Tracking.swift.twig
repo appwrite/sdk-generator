@@ -91,11 +91,13 @@ open class Tracking: @unchecked Sendable {
 
     func trackInstall(ranBefore: Bool) async {
         let defaults = UserDefaults.standard
+        let version = OSPackageInfo.get().version
         if let pending = defaults.data(forKey: Self.pendingKey) {
+            // A crash between the two writes leaves the marker stale; this start decides nothing more.
+            defaults.set(version, forKey: Self.versionKey)
             await sendPending(pending)
             return
         }
-        let version = OSPackageInfo.get().version
         let previous = defaults.string(forKey: Self.versionKey)
         guard previous != version else {
             return
@@ -106,13 +108,15 @@ open class Tracking: @unchecked Sendable {
         } else if !ranBefore {
             pending = ["name": "first_open"]
         }
-        // Both written before sending: a failed send stays pending, and the version is never re-decided.
-        defaults.set(version, forKey: Self.versionKey)
-        guard let pending, let data = try? JSONSerialization.data(withJSONObject: pending) else {
-            return
+        // Pending first, then the marker, both before sending: a failed send stays pending, and a crash
+        // between the writes leaves the event pending rather than lost.
+        if let pending, let data = try? JSONSerialization.data(withJSONObject: pending) {
+            defaults.set(data, forKey: Self.pendingKey)
+            defaults.set(version, forKey: Self.versionKey)
+            await sendPending(data)
+        } else {
+            defaults.set(version, forKey: Self.versionKey)
         }
-        defaults.set(data, forKey: Self.pendingKey)
-        await sendPending(data)
     }
 
     private func sendPending(_ data: Data) async {
