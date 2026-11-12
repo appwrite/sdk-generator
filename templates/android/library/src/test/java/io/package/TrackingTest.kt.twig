@@ -150,6 +150,22 @@ class TrackingTest {
     }
 
     @Test
+    fun aPendingUpdateRetriedOnANewerVersionReportsTheCurrentVersion() {
+        context.getSharedPreferences(Client.GLOBAL_PREFS, Context.MODE_PRIVATE).edit()
+            .putString("trackingInstallVersion", "1.1.0")
+            .putString("trackingInstallPending", "{\"name\":\"app_updated\",\"props\":{\"previousVersion\":\"1.0.0\",\"version\":\"1.1.0\"}}")
+            .commit()
+
+        start("1.2.0")
+        start("1.2.0")
+
+        assertEquals(listOf("app_updated"), events.map { it.getString("name") })
+        assertEquals("[\"previousVersion\",\"1.0.0\",\"version\",\"1.2.0\"]", events.single().getJSONArray("props").toString())
+        assertEquals("1.2.0", marker())
+        assertNull(pending())
+    }
+
+    @Test
     fun anInstallThatRanTheSdkBeforeGetsNoFirstOpen() {
         context.getSharedPreferences(Client.COOKIE_PREFS, Context.MODE_PRIVATE).edit().putString("cookie", "saved").commit()
 
