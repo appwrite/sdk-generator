@@ -136,4 +136,18 @@ describe('Operator', () => {
             '{"method":"dateSetNow","values":[]}',
         );
     });
+
+    test('serializes bigint values without losing precision', () => {
+        expect(Operator.arrayAppend([9007199254740993n, 1n])).toEqual(
+            '{"method":"arrayAppend","values":[9007199254740993,1]}',
+        );
+        expect(Operator.arrayRemove(9223372036854775807n)).toEqual(
+            '{"method":"arrayRemove","values":[9223372036854775807]}',
+        );
+        expect(
+            Operator.arrayFilter(Condition.GreaterThan, 9007199254740993n),
+        ).toEqual(
+            '{"method":"arrayFilter","values":["greaterThan",9007199254740993]}',
+        );
+    });
 });
