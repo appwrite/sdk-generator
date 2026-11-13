@@ -1,0 +1,19 @@
+{
+    "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+    "name": "{{ spec.info.title | caseLower }}",
+    "version": "{{ sdk.version }}",
+    "description": "{{ spec.info.title }} skills for AI coding agents, with the hosted {{ spec.info.title }} MCP server.",
+    "author": {
+        "name": "Appwrite",
+        "email": "team@appwrite.io",
+        "url": "https://appwrite.io"
+    },
+    "homepage": "https://appwrite.io/for-agents",
+    "repository": "https://github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName }}",
+    "license": "{{ spec.info.license.name }}",
+    "keywords": [
+        "{{ spec.info.title | caseLower }}",
+        "skills",
+        "mcp"
+    ]
+}
