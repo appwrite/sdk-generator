@@ -15,16 +15,16 @@ final class Rust
      */
     public static function runtimes(): iterable
     {
-        yield 'Rust185' => new Runtime(
+        yield 'Rust188' => new Runtime(
             directory: 'rust',
             language: new Language\Rust(),
             name: 'rust',
             platform: 'server',
             header: 'rust',
             build: [
-                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/rust rust:1.85 cargo test --lib',
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/rust rust:1.88 cargo test --lib',
             ],
-            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/rust rust:1.85 cargo run',
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/rust rust:1.88 cargo run',
             expected: [
                 ...Output::FOO_RESPONSES,
                 ...Output::BAR_RESPONSES,

@@ -117,8 +117,8 @@ class {{ service.name | caseUcfirst }}(client: Client) : Service(client) {
             val responseMap = it as? Map<String, Any>
                 ?: throw Exception("Unable to match response to any expected response model")
             when {
-{% for modelName, conditions in responseDiscriminator %}
-                {% for field, expectedValue in conditions %}responseMap["{{ field | escapeDollarSign }}"]?.toString() == "{{ expectedValue | escapeDollarSign }}"{% if not loop.last %} && {% endif %}{% endfor %} -> {{ sdk.namespace | caseDot }}.models.{{ modelName | caseUcfirst }}.from(map = responseMap)
+{% for case in method | responseCases %}
+                {% for field, expectedValue in case.conditions %}responseMap["{{ field | escapeDollarSign }}"]?.toString() == "{{ expectedValue | escapeDollarSign }}"{% if not loop.last %} && {% endif %}{% endfor %} -> {{ sdk.namespace | caseDot }}.models.{{ case.model | caseUcfirst }}.from(map = responseMap)
 {% endfor %}
                 else -> throw Exception("Unable to match response to any expected response model")
             }

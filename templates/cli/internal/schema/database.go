@@ -9,42 +9,51 @@ import (
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
-	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 )
 
 // `push table` reconciles the DATABASES before the tables, because a table
-// cannot be pushed into a database that does not exist and a database deleted
-// locally has to take its tables with it. Deleting a database is the one
-// destructive step here, which is why it is warned about separately and applied
-// first: if it fails, nothing else has run.
+// cannot be pushed into a database that does not exist. A database the config
+// does not mention is unmanaged: the plan reports it, and only the caller
+// deletes it, after everything else has been pushed.
 
-// DatabaseSyncResult reports what the database pass did.
-type DatabaseSyncResult struct {
-	// Applied is true when any change was made.
-	Applied bool
-	// ResyncNeeded is true when a database was DELETED, which orphans the
-	// tables the config still lists under it. The caller prunes them.
-	ResyncNeeded bool
+// DatabasePlan is what the database pass would change, read before anything is
+// written.
+type DatabasePlan struct {
+	Create []*jsonx.Object
+	Update []*jsonx.Object
+	// Unmanaged exist in the project but neither in the config's tablesDB
+	// array nor as the database of a configured table.
+	Unmanaged []*jsonx.Object
+
+	rows [][]string
 }
 
 // TablesDBPath is the route the tablesDB resource lives at.
 const TablesDBPath = "/tablesdb"
 
-// SyncTablesDBs reconciles the tablesDB entries in the config against the
-// project.
-func SyncTablesDBs(
-	api *client.Client,
-	out io.Writer,
-	prompter prompt.Prompter,
-	local *config.Local,
-) (DatabaseSyncResult, error) {
+// Empty reports whether the plan creates or updates nothing.
+func (p DatabasePlan) Empty() bool { return len(p.rows) == 0 }
+
+// Print renders the creations and updates.
+func (p DatabasePlan) Print(out io.Writer) {
+	if p.Empty() {
+		return
+	}
+
+	output.Log(out, "Found changes in tablesDB resource:")
+	fmt.Fprintf(out, "\n%s\n\n", output.RenderTable(
+		[]string{"id", "action", "key", "remote", "local"}, p.rows))
+}
+
+// PlanTablesDBs diffs the tablesDB entries in the config against the project.
+func PlanTablesDBs(api *client.Client, out io.Writer, local *config.Local) (DatabasePlan, error) {
 	output.Log(out, "Checking for tablesDB changes ...")
 
 	localDatabases := local.ResourceEntries("tablesDB")
 
 	remoteRows, err := api.List(TablesDBPath, "databases", nil)
 	if err != nil {
-		return DatabaseSyncResult{}, err
+		return DatabasePlan{}, err
 	}
 
 	// Each remote row is guarded by a type check requiring a string $id, a
@@ -59,28 +68,18 @@ func SyncTablesDBs(
 		remoteDatabases = append(remoteDatabases, row)
 	}
 
-	if len(localDatabases) == 0 && len(remoteDatabases) == 0 {
-		return DatabaseSyncResult{}, nil
+	referenced := map[string]bool{}
+	for _, table := range local.ResourceEntries("tables") {
+		referenced[table.GetString("databaseId")] = true
 	}
 
-	var (
-		rows      [][]string
-		toCreate  []*jsonx.Object
-		toUpdate  []*jsonx.Object
-		toDelete  []*jsonx.Object
-		headers   = []string{"id", "action", "key", "remote", "local"}
-		findLocal = func(id string) *jsonx.Object { return byID(localDatabases, id) }
-	)
+	var plan DatabasePlan
 
 	for _, remote := range remoteDatabases {
 		id := remote.GetString("$id")
-		if findLocal(id) != nil {
-			continue
+		if byID(localDatabases, id) == nil && !referenced[id] {
+			plan.Unmanaged = append(plan.Unmanaged, remote)
 		}
-		toDelete = append(toDelete, remote)
-		rows = append(rows, []string{
-			id, "deleting", "Database", remote.GetString("name"), "(deleted locally)",
-		})
 	}
 
 	for _, localDatabase := range localDatabases {
@@ -88,8 +87,8 @@ func SyncTablesDBs(
 		remote := byID(remoteDatabases, id)
 
 		if remote == nil {
-			toCreate = append(toCreate, localDatabase)
-			rows = append(rows, []string{
+			plan.Create = append(plan.Create, localDatabase)
+			plan.rows = append(plan.rows, []string{
 				id, "creating", "Database", "(does not exist)", localDatabase.GetString("name"),
 			})
 
@@ -99,7 +98,7 @@ func SyncTablesDBs(
 		changed := false
 		if remote.GetString("name") != localDatabase.GetString("name") {
 			changed = true
-			rows = append(rows, []string{
+			plan.rows = append(plan.rows, []string{
 				id, "updating", "Name",
 				remote.GetString("name"), localDatabase.GetString("name"),
 			})
@@ -109,59 +108,22 @@ func SyncTablesDBs(
 		localEnabled := field(localDatabase, "enabled")
 		if jsString(remoteEnabled) != jsString(localEnabled) {
 			changed = true
-			rows = append(rows, []string{
+			plan.rows = append(plan.rows, []string{
 				id, "updating", "Enabled", jsString(remoteEnabled), jsString(localEnabled),
 			})
 		}
 
 		if changed {
-			toUpdate = append(toUpdate, localDatabase)
+			plan.Update = append(plan.Update, localDatabase)
 		}
 	}
 
-	if len(rows) == 0 {
-		return DatabaseSyncResult{}, nil
-	}
+	return plan, nil
+}
 
-	output.Log(out, "Found changes in tablesDB resource:")
-	fmt.Fprintf(out, "\n%s\n\n", output.RenderTable(headers, rows))
-
-	if len(toDelete) > 0 {
-		printBanner(out, "WARNING: Database deletion will also delete all related tables")
-	}
-
-	confirmed, err := prompter.Confirm(prompt.Question{
-		Message: "Would you like to apply these changes?",
-		Default: false,
-		Flag:    "--force",
-	})
-	if err != nil {
-		return DatabaseSyncResult{}, err
-	}
-	if !confirmed {
-		output.Warn(out, "Skipping push action. Changes were not applied.")
-
-		return DatabaseSyncResult{}, nil
-	}
-
-	// Deletions first: they are the step that can leave the config describing
-	// tables that no longer have a home, and the caller needs to know before
-	// anything else has been written.
-	resyncNeeded := false
-	for _, database := range toDelete {
-		name, id := database.GetString("name"), database.GetString("$id")
-		output.Log(out, "Deleting database %s ( %s ) ...", name, id)
-		if err := api.Call("DELETE", TablesDBPath+"/"+url.PathEscape(id), nil, nil); err != nil {
-			output.Failure(out, "Failed to delete database %s ( %s ): %s", name, id, err)
-
-			return DatabaseSyncResult{}, fmt.Errorf(
-				"database sync failed during deletion of %s, some changes may have been applied", id)
-		}
-		output.Success(out, "Deleted %s ( %s )", name, id)
-		resyncNeeded = true
-	}
-
-	for _, database := range toCreate {
+// ApplyTablesDBs creates and updates the databases in an approved plan.
+func ApplyTablesDBs(api *client.Client, out io.Writer, plan DatabasePlan) error {
+	for _, database := range plan.Create {
 		name, id := database.GetString("name"), database.GetString("$id")
 		output.Log(out, "Creating database %s ( %s ) ...", name, id)
 
@@ -175,13 +137,13 @@ func SyncTablesDBs(
 		if err := api.Call("POST", TablesDBPath, body, nil); err != nil {
 			output.Failure(out, "Failed to create database %s ( %s ): %s", name, id, err)
 
-			return DatabaseSyncResult{}, fmt.Errorf(
+			return fmt.Errorf(
 				"database sync failed during creation of %s, some changes may have been applied", id)
 		}
 		output.Success(out, "Created %s ( %s )", name, id)
 	}
 
-	for _, database := range toUpdate {
+	for _, database := range plan.Update {
 		name, id := database.GetString("name"), database.GetString("$id")
 		output.Log(out, "Updating database %s ( %s ) ...", name, id)
 
@@ -194,13 +156,13 @@ func SyncTablesDBs(
 		if err := api.Call("PUT", TablesDBPath+"/"+url.PathEscape(id), body, nil); err != nil {
 			output.Failure(out, "Failed to update database %s ( %s ): %s", name, id, err)
 
-			return DatabaseSyncResult{}, fmt.Errorf(
+			return fmt.Errorf(
 				"database sync failed during update of %s, some changes may have been applied", id)
 		}
 		output.Success(out, "Updated %s ( %s )", name, id)
 	}
 
-	return DatabaseSyncResult{Applied: true, ResyncNeeded: resyncNeeded}, nil
+	return nil
 }
 
 // isTablesDBResource reports whether a remote row is shaped like a database.

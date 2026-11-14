@@ -143,7 +143,7 @@ regenerate_examples() {
         composer install --ignore-platform-reqs --no-interaction --prefer-dist
     fi
 
-    php example.php
+    php -d memory_limit=-1 example.php
 
     if grep -R '"PLACEHOLDER"' "$ROOT"/templates/*/*lock*.twig >/dev/null 2>&1; then
         echo "ERROR: unresolved PLACEHOLDER values remain in generated lockfile templates" >&2

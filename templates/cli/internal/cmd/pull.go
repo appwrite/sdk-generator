@@ -161,12 +161,10 @@ func runPullResource(command *cobra.Command, resource flatResource) error {
 // internal/sdk is the constructor for everything the generated commands do;
 // this exists only because `pull` reads console-shaped list endpoints through
 // the raw client, and it deliberately applies the SAME rules -- environment
-// override, the project's own endpoint, and the session-endpoint guard.
+// variable override, the project environment, the project's own endpoint, and
+// the session-endpoint guard.
 func projectAPI(global *config.Global, local *config.Local) (*client.Client, error) {
-	projectID := local.Data.GetString("projectId")
-	if value := osGetenv(sdk.EnvProjectID); value != "" {
-		projectID = value
-	}
+	projectID := linkedProjectID(local)
 	if projectID == "" {
 		return nil, fmt.Errorf(
 			"project is not set. Run `%s init project` first", app.ExecutableName)
@@ -196,6 +194,7 @@ func projectAPI(global *config.Global, local *config.Local) (*client.Client, err
 	api := client.New(endpoint, app.Version).
 		WithoutResponseFormat().
 		SetProject(projectID).
+		SetEnvironment(linkedEnvironmentID(local)).
 		SetLocale("en-US")
 
 	switch {
@@ -216,6 +215,22 @@ func projectAPI(global *config.Global, local *config.Local) (*client.Client, err
 	}
 
 	return api, nil
+}
+
+// linkedProjectID is the project `push` and `pull` act on: APPWRITE_PROJECT_ID,
+// else the config's.
+func linkedProjectID(local *config.Local) string {
+	if value := osGetenv(sdk.EnvProjectID); value != "" {
+		return value
+	}
+
+	return local.Data.GetString("projectId")
+}
+
+// linkedEnvironmentID is the environment of that project they act in, or ""
+// for the project itself.
+func linkedEnvironmentID(local *config.Local) string {
+	return sdk.EnvironmentFor(linkedProjectID(local), local)
 }
 
 // osGetenv keeps every environment read in this package greppable.

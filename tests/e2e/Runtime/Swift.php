@@ -37,6 +37,7 @@ final class Swift
                 ...Output::QUERY_ENCODING_RESPONSES,
                 ...Output::TEXT_RESPONSES,
                 ...Output::TEXT_UPLOAD_RESPONSES,
+                ...Output::UNION_SHARED_MODEL_RESPONSES,
                 ...Output::OPTIONAL_ATTACHMENT_RESPONSES,
                 ...Output::MULTIPART_OBJECT_RESPONSES,
                 ...Output::UPLOAD_RESPONSES,

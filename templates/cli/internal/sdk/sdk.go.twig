@@ -64,6 +64,9 @@ func (c *Context) base(endpoint string) sdkclient.Client {
 	// setLocale("en-US") on both clients in sdks.ts. The API localises some
 	// response strings from it, so omitting it changed what came back.
 	client.AddHeader("X-Appwrite-Locale", "en-US")
+	if reason := internalclient.ReasonHeader(); reason != "" {
+		client.AddHeader(internalclient.HeaderReason, reason)
+	}
 
 	return client
 }
@@ -295,6 +298,11 @@ func (c *Context) ForProject(projectID string) (sdkclient.Client, error) {
 	client := c.base(endpoint)
 	client.Config["project"] = projectID
 	client.AddHeader("X-Appwrite-Project", projectID)
+	if environmentID := environmentFor(
+		projectID, c.localValue("projectId"), c.localValue("environmentId"),
+	); environmentID != "" {
+		client.AddHeader("X-Appwrite-Environment", environmentID)
+	}
 	// The mode is set by authenticate: admin for a console session, default
 	// for an API key. Setting it here unconditionally would put an API key in
 	// admin mode, which the API rejects.
@@ -303,6 +311,40 @@ func (c *Context) ForProject(projectID string) (sdkclient.Client, error) {
 	}
 
 	return client, nil
+}
+
+// EnvironmentFor returns the environment of projectID that a project call
+// acts in, or "" for the project itself. local is the project config, or nil
+// when there is none.
+//
+// Every project client -- this package's and the raw one `push` and `pull`
+// build -- answers it the same way, so a command cannot read from one
+// environment and write to another.
+func EnvironmentFor(projectID string, local *config.Local) string {
+	configProjectID, configEnvironmentID := "", ""
+	if local != nil {
+		configProjectID = local.Data.GetString("projectId")
+		configEnvironmentID = local.Data.GetString("environmentId")
+	}
+
+	return environmentFor(projectID, configProjectID, configEnvironmentID)
+}
+
+// environmentFor is EnvironmentFor over the config's two values.
+//
+// APPWRITE_ENVIRONMENT_ID wins, as APPWRITE_PROJECT_ID does. The config's
+// environmentId is honoured only for the config's own project: an environment
+// ID means something only inside the project it belongs to, so a CI job that
+// points APPWRITE_PROJECT_ID at another project must not inherit it.
+func environmentFor(projectID, configProjectID, configEnvironmentID string) string {
+	if environmentID := osGetenv(EnvEnvironmentID); environmentID != "" {
+		return environmentID
+	}
+	if projectID == "" || projectID != configProjectID {
+		return ""
+	}
+
+	return configEnvironmentID
 }
 
 // osGetenv is os.Getenv, named so every environment read in this file is

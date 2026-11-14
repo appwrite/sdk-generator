@@ -93,6 +93,7 @@ final class ReactNative
                 ...Output::REACT_NATIVE_PUSH_JS_RESPONSES,
                 ...Output::PUSH_CLOSE_WHILE_CONNECTING_RESPONSES,
                 ...Output::PUSH_CLOSE_RIGHT_AFTER_SUBSCRIBE_RESPONSES,
+                ...Output::REACT_NATIVE_PUSH_TLS_RESPONSES,
                 ...Output::PUSH_BACKGROUND_RESPONSES,
                 ...Output::PUSH_NATIVE_SESSION_COOKIE_RESPONSES,
                 ...Output::PUSH_NOTIFICATION_OPENED_RESPONSES,

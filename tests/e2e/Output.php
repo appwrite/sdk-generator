@@ -166,6 +166,10 @@ final class Output
         'width=0,height=64,name=zero',
     ];
 
+    public const array UNION_SHARED_MODEL_RESPONSES = [
+        'GET:/v1/mock/tests/union:passed',
+    ];
+
     public const array UNION_RESPONSES = [
         'GET:/v1/mock/tests/union:passed',
         'test-data',
@@ -375,6 +379,17 @@ final class Output
         'Push notification content JS:passed',
     ];
 
+    // React Native on Android: the transport has the native module verify the broker's certificate.
+    public const array REACT_NATIVE_PUSH_TLS_RESPONSES = [
+        'Push TLS hostname match:passed',
+        'Push TLS hostname mismatch:passed',
+        'Push TLS SAN mismatch:passed',
+        'Push TLS other certificate:passed',
+        'Push TLS no native module:passed',
+        'Push TLS ECDSA certificate:passed',
+        'Push TLS insecure:passed',
+    ];
+
     // React Native on Android: the tap that launched the app is reported once, later taps as events.
     public const array PUSH_NOTIFICATION_OPENED_RESPONSES = [
         'Push notification opened:passed',
@@ -384,6 +399,7 @@ final class Output
     public const array REACT_NATIVE_PUSH_COOKIE_REFRESH_RESPONSES = [
         'Push background cookie refresh:passed',
         'Push background reconnect credential:passed',
+        'Push background run reconnects:passed',
         'Push background drain:passed',
     ];
 

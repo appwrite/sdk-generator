@@ -598,7 +598,7 @@ class Rust extends Language
     }
 
     /**
-     * Layout a function signature the way rustfmt 1.85 does at max_width 100.
+     * Layout a function signature the way rustfmt 1.88 does at max_width 100.
      *
      * @param list<string> $params
      */
@@ -622,7 +622,7 @@ class Rust extends Language
     }
 
     /**
-     * Layout a function call the way rustfmt 1.85 does (fn_call_width 60, max_width 100).
+     * Layout a function call the way rustfmt 1.88 does (fn_call_width 60, max_width 100).
      *
      * @param list<string> $args
      */
@@ -697,7 +697,7 @@ class Rust extends Language
     }
 
     /**
-     * Layout `let path = "...".to_string().replace(...)` the way rustfmt 1.85 does.
+     * Layout `let path = "...".to_string().replace(...)` the way rustfmt 1.88 does.
      *
      * @param list<string> $replaces Each entry starts with `.replace(...)`
      */

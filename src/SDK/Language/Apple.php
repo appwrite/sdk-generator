@@ -62,6 +62,12 @@ class Apple extends Swift
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/Tests/{{ spec.info.title | caseUcfirst}}Tests/TrackingTests.swift',
+                'requires'      => 'analytics',
+                'template'      => 'apple/Tests/TrackingTests.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/Tests/{{ spec.info.title | caseUcfirst}}Tests/MessageHandlerTests.swift',
                 'template'      => 'apple/Tests/MessageHandlerTests.swift.twig',
             ],
@@ -280,6 +286,12 @@ class Apple extends Swift
                 'scope'         => 'default',
                 'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Services/PushServiceExtension.swift',
                 'template'      => '/apple/Sources/Services/PushServiceExtension.swift.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/Sources/{{ spec.info.title | caseUcfirst}}/Tracking.swift',
+                'requires'      => 'analytics',
+                'template'      => '/apple/Sources/Tracking.swift.twig',
             ],
             [
                 'scope'         => 'default',

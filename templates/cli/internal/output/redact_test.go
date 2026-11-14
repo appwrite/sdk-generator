@@ -17,6 +17,12 @@ func TestIsSensitiveKeyCoversEverySensitiveKey(t *testing.T) {
 			}
 		}
 	}
+	// So is every field the spec marks `format: password`, by its exact name.
+	for _, field := range secretFields {
+		if !IsSensitiveKey(field) {
+			t.Errorf("IsSensitiveKey(%q) = false, want true (spec secret field)", field)
+		}
+	}
 }
 
 // keySpellings returns the ways a sensitive key realistically appears in an API

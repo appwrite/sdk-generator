@@ -241,6 +241,8 @@ foreach (['boolean', 'missing'] as $scenario) {
 }
 echo "compound invalid response: passed\n";
 
+echo $general->getUnion('shared')->result . "\n";
+
 $message = 'conversation without a required file';
 echo $general->optionalUpload($message)->result . "\n";
 echo $general->optionalUpload($message, InputFile::withPath(__DIR__ . '/../../../resources/file.png'))->result . "\n";

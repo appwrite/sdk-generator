@@ -1,18 +1,22 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
-// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
-import 'dart:html' as html;
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:mqtt5_client/mqtt5_client.dart';
 import 'package:mqtt5_client/mqtt5_browser_client.dart';
 import 'package:typed_data/typed_data.dart' as typed;
+import 'package:web/web.dart' as web;
 import 'client.dart';
 import 'exception.dart';
 import 'mqtt.dart';
 import 'mqtt_message.dart';
 import 'mqtt_notification.dart';
+{% if services['analytics'] is defined %}
+import 'tracking.dart';
+{% endif %}
 
 Push createPush(Client client) => PushWeb(client);
 
@@ -437,9 +441,9 @@ class PushWeb implements Push {
   }
 
   void _requestNotificationPermission() {
-    if (html.Notification.permission != 'granted') {
+    if (web.Notification.permission != 'granted') {
       unawaited(
-        html.Notification.requestPermission().then<void>(
+        web.Notification.requestPermission().toDart.then<void>(
           (_) {},
           onError: _report,
         ),
@@ -475,6 +479,16 @@ class PushWeb implements Push {
     final subscription = _opened.stream.listen(callback);
     return () => unawaited(subscription.cancel());
   }
+{% if services['analytics'] is defined %}
+
+  Tracking? _tracking;
+
+  @override
+  Push setTracking(Tracking tracking) {
+    _tracking = tracking;
+    return this;
+  }
+{% endif %}
 
   @override
   void close() {
@@ -674,30 +688,46 @@ class PushWeb implements Push {
       );
       final content = PushNotificationContent.of(message);
       final shownTitles = <String>{};
+{% if services['analytics'] is defined %}
+      var notified = false;
+{% endif %}
       for (final subscription in _subscriptions.values) {
         if (_matches(subscription.filter, topic)) {
           subscription.callback(message);
+{% if services['analytics'] is defined %}
+          notified |= subscription.background && content.visible;
+{% endif %}
           // Notification is per-subscription: only subs that opted in show one, each
           // title once. A title the server sent replaces theirs, so it is shown once.
           final title = content.titleOr(subscription.title ?? topic);
           if (subscription.background &&
               content.visible &&
-              (html.document.visibilityState != 'visible' ||
+              (web.document.visibilityState != 'visible' ||
                   subscription.notifyInForeground) &&
-              html.Notification.supported &&
-              html.Notification.permission == 'granted' &&
+              globalContext.has('Notification') &&
+              web.Notification.permission == 'granted' &&
               shownTitles.add(title)) {
-            html.Notification(
+            web.Notification(
               title,
-              body: content.bodyFor(message),
-            ).onClick.listen((_) {
-              _opened.add(
-                PushNotificationOpened.fromPayload(topic, message.data),
+              web.NotificationOptions(body: content.bodyFor(message) ?? ''),
+            ).onclick = ((web.Event _) {
+              final opened = PushNotificationOpened.fromPayload(
+                topic,
+                message.data,
               );
-            });
+{% if services['analytics'] is defined %}
+              _tracking?.pushOpened(messageId: opened.messageId);
+{% endif %}
+              _opened.add(opened);
+            }).toJS;
           }
         }
       }
+{% if services['analytics'] is defined %}
+      if (notified) {
+        _tracking?.pushReceived(messageId: content.messageId);
+      }
+{% endif %}
     }
   }
 
@@ -928,7 +958,7 @@ String? _clientSession(Client client) {
   }
   try {
     final fallback =
-        jsonDecode(html.window.localStorage['cookieFallback'] ?? '{}')
+        jsonDecode(web.window.localStorage.getItem('cookieFallback') ?? '{}')
             as Map<String, dynamic>;
     final value = fallback['a_session_${client.config['project'] ?? ''}'];
     return value is String && value.isNotEmpty ? value : null;

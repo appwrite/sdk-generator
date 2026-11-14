@@ -99,6 +99,9 @@ func runPushSettings(command *cobra.Command) error {
 	if err != nil {
 		return err
 	}
+	if err := refuseSettingsInEnvironment("push", context.local); err != nil {
+		return err
+	}
 
 	console, _, err := consoleClient()
 	if err != nil {
@@ -137,7 +140,16 @@ func runPushSettings(command *cobra.Command) error {
 	output.Log(out, "Checking for changes ...")
 
 	var changes []change
+	if name := context.local.Data.GetString("projectName"); name != "" && name != project.GetString("name") {
+		changes = append(changes, change{
+			ID:     "Project",
+			Key:    "name",
+			Remote: project.GetString("name"),
+			Local:  name,
+		})
+	}
 	changes = append(changes, settingsChanges(remote, local, "services", "Service")...)
+	changes = append(changes, settingsChanges(remote, local, "protocols", "Protocol")...)
 	changes = append(changes, settingsChanges(
 		remote.GetObject("auth"), local.GetObject("auth"), "methods", "Auth method")...)
 	changes = append(changes, settingsChanges(
@@ -411,34 +423,25 @@ func desiredMockNumbers(security *jsonx.Object) (map[string]string, []string) {
 
 // settingsChanges compares one nested settings group.
 //
-// It iterates the REMOTE keys,
-// so a setting the config invents but the project does not have is not a
-// change -- there is nothing to overwrite.
+// Only keys both sides have are compared: a setting the config invents but the
+// project does not have has nothing to overwrite, and one the config omits is
+// left alone by the push.
 func settingsChanges(remote, local *jsonx.Object, group, label string) []change {
-	if remote == nil {
+	if remote == nil || local == nil {
 		return nil
 	}
 
-	remoteGroup := remote.GetObject(group)
-	if remoteGroup == nil {
+	remoteGroup, localGroup := remote.GetObject(group), local.GetObject(group)
+	if remoteGroup == nil || localGroup == nil {
 		return nil
-	}
-
-	var localGroup *jsonx.Object
-	if local != nil {
-		localGroup = local.GetObject(group)
 	}
 
 	var changes []change
 	for _, key := range remoteGroup.Keys() {
 		remoteValue, _ := remoteGroup.Get(key)
 
-		var localValue any
-		if localGroup != nil {
-			localValue, _ = localGroup.Get(key)
-		}
-
-		if equalValues(remoteValue, localValue) {
+		localValue, ok := localGroup.Get(key)
+		if !ok || equalValues(remoteValue, localValue) {
 			continue
 		}
 
@@ -1689,7 +1692,9 @@ func (c *pushContext) reportDeployment(
 	if link := c.previewURL(resource, id); link != "" {
 		output.Log(out, "Preview link: %s", link)
 	}
-	output.Log(out, "Deployment page: %s", consoleURL)
+	if consoleURL != "" {
+		output.Log(out, "Deployment page: %s", consoleURL)
+	}
 }
 
 // hasScreenshots reports whether a site deployment has a preview image.
@@ -1846,8 +1851,14 @@ func (c *pushContext) ensureDefaultRule(
 			consoleErr = err
 		}
 	}
-	if len(domains) == 0 && resource.Name == "function" && label != "" {
+	if len(domains) == 0 {
+		// Cloud's domains are fixed, so an API key without a console session
+		// still gets a default domain there.
 		domains = cloudFunctionDomains(c.api.Endpoint)
+		if len(domains) > 0 && (resource.Name != "function" || label == "") {
+			// The Sites domain, which Cloud also gives a function by default
+			domains = domains[len(domains)-1:]
+		}
 	}
 	if len(domains) == 0 && consoleErr != nil {
 		output.Warn(out,
@@ -2025,11 +2036,20 @@ func endpointRegion(endpoint string) string {
 	return region
 }
 
-// deploymentConsoleURL builds the console page for a deployment.
+// deploymentConsoleURL builds the console page for a deployment, or "" when
+// there is none to link to.
+//
+// A console page is addressed by project ID, and an environment has none of its
+// own: the link would open the project it belongs to, where the deployment does
+// not exist.
 func (c *pushContext) deploymentConsoleURL(
 	resource deployable,
 	id, deploymentID string,
 ) string {
+	if linkedEnvironmentID(c.local) != "" {
+		return ""
+	}
+
 	return fmt.Sprintf("%s/projects/%s%s/deployments/%s",
 		consoleBaseURL(c.api.Endpoint), c.local.Data.GetString("projectId"),
 		resource.itemPath(id), deploymentID)

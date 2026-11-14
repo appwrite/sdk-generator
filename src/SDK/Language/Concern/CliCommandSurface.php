@@ -93,8 +93,8 @@ trait CliCommandSurface
         [
             'title' => 'GET STARTED',
             'commands' => [
-                'login', 'list-organizations', 'list-projects', 'init', 'pull',
-                'push', 'run', 'whoami',
+                'login', 'list-organizations', 'list-projects', 'init',
+                'pull', 'push', 'run', 'whoami',
             ],
         ],
         [
@@ -185,7 +185,7 @@ trait CliCommandSurface
      */
     protected const array HELP_OPTION_ORDER = [
         '--version', '--help', '--json', '--raw', '--show-secrets', '--verbose',
-        '--force', '--all', '--id', '--config-file', '--report',
+        '--force', '--all', '--id', '--config-file', '--reason', '--report',
     ];
 
     /**
@@ -400,6 +400,13 @@ trait CliCommandSurface
     {
         if ($this->isCliGraphQLInput($parameter, $method, $service)) {
             return 'Raw GraphQL document, or a JSON request object or array for variables, operation names, or batching.';
+        }
+
+        if ($this->getSchemaType($parameter) === self::TYPE_ARRAY) {
+            $description = rtrim($parameter->description);
+            $separator = $description === '' || str_ends_with($description, '.') ? '' : '.';
+
+            return trim($description . $separator . ' Repeat the flag for each value.');
         }
 
         return $parameter->description;

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -155,5 +156,68 @@ func TestServiceStatusesReportFailure(t *testing.T) {
 	context := &pushContext{api: client.New(server.URL, "test")}
 	if err := context.applyEnabled("/project/services/", states); err == nil {
 		t.Error("a rejected settings write was reported as success")
+	}
+}
+
+func TestSettingsChangesListOnlyKeysTheConfigSets(t *testing.T) {
+	remote := jsonx.NewObject()
+	if err := json.Unmarshal([]byte(`{
+		"services": {"account": true, "avatars": true},
+		"protocols": {"rest": true, "graphql": true},
+		"auth": {"security": {"duration": 31536000, "limit": 0}}
+	}`), remote); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, test := range []struct {
+		name  string
+		local string
+		want  []change
+	}{
+		{name: "no settings block", local: `{}`},
+		{name: "unchanged keys", local: `{"services": {"account": true}, "auth": {"security": {"duration": 31536000}}}`},
+		{
+			name:  "one changed key",
+			local: `{"services": {"account": true, "avatars": false}}`,
+			want: []change{
+				{ID: "Service", Key: "avatars", Remote: "true", Local: "false"},
+			},
+		},
+		{
+			name:  "changed protocol",
+			local: `{"protocols": {"graphql": false}}`,
+			want: []change{
+				{ID: "Protocol", Key: "graphql", Remote: "true", Local: "false"},
+			},
+		},
+		{
+			name:  "changed security key",
+			local: `{"auth": {"security": {"duration": 3600}}}`,
+			want: []change{
+				{ID: "Auth security", Key: "duration", Remote: "31536000", Local: "3600"},
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			local := jsonx.NewObject()
+			if err := json.Unmarshal([]byte(test.local), local); err != nil {
+				t.Fatal(err)
+			}
+
+			var got []change
+			got = append(got, settingsChanges(remote, local, "services", "Service")...)
+			got = append(got, settingsChanges(remote, local, "protocols", "Protocol")...)
+			got = append(got, settingsChanges(
+				remote.GetObject("auth"), local.GetObject("auth"), "security", "Auth security")...)
+
+			if len(got) != len(test.want) {
+				t.Fatalf("changes = %+v, want %+v", got, test.want)
+			}
+			for index := range got {
+				if got[index] != test.want[index] {
+					t.Errorf("change %d = %+v, want %+v", index, got[index], test.want[index])
+				}
+			}
+		})
 	}
 }

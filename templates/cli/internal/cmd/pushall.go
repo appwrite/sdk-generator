@@ -123,6 +123,7 @@ func newPushAllCommand() *cobra.Command {
 	}
 
 	negatableBool(command.Flags(), &logs, "logs", "Stream deployment build logs")
+	addPruneFlag(command)
 
 	return command
 }
@@ -164,7 +165,8 @@ func runPushActions(command *cobra.Command, actions []pushAction, everything boo
 				continue
 			}
 			if err := action.Run(command); err != nil {
-				if skipsConsoleOnly(command, action.Value, "push", err) {
+				if skipsConsoleOnly(command, action.Value, "push", err) ||
+					skipsInEnvironment(command, action.Value, err) {
 					continue
 				}
 

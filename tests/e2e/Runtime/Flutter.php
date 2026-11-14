@@ -42,6 +42,7 @@ final class Flutter
                 ...Output::PATH_DOT_RESPONSES,
                 ...Output::TEXT_RESPONSES,
                 ...Output::TEXT_UPLOAD_RESPONSES,
+                ...Output::UNION_SHARED_MODEL_RESPONSES,
                 ...Output::OPTIONAL_ATTACHMENT_RESPONSES,
                 ...Output::MULTIPART_OBJECT_RESPONSES,
                 ...Output::UPLOAD_RESPONSES,
@@ -100,6 +101,7 @@ final class Flutter
                 ...Output::PATH_DOT_RESPONSES,
                 ...Output::TEXT_RESPONSES,
                 ...Output::TEXT_UPLOAD_RESPONSES,
+                ...Output::UNION_SHARED_MODEL_RESPONSES,
                 ...Output::OPTIONAL_ATTACHMENT_RESPONSES,
                 ...Output::MULTIPART_OBJECT_RESPONSES,
                 ...Output::UPLOAD_RESPONSES,
@@ -142,6 +144,22 @@ final class Flutter
             header: 'flutter',
             build: [],
             command: 'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/e2e/languages/flutter ghcr.io/cirruslabs/flutter:stable sh run_web.sh',
+            expected: [
+                ...Output::PUSH_RESPONSES,
+                ...Output::PUSH_SIGN_IN_SESSION_RESPONSES,
+                ...Output::PUSH_ERROR_RESPONSES,
+                ...Output::PUSH_CREDENTIAL_SWITCH_RESPONSES
+            ],
+        );
+
+        yield 'FlutterWebWasm' => new Runtime(
+            directory: 'flutter',
+            language: new Language\Flutter(),
+            name: 'flutter',
+            platform: 'client',
+            header: 'flutter',
+            build: [],
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app:rw -w /app/tests/e2e/languages/flutter ghcr.io/cirruslabs/flutter:stable sh run_web.sh --wasm',
             expected: [
                 ...Output::PUSH_RESPONSES,
                 ...Output::PUSH_SIGN_IN_SESSION_RESPONSES,

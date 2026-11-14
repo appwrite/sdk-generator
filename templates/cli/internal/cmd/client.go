@@ -18,18 +18,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Configures an endpoint, project and API key without going through the
-// browser login. Scripts and CI use it, and the conformance harness points the
+// Configures an endpoint, project, environment and API key without going
+// through the browser login. Scripts and CI use it, and the conformance harness points the
 // CLI at the mock API with it, so it is not optional.
 
 func newClientCommand() *cobra.Command {
 	var (
-		endpoint   string
-		projectID  string
-		key        string
-		selfSigned string
-		debug      bool
-		reset      bool
+		endpoint      string
+		projectID     string
+		environmentID string
+		key           string
+		selfSigned    string
+		debug         bool
+		reset         bool
 	)
 
 	command := &cobra.Command{
@@ -42,8 +43,8 @@ func newClientCommand() *cobra.Command {
 			// which is the useful behaviour when someone types `client` to find
 			// out what it does.
 			if !flags.Changed("endpoint") && !flags.Changed("project-id") &&
-				!flags.Changed("key") && !flags.Changed("self-signed") &&
-				!debug && !reset {
+				!flags.Changed("environment-id") && !flags.Changed("key") &&
+				!flags.Changed("self-signed") && !debug && !reset {
 				return command.Help()
 			}
 
@@ -125,6 +126,14 @@ func newClientCommand() *cobra.Command {
 					return err
 				}
 			}
+			// After the project, which drops the environment of a project it
+			// replaces: `--project-id other --environment-id staging` names
+			// staging of the new project.
+			if flags.Changed("environment-id") {
+				if err := setLocalEnvironment(environmentID); err != nil {
+					return err
+				}
+			}
 			if flags.Changed("key") {
 				global.SetCurrentValue(config.PreferenceKey, key)
 			}
@@ -145,6 +154,8 @@ func newClientCommand() *cobra.Command {
 	flags := command.Flags()
 	flags.StringVarP(&endpoint, "endpoint", "e", "", "Set your Appwrite server endpoint")
 	flags.StringVarP(&projectID, "project-id", "p", "", "Set your Appwrite project ID")
+	flags.StringVar(&environmentID, "environment-id", "",
+		"Set the environment of the project to act in (empty for the project itself)")
 	flags.StringVarP(&key, "key", "k", "", "Set your Appwrite server's API key")
 	flags.StringVar(&selfSigned, "self-signed", "",
 		"Configure the CLI to use a self-signed certificate ( true or false )")
@@ -381,6 +392,29 @@ func setLocalProject(command *cobra.Command, global *config.Global, projectID st
 	return local.Write()
 }
 
+// setLocalEnvironment records the project environment in appwrite.config.json,
+// next to the project it belongs to. An empty ID removes it.
+//
+// No request is made to check it: like the project ID, it has to be settable
+// offline, and the API names an environment that does not exist on the first
+// command that uses it.
+func setLocalEnvironment(environmentID string) error {
+	local, err := config.LoadOrCreateLocal(config.FindLocalPath())
+	if err != nil {
+		return err
+	}
+
+	if environmentID != "" && local.Data.GetString("projectId") == "" {
+		return fmt.Errorf(
+			"an environment belongs to a project. Pass --project-id too, or run `%s init project` first",
+			app.ExecutableName)
+	}
+
+	local.SetEnvironmentID(environmentID)
+
+	return local.Write()
+}
+
 // regionalEndpointForProject asks the API which region a project is in and
 // returns the endpoint that serves it, or "" to leave the endpoint alone.
 //
@@ -450,7 +484,8 @@ func printClientDebug(command *cobra.Command, global *config.Global) error {
 	// projectId while sitting in a directory whose config named one -- the
 	// least useful thing a diagnostic can do.
 	projectID, projectName, organizationID := "", "", ""
-	if local, err := config.LoadLocal(config.FindLocalPath()); err == nil {
+	local, err := config.LoadLocal(config.FindLocalPath())
+	if err == nil {
 		projectID = local.Data.GetString("projectId")
 		projectName = local.Data.GetString("projectName")
 		organizationID = local.Data.GetString("organizationId")
@@ -461,6 +496,9 @@ func printClientDebug(command *cobra.Command, global *config.Global) error {
 	if environment := os.Getenv(sdk.EnvOrganizationID); environment != "" {
 		organizationID = environment
 	}
+	// Resolved the way project commands resolve it, so the report says which
+	// environment they would act in rather than what the config happens to hold.
+	environmentID := sdk.EnvironmentFor(projectID, local)
 
 	// Rendered rather than printed, so --json and --raw work here as they do
 	// everywhere else and the redaction hint comes from the same place.
@@ -480,6 +518,7 @@ func printClientDebug(command *cobra.Command, global *config.Global) error {
 	report.Set("organizationId", organizationID)
 	report.Set("projectId", projectID)
 	report.Set("projectName", projectName)
+	report.Set("environmentId", environmentID)
 
 	return app.Render(report)
 }

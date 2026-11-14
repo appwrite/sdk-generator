@@ -740,6 +740,14 @@ class Client {
                 queryParams +=
                     '&jwt=' + encodeURIComponent(this.config.jwt as string);
             }
+{%~ if globalHeaders.Environment is defined %}
+
+            if (this.config.environment) {
+                queryParams +=
+                    '&environment=' +
+                    encodeURIComponent(this.config.environment);
+            }
+{%~ endif %}
 
             const url =
                 this.config.endpointRealtime + '/realtime?' + queryParams;
@@ -837,10 +845,19 @@ class Client {
                                         'cookieFallback',
                                     ) ?? '{}',
                                 );
+{%~ if globalHeaders.Environment is defined %}
+                                // An environment's session is named by its project and environment IDs.
+                                const { project, environment } = this.config;
+                                const name = environment
+                                    ? `a_session_${project}_env_${environment}`
+                                    : `a_session_${project}`;
+                                session = cookie?.[name];
+{%~ else %}
                                 session =
                                     cookie?.[
                                         `a_session_${this.config.project}`
                                     ];
+{%~ endif %}
                             }
                             if (session && !messageData?.user) {
                                 this.realtime.socket?.send(
@@ -860,8 +877,17 @@ class Client {
                                 window.localStorage.getItem('cookieFallback') ??
                                     '{}',
                             );
+{%~ if globalHeaders.Environment is defined %}
+                            // An environment's session is named by its project and environment IDs.
+                            const { project, environment } = this.config;
+                            const name = environment
+                                ? `a_session_${project}_env_${environment}`
+                                : `a_session_${project}`;
+                            session = cookie?.[name];
+{%~ else %}
                             session =
                                 cookie?.[`a_session_${this.config.project}`];
+{%~ endif %}
                         }
                         if (session && !messageData?.user) {
                             this.realtime.socket?.send(

@@ -58,6 +58,12 @@ func registerHostCommands(root *cobra.Command) {
 		"Pushing reads appwrite.config.json and your source files from disk, which a "+
 			"browser tab has no access to. Run `"+app.ExecutableName+" push` from a "+
 			"local checkout of your project."))
+
+	root.AddCommand(newUnavailableCommand("terminal",
+		"Browse your projects in an interactive terminal interface",
+		"The terminal interface draws a full screen and reads keys straight from a "+
+			"terminal, which this one cannot hand it. Run `"+app.ExecutableName+" terminal` "+
+			"from a CLI installed on your machine."))
 }
 
 // Accept all arguments so unavailable subcommands and flags show the same guidance.

@@ -38,6 +38,7 @@ final class Dart
                     ...Output::PATH_DOT_RESPONSES,
                     ...Output::TEXT_RESPONSES,
                     ...Output::TEXT_UPLOAD_RESPONSES,
+                    ...Output::UNION_SHARED_MODEL_RESPONSES,
                     ...Output::OPTIONAL_ATTACHMENT_RESPONSES,
                     ...Output::MULTIPART_OBJECT_RESPONSES,
                     ...Output::UPLOAD_RESPONSES,
@@ -62,5 +63,22 @@ final class Dart
                 ],
             );
         }
+
+        yield 'DartWasm' => new Runtime(
+            directory: 'dart',
+            language: new Language\Dart(),
+            name: 'dart',
+            platform: 'server',
+            header: 'dart',
+            build: [
+                'docker run --rm -v $(pwd):/app -w /app/tests/e2e/languages/dart dart:stable sh -c "dart pub get && dart compile wasm wasm.dart -o wasm/main.wasm"',
+            ],
+            command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/dart node:24 node wasm.mjs',
+            expected: [
+                ...Output::PING_RESPONSE,
+                ...Output::FOO_RESPONSES,
+                ...Output::BAR_RESPONSES
+            ],
+        );
     }
 }

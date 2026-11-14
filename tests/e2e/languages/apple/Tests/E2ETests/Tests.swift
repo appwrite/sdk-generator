@@ -4,6 +4,7 @@ import Foundation
 import FoundationNetworking
 #endif
 import Appwrite
+import AppwriteModels
 import JSONCodable
 import AppwriteEnums
 import NIO
@@ -171,6 +172,9 @@ class Tests: XCTestCase {
         let zoneFile = InputFile.fromPath("\(FileManager.default.currentDirectoryPath)/../../../resources/file.png")
         imported = try await plaintext.importZone(records: "www 3600 IN A 192.0.2.1", zone: zoneFile)
         print(imported)
+
+        let union = try await general.getUnion(type: "shared") as! AppwriteModels.UnionMock
+        print(union.result)
 
         let message = "conversation without a required file"
         mock = try await general.optionalUpload(message: message)

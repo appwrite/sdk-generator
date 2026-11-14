@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	internalclient "github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 )
 
@@ -240,5 +241,65 @@ func TestCookieSessionGetsAdminMode(t *testing.T) {
 	}
 	if client.Headers["X-Appwrite-Mode"] != config.ModeAdmin {
 		t.Errorf("mode = %q, want %q", client.Headers["X-Appwrite-Mode"], config.ModeAdmin)
+	}
+}
+
+// The environment is a project call's alone: the console and project
+// discovery address projects by ID and must never carry one, even with
+// APPWRITE_ENVIRONMENT_ID set.
+func TestOnlyProjectCallsActInAnEnvironment(t *testing.T) {
+	context := withSession(t, map[string]any{"endpoint": localEndpoint, "cookie": "session=1"})
+	inProject(t, `{"projectId": "p", "environmentId": "staging"}`)
+
+	project, err := context.ForProject("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := project.Headers["X-Appwrite-Environment"]; got != "staging" {
+		t.Errorf("project call environment = %q, want staging", got)
+	}
+
+	t.Setenv(EnvEnvironmentID, "preview")
+	console, err := context.ForConsole()
+	if err != nil {
+		t.Fatal(err)
+	}
+	discovered, err := context.ForSessionProject("p", localEndpoint)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, client := range map[string]map[string]string{
+		"console": console.Headers, "discovery": discovered.Headers,
+	} {
+		if got, ok := client["X-Appwrite-Environment"]; ok {
+			t.Errorf("%s call sent environment %q", name, got)
+		}
+	}
+}
+
+// The reason goes on console calls as well as project calls: deleting a
+// project is exactly the kind of change someone wants explained.
+func TestReasonReachesConsoleAndProjectCalls(t *testing.T) {
+	previous := internalclient.Reason
+	internalclient.Reason = "Clean up after the demo"
+	t.Cleanup(func() { internalclient.Reason = previous })
+
+	context := withSession(t, map[string]any{"endpoint": localEndpoint, "cookie": "session=1"})
+	inProject(t, `{"projectId": "p"}`)
+
+	console, err := context.ForConsole()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project, err := context.ForProject("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, headers := range map[string]map[string]string{
+		"console": console.Headers, "project": project.Headers,
+	} {
+		if got := headers[internalclient.HeaderReason]; got != "Clean%20up%20after%20the%20demo" {
+			t.Errorf("%s call reason = %q", name, got)
+		}
 	}
 }

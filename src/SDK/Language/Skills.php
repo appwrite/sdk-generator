@@ -122,6 +122,20 @@ class Skills extends Language
             'template'    => 'skills/LICENSE.twig',
         ];
 
+        // Agent Plugins manifest (https://agent-plugins.org): clients find the
+        // skills under skills/ and the hosted MCP server in mcp.json.
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'plugin.json',
+            'template'    => 'skills/plugin.json.twig',
+        ];
+
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'mcp.json',
+            'template'    => 'skills/mcp.json.twig',
+        ];
+
         return $files;
     }
 }

@@ -1,6 +1,14 @@
 declare module 'react-native' {
     export const AppState: {
         readonly currentState: string | null;
+        addEventListener(
+            type: 'change',
+            listener: (state: string) => void,
+        ): { remove(): void };
+    };
+
+    export const Dimensions: {
+        get(dim: 'window' | 'screen'): { readonly width: number };
     };
 
     export const Platform: {
@@ -62,6 +70,8 @@ declare module 'react-native-tcp-socket' {
 
     export interface TLSSocketOptions extends TcpSocketConnectOpts {
         rejectUnauthorized?: boolean;
+        /** PEM certificate to trust in place of the system roots. */
+        ca?: string;
     }
 
     interface TcpSocketStatic {

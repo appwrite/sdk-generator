@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -296,6 +297,22 @@ var (
 		"cloud.staging.appwrite.io": true,
 	}
 )
+
+// CloudRegions lists the Cloud region codes in order.
+func CloudRegions() []string {
+	regions := make([]string, 0, len(cloudRegionCodes))
+	for region := range cloudRegionCodes {
+		regions = append(regions, region)
+	}
+	slices.Sort(regions)
+
+	return regions
+}
+
+// IsCloudRegion reports whether code names a Cloud region.
+func IsCloudRegion(code string) bool {
+	return cloudRegionCodes[code]
+}
 
 // baseCloudHostname strips a regional prefix such as `fra.` from a Cloud
 // hostname, returning "" when the host is not Appwrite Cloud.

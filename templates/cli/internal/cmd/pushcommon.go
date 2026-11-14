@@ -76,6 +76,8 @@ type pushContext struct {
 	api      *client.Client
 	local    *config.Local
 	prompter prompt.Prompter
+	// interactive is true when a person can answer at a terminal.
+	interactive bool
 	// screenshots is built on first use by pushpreview.go, and only by a site
 	// push -- it needs a console session the other resources never ask for.
 	screenshots *screenshots
@@ -100,9 +102,10 @@ func newPushContext() (*pushContext, error) {
 	}
 
 	return &pushContext{
-		api:      api,
-		local:    local,
-		prompter: prompt.New(app.Flags().Force),
+		api:         api,
+		local:       local,
+		prompter:    prompt.New(app.Flags().Force),
+		interactive: prompt.Interactive(),
 	}, nil
 }
 
@@ -220,11 +223,6 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 	out := command.OutOrStdout()
 	output.Log(out, "Checking for changes ...")
 
-	skip := make(map[string]bool, len(request.SkipKeys))
-	for _, key := range request.SkipKeys {
-		skip[key] = true
-	}
-
 	var changes []change
 
 	for _, local := range request.Resources {
@@ -238,44 +236,7 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 			return false, err
 		}
 
-		id := local.GetString("$id")
-
-		// Iterating the KEYS rather than the response: the comparison is
-		// scoped to what the config owns, and the order is stable so a change
-		// table reads the same way twice.
-		for _, key := range request.Keys {
-			if skip[key] {
-				continue
-			}
-
-			remoteValue, present := remote.Get(key)
-			if !present {
-				continue
-			}
-			localValue, hasLocal := local.Get(key)
-
-			// A key the config does not carry is never sent -- writeBody writes
-			// only present keys, so a push cannot clear a field the config is
-			// silent about. Listing an absent key here would promise an edit the
-			// push will not make, and the row would reappear on every push.
-			if !hasLocal {
-				continue
-			}
-
-			if isEmpty(remoteValue) && isEmpty(localValue) {
-				continue
-			}
-			if equalValues(remoteValue, localValue) {
-				continue
-			}
-
-			changes = append(changes, change{
-				ID:     id,
-				Key:    key,
-				Remote: renderValue(remoteValue),
-				Local:  renderValue(localValue),
-			})
-		}
+		changes = append(changes, fieldChanges(local, remote, request.Keys, request.SkipKeys)...)
 	}
 
 	if len(changes) == 0 {
@@ -300,6 +261,58 @@ func (c *pushContext) approveChanges(command *cobra.Command, request approvalReq
 	output.Success(out, "Successfully pushed 0 %s.", request.Plural)
 
 	return false, nil
+}
+
+// fieldChanges lists the config-owned fields that differ between a resource
+// and its remote counterpart.
+func fieldChanges(local, remote *jsonx.Object, keys, skipKeys []string) []change {
+	skip := make(map[string]bool, len(skipKeys))
+	for _, key := range skipKeys {
+		skip[key] = true
+	}
+
+	id := local.GetString("$id")
+
+	var changes []change
+
+	// Iterating the KEYS rather than the response: the comparison is
+	// scoped to what the config owns, and the order is stable so a change
+	// table reads the same way twice.
+	for _, key := range keys {
+		if skip[key] {
+			continue
+		}
+
+		remoteValue, present := remote.Get(key)
+		if !present {
+			continue
+		}
+		localValue, hasLocal := local.Get(key)
+
+		// A key the config does not carry is never sent -- writeBody writes
+		// only present keys, so a push cannot clear a field the config is
+		// silent about. Listing an absent key here would promise an edit the
+		// push will not make, and the row would reappear on every push.
+		if !hasLocal {
+			continue
+		}
+
+		if isEmpty(remoteValue) && isEmpty(localValue) {
+			continue
+		}
+		if equalValues(remoteValue, localValue) {
+			continue
+		}
+
+		changes = append(changes, change{
+			ID:     id,
+			Key:    key,
+			Remote: renderValue(remoteValue),
+			Local:  renderValue(localValue),
+		})
+	}
+
+	return changes
 }
 
 // printChanges renders the change table.
@@ -446,6 +459,7 @@ func newPushCommand() *cobra.Command {
 	command.Flags().BoolVarP(
 		app.Flags().AllPointer(), "all", "a", false,
 		"Push every resource in the project config")
+	addPruneFlag(command)
 
 	command.AddCommand(newPushAllCommand())
 	command.AddCommand(newPushSettingsCommand())

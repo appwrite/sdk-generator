@@ -783,6 +783,30 @@ class Python extends Language
      * form unconditionally leaves generated code broken across lines for no reason.
      * The line length is set in `templates/python/pyproject.toml.twig`.
      */
+    /**
+     * An `if` over clauses joined by `and`, wrapped the way Black wraps it once
+     * the line is too long: each clause on its own line inside parentheses.
+     *
+     * @param list<string> $clauses
+     */
+    protected function formatCondition(array $clauses, int $indent): string
+    {
+        $padding = \str_repeat(' ', $indent);
+        $line = $padding . 'if ' . \implode(' and ', $clauses) . ':';
+        if (\strlen($line) <= self::LINE_LENGTH) {
+            return $line;
+        }
+
+        $inner = $padding . '    ';
+        $lines = [$padding . 'if (', $inner . \array_shift($clauses)];
+        foreach ($clauses as $clause) {
+            $lines[] = $inner . 'and ' . $clause;
+        }
+        $lines[] = $padding . '):';
+
+        return \implode("\n", $lines);
+    }
+
     protected function formatCall(string $statement): string
     {
         $lines = \explode("\n", $statement);
@@ -1007,6 +1031,7 @@ class Python extends Language
             new TwigFilter('formatModelFieldType', fn(string $type): string => $this->formatModelFieldType($type)),
             new TwigFilter('pythonLiteral', fn(mixed $value): string => $this->toPythonLiteral($value)),
             new TwigFilter('formatCall', fn(string $statement): string => $this->formatCall($statement)),
+            new TwigFilter('formatCondition', fn(array $clauses, int $indent): string => $this->formatCondition($clauses, $indent)),
             new TwigFilter('modelPropertyNullable', fn(Schema $value): bool => !($value instanceof ArraySchema) && $value->nullable),
             new TwigFilter('getModelFieldName', fn(Schema $value, array $properties): string => $this->getModelFieldName($value, $properties)),
             new TwigFilter('getResponseType', fn(Operation $method, string $serviceName = ''): string => $this->getResponseType($method, $serviceName)),

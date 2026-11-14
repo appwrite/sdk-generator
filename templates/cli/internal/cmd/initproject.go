@@ -5,6 +5,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"strings"
 
@@ -33,27 +34,33 @@ const (
 	pathTeams         = "/teams"
 	pathProjects      = "/organization/projects"
 	pathRegions       = "/console/regions"
+	// Project-scoped, and only on Cloud: a self-hosted instance answers 404.
+	pathEnvironments = "/project/environments"
 )
 
 func newInitProjectCommand() *cobra.Command {
-	var organizationID, projectID, projectName string
+	var organizationID, projectID, projectName, environmentID, region string
 
 	command := &cobra.Command{
 		Use:   "project",
 		Short: "Init a new Appwrite project",
 		RunE: func(command *cobra.Command, args []string) error {
-			return runInitProject(command, organizationID, projectID, projectName)
+			return runInitProject(command, organizationID, projectID, projectName, environmentID, region)
 		},
 	}
 
 	command.Flags().StringVar(&organizationID, "organization-id", "", "Appwrite organization ID")
 	command.Flags().StringVar(&projectID, "project-id", "", "Appwrite project ID")
 	command.Flags().StringVar(&projectName, "project-name", "", "Appwrite project name")
+	command.Flags().StringVar(&environmentID, "environment-id", "",
+		"ID of the project environment to act in, instead of the project itself")
+	command.Flags().StringVar(&region, "region", "",
+		"Cloud region to create the project in. Defaults to the one closest to you")
 
 	return command
 }
 
-func runInitProject(command *cobra.Command, organizationID, projectID, projectName string) error {
+func runInitProject(command *cobra.Command, organizationID, projectID, projectName, environmentID, region string) error {
 	out := command.OutOrStdout()
 
 	api, global, err := consoleClient()
@@ -99,6 +106,15 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 
 	endpoint := global.CurrentValue(config.PreferenceEndpoint)
 	cloud := isCloudEndpoint(endpoint)
+
+	if region != "" {
+		if !cloud {
+			return fmt.Errorf("--region needs an Appwrite Cloud endpoint, not %s", endpoint)
+		}
+		if err := checkRegion(api, region); err != nil {
+			return err
+		}
+	}
 
 	// Question order is user-visible and contractual: the setup method comes
 	// BEFORE the organization. Only the flags path skips it, because naming a
@@ -152,7 +168,34 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 		}
 	}
 
-	region := ""
+	// A new project has no environments yet, so naming one is a mistake to
+	// report before anything is created.
+	if creating && environmentID != "" {
+		return fmt.Errorf(
+			"cannot link environment %s: a new project has no environments. "+
+				"Create the project first, then its environment, then run this again", environmentID)
+	}
+
+	if !creating {
+		if current := linked.GetString("region"); region != "" && current != "" && current != region {
+			return fmt.Errorf("project %s is in region %s, not %s", linked.GetString("$id"), current, region)
+		}
+
+		environments := environmentClient(api, endpoint, cloud, linked)
+		if environmentID != "" {
+			if err := checkEnvironment(environments, environmentID); err != nil {
+				return err
+			}
+		} else if prompt.Interactive() {
+			// Only asked at a terminal: the project itself is the answer a
+			// script that does not name an environment has always got.
+			environmentID, err = chooseEnvironment(environments, prompter)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	if creating {
 		if projectName == "" {
 			projectName, err = prompter.Text(prompt.Text{
@@ -177,8 +220,8 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 		projectID = appwrite.ResolveID(projectID)
 
 		// Region is a Cloud concept; a self-hosted instance has exactly one.
-		if cloud {
-			region, err = chooseRegion(api, prompter)
+		if cloud && region == "" {
+			region, err = chooseRegion(out, api, prompter, endpoint)
 			if err != nil {
 				return err
 			}
@@ -201,6 +244,7 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 	}
 
 	local.SetProject(linked.GetString("$id"), linked.GetString("name"))
+	local.SetEnvironmentID(environmentID)
 	local.SetOrganizationID(organizationID)
 
 	if cloud {
@@ -232,9 +276,12 @@ func runInitProject(command *cobra.Command, organizationID, projectID, projectNa
 	}
 
 	command.Println()
-	if creating {
+	switch {
+	case creating:
 		output.Success(out, "Project created → %s", local.Path())
-	} else {
+	case environmentID != "":
+		output.Success(out, "Project linked in environment %s → %s", environmentID, local.Path())
+	default:
 		output.Success(out, "Project linked → %s", local.Path())
 	}
 
@@ -343,8 +390,69 @@ func chooseProject(api *client.Client, prompter prompt.Prompter, organizationID 
 	})
 }
 
-// chooseRegion lists the Cloud regions a new project can be created in.
-func chooseRegion(api *client.Client, prompter prompt.Prompter) (string, error) {
+// environmentClient scopes the console client to a project, on the endpoint of
+// its region, for the project-scoped environment routes.
+func environmentClient(api *client.Client, endpoint string, cloud bool, project *jsonx.Object) *client.Client {
+	scoped := api.Clone().WithoutResponseFormat().
+		SetProject(project.GetString("$id")).
+		SetMode(config.ModeAdmin)
+	// On Cloud a project answers only on its own region's host.
+	if region := project.GetString("region"); cloud && region != "" {
+		scoped.Endpoint = strings.TrimRight(regionalEndpoint(endpoint, region), "/")
+	}
+
+	return scoped
+}
+
+// checkEnvironment confirms a named environment exists, so a typo is not
+// written into the config to fail every later command.
+//
+// Only "not found" is an answer. Any other failure -- no such route on a
+// self-hosted instance, a token without the scope -- leaves the ID as the user
+// gave it, and the API names the problem on first use.
+func checkEnvironment(api *client.Client, environmentID string) error {
+	var environment jsonx.Object
+	err := api.Call("GET", pathEnvironments+"/"+url.PathEscape(environmentID), nil, &environment)
+
+	var apiError *client.APIError
+	if errors.As(err, &apiError) && apiError.Type == "project_environment_not_found" {
+		return fmt.Errorf("environment %s not found in this project: %w", environmentID, err)
+	}
+
+	return nil
+}
+
+// chooseEnvironment asks which environment of a project to act in. The
+// project itself is the first option and the default.
+//
+// Nothing is asked when the project has no environments, or when listing them
+// fails: environments are a Cloud feature, and a self-hosted instance has no
+// route to list them.
+func chooseEnvironment(api *client.Client, prompter prompt.Prompter) (string, error) {
+	environments, _, err := client.PaginateInto(listing(api, pathEnvironments), "environments", nil, 0)
+	if err != nil || len(environments) == 0 {
+		return "", nil
+	}
+
+	options := make([]prompt.Option, 0, len(environments)+1)
+	options = append(options, prompt.Option{Label: "Production (the project itself)", Value: ""})
+	for _, environment := range environments {
+		options = append(options, prompt.Option{
+			Label: selectionLabel(environment.GetString("name"), environment.GetString("$id")),
+			Value: environment.GetString("$id"),
+		})
+	}
+
+	return prompter.Choice(prompt.Choice{
+		Message: "Choose an environment:",
+		Options: options,
+		Default: "",
+		Flag:    "--environment-id",
+	})
+}
+
+// listRegions lists the Cloud regions a new project can be created in.
+func listRegions(api *client.Client) ([]prompt.Option, error) {
 	var response struct {
 		Regions []struct {
 			ID       string `json:"$id"`
@@ -353,7 +461,7 @@ func chooseRegion(api *client.Client, prompter prompt.Prompter) (string, error) 
 		} `json:"regions"`
 	}
 	if err := api.Call("GET", pathRegions, nil, &response); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	options := make([]prompt.Option, 0, len(response.Regions))
@@ -367,13 +475,76 @@ func chooseRegion(api *client.Client, prompter prompt.Prompter) (string, error) 
 		})
 	}
 	if len(options) == 0 {
-		return "", fmt.Errorf(
+		return nil, fmt.Errorf(
 			"no regions found. Please check your network or Appwrite Cloud availability")
+	}
+
+	return options, nil
+}
+
+func checkRegion(api *client.Client, region string) error {
+	options, err := listRegions(api)
+	if err != nil {
+		return err
+	}
+
+	regions := make([]string, 0, len(options))
+	for _, option := range options {
+		if option.Value == region {
+			return nil
+		}
+		regions = append(regions, option.Value)
+	}
+
+	return fmt.Errorf("unknown region %q, expected one of: %s", region, strings.Join(regions, ", "))
+}
+
+func chooseRegion(out io.Writer, api *client.Client, prompter prompt.Prompter, endpoint string) (string, error) {
+	options, err := listRegions(api)
+	if err != nil {
+		return "", err
+	}
+
+	regions := make([]string, 0, len(options))
+	for _, option := range options {
+		regions = append(regions, option.Value)
+	}
+
+	country, continent, timeZone := callerLocation(endpoint)
+	closest := config.ClosestRegion(country, continent, timeZone, regions)
+
+	if !prompt.Interactive() {
+		chosen := config.SuggestRegion(country, continent, timeZone, regions)
+		label := chosen
+		for _, option := range options {
+			if option.Value == chosen {
+				label = option.Label
+			}
+		}
+		if chosen == closest {
+			output.Log(out, "Region: %s, closest to you. Pass --region to choose another.", label)
+		} else {
+			output.Log(out, "Region: %s. Pass --region to choose another.", label)
+		}
+
+		return chosen, nil
+	}
+
+	for index, option := range options {
+		if option.Value == closest {
+			option.Label += " - closest to you"
+			copy(options[1:index+1], options[:index])
+			options[0] = option
+
+			break
+		}
 	}
 
 	return prompter.Choice(prompt.Choice{
 		Message: "Select your Appwrite Cloud region",
 		Options: options,
+		Default: closest,
+		Flag:    "--region",
 	})
 }
 

@@ -212,7 +212,7 @@ export class Realtime {
         }
 
         // URL carries only the project; channels/queries are sent via the subscribe message.
-{%~ if language.name == 'ReactNative' %}
+{%~ if language.name == 'ReactNative' and globalHeaders.Environment is not defined %}
         const queryParams = `project=${projectId}`;
 {%~ else %}
         let queryParams = `project=${projectId}`;
@@ -224,6 +224,13 @@ export class Realtime {
             queryParams += `&jwt=${encodeURIComponent(jwt)}`;
         }
 {% endif %}
+{%~ if globalHeaders.Environment is defined %}
+
+        const environment = this.client.config.environment;
+        if (environment) {
+            queryParams += `&environment=${encodeURIComponent(environment)}`;
+        }
+{%~ endif %}
 
         const endpoint =
             this.client.config.endpointRealtime !== ''
@@ -780,7 +787,16 @@ export class Realtime {
                 const cookie = JSONbig.parse(
                     window.localStorage.getItem('cookieFallback') ?? '{}',
                 );
+{%~ if globalHeaders.Environment is defined %}
+                // An environment's session is named by its project and environment IDs.
+                const { project, environment } = this.client.config;
+                const name = environment
+                    ? `a_session_${project}_env_${environment}`
+                    : `a_session_${project}`;
+                session = cookie?.[name];
+{%~ else %}
                 session = cookie?.[`a_session_${this.client.config.project}`];
+{%~ endif %}
             } catch (error) {
                 console.error('Failed to parse cookie fallback:', error);
             }

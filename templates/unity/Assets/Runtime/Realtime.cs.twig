@@ -843,6 +843,14 @@ namespace {{ spec.info.title | caseUcfirst }}
             {
                 $"project={Uri.EscapeDataString(project)}"
             };
+{% if globalHeaders.Environment is defined %}
+
+            var environment = _client.Config.GetValueOrDefault("environment", "");
+            if (!string.IsNullOrEmpty(environment))
+            {
+                queryParts.Add($"environment={Uri.EscapeDataString(environment)}");
+            }
+{% endif %}
 
             var uri = new Uri(realtimeEndpoint);
 

@@ -167,6 +167,17 @@ class Android extends Kotlin
             ],
             [
                 'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/TrackingTest.kt',
+                'requires'      => 'analytics',
+                'template'      => '/android/library/src/test/java/io/package/TrackingTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/services/PushNotificationOpenedTest.kt',
+                'template'      => '/android/library/src/test/java/io/package/services/PushNotificationOpenedTest.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
                 'destination'   => '/library/src/test/java/{{ sdk.namespace | caseSlash }}/ClientJavaInteropTest.java',
                 'template'      => '/android/library/src/test/java/io/package/ClientJavaInteropTest.java.twig',
             ],
@@ -214,6 +225,12 @@ class Android extends Kotlin
                 'scope'         => 'default',
                 'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Service.kt',
                 'template'      => '/android/library/src/main/java/io/package/Service.kt.twig',
+            ],
+            [
+                'scope'         => 'default',
+                'destination'   => '/library/src/main/java/{{ sdk.namespace | caseSlash }}/Tracking.kt',
+                'requires'      => 'analytics',
+                'template'      => '/android/library/src/main/java/io/package/Tracking.kt.twig',
             ],
             [
                 'scope'         => 'default',

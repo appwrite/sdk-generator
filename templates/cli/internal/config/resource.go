@@ -248,11 +248,29 @@ func toObject(value any) (*jsonx.Object, error) {
 //
 // projectName is written only when non-empty, matching setProject(): linking to
 // a project whose name the API did not return must not blank an existing one.
+//
+// Linking another project drops the environment: an environment ID names an
+// environment only inside the project it belongs to.
 func (l *Local) SetProject(projectID, projectName string) {
+	if l.Data.GetString("projectId") != projectID {
+		l.Data.Delete("environmentId")
+	}
 	l.Data.Set("projectId", projectID)
 	if projectName != "" {
 		l.Data.Set("projectName", projectName)
 	}
+}
+
+// SetEnvironmentID records the environment of the linked project that project
+// commands act in. An empty ID removes it, so they act on the project itself.
+func (l *Local) SetEnvironmentID(environmentID string) {
+	if environmentID == "" {
+		l.Data.Delete("environmentId")
+
+		return
+	}
+
+	l.Data.Set("environmentId", environmentID)
 }
 
 // SetOrganizationID records the owning organization.

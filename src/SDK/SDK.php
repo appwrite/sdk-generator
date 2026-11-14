@@ -192,6 +192,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('schemaType', fn(Schema|Parameter $value): string => $this->getSchemaType($value)));
         $this->twig->addFilter(new TwigFilter('schemaModel', fn(Schema|Parameter $value): string => $this->getSchemaModel($value)));
         $this->twig->addFilter(new TwigFilter('schemaModels', fn(Schema|Parameter $value): array => $this->getSchemaModels($value)));
+        $this->twig->addFilter(new TwigFilter('schemaSecret', fn(Schema|Parameter $value): bool => $this->isSecret($this->getSchema($value))));
         $this->twig->addFilter(new TwigFilter('schemaRequired', fn(Schema|Parameter $value): bool => $value instanceof Parameter ? $value->required : isset($this->requiredSchemas[\spl_object_id($value)])));
         $this->twig->addFilter(new TwigFilter('schemaExample', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->example));
         $this->twig->addFilter(new TwigFilter('schemaDefault', fn(Schema|Parameter $value): mixed => $this->getSchema($value)->default));
@@ -208,6 +209,7 @@ class SDK
         $this->twig->addFilter(new TwigFilter('extension', fn(Schema|Parameter $value, string $key, mixed $default = null): mixed => $this->getSchema($value)->extensions[$key] ?? $default));
         $this->twig->addFilter(new TwigFilter('methodHeaders', fn(Operation $operation): array => $this->getMethodHeaders($operation)));
         $this->twig->addFilter(new TwigFilter('responseDiscriminator', fn(Operation $operation): array => $this->getResponseDiscriminator($operation)));
+        $this->twig->addFilter(new TwigFilter('responseCases', fn(Operation $operation): array => $this->getResponseCases($operation)));
         $this->twig->addFilter(new TwigFilter('securitySchemes', fn(Operation $operation): array => $this->getOperationAuthSchemes($operation)));
         $this->twig->addFilter(new TwigFilter('locationSchemes', fn(Operation $operation): array => $this->getOperationAuthSchemes($operation, true)));
         $this->twig->addFilter(new TwigFilter('securityHeaders', fn(Operation $operation): array => $this->getOperationSecuritySchemes($operation, ParameterLocation::HEADER, false)));
@@ -1054,6 +1056,7 @@ class SDK
             'responseEnums' => $filteredResponseEnums,
             'allEnums' => $filteredAllEnums,
             'definitions' => $filteredDefinitions,
+            'secretFields' => $this->getSecretFields($filteredDefinitions),
             'requestModels' => $filteredRequestModels,
             'globalHeaders' => $this->getGlobalHeaders(),
             'defaultHeaders' => array_merge(
@@ -1681,6 +1684,59 @@ class SDK
         return $value instanceof Parameter ? ($value->schema ?? new AnySchema()) : $value;
     }
 
+    /**
+     * A secret: a string, or a list of strings, the spec marks `format: password`.
+     * Clients keep these values out of their output unless asked.
+     */
+    protected function isSecret(Schema $schema): bool
+    {
+        if ($schema instanceof ArraySchema) {
+            $schema = $schema->items;
+        }
+
+        return $schema instanceof StringSchema && $schema->format === 'password';
+    }
+
+    /**
+     * The names of the response model properties that hold a secret, sorted, for
+     * clients that redact by field name alone. A name that is an ordinary string
+     * on another model (`code` on `MFAChallengeSecret` and on `Country`) is left
+     * out: matched by name, it would hide every one of them.
+     *
+     * @param array<string, Schema> $definitions
+     * @return list<string>
+     */
+    protected function getSecretFields(array $definitions): array
+    {
+        $secret = [];
+        $plain = [];
+        foreach ($definitions as $definition) {
+            if (!$definition instanceof ObjectSchema) {
+                continue;
+            }
+            foreach ($definition->properties as $name => $property) {
+                if ($this->isSecret($property)) {
+                    $secret[$name] = true;
+                } elseif ($this->isString($property)) {
+                    $plain[$name] = true;
+                }
+            }
+        }
+        $fields = \array_keys(\array_diff_key($secret, $plain));
+        \sort($fields);
+
+        return $fields;
+    }
+
+    protected function isString(Schema $schema): bool
+    {
+        if ($schema instanceof ArraySchema) {
+            $schema = $schema->items;
+        }
+
+        return $schema instanceof StringSchema;
+    }
+
     protected function getSchemaType(Schema|Parameter $value): string
     {
         $schema = $this->getSchema($value);
@@ -2092,7 +2148,7 @@ class SDK
      * Standard single-property discriminator cases. Compound selection is
      * represented by constrained unions, not vendor extensions.
      *
-     * @return array<string, array<string, string>>
+     * @return list<array{model: string, conditions: array<string, string>}>
      */
     protected function getDiscriminatorCases(Discriminator $discriminator): array
     {
@@ -2103,7 +2159,7 @@ class SDK
             if ($name === '') {
                 continue;
             }
-            $cases[$name] = [$discriminator->propertyName => (string) $value];
+            $cases[] = ['model' => $name, 'conditions' => [$discriminator->propertyName => (string) $value]];
         }
 
         return $cases;
@@ -2141,7 +2197,8 @@ class SDK
         return $cases;
     }
 
-    protected function getResponseDiscriminator(Operation $operation): array
+    /** @return list<array{model: string, conditions: array<string, string>}> */
+    protected function getResponseCases(Operation $operation): array
     {
         foreach ($operation->responses as $response) {
             foreach ($response->content as $mediaType) {
@@ -2149,21 +2206,35 @@ class SDK
                 if (!$schema instanceof CompositeSchema) {
                     continue;
                 }
-                $mapping = $this->getConditionalCases($schema);
-                if ($mapping === [] && $schema->discriminator instanceof Discriminator) {
-                    $mapping = $this->getDiscriminatorCases($schema->discriminator);
+                $cases = [];
+                foreach ($this->getConditionalCases($schema) as $model => $conditions) {
+                    $cases[] = ['model' => $model, 'conditions' => $conditions];
                 }
-                if ($mapping === []) {
+                if ($cases === [] && $schema->discriminator instanceof Discriminator) {
+                    $cases = $this->getDiscriminatorCases($schema->discriminator);
+                }
+                if ($cases === []) {
                     continue;
                 }
 
                 // Most specific first, so a two-condition case is tested before
                 // the one-condition case that would otherwise shadow it.
-                \uksort($mapping, static fn(string $left, string $right): int => \count($mapping[$right]) <=> \count($mapping[$left]));
+                \usort($cases, static fn(array $left, array $right): int => \count($right['conditions']) <=> \count($left['conditions']));
 
-                return $mapping;
+                return $cases;
             }
         }
         return [];
+    }
+
+    /** @return array<string, array<string, string>> */
+    protected function getResponseDiscriminator(Operation $operation): array
+    {
+        $mapping = [];
+        foreach ($this->getResponseCases($operation) as $case) {
+            $mapping[$case['model']] = $case['conditions'];
+        }
+
+        return $mapping;
     }
 }

@@ -3,10 +3,15 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"net/url"
 
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/jsonx"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/output"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 	"github.com/spf13/cobra"
 )
 
@@ -61,11 +66,51 @@ func newPullSettingsCommand() *cobra.Command {
 	}
 }
 
+// errSettingsInEnvironment is why `push settings` and `pull settings` refuse
+// to run in a project environment; the fan-outs skip settings on it.
+var errSettingsInEnvironment = errors.New("project settings belong to the project, not to one of its environments")
+
+// refuseSettingsInEnvironment fails a settings command while a project
+// environment is in effect.
+//
+// The project's name, services and auth methods are read and written through
+// the console's project routes, which name the project by ID. An environment
+// has no project ID of its own, so those routes reach the project it belongs
+// to: `push settings` from a directory pointed at staging would rename and
+// reconfigure the project, while its policies went to staging.
+func refuseSettingsInEnvironment(verb string, local *config.Local) error {
+	environmentID := linkedEnvironmentID(local)
+	if environmentID == "" {
+		return nil
+	}
+
+	return fmt.Errorf(
+		"%w: `%s %s settings` would act on project %s rather than its environment %s. "+
+			"Unset %s and remove environmentId from %s to %s the project's settings",
+		errSettingsInEnvironment, app.ExecutableName, verb, linkedProjectID(local),
+		environmentID, sdk.EnvEnvironmentID, config.LocalFileName, verb)
+}
+
+// skipsInEnvironment reports whether a fan-out should skip a resource that
+// refused to run in a project environment, and says so.
+func skipsInEnvironment(command *cobra.Command, resource string, err error) bool {
+	if !errors.Is(err, errSettingsInEnvironment) {
+		return false
+	}
+
+	output.Warn(command.OutOrStdout(), "Skipping %s: %s", resource, err)
+
+	return true
+}
+
 func runPullSettings(command *cobra.Command) error {
 	out := command.OutOrStdout()
 
 	context, err := newProjectPull()
 	if err != nil {
+		return err
+	}
+	if err := refuseSettingsInEnvironment("pull", context.local); err != nil {
 		return err
 	}
 

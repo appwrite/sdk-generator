@@ -185,7 +185,15 @@ internal class RealtimeConnection(private val client: Client) : CoroutineScope {
             }
 
             val encodedProject = java.net.URLEncoder.encode(client.config["project"].toString(), "UTF-8")
+{% if globalHeaders.Environment is defined %}
+            var queryParams = "project=$encodedProject"
+            val environment = client.config["environment"]
+            if (!environment.isNullOrEmpty()) {
+                queryParams += "&environment=${java.net.URLEncoder.encode(environment, "UTF-8")}"
+            }
+{% else %}
             val queryParams = "project=$encodedProject"
+{% endif %}
             val url = "${client.endpointRealtime}/realtime?$queryParams"
             val requestBuilder = Request.Builder().url(url)
             val jwt = client.headers["x-{{ spec.info.title | caseLower }}-jwt"]

@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-// ignore: deprecated_member_use
-import 'dart:html' as html;
-
 import 'package:packageName/packageName.dart';
+import 'package:web/web.dart' as web;
 
 // Flutter web e2e: exercises the push service over its web transport
 // (MQTT-over-WebSocket via MqttBrowserClient) against the mock broker. The native
@@ -121,8 +119,8 @@ void main() async {
 
   // Signed in through the client: with no JWT or session set on it, the user comes from the
   // session its sign-in kept in localStorage (cookieFallback).
-  html.window.localStorage['cookieFallback'] =
-      jsonEncode({'a_session_console': e2eSession});
+  web.window.localStorage.setItem(
+      'cookieFallback', jsonEncode({'a_session_console': e2eSession}));
   try {
     final signInTopics = await userTopicsOf(
       Client().setProject('console').setPushEndpoint('ws://mqtt:8083'),
@@ -133,7 +131,7 @@ void main() async {
   } catch (_) {
     print('Push user sign-in session topic:failed');
   }
-  html.window.localStorage.remove('cookieFallback');
+  web.window.localStorage.removeItem('cookieFallback');
 
   // Broker errors reach onError carrying the broker's MQTT 5 Reason String: a refused
   // CONNECT (the mock refuses a "deny:<reason>" credential with <reason>) and a server-initiated DISCONNECT

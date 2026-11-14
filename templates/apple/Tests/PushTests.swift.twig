@@ -117,6 +117,13 @@ final class PushTests {
         #expect(Push.RemoteMessage.id(payload: Array("plain text".utf8)) == nil)
     }
 
+    @Test func anOpenedNotificationCarriesItsMessageId() {
+        let opened = PushNotificationOpened(topic: "news", payload: #"{"messageId":"m6","data":{"saleId":"42"}}"#)
+        #expect(opened.messageId == "m6")
+        #expect(opened.data["saleId"] as? String == "42")
+        #expect(PushNotificationOpened(topic: "news", payload: "plain text").messageId == nil)
+    }
+
     // MARK: Ids
 
     @Test func targetAndSubscriberIds() {

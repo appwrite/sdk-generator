@@ -19,10 +19,10 @@
         if (!is_array($response)) {
             throw new \UnexpectedValueException('Expected array response when hydrating a response model.');
         }
-{% for modelName, conditions in responseDiscriminator %}
+{% for case in method | responseCases %}
 
-        if ({% for field, expectedValue in conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
-            return \{{ namespace | caseNamespace }}\Models\{{ modelName | caseUcfirst }}::from($response);
+        if ({% for field, expectedValue in case.conditions %}($response['{{ field }}'] ?? null) === '{{ expectedValue }}'{% if not loop.last %} && {% endif %}{% endfor %}) {
+            return \{{ namespace | caseNamespace }}\Models\{{ case.model | caseUcfirst }}::from($response);
         }
 {% endfor %}
 
