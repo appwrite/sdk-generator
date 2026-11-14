@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: generate app token
         id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
@@ -47,7 +47,7 @@ jobs:
           echo "RENOVATE_USE_BASE_BRANCH_CONFIG=merge" >> "$GITHUB_ENV"
 
       - name: renovate
-        uses: renovatebot/github-action@3064367f740a1a91cca218698a63902689cce200 # v46.1.20
+        uses: renovatebot/github-action@1c0cf989c02653fba0efe7ca5772338860ca71dc # v46.3.12
         with:
           token: ${{ steps.app-token.outputs.token }}
         env:
