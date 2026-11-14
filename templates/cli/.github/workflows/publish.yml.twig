@@ -48,7 +48,7 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.14.1'
           registry-url: 'https://registry.npmjs.org'
@@ -138,7 +138,7 @@ jobs:
       - name: Upload unsigned Windows binaries
         id: upload-windows-unsigned
         if: {{ '${{ steps.signing.outputs.enabled == \'true\' }}' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-unsigned
           path: |
@@ -147,7 +147,7 @@ jobs:
 
       - name: Submit Windows binaries for signing
         if: {{ '${{ steps.signing.outputs.enabled == \'true\' }}' }}
-        uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd # v2.2
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2.3
         with:
           api-token: {{ '${{ secrets.WINDOWS_SIGNING_API_TOKEN }}' }}
           organization-id: {{ '${{ vars.WINDOWS_SIGNING_ORGANIZATION_ID }}' }}
@@ -244,7 +244,7 @@ jobs:
       - name: Generate token for the Homebrew tap
         if: {{ '${{ !github.event.release.prerelease }}' }}
         id: bot-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           app-id: {{ '${{ vars.APPWRITE_BOT_APP_ID }}' }}
           private-key: {{ '${{ secrets.APPWRITE_BOT_PRIVATE_KEY }}' }}
