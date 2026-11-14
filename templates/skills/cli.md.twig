@@ -1,6 +1,6 @@
 {% set lang = 'cli' %}
 {% set langName = 'CLI' %}
-{% set langDescription %}How to use the {{ spec.info.title }} CLI well. Covers when to use appwrite.config.json vs `appwrite client`, pull/push vs one-shot service calls, type-safe SDK and model generation, query flags, CI auth, Cloud regional endpoints, function/site variables, and traps that `--help` will not mention. Does not catalog commands — run `appwrite <command> --help` for flags. Use whenever running `appwrite`, deploying or pulling functions/sites/tables, generating application code from a table schema, initializing or linking a project, scripting {{ spec.info.title }}, or when the user mentions the {{ spec.info.title }} CLI, appwrite.config.json, `appwrite generate`, `appwrite types`, or `appwrite client`.{% endset %}
+{% set langDescription %}How to use the {{ spec.info.title }} CLI well. Covers when to use appwrite.config.json vs `appwrite client`, pull/push vs one-shot service calls, type-safe SDK and model generation, query flags, CI auth, Cloud regional endpoints, no-signup projects with `appwrite zero`, function/site variables, and traps that `--help` will not mention. Does not catalog commands — run `appwrite <command> --help` for flags. Use whenever running `appwrite`, deploying or pulling functions/sites/tables, generating application code from a table schema, initializing or linking a project, scripting {{ spec.info.title }}, or when the user has no {{ spec.info.title }} account yet, or mentions the {{ spec.info.title }} CLI, `appwrite zero`, appwrite.config.json, `appwrite generate`, `appwrite types`, or `appwrite client`.{% endset %}
 {{ include('skills/base/frontmatter.md.twig') }}
 
 # {{ spec.info.title }} CLI
@@ -38,6 +38,30 @@ cd ~/some-unrelated-app && appwrite init project
 No session? `appwrite client --endpoint https://<REGION>.cloud.appwrite.io/v1 --key "$APPWRITE_API_KEY" --project-id <ID>`.
 
 `appwrite client --project-id` writes `appwrite.config.json` in this directory (or updates one found walking up). That is how you link a folder quickly. Do not run it at the root of an unrelated repo. `APPWRITE_PROJECT_ID` / `APPWRITE_ENDPOINT` override the file without touching it — use those when you are already inside a project and need a one-shot against something else.
+
+## No account yet: `appwrite zero`
+
+When the user has no {{ spec.info.title }} account, or wants a backend to try something now, run `appwrite zero` in the app's directory. It creates a Cloud project with no signup, links the directory (`appwrite.config.json`) and stores the project's API key as the CLI session. Do not send the user to sign up or run `appwrite login` first.
+
+The project works for 60 minutes. After that it pauses, and it is deleted unless claimed within 24 hours. Give the user the claim link from the output: claiming it into their account is the only way to keep the project. Do not claim it for them.
+
+```bash
+# Good — empty or new app directory
+appwrite zero                 # nearest region; --region fra to choose
+appwrite push table --force   # pull/push and service commands work as usual
+appwrite zero status          # time left, claim link, private links to sites and functions
+appwrite zero console --json  # one-time console sign-in link: hand it to the user
+
+# Bad — a directory already linked to a real project
+cd ~/work/production-app && appwrite zero
+# relinks the directory to a project that is deleted tomorrow
+```
+
+The session is an API key, so console calls fail: `init project`, `list-projects`, creating organizations or projects. Everything inside the project works.
+
+Until the project is claimed, its sites are public under a banner saying the project is unclaimed, so the user can share the URL right away. Deployment previews still ask for a console session: `appwrite zero status` prints an owner link per domain that opens them once in the browser, and scripts send the token in the `X-Appwrite-Zero-Token` header. `appwrite zero --json` prints the claim link and the token for an agent to hand back.
+
+Zero projects are limited and shared. Run `appwrite zero` once per app, not per attempt.
 
 ## Auth is not the project
 
