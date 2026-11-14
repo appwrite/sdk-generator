@@ -64,6 +64,11 @@ func registerHostCommands(root *cobra.Command) {
 		"The terminal interface draws a full screen and reads keys straight from a "+
 			"terminal, which this one cannot hand it. Run `"+app.ExecutableName+" terminal` "+
 			"from a CLI installed on your machine."))
+
+	root.AddCommand(newUnavailableCommand("zero",
+		"Get a working project instantly, no signup",
+		"Appwrite Zero links a local directory to a new project, which a browser "+
+			"tab has no access to. Run `"+app.ExecutableName+" zero` from a terminal."))
 }
 
 // Accept all arguments so unavailable subcommands and flags show the same guidance.
