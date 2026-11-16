@@ -186,9 +186,6 @@ internal object PushBackground {
     @Volatile
     private var serviceStartReported = false
 
-    @Volatile
-    private var foregroundDeclared: Boolean? = null
-
     // The live in-app subscriptions hosted here, each with its callback. Empty after the process
     // was restarted in the background, until the app subscribes again.
     val listeners = CopyOnWriteArrayList<PushListener>()
@@ -315,16 +312,13 @@ internal object PushBackground {
 
     /** Whether the app declares what foreground mode needs: [PushService] and its permissions. */
     fun foregroundDeclared(context: Context): Boolean {
-        foregroundDeclared?.let { return it }
         val app = context.applicationContext
         val service = runCatching {
             app.packageManager.getServiceInfo(ComponentName(app, PushService::class.java), 0)
         }.isSuccess
-        val declared = service &&
+        return service &&
             declares(app, Manifest.permission.FOREGROUND_SERVICE) &&
             (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || declares(app, Manifest.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING))
-        foregroundDeclared = declared
-        return declared
     }
 
     /** Whether the foreground service should run: foreground mode is enabled and there is work to do. */
