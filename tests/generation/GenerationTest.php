@@ -686,6 +686,8 @@ final class GenerationTest extends TestCase
         $trees = [];
         foreach (self::PLATFORMS as $platform) {
             $trees[$platform] = $this->generate($name, $platform);
+            // Hansi reads it from the SDK repository: every file there is generator output.
+            $this->assertSame(['**'], \json_decode($trees[$platform]['.hansi.json'] ?? '{}', true)['reviews']['generated'] ?? null, "{$name}/{$platform}");
         }
 
         foreach (self::TOKENS as $token => $platforms) {
