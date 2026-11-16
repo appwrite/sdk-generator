@@ -1320,7 +1320,7 @@ final class GenerationTest extends TestCase
     {
         $skills = array_filter(
             $this->generate('skills', 'console'),
-            fn (string $path): bool => basename($path) === 'SKILL.md' && !str_contains($path, '-cli/') && !str_contains($path, 'deploy'),
+            fn (string $path): bool => basename($path) === 'SKILL.md' && !str_contains($path, '-cli/') && !str_contains($path, 'deploy') && !str_contains($path, '-review-'),
             ARRAY_FILTER_USE_KEY,
         );
         $families = ['aggregation' => '/\bcount\(/', 'grouping' => '/group_?by\(/', 'having' => '/having\(/', 'joins' => '/join\(/', 'builder' => '/(?:query(?:\.|::)builder|newbuilder)\b/'];

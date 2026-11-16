@@ -46,7 +46,7 @@ gh api "repos/<PR_REPO>/pulls/<PR_NUMBER>" \
 
 `<BASE>` is `base`. `<BASE_REPO>` is `baseRepo`. `<HEAD_REPO>` is `headRepo`. `<HEAD_OWNER>` is `headOwner`.
 
-If there is no pull request and this checkout is a fork, `<BASE_REPO>` is `parent`. `<BASE>` is that parent's default branch, not the fork's `defaultBranch`. Those names can differ. Read it from the parent repository:
+If there is no pull request and this checkout is a fork, `<BASE_REPO>` is `parent`. `<HEAD_REPO>` is `repo`, the fork itself, and `<HEAD_OWNER>` is its owner. `<BASE>` is that parent's default branch, not the fork's `defaultBranch`. Those names can differ. Read it from the parent repository:
 
 ```bash
 gh repo view <PARENT> --json defaultBranchRef -q .defaultBranchRef.name
@@ -119,12 +119,12 @@ git checkout -b review-config "<REMOTE>/<BASE>"
 
 If `review-config` already exists, pick another branch name. Use the branch you created as `<BRANCH>`.
 
-Write `.hansi.json` at the repository root. Commit only that file. Push `<BRANCH>` to `<HEAD_REPO>` through a remote that already authenticates to that repository. When `origin` is `<HEAD_REPO>`, that remote is `origin`. When it is not, use or add a remote for `<HEAD_REPO>` the same way as the fetch above. Do not push to a raw HTTPS URL that this environment has no credentials for.
+Write `.hansi.json` at the repository root. Commit only that file. Push `<BRANCH>` to `<HEAD_REPO>` through a remote that already authenticates to that repository; call it `<HEAD_REMOTE>`. When `origin` is `<HEAD_REPO>`, `<HEAD_REMOTE>` is `origin`. When it is not, use or add a remote for `<HEAD_REPO>` the same way as the fetch above. Do not push to a raw HTTPS URL that this environment has no credentials for.
 
 ```bash
 git add .hansi.json
 git commit -m "Configure {{ spec.info.title }} Review."
-git push -u origin HEAD
+git push -u <HEAD_REMOTE> HEAD
 ```
 
 Open the pull request on `<BASE_REPO>`. When `<HEAD_REPO>` and `<BASE_REPO>` are the same repository:
