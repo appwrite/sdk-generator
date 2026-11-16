@@ -68,7 +68,8 @@ func TestNavigateToARow(t *testing.T) {
 var consoleInfo = client.Info{Endpoint: "https://cloud.appwrite.io/v1", Version: "2.7.1", Cloud: true, As: "ada@example.com", Console: true}
 
 // TestConsole checks a console login opens on its organisations, and a project of one opens on
-// its overview, read as that project, with the header and crumbs naming it.
+// its overview, read as that project at the endpoint of its region, with the header and crumbs
+// naming it.
 func TestConsole(t *testing.T) {
 	f := newFake()
 	m := newModel(context.Background(), f, consoleInfo)
@@ -81,7 +82,7 @@ func TestConsole(t *testing.T) {
 	if len(f.opened) != 1 || f.opened[0] != "shop" {
 		t.Fatalf("opened %v, want the project shop", f.opened)
 	}
-	wantOnScreen(t, m, "organizations › organization acme › project Shop", "databases", "id       shop")
+	wantOnScreen(t, m, "organizations › organization acme › project Shop", "databases", "id       shop", "https://fra.cloud.appwrite.io/v1")
 	m = pressKeys(t, m, "enter", "enter")
 	wantOnScreen(t, m, "project Shop › databases › database main")
 	m = pressKeys(t, m, "esc", "esc", "esc")

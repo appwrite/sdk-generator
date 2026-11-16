@@ -48,7 +48,9 @@ const asKey = "api key"
 
 // resolve picks the credential as the cli does: the login's access token or cookie, else the key
 // `appwrite client --key` stored, sent only to the instance the session is of. A login's access
-// token is renewed as the cli renews it.
+// token is renewed as the cli renews it. A login calls the console at the session's endpoint and
+// finds a project's region from the console; a key cannot ask the console, so it calls the
+// endpoint the project is configured with, which on Cloud names the project's region.
 func (o Options) resolve() (appwrite.Options, string, error) {
 	a := appwrite.Options{Endpoint: o.Endpoint, Project: o.Project}
 	var session *config.Object
@@ -71,12 +73,15 @@ func (o Options) resolve() (appwrite.Options, string, error) {
 		if a.Project == "" {
 			return a, "", errors.New("missing a project for the API key: pass --project-id, set APPWRITE_PROJECT_ID, or run it in a directory with an appwrite.config.json")
 		}
-		a.Endpoint, a.Key = sessionEndpoint, key
+		a.Endpoint, a.Key = cmpOr(a.Endpoint, sessionEndpoint), key
 		_, a.Cloud = config.CloudBaseHost(a.Endpoint)
 		return a, "", nil
 	}
 	a.Endpoint = sessionEndpoint
 	_, a.Cloud = config.CloudBaseHost(a.Endpoint)
+	if a.Cloud {
+		a.Regional = func(region string) string { return config.RegionalEndpoint(sessionEndpoint, region) }
+	}
 	if token != "" {
 		a.Token = renewer(auth.NewAuthenticator(o.Global, o.SDKVersion))
 	} else {
@@ -161,7 +166,7 @@ func Connect(ctx context.Context, o Options, agent string) (*appwrite.Client, In
 }
 
 // connectConsole checks a console login is still signed in, and finds the name of the project it
-// opens on, if it opens on one.
+// opens on, if it opens on one, which it then calls at the endpoint of the project's region.
 func connectConsole(ctx context.Context, c *appwrite.Client, info Info) (*appwrite.Client, Info, error) {
 	console := c.AsProject(appwrite.ConsoleProject)
 	if _, err := console.Account(ctx); err != nil {
@@ -178,5 +183,7 @@ func connectConsole(ctx context.Context, c *appwrite.Client, info Info) (*appwri
 		return nil, info, fmt.Errorf("opening project %s: %w: check --project-id, APPWRITE_PROJECT_ID or appwrite.config.json", info.Project, err)
 	}
 	info.Name = project.Str("name")
+	c = c.InRegion(project.Str("region"))
+	info.Endpoint = c.Endpoint()
 	return c, info, nil
 }
