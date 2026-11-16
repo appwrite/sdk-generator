@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/url"
 	"os"
 	"strconv"
@@ -842,22 +841,19 @@ func cdCommand(directory string) string {
 	return `cd "` + directory + `"`
 }
 
-// timeLeft renders the time until an ISO 8601 deadline, such as "60 min".
+// timeLeft renders the time until an ISO 8601 deadline, such as "3h 57m",
+// rounded down so it never claims more time than is left and agrees with the
+// "in 3h" the timestamps print.
 func timeLeft(deadline string, now time.Time) string {
 	parsed, err := time.Parse(time.RFC3339, deadline)
 	if err != nil {
 		return ""
 	}
 
-	remaining := parsed.Sub(now).Round(time.Second)
-	switch {
-	case remaining <= 0:
-		return ""
-	case remaining >= time.Hour:
-		return fmt.Sprintf("%dh", int(math.Round(remaining.Hours())))
-	case remaining >= time.Minute:
-		return fmt.Sprintf("%d min", int(math.Round(remaining.Minutes())))
+	remaining := parsed.Sub(now)
+	if remaining >= time.Minute {
+		remaining = remaining.Truncate(time.Minute)
 	}
 
-	return fmt.Sprintf("%ds", int(remaining.Seconds()))
+	return output.HumanizeSeconds(remaining.Seconds())
 }
