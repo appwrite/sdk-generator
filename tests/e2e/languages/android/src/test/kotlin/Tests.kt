@@ -1336,6 +1336,53 @@ class PushBackgroundRestrictedTest {
     }
 }
 
+@Config(manifest=Config.NONE, sdk=[android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
+@RunWith(AndroidJUnit4::class)
+class PushForegroundOptInTest {
+    private val context = ApplicationProvider.getApplicationContext<android.app.Application>()
+    private val packageManager = org.robolectric.Shadows.shadowOf(context.packageManager)
+    private val errors = java.util.concurrent.CopyOnWriteArrayList<String>()
+    private val push = Push(
+        Client(context).setProject("console").setPushEndpoint("mqtt://localhost:1"),
+        context,
+    ).onError { error -> errors.add(error.message ?: "") }
+
+    @After
+    fun tearDown() {
+        push.setForeground(false)
+        push.close()
+    }
+
+    @Test
+    fun testForegroundModeWithoutPermissionsReportsAndStaysOff() {
+        packageManager.addOrUpdateService(pushServiceInfo())
+
+        push.setForeground(true)
+
+        assertTrue("errors: $errors", errors.any { it.contains("FOREGROUND_SERVICE_REMOTE_MESSAGING") })
+        assertFalse(Push.backgroundStatus(context).foregroundService)
+    }
+
+    @Test
+    fun testForegroundModeWithPermissionsRuns() {
+        packageManager.addOrUpdateService(pushServiceInfo())
+        packageManager.getInternalMutablePackageInfo(context.packageName).requestedPermissions = arrayOf(
+            android.Manifest.permission.FOREGROUND_SERVICE,
+            android.Manifest.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING,
+        )
+
+        push.setForeground(true)
+
+        assertTrue("errors: $errors", errors.isEmpty())
+        assertTrue(Push.backgroundStatus(context).foregroundService)
+    }
+
+    private fun pushServiceInfo() = android.content.pm.ServiceInfo().apply {
+        packageName = context.packageName
+        name = io.appwrite.services.PushService::class.java.name
+    }
+}
+
 @Config(manifest=Config.NONE)
 @RunWith(AndroidJUnit4::class)
 class RequestNullEncodingTest {
