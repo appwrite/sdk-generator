@@ -994,6 +994,11 @@ func TestZeroExtendStoresTheNewDeadline(t *testing.T) {
 			t.Errorf("output is missing %q:\n%s", want, out)
 		}
 	}
+
+	// Rounded down, so it agrees with the "in 3h" a timestamp prints next to it
+	if got := timeLeft("2026-11-16T21:22:18Z", time.Date(2026, 11, 16, 17, 25, 0, 0, time.UTC)); got != "3h 57m" {
+		t.Errorf("time left = %q, want 3h 57m", got)
+	}
 }
 
 // With no extension left, the error points at the claim link and the stored
