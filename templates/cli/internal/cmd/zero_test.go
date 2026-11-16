@@ -20,6 +20,7 @@ import (
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/config"
+	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/prompt"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/sdk"
 )
 
@@ -324,6 +325,53 @@ func TestZeroConsoleOpensASignInLink(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), link) {
 		t.Errorf("does not print the link for a browser that did not open:\n%s", out)
+	}
+}
+
+// At a terminal, `zero` offers the console and asks for the claim link to be
+// saved. The test runs without one, which is how an agent sees it: no question.
+func TestZeroOnboardsAPersonAtATerminal(t *testing.T) {
+	for _, console := range []bool{true, false} {
+		preferencesWith(t, `{}`)
+		inDirectory(t, t.TempDir())
+		withZeroFlags(t, false, false)
+
+		var requests []*http.Request
+		server := zeroServer(t, &requests, zeroActive)
+
+		command, out := captureCommand()
+		if err := runZero(command, server.URL, "", ""); err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(out.String(), "Save your claim link") {
+			t.Fatalf("asked without a terminal:\n%s", out)
+		}
+
+		global, err := preferences()
+		if err != nil {
+			t.Fatal(err)
+		}
+		out.Reset()
+		const (
+			open  = "Open the project in the console now?"
+			saved = "Have you saved the claim link?"
+		)
+		prompter := &prompt.Scripted{Confirms: map[string]bool{open: console, saved: false}}
+		var opened []string
+		session := global.SessionData(zeroSessionPrefix + "zero-project")
+		if err := onboardZero(command, prompter, session, func(link string) { opened = append(opened, link) }); err != nil {
+			t.Fatal(err)
+		}
+
+		if strings.Join(prompter.Asked, "|") != open+"|"+saved {
+			t.Errorf("asked %v", prompter.Asked)
+		}
+		if console != (len(opened) == 1) {
+			t.Errorf("console %v, opened %v", console, opened)
+		}
+		if !strings.Contains(out.String(), "https://console.example/claim/code") || !strings.Contains(out.String(), "zero list") {
+			t.Errorf("does not show the claim link and where to find it again:\n%s", out)
+		}
 	}
 }
 

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
@@ -155,7 +156,7 @@ func runZero(command *cobra.Command, endpoint, region, directory string) error {
 	path := config.LocalPathOr(config.LocalPath("."))
 	if directory != "" {
 		if config.LocalFile != "" {
-			return errors.New("--config and a directory both choose where the project is linked; pass only one")
+			return errors.New("--config-file and a directory both choose where the project is linked; pass only one")
 		}
 		if err := os.MkdirAll(directory, 0o755); err != nil {
 			return err
@@ -234,6 +235,45 @@ func runZero(command *cobra.Command, endpoint, region, directory string) error {
 	}
 
 	printZeroWelcome(command.OutOrStdout(), &zero, local.Path(), directory)
+
+	// Agents, pipes and --force get the welcome alone.
+	if app.Flags().Force || !prompt.Interactive() || !term.IsTerminal(int(os.Stdout.Fd())) {
+		return nil
+	}
+
+	return onboardZero(command, prompt.New(false), session, openBrowser)
+}
+
+// onboardZero walks a person at a terminal through opening the project and
+// saving the claim link, the only way to keep the project.
+func onboardZero(command *cobra.Command, prompter prompt.Prompter, session *config.Object, open func(string)) error {
+	out := command.OutOrStdout()
+	stored := session.GetObject(preferenceZero)
+
+	fmt.Fprintln(out)
+	console, err := prompter.Confirm(prompt.Question{Message: "Open the project in the console now?", Default: true})
+	if err != nil {
+		return err
+	}
+	if console {
+		if err := openZeroConsole(out, session, open); err != nil {
+			return err
+		}
+	}
+
+	fmt.Fprintln(out)
+	fmt.Fprintln(out, output.Heading("  Save your claim link"))
+	fmt.Fprintf(out, "    %s\n", stored.GetString("claimUrl"))
+	fmt.Fprintf(out, "  Without it the project is deleted in %s.\n", timeLeft(stored.GetString("claimBy"), time.Now()))
+	fmt.Fprintln(out)
+
+	saved, err := prompter.Confirm(prompt.Question{Message: "Have you saved the claim link?", Default: false})
+	if err != nil {
+		return err
+	}
+	if !saved {
+		output.Hint(out, "Run `%s zero list` to see it again", app.ExecutableName)
+	}
 
 	return nil
 }
@@ -437,31 +477,50 @@ func runZeroConsole(command *cobra.Command, open func(string)) error {
 	if session == nil {
 		return fmt.Errorf("no Appwrite Zero project found. Run `%s zero` to create one", app.ExecutableName)
 	}
+
+	if app.Flags().JSON || app.Flags().Raw {
+		token, err := zeroSignInToken(session)
+		if err != nil {
+			return err
+		}
+
+		return renderZeroManifest(command.OutOrStdout(), token)
+	}
+
+	return openZeroConsole(command.OutOrStdout(), session, open)
+}
+
+func zeroSignInToken(session *config.Object) (*jsonx.Object, error) {
 	stored := session.GetObject(preferenceZero)
 
 	var token jsonx.Object
 	path := pathZero + "/" + url.PathEscape(stored.GetString("$id")) + pathTokens
-	err = client.New(session.GetString(config.PreferenceEndpoint), app.Version).
+	err := client.New(session.GetString(config.PreferenceEndpoint), app.Version).
 		WithoutResponseFormat().
 		SetProject(config.ProjectConsole).
 		SetLocale("en-US").
 		Call("POST", path, map[string]any{"secret": stored.GetString("secret")}, &token)
 	var apiError *client.APIError
 	if errors.As(err, &apiError) && apiError.Type == zeroNotFound {
-		return zeroGone(session)
+		return nil, zeroGone(session)
 	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &token, nil
+}
+
+func openZeroConsole(out io.Writer, session *config.Object, open func(string)) error {
+	token, err := zeroSignInToken(session)
 	if err != nil {
 		return err
 	}
-
-	if app.Flags().JSON || app.Flags().Raw {
-		return renderZeroManifest(command.OutOrStdout(), &token)
-	}
+	stored := session.GetObject(preferenceZero)
 
 	link := token.GetString("url")
 	open(link)
 
-	out := command.OutOrStdout()
 	output.Success(out, "Opening Appwrite Zero project %s in the console", stored.GetString("projectId"))
 	fmt.Fprintln(out)
 	within := ""
