@@ -198,6 +198,11 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => 'test/test_client.py',
+                'template' => 'python/test/test_client.py.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ namespace | caseSnake}}/topic.py',
                 'template' => 'python/package/topic.py.twig',
             ],

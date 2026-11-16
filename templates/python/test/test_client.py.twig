@@ -1,0 +1,26 @@
+import requests_mock
+import unittest
+
+from {{ namespace | caseSnake }}.client import Client
+from {{ namespace | caseSnake }}.exception import {{ spec.info.title | caseUcfirst }}Exception
+
+
+class ClientTest(unittest.TestCase):
+    @requests_mock.Mocker()
+    def test_call_error_without_content_type(self, m):
+        body = 'Upstream unavailable'
+        m.get(requests_mock.ANY, status_code=502, text=body)
+
+        with self.assertRaises({{ spec.info.title | caseUcfirst }}Exception) as context:
+            Client().call('get', '/test')
+
+        self.assertEqual(context.exception.code, 502)
+        self.assertEqual(context.exception.message, body)
+        self.assertIsNone(context.exception.type)
+        self.assertEqual(context.exception.response, body)
+
+    @requests_mock.Mocker()
+    def test_call_empty_response_without_content_type(self, m):
+        m.get(requests_mock.ANY, status_code=204, content=b'')
+
+        self.assertEqual(Client().call('get', '/test'), b'')
