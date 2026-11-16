@@ -595,8 +595,25 @@ final class GenerationTest extends TestCase
                 'description' => 'Get.',
                 'parameters' => [['name' => 'zzresource', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string', 'enum' => ['index', 'xIndex', 'value']]]],
                 'responses' => ['200' => ['description' => 'ok', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/zzreport']]]]],
+            ]], '/zzident/self' => ['get' => [
+                'operationId' => 'zzidentGetSelf',
+                'tags' => ['zzident'],
+                'summary' => 'Get self',
+                'description' => 'Get self.',
+                'x-appwrite' => ['method' => 'getSelf'],
+                'responses' => ['200' => ['description' => 'ok', 'content' => ['application/json' => ['schema' => ['$ref' => '#/components/schemas/zzident']]]]],
+            ]], '/zzident/ping' => ['post' => [
+                'operationId' => 'zzidentPing',
+                'tags' => ['zzident'],
+                'summary' => 'Ping',
+                'description' => 'Ping.',
+                'x-appwrite' => ['method' => 'ping'],
+                'responses' => ['204' => ['description' => 'No content']],
             ]]],
-            'components' => ['schemas' => ['zzreport' => [
+            'components' => ['schemas' => ['zzident' => [
+                'type' => 'object',
+                'properties' => ['zzname' => ['type' => 'string']],
+            ], 'zzreport' => [
                 'type' => 'object',
                 'required' => ['zz-field'],
                 'properties' => [
@@ -620,6 +637,14 @@ final class GenerationTest extends TestCase
 
         $web = $this->generateDocument($document, 'web', 'ident')['src/models.ts'] ?? '';
         $this->assertStringContainsString("'zz-field': number;", $web);
+
+        // A result named after its service would redeclare the service variable.
+        $swiftExample = $this->generateDocument($document, 'swift', 'ident')['docs/examples/zzident/get-self.md'] ?? '';
+        $this->assertStringContainsString('let result = try await zzident.getSelf()', $swiftExample);
+
+        // A method with no response model returns Task<object>.
+        $dotnetExample = $this->generateDocument($document, 'dotnet', 'ident')['docs/examples/zzident/ping.md'] ?? '';
+        $this->assertStringContainsString('object result = await zzident.Ping();', $dotnetExample);
     }
 
     private function removeDirectory(string $dir): void

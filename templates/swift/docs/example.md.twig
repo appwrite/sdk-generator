@@ -20,7 +20,7 @@ let client = Client()
 
 let {{ service.name | caseCamel }} = {{ service.name | caseUcfirst }}(client{% if [] | length %}{% for parameter in [] %}, {{ parameter | paramExample }}{% endfor %}{% endif %})
 
-let {% if (method | methodType) == 'webAuth' %}success{% elseif (method | methodType) == 'location' %}bytes{% elseif (method | getValidResponseModels)|length > 1 or (method | responseModel) | length == 0 %}result{% else %}{{ (method | responseModel) | caseCamel | escapeSwiftKeyword }}{% endif %} = try await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %}){{ '\n' }}{% endif %}
+let {% if (method | methodType) == 'webAuth' %}success{% elseif (method | methodType) == 'location' %}bytes{% elseif (method | getValidResponseModels)|length > 1 or (method | responseModel) | length == 0 or ((method | responseModel) | caseCamel) == (service.name | caseCamel) %}result{% else %}{{ (method | responseModel) | caseCamel | escapeSwiftKeyword }}{% endif %} = try await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %}){{ '\n' }}{% endif %}
 
     {%~ for parameter in (method | parameters('all')) %}
     {{ parameter.name | caseCamel }}: {% if (parameter | enumValues) | length > 0 %}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} // optional{% endif %}
