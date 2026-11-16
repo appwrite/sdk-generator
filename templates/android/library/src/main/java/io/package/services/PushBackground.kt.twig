@@ -485,16 +485,21 @@ internal object PushBackground {
      * Android 12+: hand a run to an expedited job, which starts at once with network access and
      * keeps the process runnable until it finishes. A broadcast receiver woken in a cached process
      * runs at background priority and can be frozen before it connects. Returns false when the
-     * job cannot be scheduled (older Android, or the expedited quota is used up), so the caller
-     * runs the tick itself.
+     * job cannot be scheduled (older Android, or the expedited quota is used up) or the last one
+     * never started, so the caller runs the tick itself. Returns true without a new job while the
+     * last one is still running.
      */
     fun runExpedited(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             return false
         }
         val jobs = context.getSystemService(JobScheduler::class.java) ?: return false
-        // The last hand-off never started: the system is holding jobs back, so run in the receiver.
+        // The last hand-off is still pending. A running one keeps its run; one that never started
+        // is held back by the system, so run in the receiver.
         if (jobs.getPendingJob(EXPEDITED_JOB_ID) != null) {
+            if (expeditedJobRunning) {
+                return true
+            }
             jobs.cancel(EXPEDITED_JOB_ID)
             return false
         }
