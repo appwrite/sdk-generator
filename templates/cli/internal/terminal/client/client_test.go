@@ -26,6 +26,7 @@ func TestResolve(t *testing.T) {
 	cookie := global(t, `{"current":"a1","a1":{"endpoint":"https://appwrite.example.com/v1","email":"ada@example.com","cookie":"a_session_console=abc","selfSigned":"true"}}`)
 	token := global(t, `{"current":"b2","b2":{"endpoint":"https://cloud.appwrite.io/v1","email":"grace@example.com","accessToken":"tok","tokenExpiry":4102444800000}}`)
 	stored := global(t, `{"current":"c3","c3":{"endpoint":"https://appwrite.example.com/v1","key":"stored"}}`)
+	cloudKey := global(t, `{"current":"f6","f6":{"endpoint":"https://cloud.appwrite.io/v1","key":"stored"}}`)
 	both := global(t, `{"current":"d4","d4":{"endpoint":"https://appwrite.example.com/v1","email":"ada@example.com","cookie":"a_session_console=abc","key":"stored"}}`)
 	staging := global(t, `{"current":"e5","e5":{"endpoint":"https://cloud.staging.appwrite.io/v1","email":"grace@example.com","cookie":"a_session_console=abc"}}`)
 	empty := global(t, `{"current":"a1","a1":{"endpoint":"https://cloud.appwrite.io/v1"}}`)
@@ -45,6 +46,8 @@ func TestResolve(t *testing.T) {
 	}{
 		{name: "stored key", opts: Options{Project: "shop", Global: stored},
 			wantEndpoint: "https://appwrite.example.com/v1", wantProject: "shop", wantKey: "stored"},
+		{name: "stored key of a project on a region", opts: Options{Project: "shop", Endpoint: "https://nyc.cloud.appwrite.io/v1", Global: cloudKey},
+			wantEndpoint: "https://nyc.cloud.appwrite.io/v1", wantProject: "shop", wantKey: "stored", wantCloud: true},
 		{name: "stored key without project", opts: Options{Global: stored}, wantErr: "missing a project"},
 		{name: "stored key of another instance", opts: Options{Project: "shop", Endpoint: "https://other.example.com/v1", Global: stored},
 			wantErr: "signed in to https://appwrite.example.com/v1"},
@@ -77,6 +80,13 @@ func TestResolve(t *testing.T) {
 			if got.Endpoint != tt.wantEndpoint || got.Project != tt.wantProject || got.Key != tt.wantKey ||
 				got.Cookie != tt.wantCookie || got.SelfSigned != tt.wantSelf || got.Cloud != tt.wantCloud || email != tt.wantEmail {
 				t.Errorf("resolved %+v as %q", got, email)
+			}
+			if got.Cloud && got.Key == "" {
+				if got.Regional == nil || got.Regional("nyc") != "https://nyc."+strings.TrimPrefix(tt.wantEndpoint, "https://") {
+					t.Errorf("a login of cloud does not find the endpoint of a region")
+				}
+			} else if got.Regional != nil {
+				t.Errorf("an endpoint of a region is found where there is none to ask for")
 			}
 			if (got.Token != nil) != (tt.wantToken != "") {
 				t.Fatalf("token func set %t, want %t", got.Token != nil, tt.wantToken != "")

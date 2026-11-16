@@ -35,14 +35,18 @@ type backend interface {
 	Update(ctx context.Context, r appwrite.Ref, id string, data map[string]any) (appwrite.Doc, error)
 	Create(ctx context.Context, r appwrite.Ref, data map[string]any) (appwrite.Doc, error)
 	// ForProject is the backend of another project of the same instance and login, as a console
-	// login opens one of its organisation's.
-	ForProject(id string) backend
+	// login opens one of its organisation's, called at the endpoint of the project's region.
+	ForProject(id, region string) backend
+	// Endpoint is the endpoint the backend calls, for the header.
+	Endpoint() string
 }
 
 // api is the backend outside tests.
 type api struct{ *appwrite.Client }
 
-func (a api) ForProject(id string) backend { return api{a.AsProject(id)} }
+func (a api) ForProject(id, region string) backend {
+	return api{a.AsProject(id).InRegion(region)}
+}
 
 // binary is the name the program was run by, for the window's title.
 var binary = "appwrite terminal"

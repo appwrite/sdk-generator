@@ -121,7 +121,8 @@ func (m model) countCmds(h homeState) tea.Cmd {
 func (m model) openProject(d appwrite.Doc) (model, tea.Cmd) {
 	info := m.info
 	info.Project, info.Name = d.ID(), d.Str("name")
-	b := m.top().b.ForProject(d.ID())
+	b := m.top().b.ForProject(d.ID(), d.Str("region"))
+	info.Endpoint = b.Endpoint()
 	h := m.newHomeState(b, info)
 	return m.push(screen{page: homePage, b: b, home: h}), tea.Batch(m.countCmds(h), m.usageCmd(h.usage.gen, b, projectUsage, usageOf{}), m.dashCmd(h.dash.gen, b))
 }
