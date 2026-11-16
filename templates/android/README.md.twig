@@ -98,11 +98,11 @@ If `backgroundRestricted` is true, the user restricted the app's background usag
 
 If the user force-stops the app (Settings > Force stop, and on some devices swiping it away from recents), Android cancels its alarms and jobs: nothing is delivered until the app is opened again, and the broker then replays what was sent meanwhile.
 
-For immediate delivery even after a kill and during Doze, call `push.setForeground(true)` from the foreground: it adds a foreground service with a quiet ongoing notification. If you never enable it, you can remove the service from your merged manifest, so the Play Console does not ask you to declare it:
+For immediate delivery even after a kill and during Doze, call `push.setForeground(true)` from the foreground: it adds a foreground service with a quiet ongoing notification. Foreground mode is opt-in, because Google Play asks apps that declare a `remoteMessaging` foreground service to justify it in the Play Console. To use it, declare its permissions in your app's `AndroidManifest.xml`; without them `setForeground(true)` reports an error to `onError` and delivery stays on the scheduled runs:
 
 ```xml
-<service android:name="{{ sdk.namespace | caseDot }}.services.PushService" tools:node="remove" />
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" tools:node="remove" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
 ```
 
 ### Opening a tapped notification

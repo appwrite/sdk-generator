@@ -186,6 +186,9 @@ internal object PushBackground {
     @Volatile
     private var serviceStartReported = false
 
+    @Volatile
+    private var foregroundDeclared: Boolean? = null
+
     // The live in-app subscriptions hosted here, each with its callback. Empty after the process
     // was restarted in the background, until the app subscribes again.
     val listeners = CopyOnWriteArrayList<PushListener>()
@@ -300,13 +303,34 @@ internal object PushBackground {
         val app = context.applicationContext
         PushStore.setForeground(app, enabled)
         serviceStartReported = false
+        if (enabled && !foregroundDeclared(app)) {
+            report(
+                {{ spec.info.title | caseUcfirst }}Exception(
+                    "Foreground mode needs the FOREGROUND_SERVICE and FOREGROUND_SERVICE_REMOTE_MESSAGING permissions declared in the app's manifest",
+                ),
+            )
+        }
         ensureService(app)
+    }
+
+    /** Whether the app declares what foreground mode needs: [PushService] and its permissions. */
+    fun foregroundDeclared(context: Context): Boolean {
+        foregroundDeclared?.let { return it }
+        val app = context.applicationContext
+        val service = runCatching {
+            app.packageManager.getServiceInfo(ComponentName(app, PushService::class.java), 0)
+        }.isSuccess
+        val declared = service &&
+            declares(app, Manifest.permission.FOREGROUND_SERVICE) &&
+            (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || declares(app, Manifest.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING))
+        foregroundDeclared = declared
+        return declared
     }
 
     /** Whether the foreground service should run: foreground mode is enabled and there is work to do. */
     fun wantsService(context: Context): Boolean {
         val app = context.applicationContext
-        return PushStore.foreground(app) && synchronized(lock) {
+        return PushStore.foreground(app) && foregroundDeclared(app) && synchronized(lock) {
             load(app)
             isActive()
         }
@@ -1217,7 +1241,7 @@ internal object PushBackground {
             exactAlarms = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
                 app.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true,
             ignoringBatteryOptimizations = app.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(app.packageName) == true,
-            foregroundService = PushStore.foreground(app),
+            foregroundService = PushStore.foreground(app) && foregroundDeclared(app),
             backgroundRestricted = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&
                 app.getSystemService(ActivityManager::class.java)?.isBackgroundRestricted == true,
         )
@@ -1251,14 +1275,15 @@ internal object PushBackground {
         )
     }
 
+    private fun declares(context: Context, permission: String): Boolean = runCatching {
+        @Suppress("DEPRECATION")
+        context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS).requestedPermissions
+    }.getOrNull()?.contains(permission) == true
+
     // Open a settings screen for this package when the app declares [permission].
     private fun openSettings(context: Context, action: String, permission: String): Boolean {
         val app = context.applicationContext
-        val declared = runCatching {
-            @Suppress("DEPRECATION")
-            app.packageManager.getPackageInfo(app.packageName, PackageManager.GET_PERMISSIONS).requestedPermissions
-        }.getOrNull()?.contains(permission) == true
-        if (!declared) {
+        if (!declares(app, permission)) {
             return false
         }
         return try {
