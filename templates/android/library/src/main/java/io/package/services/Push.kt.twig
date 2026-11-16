@@ -268,8 +268,9 @@ class Push(
      * Run background delivery in a foreground service (with a quiet ongoing
      * notification), for immediate delivery even after the process is killed and during Doze,
      * instead of only the scheduled runs. Saved, so it applies after restarts too; call it from
-     * the foreground (Android 12+ refuses to start the service from the background). Apps that
-     * never enable it can remove the service from their merged manifest. It only affects
+     * the foreground (Android 12+ refuses to start the service from the background). It needs the
+     * `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_REMOTE_MESSAGING` permissions declared in the
+     * app's manifest, and reports to [onError] without them. It only affects
      * `background = true` subscriptions; `background = false` ones still deliver only while the
      * app process is alive.
      */
