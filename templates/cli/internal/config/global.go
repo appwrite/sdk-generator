@@ -369,6 +369,20 @@ func NormalizeCloudConsoleEndpoint(endpoint string) string {
 	return "https://" + base + "/v1"
 }
 
+// RegionalEndpoint prefixes the base host of a Cloud endpoint with a region,
+// whichever region the endpoint already named.
+func RegionalEndpoint(endpoint, region string) string {
+	normalized := NormalizeCloudConsoleEndpoint(endpoint)
+
+	parsed, err := url.Parse(normalized)
+	if err != nil {
+		return normalized
+	}
+	parsed.Host = region + "." + parsed.Host
+
+	return strings.TrimSuffix(parsed.String(), "/")
+}
+
 // CloudConsoleURL returns the console origin behind a Cloud endpoint, and false
 // when the endpoint is self-hosted. The console is served from the base host
 // without its `cloud.` label: appwrite.io, or staging.appwrite.io.

@@ -38,6 +38,8 @@ type fakeBackend struct {
 	files    map[string]string
 	// opened are the projects opened from the console, in order.
 	opened []string
+	// region is the region of the project last opened.
+	region string
 	// usage are the reads of the usage, and usageErr fails them.
 	usage    []appwrite.UsageQuery
 	usageErr error
@@ -247,12 +249,24 @@ var fakeRoutes = []routeStat{
 	{method: "GET", path: "/v1/users", requests: 30},
 }
 
-// ForProject is the fake of another project: the same lists, with the project's id noted.
-func (f *fakeBackend) ForProject(id string) backend {
+// ForProject is the fake of another project: the same lists, with the project's id and region
+// noted.
+func (f *fakeBackend) ForProject(id, region string) backend {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.opened = append(f.opened, id)
+	f.region = region
 	return f
+}
+
+// Endpoint is the endpoint of the region of the project last opened, the console's before one.
+func (f *fakeBackend) Endpoint() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.region == "" {
+		return "https://cloud.appwrite.io/v1"
+	}
+	return "https://" + f.region + ".cloud.appwrite.io/v1"
 }
 
 // testInfo is the connection the header shows in tests.

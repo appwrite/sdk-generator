@@ -21,7 +21,8 @@ import (
 	"time"
 )
 
-// DefaultEndpoint is Appwrite Cloud's endpoint, which routes a project to its region.
+// DefaultEndpoint is Appwrite Cloud's endpoint. It answers the console's routes, and a project's
+// only for a project of the region behind it: a project answers on its own region's host.
 const DefaultEndpoint = "https://cloud.appwrite.io/v1"
 
 // ConsoleProject is the project id the console's own routes answer to, as organisations and the
@@ -43,6 +44,9 @@ type Options struct {
 	// Cloud says the endpoint is Appwrite Cloud, which lists organisations at a route of its own.
 	// The caller decides it, as the cli knows Cloud's hosts.
 	Cloud bool
+	// Regional is the endpoint a project of a region answers on, as fra.cloud.appwrite.io for
+	// fra. It is nil for an instance without regions, a self-hosted one.
+	Regional func(region string) string
 	// UserAgent names the program in every request.
 	UserAgent string
 }
@@ -50,6 +54,10 @@ type Options struct {
 // Client calls one instance as one project.
 type Client struct {
 	endpoint string
+	// base is the endpoint the client was made with, which the console's routes are called at
+	// whichever region the project is called at.
+	base     string
+	regional func(region string) string
 	project  string
 	key      string
 	cookie   string
@@ -68,6 +76,8 @@ func New(opts Options) (*Client, error) {
 	}
 	return &Client{
 		endpoint: endpoint,
+		base:     endpoint,
+		regional: opts.Regional,
 		project:  opts.Project,
 		key:      opts.Key,
 		cookie:   opts.Cookie,
@@ -131,11 +141,44 @@ func (c *Client) Endpoint() string { return c.endpoint }
 func (c *Client) ProjectID() string { return c.project }
 
 // AsProject is a client of the same instance and login, for another project, as the console
-// opens a project of an organisation.
+// opens a project of an organisation. The console project is called at the endpoint the client
+// was made with, not at the region of the project it is called from.
 func (c *Client) AsProject(project string) *Client {
 	other := *c
 	other.project = project
+	if project == ConsoleProject {
+		other.endpoint = c.base
+	}
 	return &other
+}
+
+// InRegion is the client calling its project at the endpoint of the project's region, where the
+// instance has regions: Cloud refuses a project's routes on another region's host. A region that
+// is not one label of a host is not followed, so the credential goes to no host it names.
+func (c *Client) InRegion(region string) *Client {
+	if c.regional == nil || !isLabel(region) {
+		return c
+	}
+	endpoint, err := NormalizeEndpoint(c.regional(region))
+	if err != nil {
+		return c
+	}
+	other := *c
+	other.endpoint = endpoint
+	return &other
+}
+
+// isLabel reports whether s is one label of a host name: letters, digits and inner hyphens.
+func isLabel(s string) bool {
+	if s == "" || len(s) > 63 || s[0] == '-' || s[len(s)-1] == '-' {
+		return false
+	}
+	for _, r := range s {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+			return false
+		}
+	}
+	return true
 }
 
 // Cloud reports whether the endpoint is Appwrite Cloud, as the options said.

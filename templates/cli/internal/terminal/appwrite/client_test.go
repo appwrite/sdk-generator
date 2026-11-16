@@ -194,6 +194,36 @@ func TestConsoleSession(t *testing.T) {
 	}
 }
 
+// TestRegion checks a project of a region is called at the region's endpoint and the console's
+// routes stay at the endpoint the client was made with, an instance without regions calls the
+// one endpoint, and a region that is not a host's label is not followed.
+func TestRegion(t *testing.T) {
+	regional := func(region string) string { return "https://" + region + ".cloud.appwrite.io/v1" }
+	c, err := New(Options{Endpoint: "https://cloud.appwrite.io/v1", Project: ConsoleProject, Cookie: "a_session_console=abc", Cloud: true, Regional: regional})
+	if err != nil {
+		t.Fatal(err)
+	}
+	shop := c.AsProject("shop").InRegion("nyc")
+	if shop.Endpoint() != "https://nyc.cloud.appwrite.io/v1" || shop.ProjectID() != "shop" {
+		t.Errorf("a project of nyc is called as %s at %s", shop.ProjectID(), shop.Endpoint())
+	}
+	if console := shop.clientFor(Ref{Kind: Projects}); console.Endpoint() != "https://cloud.appwrite.io/v1" || console.ProjectID() != ConsoleProject {
+		t.Errorf("the console is called as %s at %s", console.ProjectID(), console.Endpoint())
+	}
+	for _, region := range []string{"", "evil.example.com/", "nyc.evil", "NYC", "-nyc"} {
+		if got := c.AsProject("shop").InRegion(region).Endpoint(); got != "https://cloud.appwrite.io/v1" {
+			t.Errorf("region %q is called at %s", region, got)
+		}
+	}
+	self, err := New(Options{Endpoint: "https://appwrite.example.com/v1", Project: "shop", Key: "k"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := self.InRegion("default").Endpoint(); got != "https://appwrite.example.com/v1" {
+		t.Errorf("an instance without regions is called at %s", got)
+	}
+}
+
 // TestNormalizeEndpoint checks an endpoint is given /v1 when it has no path, and one that is not
 // a url is refused.
 func TestNormalizeEndpoint(t *testing.T) {

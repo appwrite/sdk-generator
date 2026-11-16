@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"net/url"
-	"strings"
 
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/app"
 	"github.com/{{ sdk.gitUserName }}/{{ sdk.gitRepoName | caseDash }}/internal/client"
@@ -33,15 +32,7 @@ func verifyEndpoint(endpoint string, selfSigned bool) error {
 
 // regionalEndpoint prefixes the normalized endpoint host with a region.
 func regionalEndpoint(endpoint, region string) string {
-	normalized := config.NormalizeCloudConsoleEndpoint(endpoint)
-
-	parsed, err := url.Parse(normalized)
-	if err != nil {
-		return normalized
-	}
-	parsed.Host = region + "." + parsed.Host
-
-	return strings.TrimSuffix(parsed.String(), "/")
+	return config.RegionalEndpoint(endpoint, region)
 }
 
 // isCloudEndpoint reports whether an endpoint is Appwrite Cloud.
