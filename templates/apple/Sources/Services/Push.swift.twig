@@ -1235,10 +1235,12 @@ open class Push: Service {
         }
         {%~ if services['analytics'] is defined %}
         let messageId = RemoteMessage.id(payload: pushMessage.payload)
-        if (shown || notification.visible) && matched.contains(where: { $0.background }),
+        let tracking = sync.sync { self.tracking }
+        if let tracking,
+            (shown || notification.visible) && matched.contains(where: { $0.background }),
             Push.firstTracked("received\n\(pushMessage.topic)\n\(messageId ?? pushMessage.data)")
         {
-            sync.sync { tracking }?.pushReceived(messageId: messageId)
+            tracking.pushReceived(messageId: messageId)
         }
         {%~ endif %}
     }
