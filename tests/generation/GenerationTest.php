@@ -1015,6 +1015,25 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * Foreground Push delivery is opt-in, so the embedded Android manifests must not
+     * request the foreground-service permissions on every app's behalf.
+     */
+    public function testAndroidPushManifestsLeaveForegroundServicePermissionsToTheApp(): void
+    {
+        foreach (['android', 'flutter', 'react-native'] as $name) {
+            $manifests = \array_filter(
+                $this->generate($name, 'client'),
+                fn (string $path): bool => \str_ends_with($path, 'src/main/AndroidManifest.xml'),
+                ARRAY_FILTER_USE_KEY,
+            );
+            $this->assertStringContainsString('services.pushservice', \implode('', $manifests), $name);
+            foreach ($manifests as $path => $contents) {
+                $this->assertStringNotContainsString('android.permission.foreground_service', $contents, "{$name} {$path}");
+            }
+        }
+    }
+
+    /**
      * A `{}` spec default decodes to an empty PHP array, and a number param
      * without an example used to print `null`; both must keep their declared
      * type in the generated TypeScript.
