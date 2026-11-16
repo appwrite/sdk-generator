@@ -36,9 +36,10 @@ import (
 // the token in the X-Appwrite-Zero-Token header.
 
 const (
-	pathZero   = "/zero"
-	pathRules  = "/proxy/rules"
-	pathTokens = "/tokens"
+	pathZero       = "/zero"
+	pathRules      = "/proxy/rules"
+	pathTokens     = "/tokens"
+	pathExtensions = "/extensions"
 
 	// zeroOwnerPath is where a domain of an unclaimed Zero takes the owner token,
 	// which opens its deployment previews without a console session.
@@ -54,6 +55,11 @@ const (
 	zeroNotFound    = "zero_not_found"
 	zeroActive      = "active"
 	zeroExpired     = "expired"
+
+	// The build window cannot be extended again: no extension is left, or the
+	// next would run past the claim deadline.
+	zeroExtensionLimit     = "zero_extension_limit_exceeded"
+	zeroExtensionPastClaim = "zero_extension_past_claim"
 )
 
 func newZeroCommand() *cobra.Command {
@@ -91,6 +97,7 @@ func newZeroCommand() *cobra.Command {
 	command.AddCommand(newZeroConsoleCommand())
 	command.AddCommand(newZeroListCommand())
 	command.AddCommand(newZeroDeleteCommand())
+	command.AddCommand(newZeroExtendCommand())
 
 	return command
 }
@@ -143,6 +150,20 @@ func newZeroDeleteCommand() *cobra.Command {
 		Args: cobra.NoArgs,
 		RunE: func(command *cobra.Command, args []string) error {
 			return runZeroDelete(command)
+		},
+	}
+}
+
+func newZeroExtendCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "extend",
+		Short: "Add an hour to the build time of the Zero project linked to this directory",
+		Long: "Extend this directory's unclaimed Zero project by an hour, resuming it if its " +
+			"build time had run out. It can be extended a few times, never past its claim " +
+			"deadline, which does not move. --json prints the manifest.",
+		Args: cobra.NoArgs,
+		RunE: func(command *cobra.Command, args []string) error {
+			return runZeroExtend(command)
 		},
 	}
 }
@@ -534,8 +555,8 @@ func openZeroConsole(out io.Writer, session *config.Object, open func(string)) e
 }
 
 // runZeroList reads the stored sessions only: each holds the deadlines the
-// project was created with, which no later call moves, so listing costs no
-// request and works for a project the API no longer answers for.
+// project was created with, as `zero extend` last moved them, so listing costs
+// no request and works for a project the API no longer answers for.
 func runZeroList(command *cobra.Command) error {
 	global, err := preferences()
 	if err != nil {
@@ -650,6 +671,66 @@ func runZeroDelete(command *cobra.Command) error {
 	}
 
 	output.Success(command.OutOrStdout(), "Deleted Appwrite Zero project %s", projectID)
+
+	return nil
+}
+
+// runZeroExtend extends the project this directory is linked to with its claim
+// code, as `zero delete` picks it, and stores the new end of the build window
+// for `zero list`.
+func runZeroExtend(command *cobra.Command) error {
+	global, err := preferences()
+	if err != nil {
+		return err
+	}
+
+	local, err := config.LoadLocal(config.FindLocalPath())
+	if err != nil {
+		return fmt.Errorf("no Appwrite Zero project is linked here. Run `%s zero extend` in its directory", app.ExecutableName)
+	}
+	projectID := local.Data.GetString("projectId")
+	session := global.SessionData(zeroSessionPrefix + projectID)
+	if projectID == "" || session == nil || session.GetObject(preferenceZero) == nil {
+		return fmt.Errorf("this directory is not linked to an Appwrite Zero project on this machine. Run `%s zero list` to see them", app.ExecutableName)
+	}
+	stored := session.GetObject(preferenceZero)
+
+	var zero jsonx.Object
+	path := pathZero + "/" + url.PathEscape(stored.GetString("$id")) + pathExtensions
+	err = client.New(session.GetString(config.PreferenceEndpoint), app.Version).
+		WithoutResponseFormat().
+		SetProject(config.ProjectConsole).
+		SetLocale("en-US").
+		Call("POST", path, map[string]any{"secret": stored.GetString("secret")}, &zero)
+	var apiError *client.APIError
+	if errors.As(err, &apiError) {
+		switch apiError.Type {
+		case zeroNotFound:
+			return zeroGone(session)
+		case zeroExtensionLimit, zeroExtensionPastClaim:
+			return fmt.Errorf("%s Claim it here: %s", apiError.Message, stored.GetString("claimUrl"))
+		}
+	}
+	if err != nil {
+		return err
+	}
+
+	stored.Set("expiresAt", zero.GetString("expiresAt"))
+	if err := global.Write(); err != nil {
+		return err
+	}
+
+	if app.Flags().JSON || app.Flags().Raw {
+		return renderZeroManifest(command.OutOrStdout(), &zero)
+	}
+
+	now := time.Now()
+	out := command.OutOrStdout()
+	output.Success(out, "Extended Appwrite Zero project %s: %s left to build", projectID, timeLeft(zero.GetString("expiresAt"), now))
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "  Extensions left  %d\n", zero.GetInt64("extensionsRemaining"))
+	fmt.Fprintf(out, "  Claim it within %s to keep it:\n", timeLeft(zero.GetString("claimBy"), now))
+	fmt.Fprintf(out, "    %s\n", stored.GetString("claimUrl"))
 
 	return nil
 }
