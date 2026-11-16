@@ -92,7 +92,12 @@ final subscription = await push.subscribe(
 await push.setForeground(true);
 ```
 
-Foreground mode runs a `remoteMessaging` foreground service, which Google Play asks apps to declare in the Play Console. Apps that never enable it can remove the service from their merged manifest with `tools:node="remove"` on `io.{{ spec.info.title | caseLower }}.flutter.services.PushService` and `android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING`.
+Foreground mode is opt-in, because Google Play asks apps that declare a `remoteMessaging` foreground service to justify it in the Play Console. To use it, declare its permissions in your app's `AndroidManifest.xml`; without them `setForeground(true)` reports an error to `onError` and delivery stays on the scheduled wake-ups:
+
+```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
+```
 
 Set the notification icon with `<meta-data android:name="io.{{ spec.info.title | caseLower }}.flutter.push.notification_icon" android:resource="@drawable/..." />` in your `<application>`; without it a generic icon is used.
 
