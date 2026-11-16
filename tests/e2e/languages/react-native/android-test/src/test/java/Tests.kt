@@ -794,6 +794,49 @@ class PushAlarmChainTest {
         }
     }
 
+    @Test
+    fun testAlarmLeavesARunningExpeditedJobAlone() {
+        val config = JSONObject()
+            .put("host", System.getenv("PUSH_HOST") ?: "mqtt")
+            .put("port", 1883)
+            .put("tls", false)
+            .put("authMethod", "appwrite-session")
+            .put("credential", SESSION)
+            .put("project", "console")
+            .put("clientId", "e2e-alarm-running")
+            .toString()
+        val subscriptions = JSONArray()
+            .put(JSONObject().put("id", "running").put("topic", "e2e-alarm-running").put("background", true).put("retry", true))
+            .toString()
+        call { module.host(config, subscriptions, it) }
+
+        val alarmManager = context.getSystemService(AlarmManager::class.java)
+        val alarms = shadowOf(alarmManager)
+        val jobs = context.getSystemService(JobScheduler::class.java)
+        val receiver = PushAlarmReceiver()
+        context.registerReceiver(receiver, IntentFilter(PushBackground.ACTION_TICK))
+        fun fire() {
+            alarms.nextScheduledAlarm?.operation?.let { alarmManager.cancel(it) }
+            context.sendBroadcast(Intent(PushBackground.ACTION_TICK))
+            shadowOf(Looper.getMainLooper()).idle()
+        }
+        try {
+            jobs.cancel(PushBackground.EXPEDITED_JOB_ID)
+            fire()
+            assertTrue("the alarm hands its run to an expedited job", jobs.getPendingJob(PushBackground.EXPEDITED_JOB_ID) != null)
+
+            // The job started and is still running when the next alarm fires, as a slow run does.
+            PushBackground.expeditedJobRunning = true
+            fire()
+            assertTrue("a running hand-off is left alone", jobs.getPendingJob(PushBackground.EXPEDITED_JOB_ID) != null)
+            assertTrue("the alarm still arms the next one", alarms.nextScheduledAlarm != null)
+        } finally {
+            PushBackground.expeditedJobRunning = false
+            context.unregisterReceiver(receiver)
+            call { module.stop(it) }
+        }
+    }
+
     private fun call(block: (Promise) -> Unit): Result<Any?> {
         val promise = TestPromise()
         block(promise)
