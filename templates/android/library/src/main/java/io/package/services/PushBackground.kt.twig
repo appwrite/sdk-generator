@@ -181,6 +181,10 @@ internal object PushBackground {
     @Volatile
     var serviceRunning = false
 
+    // Whether the expedited job an alarm handed its run to has started; it runs in this process.
+    @Volatile
+    var expeditedJobRunning = false
+
     // Whether a refused service start was reported, so a job that retries it every run does not
     // report the same failure every 15 seconds.
     @Volatile
