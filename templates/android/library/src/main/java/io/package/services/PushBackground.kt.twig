@@ -181,6 +181,10 @@ internal object PushBackground {
     @Volatile
     var serviceRunning = false
 
+    // Whether the expedited job an alarm handed its run to has started; it runs in this process.
+    @Volatile
+    var expeditedJobRunning = false
+
     // Whether a refused service start was reported, so a job that retries it every run does not
     // report the same failure every 15 seconds.
     @Volatile
@@ -499,11 +503,22 @@ internal object PushBackground {
      * Android 12+: hand a run to an expedited job, which starts at once with network access and
      * keeps the process runnable until it finishes. A broadcast receiver woken in a cached process
      * runs at background priority and can be frozen before it connects. Returns false when the
-     * job cannot be scheduled (older Android, or the expedited quota is used up), so the caller
-     * runs the tick itself.
+     * job cannot be scheduled (older Android, or the expedited quota is used up) or the last one
+     * never started, so the caller runs the tick itself. Returns true without a new job while the
+     * last one is still running.
      */
     fun runExpedited(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return false
+        }
+        val jobs = context.getSystemService(JobScheduler::class.java) ?: return false
+        // The last hand-off is still pending. A running one keeps its run; one that never started
+        // is held back by the system, so run in the receiver.
+        if (jobs.getPendingJob(EXPEDITED_JOB_ID) != null) {
+            if (expeditedJobRunning) {
+                return true
+            }
+            jobs.cancel(EXPEDITED_JOB_ID)
             return false
         }
         return try {
@@ -511,9 +526,21 @@ internal object PushBackground {
                 .setExpedited(true)
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .build()
-            context.getSystemService(JobScheduler::class.java)?.schedule(job) == JobScheduler.RESULT_SUCCESS
+            jobs.schedule(job) == JobScheduler.RESULT_SUCCESS
         } catch (e: Exception) {
             false
+        }
+    }
+
+    /** Arm the next alarm of the chain without touching the jobs (the alarm handed its run to one). */
+    fun armNextAlarm(context: Context) {
+        val app = context.applicationContext
+        val active = synchronized(lock) {
+            load(app)
+            isActive()
+        }
+        if (active) {
+            schedule(app, INTERVAL_MS, alarmOnly = true)
         }
     }
 
