@@ -1183,6 +1183,11 @@ class SDK
             }
         }
 
+        // Every file in an SDK repository is generator output, reviewed where its template
+        // changes. Hansi still reviews a release, but one too large to show does not lose the
+        // approval.
+        \copy(__DIR__ . '/../../templates/hansi.json', $target . '/.hansi.json');
+
         $this->language->postGenerate($target);
     }
 
