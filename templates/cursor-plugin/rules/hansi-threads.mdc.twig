@@ -1,0 +1,10 @@
+---
+description: Do not resolve Hansi review threads in GitHub. Hansi clears them after a fix or a dismissal.
+alwaysApply: true
+---
+
+Hansi is the reviewer behind {{ spec.info.title }} Review. When a pull request has a Hansi summary comment (its body contains `<!-- appwrite-hansi:summary`) or review comments from the {{ spec.info.title }} GitHub App:
+
+- Do not call `resolveReviewThread`, and do not resolve those threads in the GitHub UI. A resolved thread stays open in Hansi's summary, so the tier stays capped.
+- Fix the code, or reply on that thread. Hansi resolves the thread when a later review sees the fix, or when it dismisses the finding after the reply.
+- `{{ 'hansi-status' | skillName(spec) }}` reads the review. `{{ 'hansi-learn' | skillName(spec) }}` saves a lasting rule. `{{ 'hansi-setup' | skillName(spec) }}` changes `.hansi.json`. `{{ 'hansi-loop' | skillName(spec) }}` fixes until Tier S.

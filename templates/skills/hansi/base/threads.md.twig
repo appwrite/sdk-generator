@@ -1,0 +1,23 @@
+List unresolved review threads and keep the ones whose first comment is from `<slug>[bot]`:
+
+```bash
+gh api graphql -f query='
+query($cursor: String) {
+  repository(owner: "OWNER", name: "REPO") {
+    pullRequest(number: PR_NUMBER) {
+      reviewThreads(first: 100, after: $cursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          id
+          isResolved
+          comments(first: 20) {
+            nodes { databaseId body path author { login } }
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
+Page with `endCursor` while `hasNextPage` is true. A finding comment starts with a bold title, then the explanation, sometimes a `suggestion` block, and a footer like `Major · bug`. When several projects review the repository, all of their findings come from the same bot account: match a thread to a summary by its title in that summary's findings tables.

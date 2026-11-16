@@ -41,6 +41,14 @@ class CodexPlugin extends Skills
             ];
         }
 
+        foreach ($this->hansiSkills as $skill) {
+            $files[] = [
+                'scope'       => 'default',
+                'destination' => 'plugins/{{ spec.info.title | caseLower }}/skills/{{ spec.info.title | caseLower }}-hansi-' . $skill . '/SKILL.md',
+                'template'    => 'skills/hansi/' . $skill . '.md.twig',
+            ];
+        }
+
         $files[] = [
             'scope'       => 'default',
             'destination' => 'plugins/{{ spec.info.title | caseLower }}/.codex-plugin/plugin.json',

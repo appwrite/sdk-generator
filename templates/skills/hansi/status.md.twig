@@ -1,0 +1,82 @@
+---
+name: {{ 'hansi-status' | skillName(spec) }}
+description: Reads the current Hansi review ({{ spec.info.title }} Review) on a GitHub pull request and reports the tier, open findings, filtered-out comments, and whether approval was withheld. Does not request a new review or change the pull request. Use when the user wants to know what Hansi or {{ spec.info.title }} Review said, the current tier, or which comments are still open, or when they run hansi-status.
+---
+
+# Hansi review status
+
+Hansi is the reviewer behind {{ spec.info.title }} Review. Read its review of a pull request and stop. Do not comment, push, commit, or resolve a thread. A new review counts toward the {{ spec.info.title }} project's review usage.
+
+{{ include('skills/hansi/base/clients.md.twig')|trim }}
+
+## Inputs
+
+- **Pull request number** (optional). If omitted, use the pull request for the current branch.
+
+## Instructions
+
+### 1. Identify the pull request
+
+Set `PR_NUMBER` when the user gave one. Leave it empty to use the current branch.
+
+```bash
+if [ -n "$PR_NUMBER" ]; then
+  gh pr view "$PR_NUMBER" --json number,headRefName,headRefOid,url,baseRefName -q '{number: .number, branch: .headRefName, sha: .headRefOid, url: .url, base: .baseRefName}'
+else
+  gh pr view --json number,headRefName,headRefOid,url,baseRefName -q '{number: .number, branch: .headRefName, sha: .headRefOid, url: .url, base: .baseRefName}'
+fi
+```
+
+Use the `number` from that JSON as `<PR_NUMBER>` and the `sha` as `<HEAD_SHA>`. Stop if there is no open pull request.
+
+### 2. Read the summary
+
+{{ include('skills/hansi/base/summary.md.twig')|trim }}
+
+If there is no summary, say there is no Hansi review yet and stop. Do not mention the app and do not request a review.
+
+Parse the body:
+
+{{ include('skills/hansi/base/tiers.md.twig')|trim }}
+
+### 3. Read the check on this head
+
+Read the `Hansi` check of that summary on `<HEAD_SHA>` (the second command above) and report it exactly:
+
+- `queued` or `in_progress`: a review of this head is still running. Do not wait for it.
+- `completed` with `failure`: Hansi requested changes.
+- `completed` with `neutral`: Hansi commented.
+- `completed` with `success`: Hansi approved.
+- `skipped`: drafts, disabled reviews, or a base branch Hansi does not review.
+- Title `Review failed`: the review did not finish.
+- No check on `<HEAD_SHA>`: the summary may be for an older commit. Say the review is stale and name the head it does not cover.
+
+### 4. List unresolved Hansi threads
+
+{{ include('skills/hansi/base/threads.md.twig')|trim }}
+
+Also read the latest Hansi review body. If GitHub rejected the inline comments, the findings are in that body instead of threads. Treat those as open too.
+
+Do not call `resolveReviewThread`.
+
+### 5. Report
+
+```
+hansi-status
+  Pull request:  #123
+  URL:           https://github.com/owner/repo/pull/123
+  Head:          abc1234
+  Check:         completed · failure
+  Tier:          B
+  Open:          2
+  Filtered out:  1
+  Approval withheld: no
+
+Open findings:
+  - src/auth.ts:45 — "Session cookie is not marked HttpOnly" (major, unresolved)
+
+Filtered out:
+  - "Rename this variable" — style
+```
+
+Quote titles from the summary. If the summary and the threads disagree, list both and say which source each line came from. If approval was withheld, quote the note even when the tier is **S**. When several projects review the repository, give one report per summary.

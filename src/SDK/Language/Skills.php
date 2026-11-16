@@ -25,6 +25,19 @@ class Skills extends Language
         'cli',
     ];
 
+    /**
+     * Skills for Hansi, the reviewer behind Appwrite Review. Rendered from
+     * skills/hansi/{name}.md.twig and named hansi-{name}, prefixed like the
+     * language skills.
+     */
+    protected array $hansiSkills = [
+        'status',
+        'loop',
+        'learn',
+        'setup',
+        'threads',
+    ];
+
     protected string $skillDestination = 'skills/{{ spec.info.title | caseLower }}-%s/SKILL.md';
     protected bool $prefixSkillName = true;
 
@@ -94,6 +107,14 @@ class Skills extends Language
                 'scope'       => 'default',
                 'destination' => \sprintf($this->skillDestination, $lang),
                 'template'    => 'skills/' . $lang . '.md.twig',
+            ];
+        }
+
+        foreach ($this->hansiSkills as $skill) {
+            $files[] = [
+                'scope'       => 'default',
+                'destination' => \sprintf($this->skillDestination, 'hansi-' . $skill),
+                'template'    => 'skills/hansi/' . $skill . '.md.twig',
             ];
         }
 

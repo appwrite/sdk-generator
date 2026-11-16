@@ -32,6 +32,22 @@ The plugin includes {{ spec.info.title }} skills for the following languages and
 
 Each skill gives the agent {{ spec.info.title }} context for authentication, database operations, file storage, realtime subscriptions, functions, and more. Cursor loads a skill when a task matches its description.
 
+## Code review skills
+
+These skills work with Hansi, the reviewer behind {{ spec.info.title }} Review, on GitHub pull requests.
+
+| Skill | What it does |
+| --- | --- |
+| `{{ spec.info.title | caseLower }}-hansi-status` | Read the current tier, open findings, and filtered-out comments. Does not start a review. |
+| `{{ spec.info.title | caseLower }}-hansi-loop` | Fix the pull request until Hansi grades it **Tier S** and no comments are left open. |
+| `{{ spec.info.title | caseLower }}-hansi-learn` | Reply on a finding with a lasting rule so Hansi remembers it. |
+| `{{ spec.info.title | caseLower }}-hansi-setup` | Write `.hansi.json` and open a pull request onto the base branch. |
+| `{{ spec.info.title | caseLower }}-hansi-threads` | Applies on its own: do not resolve Hansi's review threads. |
+
+The `hansi-threads` rule says the same for every chat: Hansi clears its threads itself after a fix or a dismissal.
+
+The review skills need {{ spec.info.title }} Review set up on the repository (Console → your project → Review) and a way to talk to GitHub; the examples use the GitHub CLI. Each review counts toward the project's review usage, and `hansi-loop` stops after 5 iterations.
+
 ## Commands
 
 Agent-executable commands for deploying from your editor:
@@ -58,9 +74,15 @@ If the server does not connect, open **Customize**, turn the `{{ spec.info.title
 └── plugin.json              # Plugin manifest
 skills/                      # Agent skills
 {% for lang in languages|keys %}
-{{ loop.last ? '└──' : '├──' }} {{ spec.info.title | caseLower }}-{{ lang }}/
+├── {{ spec.info.title | caseLower }}-{{ lang }}/
+│   └── SKILL.md
+{% endfor %}
+{% for skill in ['status', 'loop', 'learn', 'setup', 'threads'] %}
+{{ loop.last ? '└──' : '├──' }} {{ spec.info.title | caseLower }}-hansi-{{ skill }}/
 {{ loop.last ? ' ' : '│' }}   └── SKILL.md
 {% endfor %}
+rules/                       # Always-applied rules
+└── hansi-threads.mdc
 commands/                    # Agent-executable commands
 ├── deploy-site.md
 └── deploy-function.md
