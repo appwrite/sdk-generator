@@ -53,18 +53,18 @@ These skills give Claude Code language-specific {{ spec.info.title }} context fo
 
 ## Code review skills
 
-These skills work with Hansi, the reviewer behind {{ spec.info.title }} Review, on GitHub pull requests.
+These skills work with {{ spec.info.title }} Review, which reviews GitHub pull requests and grades them from **S** to **F**.
 
 | Skill | What it does |
 | --- | --- |
-| `/{{ name }}:hansi-status` | Read the current tier, open findings, and filtered-out comments. Does not start a review. |
-| `/{{ name }}:hansi-loop` | Fix the pull request until Hansi grades it **Tier S** and no comments are left open. |
-| `/{{ name }}:hansi-learn` | Reply on a finding with a lasting rule so Hansi remembers it. |
-| `/{{ name }}:hansi-setup` | Write `.hansi.json` and open a pull request onto the base branch. |
+| `/{{ name }}:review-status` | Read the current tier, open findings, and filtered-out comments. Does not start a review. |
+| `/{{ name }}:review-loop` | Fix the pull request until {{ spec.info.title }} Review grades it **Tier S** and no comments are left open. |
+| `/{{ name }}:review-learn` | Reply on a finding with a lasting rule so {{ spec.info.title }} Review remembers it. |
+| `/{{ name }}:review-setup` | Write `.hansi.json` and open a pull request onto the base branch. |
 
-`hansi-threads` is not invoked directly: it keeps Claude from resolving Hansi's review threads, which Hansi clears itself after a fix or a dismissal.
+`review-threads` is not invoked directly: it keeps Claude from resolving review threads that {{ spec.info.title }} Review clears itself after a fix or a dismissal.
 
-The review skills need {{ spec.info.title }} Review set up on the repository (Console → your project → Review) and a way to talk to GitHub; the examples use the GitHub CLI. Each review counts toward the project's review usage, and `hansi-loop` stops after 5 iterations.
+The review skills need {{ spec.info.title }} Review set up on the repository (Console → your project → Review) and a way to talk to GitHub; the examples use the GitHub CLI. Each review counts toward the project's review usage, and `review-loop` stops after 5 iterations.
 
 ## Included commands
 
@@ -118,15 +118,15 @@ skills/                      # Claude Code skills (per language)
 │   └── SKILL.md
 ├── cli/
 │   └── SKILL.md
-├── hansi-status/            # Code review skills (Hansi)
+├── review-status/            # Code review skills
 │   └── SKILL.md
-├── hansi-loop/
+├── review-loop/
 │   └── SKILL.md
-├── hansi-learn/
+├── review-learn/
 │   └── SKILL.md
-├── hansi-setup/
+├── review-setup/
 │   └── SKILL.md
-└── hansi-threads/
+└── review-threads/
     └── SKILL.md
 commands/                    # Manual commands with side effects
 ├── deploy-site.md

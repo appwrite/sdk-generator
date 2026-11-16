@@ -1,4 +1,4 @@
-Hansi keeps one issue comment per pull request up to date and edits it in place. Its body starts with the marker `<!-- appwrite-hansi:summary:<REPOSITORY_ID> -->`, where `<REPOSITORY_ID>` is the {{ spec.info.title }} Review repository that wrote it.
+{{ spec.info.title }} Review keeps one issue comment per pull request up to date and edits it in place. Its body starts with the marker `<!-- appwrite-hansi:summary:<REPOSITORY_ID> -->`, where `<REPOSITORY_ID>` is the {{ spec.info.title }} Review repository that wrote it.
 
 ```bash
 gh api --paginate "repos/{owner}/{repo}/issues/<PR_NUMBER>/comments?per_page=100" \
@@ -7,7 +7,7 @@ gh api --paginate "repos/{owner}/{repo}/issues/<PR_NUMBER>/comments?per_page=100
 
 There is usually one. Several {{ spec.info.title }} projects can review the same repository, and each writes its own summary. When there are several and the user did not say which project they mean, work with each one separately and say which is which. Never mix findings from two summaries.
 
-The footer looks like `Comment <code>@app-name review</code> to re-run`. That `@<slug>` is Hansi's mention handle on this repository; take it from inside the `<code>` tag. Review comments are authored by `<slug>[bot]`.
+The footer looks like `Comment <code>@app-name review</code> to re-run`. That `@<slug>` is {{ spec.info.title }} Review's mention handle on this repository; take it from inside the `<code>` tag. Review comments are authored by `<slug>[bot]`.
 
 The `Hansi` check run of a summary is the one whose `external_id` is that summary's `<REPOSITORY_ID>`:
 

@@ -34,19 +34,19 @@ Each skill gives the agent {{ spec.info.title }} context for authentication, dat
 
 ## Code review skills
 
-These skills work with Hansi, the reviewer behind {{ spec.info.title }} Review, on GitHub pull requests.
+These skills work with {{ spec.info.title }} Review, which reviews GitHub pull requests and grades them from **S** to **F**.
 
 | Skill | What it does |
 | --- | --- |
-| `{{ spec.info.title | caseLower }}-hansi-status` | Read the current tier, open findings, and filtered-out comments. Does not start a review. |
-| `{{ spec.info.title | caseLower }}-hansi-loop` | Fix the pull request until Hansi grades it **Tier S** and no comments are left open. |
-| `{{ spec.info.title | caseLower }}-hansi-learn` | Reply on a finding with a lasting rule so Hansi remembers it. |
-| `{{ spec.info.title | caseLower }}-hansi-setup` | Write `.hansi.json` and open a pull request onto the base branch. |
-| `{{ spec.info.title | caseLower }}-hansi-threads` | Applies on its own: do not resolve Hansi's review threads. |
+| `{{ spec.info.title | caseLower }}-review-status` | Read the current tier, open findings, and filtered-out comments. Does not start a review. |
+| `{{ spec.info.title | caseLower }}-review-loop` | Fix the pull request until {{ spec.info.title }} Review grades it **Tier S** and no comments are left open. |
+| `{{ spec.info.title | caseLower }}-review-learn` | Reply on a finding with a lasting rule so {{ spec.info.title }} Review remembers it. |
+| `{{ spec.info.title | caseLower }}-review-setup` | Write `.hansi.json` and open a pull request onto the base branch. |
+| `{{ spec.info.title | caseLower }}-review-threads` | Applies on its own: do not resolve {{ spec.info.title }} Review's threads. |
 
-The `hansi-threads` rule says the same for every chat: Hansi clears its threads itself after a fix or a dismissal.
+The `review-threads` rule says the same for every chat: {{ spec.info.title }} Review clears its threads itself after a fix or a dismissal.
 
-The review skills need {{ spec.info.title }} Review set up on the repository (Console → your project → Review) and a way to talk to GitHub; the examples use the GitHub CLI. Each review counts toward the project's review usage, and `hansi-loop` stops after 5 iterations.
+The review skills need {{ spec.info.title }} Review set up on the repository (Console → your project → Review) and a way to talk to GitHub; the examples use the GitHub CLI. Each review counts toward the project's review usage, and `review-loop` stops after 5 iterations.
 
 ## Commands
 
@@ -78,11 +78,11 @@ skills/                      # Agent skills
 │   └── SKILL.md
 {% endfor %}
 {% for skill in ['status', 'loop', 'learn', 'setup', 'threads'] %}
-{{ loop.last ? '└──' : '├──' }} {{ spec.info.title | caseLower }}-hansi-{{ skill }}/
+{{ loop.last ? '└──' : '├──' }} {{ spec.info.title | caseLower }}-review-{{ skill }}/
 {{ loop.last ? ' ' : '│' }}   └── SKILL.md
 {% endfor %}
 rules/                       # Always-applied rules
-└── hansi-threads.mdc
+└── review-threads.mdc
 commands/                    # Agent-executable commands
 ├── deploy-site.md
 └── deploy-function.md

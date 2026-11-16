@@ -1,0 +1,15 @@
+---
+name: {{ 'review-threads' | skillName(spec) }}
+description: Applies when a pull request has a summary comment from {{ spec.info.title }} Review (its body contains <!-- appwrite-hansi:summary) or review comments from the {{ spec.info.title }} GitHub App, including when fixing findings, replying, or otherwise editing the pull request. Do not resolve {{ spec.info.title }} Review threads. {{ spec.info.title }} Review clears them after a fix or a dismissal.
+{% if language.name == 'ClaudePlugin' %}
+user-invocable: false
+{% endif %}
+---
+
+# {{ spec.info.title }} Review threads
+
+When a pull request has a summary comment from {{ spec.info.title }} Review (its body contains `<!-- appwrite-hansi:summary`) or review comments from the {{ spec.info.title }} GitHub App:
+
+- Do not call `resolveReviewThread`, and do not resolve those threads in the GitHub UI. A resolved thread stays open in {{ spec.info.title }} Review's summary, so the tier stays capped.
+- Fix the code, or reply on that thread. {{ spec.info.title }} Review resolves the thread when a later review sees the fix, or when it dismisses the finding after the reply.
+- `{{ 'review-status' | skillName(spec) }}` reads the review. `{{ 'review-learn' | skillName(spec) }}` saves a lasting rule. `{{ 'review-setup' | skillName(spec) }}` changes `.hansi.json`. `{{ 'review-loop' | skillName(spec) }}` fixes until Tier S.

@@ -26,11 +26,11 @@ class Skills extends Language
     ];
 
     /**
-     * Skills for Hansi, the reviewer behind Appwrite Review. Rendered from
-     * skills/hansi/{name}.md.twig and named hansi-{name}, prefixed like the
+     * Skills for Appwrite Review (code review on GitHub pull requests). Rendered from
+     * skills/review/{name}.md.twig and named review-{name}, prefixed like the
      * language skills.
      */
-    protected array $hansiSkills = [
+    protected array $reviewSkills = [
         'status',
         'loop',
         'learn',
@@ -110,11 +110,11 @@ class Skills extends Language
             ];
         }
 
-        foreach ($this->hansiSkills as $skill) {
+        foreach ($this->reviewSkills as $skill) {
             $files[] = [
                 'scope'       => 'default',
-                'destination' => \sprintf($this->skillDestination, 'hansi-' . $skill),
-                'template'    => 'skills/hansi/' . $skill . '.md.twig',
+                'destination' => \sprintf($this->skillDestination, 'review-' . $skill),
+                'template'    => 'skills/review/' . $skill . '.md.twig',
             ];
         }
 

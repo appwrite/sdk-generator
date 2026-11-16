@@ -1,0 +1,84 @@
+---
+name: {{ 'review-learn' | skillName(spec) }}
+description: Replies on a finding from {{ spec.info.title }} Review with a lasting review rule so {{ spec.info.title }} Review remembers it for future reviews of the repository. Use when the user says a finding should not be flagged, asks {{ spec.info.title }} Review to remember a preference, wants a disagreement saved as a team rule, or runs review-learn.
+---
+
+# {{ spec.info.title }} Review learn
+
+Save a lasting review rule by replying on the {{ spec.info.title }} Review finding it applies to. {{ spec.info.title }} Review stores the rule as a learning of that {{ spec.info.title }} project's repository when a reply states a durable preference, then follows it on later reviews. Learnings are listed under Review in the {{ spec.info.title }} Console.
+
+Do not request a review. Do not push. Do not call `resolveReviewThread`. Resolving a thread in GitHub leaves the finding open in {{ spec.info.title }} Review's summary, so the tier stays capped. {{ spec.info.title }} Review resolves the thread when it dismisses the finding.
+
+{{ include('skills/review/base/clients.md.twig')|trim }}
+
+## Inputs
+
+- **Pull request number** (optional). If omitted, use the pull request for the current branch.
+- **Finding** (optional). A comment id, a file and line, or a quote of the title. If omitted, use the unresolved {{ spec.info.title }} Review finding the user is talking about. If several match, ask which one.
+- **Rule** (optional). If the user did not state a lasting preference, ask once, then stop until they answer. Do not invent a rule.
+
+## Instructions
+
+### 1. Identify the pull request and the finding
+
+```bash
+if [ -n "$PR_NUMBER" ]; then
+  gh pr view "$PR_NUMBER" --json number,url -q '{number: .number, url: .url}'
+else
+  gh pr view --json number,url -q '{number: .number, url: .url}'
+fi
+```
+
+Use the `number` as `<PR_NUMBER>`. Stop if there is no open pull request.
+
+{{ include('skills/review/base/summary.md.twig')|trim }}
+
+{{ include('skills/review/base/threads.md.twig')|trim }}
+
+The finding comment's `databaseId` is `<COMMENT_ID>`. A rule is saved for the project whose finding it replies to, so reply on a finding of the project the user means.
+
+If the user did not identify a finding and more than one {{ spec.info.title }} Review thread is unresolved, ask which one. Do not reply on every thread.
+
+### 2. Write the rule
+
+One imperative sentence, understandable without this thread. Name the path or situation it covers.
+
+```
+Do not flag missing error handling in tests.
+```
+
+A one-off ("ignore this once", "this line is fine today") is not a rule. Say so and stop without posting.
+
+Show the sentence to the user when they did not write it themselves, and wait for a yes before posting.
+
+### 3. Reply on that thread
+
+The reply must be plain text on the finding. Do not mention `@<slug> review`. A review mention starts a new review.
+
+```bash
+gh api "repos/{owner}/{repo}/pulls/<PR_NUMBER>/comments/<COMMENT_ID>/replies" \
+  -f body='Do not flag missing error handling in tests. This is a lasting review rule for this repository.'
+```
+
+Lead with the rule. Say that it is a lasting review rule for this repository so {{ spec.info.title }} Review treats it as a preference to remember, not a one-off.
+
+### 4. Wait for {{ spec.info.title }} Review
+
+{{ spec.info.title }} Review reacts with 👀, then comments. Poll the thread for about 5 minutes (30 attempts, 10 seconds apart). A new comment from `<slug>[bot]` after the reply is the answer.
+
+Read that comment:
+
+- {{ spec.info.title }} Review agrees and says it will follow the rule: the preference is saved. Future reviews of this repository in that project use it. The summary comment updates when the finding is dismissed.
+- {{ spec.info.title }} Review disagrees, or treats the reply as a one-off: the rule was not saved. Quote the answer and stop. Do not post a second reply unless the user asks.
+
+### 5. Report
+
+```
+review-learn
+  Pull request:  #123
+  Finding:       src/auth.test.ts:12 — "Missing error handling"
+  Rule:          Do not flag missing error handling in tests.
+  Saved:         yes
+```
+
+Include the pull request URL. When it was not saved, set `Saved` to `no` and quote {{ spec.info.title }} Review's reply.

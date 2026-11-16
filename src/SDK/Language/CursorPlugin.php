@@ -48,8 +48,8 @@ class CursorPlugin extends Skills
         // Rules
         $files[] = [
             'scope'       => 'default',
-            'destination' => 'rules/hansi-threads.mdc',
-            'template'    => 'cursor-plugin/rules/hansi-threads.mdc.twig',
+            'destination' => 'rules/review-threads.mdc',
+            'template'    => 'cursor-plugin/rules/review-threads.mdc.twig',
         ];
 
         // MCP server definitions
