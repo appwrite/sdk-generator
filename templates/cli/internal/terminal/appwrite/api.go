@@ -125,6 +125,9 @@ func (c *Client) Get(ctx context.Context, r Ref, id string) (Doc, error) {
 	if !kinds[r.Kind].get {
 		return Doc{}, fmt.Errorf("a single one of the %s cannot be read", kinds[r.Kind].key)
 	}
+	if kinds[r.Kind].cloud != "" && c.cloud {
+		return c.find(ctx, r, id)
+	}
 	path, err := c.route(r)
 	if err != nil {
 		return Doc{}, err
@@ -134,6 +137,19 @@ func (c *Client) Get(ctx context.Context, r Ref, id string) (Doc, error) {
 		return Doc{}, err
 	}
 	return NewDoc(data)
+}
+
+// find reads one resource of a ref out of its list, for a kind Cloud lists at a route of its own:
+// Cloud answers no GET below /organizations, so the console too asks the list for the one id.
+func (c *Client) find(ctx context.Context, r Ref, id string) (Doc, error) {
+	p, err := c.List(ctx, r, ListOptions{Queries: []string{equal("$id", id).String()}, Limit: 1})
+	if err != nil {
+		return Doc{}, err
+	}
+	if len(p.Docs) == 0 {
+		return Doc{}, &Error{Code: http.StatusNotFound, Type: "team_not_found", Message: "Team with the requested ID could not be found."}
+	}
+	return p.Docs[0], nil
 }
 
 // Delete deletes one resource of a ref, by its id.
