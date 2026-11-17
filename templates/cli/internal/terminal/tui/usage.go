@@ -21,9 +21,33 @@ const (
 	usageEvery    = 30 * time.Second
 	usageAgo      = "24h"
 	// gaugeLookback is how far before the window a gauge is read, so a level sampled before it,
-	// which holds until it changes, starts the window.
-	gaugeLookback = 30 * 24 * time.Hour
+	// which holds until it changes, starts the window. Cloud refuses a start older than the
+	// plan's usage history, 30 days back from now, and the window already reaches a day back,
+	// so the read starts 29 days back, with a day of room for a clock that runs fast.
+	gaugeLookback = 28 * 24 * time.Hour
 )
+
+// readGauges reads the gauges of a query that starts before the window, to carry the level
+// sampled before it. A plan that keeps less history than the lookback refuses that start, so the
+// read is made again from the window's start, the window drawn without the earlier level.
+func readGauges(ctx context.Context, b backend, q appwrite.UsageQuery, window time.Time) (map[string][]appwrite.Point, error) {
+	points, err := b.Usage(ctx, q)
+	if appwrite.IsType(err, "limit_history_exceeded") && q.Start.Before(window) {
+		q.Start = window
+		return b.Usage(ctx, q)
+	}
+	return points, err
+}
+
+// usageHint is what a read of the usage needs, said after an error it explains: an instance
+// before 2.7 has no usage routes, and a key without the scope is refused. Any other error, as a
+// plan's history exceeded, says enough itself.
+func usageHint(err error) string {
+	if appwrite.IsCode(err, 404) || appwrite.IsCode(err, 403) || appwrite.IsType(err, "general_unauthorized_scope") {
+		return " · it needs Appwrite 2.7, and a key with the usage.read scope"
+	}
+	return ""
+}
 
 // usageSeries is a metric a usage section draws: its label, which route it is read from, and how
 // it is drawn. A series of the path counts the requests to the route of the page's resource and
@@ -117,7 +141,9 @@ type usageState struct {
 	answered int
 	loaded   bool
 	// err is why the usage could not be read; with loaded, the usage on screen is the last read.
+	// hint is what the read needs, when the error is one the hint answers.
 	err    string
+	hint   string
 	start  time.Time
 	series map[string][]float64
 	// routes are the routes below the resource requested most, for a place with a route.
@@ -201,7 +227,13 @@ func readUsage(ctx context.Context, b backend, place usagePlace, of usageOf, sta
 		case of.id != "":
 			q.ResourceType, q.ResourceID = place.resourceType, of.id
 		}
-		points, err := b.Usage(ctx, q)
+		var points map[string][]appwrite.Point
+		var err error
+		if r.kind == appwrite.UsageGauges {
+			points, err = readGauges(ctx, b, q, start)
+		} else {
+			points, err = b.Usage(ctx, q)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -233,7 +265,7 @@ func (m model) applyUsage(msg usageLoadedMsg) (model, tea.Cmd) {
 	}
 	u.answered = msg.gen
 	if msg.err != nil {
-		u.err = styles.Clean(msg.err.Error())
+		u.err, u.hint = styles.Clean(msg.err.Error()), usageHint(msg.err)
 		return m, nil
 	}
 	u.loaded, u.err, u.start, u.series, u.routes, u.readAt = true, "", msg.start, msg.series, msg.routes, time.Now()
@@ -245,7 +277,7 @@ func (m model) usageLines(u usageState, place usagePlace, width int) []string {
 	note := func(c cell) []string { return cellLines(c, width) }
 	switch {
 	case !u.loaded && u.err != "":
-		return note(cell{styles.S("could not read the usage: "+u.err, styles.ToneMuted), styles.S(" · it needs Appwrite 2.7, and a key the usage.read scope", styles.ToneFaint)})
+		return note(cell{styles.S("could not read the usage: "+u.err, styles.ToneMuted), styles.S(u.hint, styles.ToneFaint)})
 	case !u.loaded:
 		return note(cell{styles.S(m.spinner.View()+" ", styles.ToneAccent), styles.S("reading the usage…", styles.ToneMuted)})
 	}
@@ -355,10 +387,14 @@ func (m *model) loadRowUsage(l *listState) tea.Cmd {
 	return func() tea.Msg {
 		defer cancel()
 		q := appwrite.UsageQuery{Kind: r.kind, Metrics: r.metrics, Interval: rowUsageInterval, Start: start, End: end, ResourceType: r.resourceType, ByResource: true}
+		var points map[string][]appwrite.Point
+		var err error
 		if r.kind == appwrite.UsageGauges {
 			q.Start = start.Add(-gaugeLookback)
+			points, err = readGauges(ctx, b, q, start)
+		} else {
+			points, err = b.Usage(ctx, q)
 		}
-		points, err := b.Usage(ctx, q)
 		if err != nil {
 			return listUsageMsg{gen: gen, err: err}
 		}
