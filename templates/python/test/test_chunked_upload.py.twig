@@ -1,0 +1,14 @@
+import unittest
+from unittest.mock import patch
+
+from {{ namespace | caseSnake }}.client import Client
+
+
+class ChunkedUploadTest(unittest.TestCase):
+    def test_upload_without_params_uses_regular_call(self):
+        client = Client()
+        with patch.object(client, 'call', return_value='response') as call:
+            result = client.chunked_upload('/upload', response_type='text', method='patch')
+
+        self.assertEqual(result, 'response')
+        call.assert_called_once_with('patch', '/upload', None, None, response_type='text')

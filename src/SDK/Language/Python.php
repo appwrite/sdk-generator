@@ -208,6 +208,11 @@ class Python extends Language
             ],
             [
                 'scope' => 'default',
+                'destination' => 'test/test_chunked_upload.py',
+                'template' => 'python/test/test_chunked_upload.py.twig',
+            ],
+            [
+                'scope' => 'default',
                 'destination' => '{{ namespace | caseSnake}}/query.py',
                 'template' => 'python/package/query.py.twig',
             ],

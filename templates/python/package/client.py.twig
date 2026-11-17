@@ -169,7 +169,7 @@ class Client:
         response_type='json',
         method='post',
     ):
-        if params.get(param_name) is None:
+        if params is None or params.get(param_name) is None:
             return self.call(method, path, headers, params, response_type=response_type)
 
         input_file = params[param_name]
