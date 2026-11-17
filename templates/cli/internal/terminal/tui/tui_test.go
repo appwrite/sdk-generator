@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	tea "charm.land/bubbletea/v2"
@@ -93,8 +94,10 @@ func TestConsole(t *testing.T) {
 	}
 }
 
-// TestUsage checks the overview draws the project's usage of the last day, a page of a database
-// its own on its usage tab, read for it, and a usage that cannot be read says what it needs.
+// TestUsage checks the overview draws the project's usage of the last day, its gauges read from
+// no further back than a plan keeps, and from the window's start for a plan that keeps less, a
+// page of a database its own on its usage tab, read for it, and a usage that cannot be read says
+// what it needs.
 func TestUsage(t *testing.T) {
 	f := newFake()
 	m := started(t, f)
@@ -123,9 +126,34 @@ func TestUsage(t *testing.T) {
 	if last := f.usage[len(f.usage)-1]; last.Path != "/v1/tablesdb/main/tables/orders" {
 		t.Errorf("the table's usage was read with %+v", last)
 	}
+	gauges := 0
+	for _, q := range f.usage {
+		if q.Kind == appwrite.UsageGauges && q.Start.Before(time.Now().Add(-30*24*time.Hour)) {
+			t.Errorf("a gauge was read from %s, before the 30 days of usage a plan keeps", q.Start)
+		}
+		if q.Kind == appwrite.UsageGauges {
+			gauges++
+		}
+	}
+	if gauges == 0 {
+		t.Error("no gauge was read")
+	}
+	short := newFake()
+	short.history = 7 * 24 * time.Hour
+	m = started(t, short)
+	wantOnScreen(t, m, "usage, last 24h", "now", "2.0 kB")
+	if strings.Contains(onScreen(m), "could not read the usage") {
+		t.Errorf("a plan that keeps a week of usage could not read it:\n%s", onScreen(m))
+	}
 	f.usageErr = &appwrite.Error{Code: 401, Type: "general_unauthorized_scope", Message: "missing scopes ([\"usage.read\"])"}
 	m = started(t, f)
-	wantOnScreen(t, m, "could not read the usage", "usage.read")
+	wantOnScreen(t, m, "could not read the usage", "a key with the usage.read scope")
+	f.usageErr = &appwrite.Error{Code: 402, Type: "limit_history_exceeded", Message: "Log retention period for your current plan has been exceeded"}
+	m = started(t, f)
+	wantOnScreen(t, m, "could not read the usage", "limit_history_exceeded")
+	if strings.Contains(onScreen(m), "it needs Appwrite") {
+		t.Errorf("an exceeded history is said to need a version and a scope:\n%s", onScreen(m))
+	}
 }
 
 // TestRowQuery checks a filter of comparisons on rows lists them again with its queries, keeps

@@ -40,9 +40,11 @@ type fakeBackend struct {
 	opened []string
 	// region is the region of the project last opened.
 	region string
-	// usage are the reads of the usage, and usageErr fails them.
+	// usage are the reads of the usage, and usageErr fails them. history, when set, is how far
+	// back a read may start, as a plan keeps, a read starting before it refused.
 	usage    []appwrite.UsageQuery
 	usageErr error
+	history  time.Duration
 	saved    []saved
 }
 
@@ -177,6 +179,9 @@ func (f *fakeBackend) Usage(_ context.Context, q appwrite.UsageQuery) (map[strin
 		return nil, f.usageErr
 	}
 	now := time.Now()
+	if f.history > 0 && q.Start.Before(now.Add(-f.history)) {
+		return nil, &appwrite.Error{Code: 402, Type: "limit_history_exceeded", Message: "Log retention period for your current plan has been exceeded"}
+	}
 	out := map[string][]appwrite.Point{}
 	if slices.Contains(q.Dimensions, "path") {
 		for _, m := range q.Metrics {

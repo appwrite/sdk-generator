@@ -22,6 +22,7 @@ type dashState struct {
 	answered int
 	loaded   bool
 	err      string
+	hint     string
 	at       time.Time
 	services map[string][]float64
 	routes   []routeStat
@@ -148,7 +149,7 @@ func (m model) applyDash(msg dashLoadedMsg) (model, tea.Cmd) {
 		d := &h.dash
 		d.answered, d.at = msg.gen, time.Now()
 		if msg.err != nil {
-			d.err = styles.Clean(msg.err.Error())
+			d.err, d.hint = styles.Clean(msg.err.Error()), usageHint(msg.err)
 			break
 		}
 		d.loaded, d.err, d.services, d.routes = true, "", msg.services, msg.routes
@@ -230,7 +231,7 @@ var routeColumns = []column{
 func (m model) routesView(d dashState, height int) []string {
 	switch {
 	case !d.loaded && d.err != "":
-		return cellLines(cell{styles.S("could not read the routes: "+d.err, styles.ToneMuted), styles.S(" · it needs Appwrite 2.7, and a key the usage.read scope", styles.ToneFaint)}, tableWidth())
+		return cellLines(cell{styles.S("could not read the routes: "+d.err, styles.ToneMuted), styles.S(d.hint, styles.ToneFaint)}, tableWidth())
 	case !d.loaded:
 		return cellLines(cell{styles.S(m.spinner.View()+" ", styles.ToneAccent), styles.S("reading the routes…", styles.ToneMuted)}, tableWidth())
 	}
