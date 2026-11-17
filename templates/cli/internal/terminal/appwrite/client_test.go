@@ -248,22 +248,28 @@ func TestNormalizeEndpoint(t *testing.T) {
 	}
 }
 
-// TestOrganisations checks organisations are listed and read at /organizations on Cloud, which
-// refuses /teams for the console project, and at /teams on a self-hosted instance.
+// TestOrganisations checks organisations are listed at /organizations on Cloud, which refuses
+// /teams for the console project, and at /teams on a self-hosted instance. Cloud reads no single
+// one below /organizations, so there one is read out of the list, by its id.
 func TestOrganisations(t *testing.T) {
 	tests := []struct {
 		name  string
 		cloud bool
-		want  string
+		want  []string
 	}{
-		{name: "cloud", cloud: true, want: "/v1/organizations"},
-		{name: "self-hosted", want: "/v1/teams"},
+		{name: "cloud", cloud: true, want: []string{"/v1/organizations", "/v1/organizations"}},
+		{name: "self-hosted", want: []string{"/v1/teams", "/v1/teams/acme"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var paths []string
+			var paths, queries []string
 			s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				paths = append(paths, r.URL.Path)
+				queries = append(queries, r.URL.Query().Get("queries[1]"))
+				if tt.cloud && r.URL.Path != "/v1/organizations" {
+					http.NotFound(w, r)
+					return
+				}
 				if r.Header.Get("X-Appwrite-Project") != ConsoleProject {
 					t.Errorf("project %q, want the console", r.Header.Get("X-Appwrite-Project"))
 				}
@@ -285,11 +291,18 @@ func TestOrganisations(t *testing.T) {
 			if len(p.Docs) != 1 || p.Docs[0].ID() != "acme" {
 				t.Errorf("page %+v", p)
 			}
-			if _, err := c.Get(context.Background(), ref, "acme"); err != nil {
+			d, err := c.Get(context.Background(), ref, "acme")
+			if err != nil {
 				t.Fatal(err)
 			}
-			if want := []string{tt.want, tt.want + "/acme"}; !slices.Equal(paths, want) {
-				t.Errorf("paths %v, want %v", paths, want)
+			if d.ID() != "acme" {
+				t.Errorf("read %q, want acme", d.ID())
+			}
+			if !slices.Equal(paths, tt.want) {
+				t.Errorf("paths %v, want %v", paths, tt.want)
+			}
+			if want := `{"method":"equal","attribute":"$id","values":["acme"]}`; tt.cloud && queries[1] != want {
+				t.Errorf("read with the query %q after the limit, want %s", queries[1], want)
 			}
 		})
 	}
