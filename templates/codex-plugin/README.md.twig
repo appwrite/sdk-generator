@@ -73,8 +73,15 @@ The plugin ships these skills under `plugins/{{ name }}/skills/`:
 - `{{ name }}-cli`
 - `{{ name }}-deploy-site`
 - `{{ name }}-deploy-function`
+- `{{ name }}-review-status`
+- `{{ name }}-review-loop`
+- `{{ name }}-review-learn`
+- `{{ name }}-review-setup`
+- `{{ name }}-review-threads`
 
 The language skills give Codex language-specific {{ spec.info.title }} context for authentication, database queries, storage, realtime, functions, and server-side administration. The `{{ name }}-deploy-site` and `{{ name }}-deploy-function` skills walk through deploying {{ spec.info.title }} Sites and Functions with the {{ spec.info.title }} CLI.
+
+The `{{ name }}-review-*` skills work with {{ spec.info.title }} Review on GitHub pull requests: `review-status` reads the current tier and open findings without starting a review, `review-loop` fixes the pull request until {{ spec.info.title }} Review grades it **Tier S**, `review-learn` saves a lasting review rule by replying on a finding, `review-setup` writes `.hansi.json`, and `review-threads` keeps Codex from resolving {{ spec.info.title }} Review's threads. They need {{ spec.info.title }} Review set up on the repository (Console → your project → Review) and a way to talk to GitHub; the examples use the GitHub CLI. Each review counts toward the project's review usage.
 
 Codex loads a skill when a task matches its `description`. To invoke one explicitly, type `$` or run `/skills` and pick it.
 
@@ -115,7 +122,12 @@ plugins/{{ name }}/
     ├── {{ name }}-dotnet/SKILL.md
     ├── {{ name }}-cli/SKILL.md
     ├── {{ name }}-deploy-site/SKILL.md
-    └── {{ name }}-deploy-function/SKILL.md
+    ├── {{ name }}-deploy-function/SKILL.md
+    ├── {{ name }}-review-status/SKILL.md
+    ├── {{ name }}-review-loop/SKILL.md
+    ├── {{ name }}-review-learn/SKILL.md
+    ├── {{ name }}-review-setup/SKILL.md
+    └── {{ name }}-review-threads/SKILL.md
 ```
 
 ## Learn more

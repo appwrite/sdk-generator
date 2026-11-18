@@ -1,0 +1,162 @@
+---
+name: {{ 'review-setup' | skillName(spec) }}
+description: Creates or updates .hansi.json for {{ spec.info.title }} Review. Sets path filters, profile, and instructions, then opens a pull request so the file lands on the base branch. Use when the user wants to configure {{ spec.info.title }} Review for a repository, add review instructions, exclude paths, or run review-setup.
+---
+
+# {{ spec.info.title }} Review setup
+
+Write `.hansi.json` at the repository root and get it onto the pull request's base branch. {{ spec.info.title }} Review reads that file, and the guideline files, from the base branch only. A copy that exists solely on a feature branch does nothing until it is merged.
+
+Settings that are not in the file, such as which repositories a project reviews and how hard (the review strength), live under Review in the {{ spec.info.title }} Console. Do not request a review. Do not push to the default branch. Do not enable `reviews.approveOutsideContributors` unless the user explicitly asks.
+
+{{ include('skills/review/base/clients.md.twig')|trim }}
+Prefer a Git remote this environment can already authenticate to.
+
+## Inputs
+
+- **What to change** (optional). For example a profile, paths to skip, or an instruction. If omitted, inspect the repo and propose a minimal file, then wait for a yes before committing.
+
+## Instructions
+
+### 1. Read the config {{ spec.info.title }} Review uses today
+
+`origin` may be a fork. The branch {{ spec.info.title }} Review reads is on the pull request's base repository, which can be a different repo.
+
+`parent` does not include `nameWithOwner` or a default branch. Build the parent repository from its owner and name.
+
+```bash
+gh repo view --json nameWithOwner,isFork,parent,defaultBranchRef \
+  --jq '{repo: .nameWithOwner, fork: .isFork, parent: (if .parent then (.parent.owner.login + "/" + .parent.name) else null end), defaultBranch: .defaultBranchRef.name}'
+```
+
+If this checkout is a fork, look up the pull request on `parent`. Otherwise look it up on `repo`. That repository is `<PR_REPO>`.
+
+```bash
+gh pr view <PR_NUMBER> --repo <PR_REPO> --json number,url -q '{number: .number, url: .url}'
+```
+
+Leave `<PR_NUMBER>` empty to use the current branch. If that lookup fails, try the other of `repo` and `parent`.
+
+Read the base from that pull request. Do not take it from `origin`.
+
+```bash
+gh api "repos/<PR_REPO>/pulls/<PR_NUMBER>" \
+  --jq '{base: .base.ref, baseRepo: .base.repo.full_name, headRepo: .head.repo.full_name, headOwner: .head.repo.owner.login}'
+```
+
+`<BASE>` is `base`. `<BASE_REPO>` is `baseRepo`. `<HEAD_REPO>` is `headRepo`. `<HEAD_OWNER>` is `headOwner`.
+
+If there is no pull request and this checkout is a fork, `<BASE_REPO>` is `parent`. `<HEAD_REPO>` is `repo`, the fork itself, and `<HEAD_OWNER>` is its owner. `<BASE>` is that parent's default branch, not the fork's `defaultBranch`. Those names can differ. Read it from the parent repository:
+
+```bash
+gh repo view <PARENT> --json defaultBranchRef -q .defaultBranchRef.name
+```
+
+If there is no pull request and this checkout is not a fork, `<BASE_REPO>` is `repo` and `<BASE>` is `defaultBranch`. `<HEAD_REPO>` is `repo`. `<HEAD_OWNER>` is the owner of `<HEAD_REPO>`.
+
+Read `.hansi.json` from `<BASE_REPO>`:
+
+```bash
+gh api "repos/<BASE_REPO>/contents/.hansi.json?ref=<BASE>" --jq .content | base64 -d
+```
+
+A 404 means there is no file yet. Also list which guideline files exist on that same ref. {{ spec.info.title }} Review includes each of these in full when it is present: `AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`. Do not copy them into `instructions`.
+
+### 2. Decide the edits
+
+Every field is optional. Omit a field when it would only restate the default. Keep unknown keys that are already in the file.
+
+| Field                                | Default    | Write it when                                                   |
+| ------------------------------------ | ---------- | --------------------------------------------------------------- |
+| `reviews.enabled`                    | `true`     | The user wants reviews off in this repo.                        |
+| `reviews.auto`                       | `true`     | The user wants mentions only.                                   |
+| `reviews.drafts`                     | `false`    | The user wants drafts reviewed.                                 |
+| `reviews.baseBranches`               | `[]` (all) | The user names branches to review into.                         |
+| `reviews.pathFilters`                | `[]`       | The user wants extra excludes, or an allowlist.                 |
+| `reviews.profile`                    | `balanced` | The user wants `chill` or `strict`.                             |
+| `reviews.minSeverity`                | `minor`    | The user sets `info`, `minor`, `major`, or `critical`.          |
+| `reviews.maxComments`                | `15`       | The user sets a cap from 0 to 100.                              |
+| `reviews.approve`                    | `true`     | The user does not want automatic approval.                      |
+| `reviews.requestChanges`             | `major`    | The user sets `info`, `minor`, `major`, `critical`, or `never`. |
+| `reviews.approveOutsideContributors` | `false`    | The user explicitly wants fork authors approved.                |
+| `instructions`                       | `""`       | A repo-wide rule that is not already in a guideline file.       |
+| `pathInstructions`                   | `[]`       | A rule for one glob, such as `migrations/**`.                   |
+| `language`                           | `en`       | The user wants comments in another language.                    |
+
+`profile`: `chill` flags confirmed bugs only. `balanced` also flags risky patterns, weak or missing tests, and broken documentation examples. `strict` also counts naming, style, and maintainability.
+
+`pathFilters`: a pattern without `!` is an allowlist, and files outside it are skipped. A pattern with `!` excludes. Do not add an allowlist unless the user asked for one. `dist/`, `build/`, vendored code, and images are already ignored. So are lockfiles, snapshots, and generated files, unless the organization lets {{ spec.info.title }} Review run commands: then the review checks them by installing, running the tests, or regenerating. Do not repeat those.
+
+Always set `$schema` to `https://hansi.codes/schema/v1.json`.
+
+```json
+{
+	"$schema": "https://hansi.codes/schema/v1.json",
+	"reviews": {
+		"pathFilters": ["!docs/**"]
+	},
+	"instructions": "We use Result types instead of exceptions in src/domain.",
+	"pathInstructions": [
+		{ "path": "migrations/**", "instructions": "Check that every migration is reversible." }
+	]
+}
+```
+
+Show the diff of the file and wait for a yes when the user did not already specify the exact contents.
+
+### 3. Put the file on the base branch
+
+If `git status --short` shows changes you did not make for this config, stop and ask. Do not stash or discard them.
+
+Check out a new branch from `<BASE>` on `<BASE_REPO>` unless the user asked to add the file to the branch they are already on. `origin/<BASE>` on a fork can be a stale copy of a different repository.
+
+Fetch through a remote this environment can already authenticate to. Use an existing remote whose URL is `<BASE_REPO>`. If none exists, add one with the same protocol as the user's other GitHub remotes (SSH or HTTPS), then fetch that remote. Do not fetch a raw `https://github.com/<BASE_REPO>.git` URL when credentials are configured only for another remote. That URL skips SSH keys and credential helpers, so the fetch can fail even when `git fetch` on the existing remote works.
+
+```bash
+git fetch <REMOTE> "+refs/heads/<BASE>:refs/remotes/<REMOTE>/<BASE>"
+git checkout -b review-config "<REMOTE>/<BASE>"
+```
+
+If `review-config` already exists, pick another branch name. Use the branch you created as `<BRANCH>`.
+
+Write `.hansi.json` at the repository root. Commit only that file. Push `<BRANCH>` to `<HEAD_REPO>` through a remote that already authenticates to that repository; call it `<HEAD_REMOTE>`. When `origin` is `<HEAD_REPO>`, `<HEAD_REMOTE>` is `origin`. When it is not, use or add a remote for `<HEAD_REPO>` the same way as the fetch above. Do not push to a raw HTTPS URL that this environment has no credentials for.
+
+```bash
+git add .hansi.json
+git commit -m "Configure {{ spec.info.title }} Review."
+git push -u <HEAD_REMOTE> HEAD
+```
+
+Open the pull request on `<BASE_REPO>`. When `<HEAD_REPO>` and `<BASE_REPO>` are the same repository:
+
+```bash
+gh pr create --repo "<BASE_REPO>" --base "<BASE>" --head "<BRANCH>" \
+  --title "Configure {{ spec.info.title }} Review" \
+  --body "Adds .hansi.json. {{ spec.info.title }} Review reads it from the base branch after merge."
+```
+
+When they differ, the head is the fork branch `<HEAD_OWNER>:<BRANCH>`:
+
+```bash
+gh pr create --repo "<BASE_REPO>" --base "<BASE>" --head "<HEAD_OWNER>:<BRANCH>" \
+  --title "Configure {{ spec.info.title }} Review" \
+  --body "Adds .hansi.json. {{ spec.info.title }} Review reads it from the base branch after merge."
+```
+
+If the user asked to include it in the current pull request, commit it on that branch instead and say it takes effect once that pull request merges into `<BASE>` on `<BASE_REPO>`.
+
+### 4. Report
+
+```
+review-setup
+  Base repository: owner/repo
+  Base branch:     main
+  Pull request:    https://github.com/owner/repo/pull/123
+  Takes effect:    after merge
+
+Changed:
+  - reviews.pathFilters: ["!docs/**"]
+  - instructions: We use Result types instead of exceptions in src/domain.
+```
+
+Say which guideline files already exist on `<BASE>`, so the user knows {{ spec.info.title }} Review will read those too.

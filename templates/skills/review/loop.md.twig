@@ -1,0 +1,191 @@
+---
+name: {{ 'review-loop' | skillName(spec) }}
+description: Iteratively improves a GitHub pull request until {{ spec.info.title }} Review grades it Tier S (ready to merge) with zero unresolved comments. Triggers a review, fixes actionable findings, pushes, and repeats. Use when the user wants to clear {{ spec.info.title }} Review's comments, reach Tier S, loop on review comments, or run review-loop.
+---
+
+# {{ spec.info.title }} Review loop
+
+Fix a pull request until {{ spec.info.title }} Review grades it **Tier S** (ready to merge) and leaves no unresolved comments.
+
+Each review counts toward the {{ spec.info.title }} project's review usage. Do not request a new review when the current head already has a finished review from {{ spec.info.title }} Review and you have not pushed anything since.
+
+{{ include('skills/review/base/clients.md.twig')|trim }}
+
+## Inputs
+
+- **Pull request number** (optional). If omitted, use the pull request for the current branch.
+
+## Instructions
+
+### 1. Identify the pull request
+
+Set `PR_NUMBER` when the user gave one. Leave it empty to use the current branch.
+
+```bash
+if [ -n "$PR_NUMBER" ]; then
+  gh pr view "$PR_NUMBER" --json number,headRefName,headRefOid,url -q '{number: .number, branch: .headRefName, sha: .headRefOid, url: .url}'
+else
+  gh pr view --json number,headRefName,headRefOid,url -q '{number: .number, branch: .headRefName, sha: .headRefOid, url: .url}'
+fi
+```
+
+Use the `number` from that JSON as `<PR_NUMBER>` in every later command. Check out `branch` if you are not already on it. Stop if there is no open pull request.
+
+### 2. Find the summary and the mention handle
+
+{{ include('skills/review/base/summary.md.twig')|trim }}
+
+When several projects review the repository, ask the user which one to loop on, then use only that summary's `<REPOSITORY_ID>`. A push or a mention starts a review in every project; that is expected.
+
+If there is no summary yet, read the slug from the `slug` field of a `Hansi` check on the pull request (drop the `external_id` filter). If you still cannot find a handle, ask the user. Do not guess, and do not mention a different bot.
+
+### 3. Loop
+
+Repeat the cycle below. **Stop after 5 iterations.**
+
+#### A. Make sure a review of the current head is running
+
+Push commits that are not on the remote yet:
+
+```bash
+git status --short --branch
+git push
+```
+
+A push reviews the new commits on its own when automatic reviews are enabled (the default). Look at the `Hansi` check on the **current** head SHA, not an older one:
+
+```bash
+HEAD_SHA=$(gh pr view <PR_NUMBER> --json headRefOid -q .headRefOid)
+gh api "repos/{owner}/{repo}/commits/$HEAD_SHA/check-runs?check_name=Hansi" \
+  --jq '[.check_runs[] | select(.name == "Hansi" and .external_id == "<REPOSITORY_ID>")] | sort_by(.started_at) | last | {status, conclusion, started_at, title: .output.title, summary: .output.summary}'
+```
+
+A completed check for this head is the review to read. Do not request another one.
+
+If this head has no `Hansi` check, wait about 30 seconds and look again. The webhook needs a moment after a push. Comment only if it is still missing. Skip the comment when `status` is `queued` or `in_progress`.
+
+```bash
+gh pr comment <PR_NUMBER> --body "@<slug> review"
+```
+
+The comment must be plain text. A mention inside a code span or a quote does not start a review.
+
+Poll until that check completes. Reviews read the repository, so allow about 15 minutes (90 attempts, 10 seconds apart):
+
+```bash
+ATTEMPTS=0
+MAX_ATTEMPTS=90
+while true; do
+  ATTEMPTS=$((ATTEMPTS + 1))
+  if [ "$ATTEMPTS" -gt "$MAX_ATTEMPTS" ]; then
+    echo "Timed out waiting for the Hansi check." >&2
+    exit 1
+  fi
+  CHECK=$(gh api "repos/{owner}/{repo}/commits/$HEAD_SHA/check-runs?check_name=Hansi" \
+    --jq '[.check_runs[] | select(.name == "Hansi" and .external_id == "<REPOSITORY_ID>")] | sort_by(.started_at) | last')
+  STATUS=$(printf '%s' "$CHECK" | jq -r '.status // empty')
+  if [ -z "$STATUS" ]; then
+    echo "Waiting for the Hansi check to appear..."
+    sleep 10
+    continue
+  fi
+  if [ "$STATUS" = "completed" ]; then
+    printf '%s' "$CHECK" | jq -r '"Hansi check completed: \(.conclusion) — \(.output.title)"'
+    break
+  fi
+  echo "Waiting for the Hansi check... ($STATUS)"
+  sleep 10
+done
+```
+
+Stop the loop, and do not use an older review, when:
+
+- polling times out
+- `conclusion` is `skipped` (drafts, disabled reviews, or a base branch {{ spec.info.title }} Review does not review)
+- the check title is `Review failed`
+
+`failure` means {{ spec.info.title }} Review requested changes. `neutral` means it commented. Both are finished reviews: keep going and read the comments.
+
+#### B. Read the review
+
+Fetch the summary comment again (the command in step 2). {{ spec.info.title }} Review edits that same comment in place. Parse:
+
+{{ include('skills/review/base/tiers.md.twig')|trim }}
+
+Then read the threads.
+
+{{ include('skills/review/base/threads.md.twig')|trim }}
+
+Also read the latest review body from {{ spec.info.title }} Review. If GitHub rejected the inline comments, the findings are in that body instead of threads. Treat those as open too.
+
+#### C. Stop when the pull request is clean
+
+Stop when **all** of these are true:
+
+- The tier in the current summary is **S**
+- {{ spec.info.title }} Review has **no unresolved threads**, and the summary has no findings still open
+- You are not waiting on a review of commits you just pushed
+
+Then, if the latest `Hansi` check on this head is `failure` (the pull request is still in "changes requested"), request **one** `@<slug> review` and wait for it, so {{ spec.info.title }} Review can submit the approval. Do not repeat that extra review. If the follow-up still does not approve, stop and report the summary note. A withheld approval or `reviews.approve: false` in `.hansi.json` will not become an approval.
+
+Also stop when the fifth iteration finishes. Report whatever is left.
+
+#### D. Fix what {{ spec.info.title }} Review asked for
+
+For each unresolved {{ spec.info.title }} Review finding:
+
+1. Read the file, the diff hunk, and the comment.
+2. Fix it in the code when it describes a real bug. Apply a suggestion block only when it actually fixes that bug.
+3. When the comment does not apply, reply on **that thread** with a short reason. A reply to a finding is enough; you do not need to mention {{ spec.info.title }} Review again. {{ spec.info.title }} Review answers, and dismisses the finding when it agrees.
+
+```bash
+gh api "repos/{owner}/{repo}/pulls/<PR_NUMBER>/comments/<COMMENT_ID>/replies" -f body='...'
+```
+
+Do **not** call `resolveReviewThread` yourself. Resolving a thread in GitHub leaves the finding open in {{ spec.info.title }} Review's summary, so the tier stays capped. {{ spec.info.title }} Review resolves the thread when a later review sees the fix, or when it dismisses the finding after your reply.
+
+#### E. Wait for replies before reviewing again
+
+If you replied on any thread, wait until {{ spec.info.title }} Review has answered (it reacts with 👀, then comments) or about 5 minutes have passed. A dismissal updates the summary comment. Read it again before you decide the iteration still needs code changes.
+
+#### F. Commit and push code changes
+
+If you changed files, commit only those files. Leave unrelated work unstaged.
+
+```bash
+git add path/to/file
+git commit -m "Address {{ spec.info.title }} Review feedback (iteration N)"
+git push
+```
+
+Go back to step **A**. The push starts the next review; do not also comment `@<slug> review` unless that check never appears.
+
+If the only action was thread replies and nothing remains open, go back to step **C** without pushing an empty commit.
+
+### 4. Report
+
+After the loop, summarize:
+
+```
+review-loop complete.
+  Pull request:  #123
+  Iterations:    2
+  Tier:          S
+  Resolved:      4 comments
+  Remaining:     0
+```
+
+When the loop stops early:
+
+```
+review-loop stopped after 5 iterations.
+  Pull request:  #123
+  Tier:          A
+  Resolved:      6 comments
+  Remaining:     1
+
+Remaining issues:
+  - src/auth.ts:45 — "Session cookie is not marked HttpOnly"
+```
+
+Include the pull request URL. If {{ spec.info.title }} Review withheld approval, say so in the report even when the tier is **S** and nothing is left open.

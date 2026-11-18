@@ -25,6 +25,19 @@ class Skills extends Language
         'cli',
     ];
 
+    /**
+     * Skills for Appwrite Review (code review on GitHub pull requests). Rendered from
+     * skills/review/{name}.md.twig and named review-{name}, prefixed like the
+     * language skills.
+     */
+    protected array $reviewSkills = [
+        'status',
+        'loop',
+        'learn',
+        'setup',
+        'threads',
+    ];
+
     protected string $skillDestination = 'skills/{{ spec.info.title | caseLower }}-%s/SKILL.md';
     protected bool $prefixSkillName = true;
 
@@ -94,6 +107,14 @@ class Skills extends Language
                 'scope'       => 'default',
                 'destination' => \sprintf($this->skillDestination, $lang),
                 'template'    => 'skills/' . $lang . '.md.twig',
+            ];
+        }
+
+        foreach ($this->reviewSkills as $skill) {
+            $files[] = [
+                'scope'       => 'default',
+                'destination' => \sprintf($this->skillDestination, 'review-' . $skill),
+                'template'    => 'skills/review/' . $skill . '.md.twig',
             ];
         }
 

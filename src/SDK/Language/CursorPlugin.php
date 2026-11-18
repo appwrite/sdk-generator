@@ -45,6 +45,13 @@ class CursorPlugin extends Skills
             'template'    => 'plugin/commands/deploy-function.md.twig',
         ];
 
+        // Rules
+        $files[] = [
+            'scope'       => 'default',
+            'destination' => 'rules/review-threads.mdc',
+            'template'    => 'cursor-plugin/rules/review-threads.mdc.twig',
+        ];
+
         // MCP server definitions
         $files[] = [
             'scope'       => 'default',

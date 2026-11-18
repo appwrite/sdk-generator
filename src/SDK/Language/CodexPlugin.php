@@ -41,6 +41,14 @@ class CodexPlugin extends Skills
             ];
         }
 
+        foreach ($this->reviewSkills as $skill) {
+            $files[] = [
+                'scope'       => 'default',
+                'destination' => 'plugins/{{ spec.info.title | caseLower }}/skills/{{ spec.info.title | caseLower }}-review-' . $skill . '/SKILL.md',
+                'template'    => 'skills/review/' . $skill . '.md.twig',
+            ];
+        }
+
         $files[] = [
             'scope'       => 'default',
             'destination' => 'plugins/{{ spec.info.title | caseLower }}/.codex-plugin/plugin.json',
