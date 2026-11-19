@@ -6,4 +6,4 @@ on:
 
 jobs:
   stale:
-    uses: appwrite/.github/.github/workflows/stale.yml@dd94e24bffbb6941e79ce3a26c01db22a774b1a1 # main
+    uses: appwrite/.github/.github/workflows/stale.yml@64fd49cd3f28d624d3908b4093b238e9a1023f58 # main
