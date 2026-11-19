@@ -32,6 +32,45 @@ Or with [uv](https://docs.astral.sh/uv/):
 ```bash
 uv add {{ language.params.pipPackage }}
 ```
+
+## Async usage
+
+The SDK ships a synchronous client, which is the default and needs no extra setup:
+
+```python
+from {{ namespace | caseSnake }}.client import Client
+from {{ namespace | caseSnake }}.services.users import Users
+
+client = Client()
+users = Users(client)
+
+user = users.create(user_id='unique()', email='email@example.com', password='password')
+```
+
+The asynchronous client is opt-in and ships with the `async` extra:
+
+```bash
+pip install {{ language.params.pipPackage }}[async]
+```
+
+```python
+import asyncio
+
+from {{ namespace | caseSnake }}.async_client import AsyncClient
+from {{ namespace | caseSnake }}.async_services.users import AsyncUsers
+
+
+async def main():
+    client = AsyncClient()
+    users = AsyncUsers(client)
+
+    user = await users.create(user_id='unique()', email='email@example.com', password='password')
+
+
+asyncio.run(main())
+```
+
+Both clients talk to the same API and expose the same methods. The asynchronous ones are coroutines, so they have to be awaited.
 {% if sdk.gettingStarted %}
 
 {{ sdk.gettingStarted|trim|raw }}
