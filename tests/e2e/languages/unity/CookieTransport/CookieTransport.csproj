@@ -7,7 +7,7 @@
   <ItemGroup>
     <Compile Include="$(UnitySdkPath)/Runtime/Core/CookieContainer.cs" Link="CookieContainer.cs" />
     <Compile Include="../CookieTransportTests.cs" Link="CookieTransportTests.cs" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.2" />
     <PackageReference Include="NUnit" Version="3.14.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
   </ItemGroup>
