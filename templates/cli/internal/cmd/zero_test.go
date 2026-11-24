@@ -995,6 +995,20 @@ func TestZeroExtendStoresTheNewDeadline(t *testing.T) {
 		}
 	}
 
+	// The extension response carries no claim link, so --json takes the stored one
+	withZeroFlags(t, true, false)
+	out.Reset()
+	if err := runZeroExtend(command); err != nil {
+		t.Fatal(err)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(out.Bytes(), &manifest); err != nil {
+		t.Fatalf("--json printed %q: %v", out, err)
+	}
+	if manifest["claimUrl"] != "https://console.example/claim/code" {
+		t.Errorf("claimUrl = %v, want the stored claim link", manifest["claimUrl"])
+	}
+
 	// Rounded down, so it agrees with the "in 3h" a timestamp prints next to it
 	if got := timeLeft("2026-11-16T21:22:18Z", time.Date(2026, 11, 16, 17, 25, 0, 0, time.UTC)); got != "3h 57m" {
 		t.Errorf("time left = %q, want 3h 57m", got)

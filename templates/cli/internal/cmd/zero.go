@@ -720,6 +720,10 @@ func runZeroExtend(command *cobra.Command) error {
 	}
 
 	if app.Flags().JSON || app.Flags().Raw {
+		// The API returns the claim link only to the creator's session, not to the claim secret
+		if zero.GetString("claimUrl") == "" {
+			zero.Set("claimUrl", stored.GetString("claimUrl"))
+		}
 		return renderZeroManifest(command.OutOrStdout(), &zero)
 	}
 
