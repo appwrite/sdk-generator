@@ -1,7 +1,13 @@
 const { Client } = require('../dist/client');
 const { InputFile } = require('../dist/inputFile');
 const { Query } = require('../dist/query');
-const { fetch: mockedFetch, Response, Dispatcher } = require('undici');
+const {
+    fetch: mockedFetch,
+    Response,
+    Request,
+    Headers,
+    Dispatcher,
+} = require('undici');
 
 jest.mock('undici', () => ({
     ...jest.requireActual('undici'),
@@ -98,6 +104,117 @@ describe('Client.prepareRequest', () => {
     });
 });
 
+{%~ if globalHeaders.ForwardedUserAgent is defined %}
+describe('Client.setRequest', () => {
+    const userAgentHeader = '{{ globalHeaders.ForwardedUserAgent.name }}';
+    {%~ if globalHeaders.ForwardedIP is defined %}
+    const ipHeader = '{{ globalHeaders.ForwardedIP.name }}';
+    {%~ endif %}
+    const incoming = {
+        'user-agent': 'Mozilla/5.0 (end user)',
+        'x-{{ spec.info.title | caseLower }}-client-ip': '203.0.113.7',
+    };
+    const url = () => new URL('https://cloud.appwrite.io/v1/account/sessions');
+    const sent = (client) =>
+        client.prepareRequest('POST', url()).options.headers;
+    const env = process.env;
+
+    beforeEach(() => {
+        process.env = { ...env, {{ spec.info.title | caseUpper }}_SITE_ID: 'site' };
+        delete process.env.{{ spec.info.title | caseUpper }}_FUNCTION_ID;
+    });
+
+    afterEach(() => {
+        process.env = env;
+    });
+
+    test.each([
+        [
+            'a Fetch API Request',
+            () => new Request('https://example.com', { headers: incoming }),
+        ],
+        ['Fetch API Headers', () => new Headers(incoming)],
+        ['a request with plain headers', () => ({ headers: { ...incoming } })],
+        [
+            'plain headers in any case',
+            () => ({
+                'User-Agent': ['Mozilla/5.0 (end user)'],
+                'X-{{ spec.info.title | caseUcfirst }}-Client-IP': '203.0.113.7',
+            }),
+        ],
+    ])('names the end user from %s', (_name, request) => {
+        const headers = sent(new Client().setRequest(request()));
+
+        expect(headers[userAgentHeader]).toBe('Mozilla/5.0 (end user)');
+        {%~ if globalHeaders.ForwardedIP is defined %}
+        expect(headers[ipHeader]).toBe('203.0.113.7');
+        {%~ endif %}
+    });
+
+    test('keeps the end user the app named, whichever is set first', () => {
+        const before = new Client();
+        before.setForwardedUserAgent('Custom/1.0');
+        {%~ if globalHeaders.ForwardedIP is defined %}
+        before.setForwardedIP('198.51.100.9');
+        {%~ endif %}
+        before.setRequest(incoming);
+
+        const after = new Client().setRequest(incoming);
+        after.setForwardedUserAgent('Custom/1.0');
+        {%~ if globalHeaders.ForwardedIP is defined %}
+        after.setForwardedIP('198.51.100.9');
+        {%~ endif %}
+
+        for (const headers of [sent(before), sent(after)]) {
+            expect(headers[userAgentHeader]).toBe('Custom/1.0');
+            {%~ if globalHeaders.ForwardedIP is defined %}
+            expect(headers[ipHeader]).toBe('198.51.100.9');
+            {%~ endif %}
+        }
+    });
+
+    {%~ if globalHeaders.ForwardedIP is defined %}
+    test('reads the IP address only inside Functions and Sites', () => {
+        delete process.env.{{ spec.info.title | caseUpper }}_SITE_ID;
+        const elsewhere = sent(new Client().setRequest(incoming));
+
+        process.env.{{ spec.info.title | caseUpper }}_FUNCTION_ID = 'function';
+        const hosted = sent(new Client().setRequest(incoming));
+
+        expect(elsewhere).not.toHaveProperty(ipHeader);
+        expect(elsewhere[userAgentHeader]).toBe('Mozilla/5.0 (end user)');
+        expect(hosted[ipHeader]).toBe('203.0.113.7');
+    });
+
+    {%~ endif %}
+    test('replaces the request named before', () => {
+        const client = new Client().setRequest(incoming);
+        client.setRequest({ 'user-agent': 'Mozilla/5.0 (someone else)' });
+        const headers = sent(client);
+
+        expect(headers[userAgentHeader]).toBe('Mozilla/5.0 (someone else)');
+        {%~ if globalHeaders.ForwardedIP is defined %}
+        expect(headers).not.toHaveProperty(ipHeader);
+        {%~ endif %}
+    });
+
+    test('names nobody from a request without the headers', () => {
+        const headers = sent(new Client().setRequest({ headers: {} }));
+
+        expect(headers).not.toHaveProperty(userAgentHeader);
+        {%~ if globalHeaders.ForwardedIP is defined %}
+        expect(headers).not.toHaveProperty(ipHeader);
+        {%~ endif %}
+    });
+
+    test('is part of the headers the client reports', () => {
+        const headers = new Client().setRequest(incoming).getHeaders();
+
+        expect(headers[userAgentHeader]).toBe('Mozilla/5.0 (end user)');
+    });
+});
+
+{%~ endif %}
 describe('Client.chunkedUpload', () => {
     const url = new URL(
         'https://cloud.appwrite.io/v1/storage/buckets/bucket/files',

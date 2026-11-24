@@ -375,7 +375,7 @@ def oauth_success():
 
 > **Cookie security:** Always use `httponly`, `secure`, and `samesite='Strict'` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
 
-> **Forwarding user agent:** Call `session_client.set_forwarded_user_agent(request.headers.get('user-agent'))` to record the end-user's browser info for debugging and security.
+> **Forwarding user agent:** To record the end user's browser on their session, sign them in with an admin client created inside the request handler (same endpoint, project and API key as above) and call `admin_client.set_forwarded_user_agent(request.headers.get('user-agent'))` on it first. Don't set it on the shared admin client, where it would carry over to other users' requests, or on the session client, where it does nothing: the value only takes effect with an API key.
 
 ## Error Handling
 

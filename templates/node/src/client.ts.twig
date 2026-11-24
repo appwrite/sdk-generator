@@ -133,6 +133,22 @@ type UploadProgress = {
 type Headers = {
     [key: string]: string;
 };
+{%~ if globalHeaders.ForwardedUserAgent is defined %}
+
+/**
+ * Headers of an incoming request: a Fetch API `Headers` object, or a plain
+ * object of names and values such as Node.js' `req.headers`.
+ */
+type IncomingHeaders =
+    | { get(name: string): string | null | undefined }
+    | { [name: string]: string | string[] | undefined };
+
+/**
+ * An incoming request: anything that carries its headers, such as a Fetch
+ * API `Request`, a Node.js `IncomingMessage` or a Function's `req`.
+ */
+type IncomingRequest = { headers: IncomingHeaders };
+{%~ endif %}
 
 class {{spec.info.title | caseUcfirst}}Exception extends Error {
     code: number;
@@ -191,6 +207,32 @@ function getUserAgent() {
     return ua;
 }
 
+{%~ if globalHeaders.ForwardedUserAgent is defined %}
+function getRequestHeader(
+    request: IncomingRequest | IncomingHeaders,
+    name: string,
+): string {
+    const nested = (request as IncomingRequest).headers;
+    const headers =
+        typeof nested === 'object' && nested !== null
+            ? nested
+            : (request as IncomingHeaders);
+
+    if ('get' in headers && typeof headers.get === 'function') {
+        return headers.get(name) ?? '';
+    }
+
+    for (const [key, value] of Object.entries(headers)) {
+        if (key.toLowerCase() === name) {
+            const first = Array.isArray(value) ? value[0] : value;
+            return typeof first === 'string' ? first : '';
+        }
+    }
+
+    return '';
+}
+
+{%~ endif %}
 export function encodePath(value: unknown): string {
     const segment = String(value);
     if (segment === '.' || segment === '..') {
@@ -202,6 +244,9 @@ export function encodePath(value: unknown): string {
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
     private selfSignedAgent?: Agent;
+    {%~ if globalHeaders.ForwardedUserAgent is defined %}
+    private request = { userAgent: ''{% if globalHeaders.ForwardedIP is defined %}, ip: ''{% endif %} };
+    {%~ endif %}
 
     config = {
         endpoint: '{{ (spec | endpoint) }}',
@@ -292,7 +337,11 @@ class Client {
      * @returns {Headers}
      */
     getHeaders(): Headers {
+        {%~ if globalHeaders.ForwardedUserAgent is defined %}
+        return this.withRequest({ ...this.headers });
+        {%~ else %}
         return { ...this.headers };
+        {%~ endif %}
     }
 
     {%~ for headerKey, header in globalHeaders %}
@@ -316,6 +365,72 @@ class Client {
     }
     {%~ endfor %}
 
+    {%~ if globalHeaders.ForwardedUserAgent is defined %}
+    /**
+     * Set Request
+     *
+     * Names the end user an incoming request comes from, so that what
+     * {{ spec.info.title | caseUcfirst }} records about them, such as the device of a session,
+     * describes them and not your server. Pass the request your server is
+     * handling, or only its headers.
+     *
+     * The user agent is read from the `user-agent` header.
+    {%~ if globalHeaders.ForwardedIP is defined %}
+     * The IP address is read from `x-{{ spec.info.title | caseLower }}-client-ip`, which {{ spec.info.title | caseUcfirst }}
+     * Functions and Sites set. On any other host, call `setForwardedIP()`
+     * with the address your host reports.
+    {%~ endif %}
+     *
+    {%~ if globalHeaders.ForwardedIP is defined %}
+     * A value set with `setForwardedUserAgent()` or `setForwardedIP()` is
+     * used instead of the request's.
+    {%~ else %}
+     * A value set with `setForwardedUserAgent()` is used instead of the
+     * request's.
+    {%~ endif %}
+     *
+     * {{ spec.info.title | caseUcfirst }} only accepts these values from a client with an API key, so
+     * call this on that client, and create it for each request. On any
+     * other client they are sent and ignored, as with the setters above.
+     *
+     * @param {object} request
+     *
+     * @returns {this}
+     */
+    setRequest(request: IncomingRequest | IncomingHeaders): this {
+        this.request.userAgent = getRequestHeader(request, 'user-agent');
+        {%~ if globalHeaders.ForwardedIP is defined %}
+
+        // Functions and Sites set this header themselves and replace what a
+        // visitor sent. On any other host, the visitor controls it.
+        const hosted =
+            typeof process !== 'undefined' &&
+            Boolean(
+                process.env?.{{ spec.info.title | caseUpper }}_FUNCTION_ID ||
+                process.env?.{{ spec.info.title | caseUpper }}_SITE_ID,
+            );
+        this.request.ip = hosted
+            ? getRequestHeader(request, 'x-{{ spec.info.title | caseLower }}-client-ip')
+            : '';
+        {%~ endif %}
+
+        return this;
+    }
+
+    private withRequest(headers: Headers): Headers {
+        if (!this.config.forwardeduseragent && this.request.userAgent) {
+            headers['{{ globalHeaders.ForwardedUserAgent.name }}'] = this.request.userAgent;
+        }
+        {%~ if globalHeaders.ForwardedIP is defined %}
+        if (!this.config.forwardedip && this.request.ip) {
+            headers['{{ globalHeaders.ForwardedIP.name }}'] = this.request.ip;
+        }
+        {%~ endif %}
+
+        return headers;
+    }
+
+    {%~ endif %}
     prepareRequest(
         method: string,
         url: URL,
@@ -329,6 +444,9 @@ class Client {
         }
 
         headers = Object.assign({}, this.headers, headers);
+        {%~ if globalHeaders.ForwardedUserAgent is defined %}
+        headers = this.withRequest(headers);
+        {%~ endif %}
 
         const options: RequestInit = {
             method,
