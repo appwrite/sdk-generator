@@ -3,9 +3,6 @@ name: Publish
 # Publishing uses npm trusted publishing, so no npm token is needed -- but trust
 # is configured per existing package, so the parent and the six platform packages
 # each need one manual token-based publish before this workflow can run.
-#
-# Windows signing is optional: without secrets.WINDOWS_SIGNING_API_TOKEN the .exe
-# assets ship unsigned with a warning instead of failing the release.
 
 on:
   release:
@@ -24,9 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HOMEBREW_TAP_REPO: {{ language.params.homebrewTapOwner }}/homebrew-{{ language.params.homebrewTapName }}
-      WINDOWS_SIGNING_PROJECT_SLUG: {{ '${{ vars.WINDOWS_SIGNING_PROJECT_SLUG || \'' }}{{ sdk.gitRepoName | caseDash }}{{ '\' }}' }}
-      WINDOWS_SIGNING_POLICY_SLUG: {{ '${{ vars.WINDOWS_SIGNING_POLICY_SLUG || \'release-signing\' }}' }}
-      WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG: {{ '${{ vars.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG || \'initial\' }}' }}
     steps:
       # The tag is written into the Homebrew formula's Ruby source, the npm
       # manifests and the linker flags, so only a version is accepted.
@@ -119,69 +113,9 @@ jobs:
             }
           ' "$version"
 
-      - name: Detect Windows code signing
-        id: signing
-        env:
-          SIGNING_TOKEN: {{ '${{ secrets.WINDOWS_SIGNING_API_TOKEN }}' }}
-        run: |
-          set -euo pipefail
-
-          if [ -n "${SIGNING_TOKEN}" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Windows binaries are unsigned::\
-          WINDOWS_SIGNING_API_TOKEN is not set, so the .exe assets ship unsigned \
-          and Windows SmartScreen will warn on first run. Set the secret to sign them."
-          fi
-
-      - name: Upload unsigned Windows binaries
-        id: upload-windows-unsigned
-        if: {{ '${{ steps.signing.outputs.enabled == \'true\' }}' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: windows-unsigned
-          path: |
-            staging/{{ language.params.npmPackage }}-win-x64.exe
-            staging/{{ language.params.npmPackage }}-win-arm64.exe
-
-      - name: Submit Windows binaries for signing
-        if: {{ '${{ steps.signing.outputs.enabled == \'true\' }}' }}
-        uses: signpath/github-action-submit-signing-request@b9d91eadd323de506c0c81cf0c7fe7438f3360fd # v2.2
-        with:
-          api-token: {{ '${{ secrets.WINDOWS_SIGNING_API_TOKEN }}' }}
-          organization-id: {{ '${{ vars.WINDOWS_SIGNING_ORGANIZATION_ID }}' }}
-          project-slug: {{ '${{ env.WINDOWS_SIGNING_PROJECT_SLUG }}' }}
-          signing-policy-slug: {{ '${{ env.WINDOWS_SIGNING_POLICY_SLUG }}' }}
-          artifact-configuration-slug: {{ '${{ env.WINDOWS_SIGNING_ARTIFACT_CONFIGURATION_SLUG }}' }}
-          github-artifact-id: {{ '${{ steps.upload-windows-unsigned.outputs.artifact-id }}' }}
-          wait-for-completion: true
-          output-artifact-directory: signed
-          parameters: |
-            version: "{{ '${{ github.event.release.tag_name }}' }}"
-
-      - name: Replace unsigned Windows binaries
-        if: {{ '${{ steps.signing.outputs.enabled == \'true\' }}' }}
-        run: |
-          set -euo pipefail
-
-          for arch in x64 arm64; do
-            asset="{{ language.params.npmPackage }}-win-${arch}.exe"
-            signed="$(find signed -type f -name "$asset" -print -quit)"
-
-            if [ -z "$signed" ]; then
-              echo "signed $asset not found"
-              find signed -type f -print
-              exit 1
-            fi
-
-            cp "$signed" "staging/$asset"
-          done
-
-      # goreleaser checksummed the unsigned Windows builds, and signing changed
-      # the bytes.
-      # The wasm files do not share the native asset-name prefix.
-      - name: Recompute checksums
+      # goreleaser's checksums.txt is not staged and does not cover the wasm
+      # files, which do not share the native asset-name prefix.
+      - name: Write checksums
         working-directory: staging
         run: |
           set -euo pipefail
