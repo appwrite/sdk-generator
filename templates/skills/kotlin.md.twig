@@ -505,7 +505,7 @@ get("/oauth/success") {
 
 > **Cookie security:** Always use `httpOnly`, `secure`, and `SameSite=Strict` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
 
-> **Forwarding user agent:** Call `sessionClient.setForwardedUserAgent(call.request.headers["User-Agent"])` to record the end-user's browser info for debugging and security.
+> **Forwarding user agent:** Call `adminClient.setForwardedUserAgent(call.request.headers["User-Agent"])` on an admin client created for that request to record the end user's browser on their session. It only takes effect with an API key, so it does nothing on the session client, and a client shared between requests would mix users up.
 
 ## Error Handling
 

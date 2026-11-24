@@ -435,7 +435,7 @@ app.get("oauth", "success") { req async throws -> Response in
 
 > **Cookie security:** Always use `isHTTPOnly`, `isSecure`, and `sameSite: .strict` to prevent XSS. The cookie name must be `a_session_<PROJECT_ID>`.
 
-> **Forwarding user agent:** Call `sessionClient.setForwardedUserAgent(req.headers.first(name: .userAgent) ?? "")` to record the end-user's browser info for debugging and security.
+> **Forwarding user agent:** Call `adminClient.setForwardedUserAgent(req.headers.first(name: .userAgent) ?? "")` on an admin client created for that request to record the end user's browser on their session. It only takes effect with an API key, so it does nothing on the session client, and a client shared between requests would mix users up.
 
 ## Error Handling
 
