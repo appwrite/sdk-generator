@@ -330,8 +330,8 @@ func unresolvedVersionError() error {
 		"cannot determine the version to install. Download it manually at %s", releasesPageURL)
 }
 
-// checksumsAsset is the digest manifest goreleaser publishes beside the
-// binaries, and the release workflow recomputes after Windows signing.
+// checksumsAsset is the digest manifest the release workflow publishes beside
+// the binaries.
 const checksumsAsset = "checksums.txt"
 
 // verifyDownload checks the bytes against the digest the release published.
