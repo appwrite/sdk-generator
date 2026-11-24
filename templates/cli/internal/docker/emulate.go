@@ -154,31 +154,15 @@ func (e *Emulator) Start(
 
 // HotSwap replaces the sources inside an existing build without rebuilding.
 //
-// Only valid for an interpreted runtime: the bundle is unpacked, the current
-// sources are copied over it, and it is repacked. A compiled runtime needs its
-// build step re-run, which is why the caller checks SystemTool.Compiled first.
+// Only valid for an interpreted runtime: the current sources are swapped into
+// the bundle and everything else the build produced is kept as it was. A
+// compiled runtime needs its build step re-run, which is why the caller checks
+// SystemTool.Compiled first.
 func (e *Emulator) HotSwap() error {
 	source, err := CollectSource(e.Local, e.Function)
 	if err != nil {
 		return err
 	}
 
-	staging := e.scratch("hot-swap")
-	if err := os.RemoveAll(staging); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(staging, 0o755); err != nil {
-		return err
-	}
-
-	bundle := e.scratch("build.tar.gz")
-	if err := archive.ExtractTarGz(bundle, staging); err != nil {
-		return err
-	}
-
-	if err := CopyInto(staging, source.Directory, source.Files); err != nil {
-		return err
-	}
-
-	return archive.CreateTarGz(bundle, staging)
+	return archive.ReplaceTarGz(e.scratch("build.tar.gz"), source.Directory, source.Files)
 }

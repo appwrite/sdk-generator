@@ -32,9 +32,21 @@ final class CLI
                 // stamp fails with "dubious ownership". Linux only.
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli golang:1.26 go build -buildvcs=false -ldflags=-X=github.com/repoowner/reponame/internal/app.Version=0.0.1 -o appwrite .',
                 'docker run --rm -v $(pwd):/app -w /app/tests/e2e/sdks/cli golang:1.26 go test ./internal/...',
+                // `run function` shells out to docker; the static client from the
+                // official image runs in the golang one.
+                'docker run --rm -v $(pwd):/app docker:28-cli '
+                    . 'sh -c \'mkdir -p /app/tests/e2e/sdks/docker && cp /usr/local/bin/docker /app/tests/e2e/sdks/docker/\'',
             ],
+            // The second pass runs `run function` against the host's Docker. It
+            // mounts the checkout at its host path, because the CLI bind-mounts
+            // the function directory by that path, and joins the host network,
+            // because the runtime is published on the host's loopback.
             command: 'docker run --network="mockapi" --rm -v $(pwd):/app -w /app/tests/e2e/languages/cli '
-                . 'golang:1.26 go run .',
+                . 'golang:1.26 go run .'
+                . ' && docker run --network=host --rm -v /var/run/docker.sock:/var/run/docker.sock '
+                . '-v $(pwd)/tests/e2e/sdks/docker/docker:/usr/local/bin/docker '
+                . '-v $(pwd):$(pwd) -w $(pwd)/tests/e2e/languages/cli '
+                . 'golang:1.26 go run . run-function',
             expected: [
                 ...Output::FOO_RESPONSES,
                 ...Output::BAR_RESPONSES,
@@ -47,6 +59,7 @@ final class CLI
                 'CLI_INIT_APNS_APPLE:passed',
                 'CLI_UNICODE_IGNORE_DEPLOYMENT:passed',
                 'CLI_CONFORMANCE:passed',
+                'CLI_RUN_FUNCTION_HOT_SWAP:passed',
             ],
             dependencies: [self::sdk()],
             identity: self::IDENTITY,
