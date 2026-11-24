@@ -1324,14 +1324,21 @@ func validateSpecificationChoice(
 	if err := api.Call("GET", "/functions/specifications?"+query.Encode(), nil, &response); err != nil {
 		return err
 	}
+	available := make([]string, 0, len(response.Specifications))
 	for _, entry := range response.Specifications {
-		if entry.Slug == specification && (entry.Enabled == nil || *entry.Enabled) {
+		if entry.Enabled != nil && !*entry.Enabled {
+			continue
+		}
+		if entry.Slug == specification {
 			return nil
 		}
+		available = append(available, entry.Slug)
 	}
 
-	return fmt.Errorf("%s specification %s is not available for this project",
-		strings.TrimSuffix(specificationType, "s"), specification)
+	// Build and runtime specifications are separate sets, so a slug valid for
+	// one is often rejected for the other; naming the set says which to pass.
+	return fmt.Errorf("%s specification %s is not available for this project. Available: %s",
+		strings.TrimSuffix(specificationType, "s"), specification, strings.Join(available, ", "))
 }
 
 // chooseSpecification asks for a CPU/memory pairing. The API omits the

@@ -356,8 +356,12 @@ func TestValidateRuntimeAndSpecificationChoices(t *testing.T) {
 	if err := validateSpecificationChoice(api, buildSpecifications, "s-2vcpu-2gb"); err != nil {
 		t.Fatal(err)
 	}
-	if err := validateSpecificationChoice(api, buildSpecifications, "s-1vcpu-512mb"); err == nil {
+	err := validateSpecificationChoice(api, buildSpecifications, "s-1vcpu-512mb")
+	if err == nil {
 		t.Fatal("unavailable build specification accepted")
+	}
+	if !strings.Contains(err.Error(), "Available: s-2vcpu-2gb") {
+		t.Errorf("error does not name the available specifications: %v", err)
 	}
 }
 
