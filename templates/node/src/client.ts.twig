@@ -133,6 +133,22 @@ type UploadProgress = {
 type Headers = {
     [key: string]: string;
 };
+{%~ if globalHeaders.ForwardedUserAgent is defined %}
+
+/**
+ * Headers of an incoming request: a Fetch API `Headers` object, or a plain
+ * object of names and values such as Node.js' `req.headers`.
+ */
+type IncomingHeaders =
+    | { get(name: string): string | null | undefined }
+    | { [name: string]: string | string[] | undefined };
+
+/**
+ * An incoming request: anything that carries its headers, such as a Fetch
+ * API `Request`, a Node.js `IncomingMessage` or a Function's `req`.
+ */
+type IncomingRequest = { headers: IncomingHeaders };
+{%~ endif %}
 
 class {{spec.info.title | caseUcfirst}}Exception extends Error {
     code: number;
@@ -191,21 +207,29 @@ function getUserAgent() {
     return ua;
 }
 
-{%~ if globalHeaders.Key is defined and (globalHeaders.ForwardedUserAgent is defined or globalHeaders.ForwardedIP is defined) %}
-/**
- * Reads a header of the request the hosting runtime is serving right now.
- * Open Runtimes, which runs {{ spec.info.title | caseUcfirst }} Functions and Sites, exposes it;
- * anywhere else there is nothing to read.
- */
-function getRuntimeRequestHeader(name: string): string {
-    const runtime = globalThis as unknown as Record<
-        symbol,
-        { get?: () => { headers?: Record<string, unknown> } | undefined }
-    >;
-    const context = runtime[Symbol.for('open-runtimes.request-context')];
-    const value = context?.get?.()?.headers?.[name];
+{%~ if globalHeaders.ForwardedUserAgent is defined %}
+function getRequestHeader(
+    request: IncomingRequest | IncomingHeaders,
+    name: string,
+): string {
+    const nested = (request as IncomingRequest).headers;
+    const headers =
+        typeof nested === 'object' && nested !== null
+            ? nested
+            : (request as IncomingHeaders);
 
-    return typeof value === 'string' ? value : '';
+    if ('get' in headers && typeof headers.get === 'function') {
+        return headers.get(name) ?? '';
+    }
+
+    for (const [key, value] of Object.entries(headers)) {
+        if (key.toLowerCase() === name) {
+            const first = Array.isArray(value) ? value[0] : value;
+            return typeof first === 'string' ? first : '';
+        }
+    }
+
+    return '';
 }
 
 {%~ endif %}
@@ -220,6 +244,9 @@ export function encodePath(value: unknown): string {
 class Client {
     static CHUNK_SIZE = 1024 * 1024 * 5;
     private selfSignedAgent?: Agent;
+    {%~ if globalHeaders.ForwardedUserAgent is defined %}
+    private request = { userAgent: ''{% if globalHeaders.ForwardedIP is defined %}, ip: ''{% endif %} };
+    {%~ endif %}
 
     config = {
         endpoint: '{{ (spec | endpoint) }}',
@@ -310,7 +337,11 @@ class Client {
      * @returns {Headers}
      */
     getHeaders(): Headers {
+        {%~ if globalHeaders.ForwardedUserAgent is defined %}
+        return this.withRequest({ ...this.headers });
+        {%~ else %}
         return { ...this.headers };
+        {%~ endif %}
     }
 
     {%~ for headerKey, header in globalHeaders %}
@@ -334,6 +365,71 @@ class Client {
     }
     {%~ endfor %}
 
+    {%~ if globalHeaders.ForwardedUserAgent is defined %}
+    /**
+     * Set Request
+     *
+     * Names the end user an incoming request comes from, so that what
+     * {{ spec.info.title | caseUcfirst }} records about them, such as the device of a session,
+     * describes them and not your server. Pass the request your server is
+     * handling, or only its headers.
+     *
+     * The user agent is read from the `user-agent` header.
+    {%~ if globalHeaders.ForwardedIP is defined %}
+     * The IP address is read from `x-{{ spec.info.title | caseLower }}-client-ip`, which {{ spec.info.title | caseUcfirst }}
+     * Functions and Sites set. On any other host, call `setForwardedIP()`
+     * with the address your host reports.
+    {%~ endif %}
+     *
+    {%~ if globalHeaders.ForwardedIP is defined %}
+     * A value set with `setForwardedUserAgent()` or `setForwardedIP()` is
+     * used instead of the request's.
+    {%~ else %}
+     * A value set with `setForwardedUserAgent()` is used instead of the
+     * request's.
+    {%~ endif %}
+     *
+     * Only takes effect on a client with an API key. Create that client for
+     * each request.
+     *
+     * @param {object} request
+     *
+     * @returns {this}
+     */
+    setRequest(request: IncomingRequest | IncomingHeaders): this {
+        this.request.userAgent = getRequestHeader(request, 'user-agent');
+        {%~ if globalHeaders.ForwardedIP is defined %}
+
+        // Functions and Sites set this header themselves and replace what a
+        // visitor sent. On any other host, the visitor controls it.
+        const hosted =
+            typeof process !== 'undefined' &&
+            Boolean(
+                process.env?.{{ spec.info.title | caseUpper }}_FUNCTION_ID ||
+                process.env?.{{ spec.info.title | caseUpper }}_SITE_ID,
+            );
+        this.request.ip = hosted
+            ? getRequestHeader(request, 'x-{{ spec.info.title | caseLower }}-client-ip')
+            : '';
+        {%~ endif %}
+
+        return this;
+    }
+
+    private withRequest(headers: Headers): Headers {
+        if (!this.config.forwardeduseragent && this.request.userAgent) {
+            headers['{{ globalHeaders.ForwardedUserAgent.name }}'] = this.request.userAgent;
+        }
+        {%~ if globalHeaders.ForwardedIP is defined %}
+        if (!this.config.forwardedip && this.request.ip) {
+            headers['{{ globalHeaders.ForwardedIP.name }}'] = this.request.ip;
+        }
+        {%~ endif %}
+
+        return headers;
+    }
+
+    {%~ endif %}
     prepareRequest(
         method: string,
         url: URL,
@@ -347,24 +443,8 @@ class Client {
         }
 
         headers = Object.assign({}, this.headers, headers);
-        {%~ if globalHeaders.Key is defined and (globalHeaders.ForwardedUserAgent is defined or globalHeaders.ForwardedIP is defined) %}
-
-        // In a Function or Site, a request made with an API key is made for the
-        // end user of the request being served, unless the app named another.
-        if (this.config.key) {
-            {%~ if globalHeaders.ForwardedUserAgent is defined %}
-            const userAgent = getRuntimeRequestHeader('user-agent');
-            if (!this.config.forwardeduseragent && userAgent) {
-                headers['{{ globalHeaders.ForwardedUserAgent.name }}'] = userAgent;
-            }
-            {%~ endif %}
-            {%~ if globalHeaders.ForwardedIP is defined %}
-            const ip = getRuntimeRequestHeader('x-{{ spec.info.title | caseLower }}-client-ip');
-            if (!this.config.forwardedip && ip) {
-                headers['{{ globalHeaders.ForwardedIP.name }}'] = ip;
-            }
-            {%~ endif %}
-        }
+        {%~ if globalHeaders.ForwardedUserAgent is defined %}
+        headers = this.withRequest(headers);
         {%~ endif %}
 
         const options: RequestInit = {
