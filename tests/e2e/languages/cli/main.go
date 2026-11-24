@@ -27,6 +27,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -35,6 +36,9 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
+	"syscall"
+	"time"
 )
 
 // binary is the CLI under test, built by the test's build step in the generated tree.
@@ -50,6 +54,14 @@ func main() {
 	defer os.RemoveAll(home)
 
 	harness := &harness{home: home}
+
+	// `run function` drives Docker on the host and serves on its loopback, so it
+	// runs as its own pass on the host network rather than inside mockapi's.
+	if len(os.Args) > 1 && os.Args[1] == "run-function" {
+		harness.runFunctionHotSwap()
+		fmt.Println("CLI_RUN_FUNCTION_HOT_SWAP:passed")
+		return
+	}
 
 	// Point the CLI at the mock API. Every command below reads this.
 	harness.run("client",
@@ -651,4 +663,154 @@ func (h *harness) unicodeIgnoreDeployment() {
 			fail(fmt.Errorf("push with Unicode %s rules did not upload code", source))
 		}
 	}
+}
+
+// runFunctionHotSwap runs a Python function locally, edits its source, and
+// requires the hot-swapped function to serve the edit. Python is the runtime
+// whose build output carries symlinks (its venv's bin/python3), so it is the
+// one a lossy bundle repack breaks: gunicorn then fails to import.
+func (h *harness) runFunctionHotSwap() {
+	cli, err := filepath.Abs(binary)
+	if err != nil {
+		fail(err)
+	}
+
+	// The CLI bind-mounts this directory into the runtime container through the
+	// host's Docker, so it must sit on the path shared with the host.
+	directory, err := filepath.Abs(filepath.Join("..", "..", "sdks", "run-function"))
+	if err != nil {
+		fail(err)
+	}
+	if err := os.RemoveAll(directory); err != nil {
+		fail(err)
+	}
+	defer os.RemoveAll(directory)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, r.Method+" "+r.URL.Path, http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	files := map[string]string{
+		"appwrite.config.json": `{"projectId":"run-function","endpoint":"` + server.URL + `/v1","functions":[` +
+			`{"$id":"hot-swap","name":"Hot swap","runtime":"python-3.12","entrypoint":"src/main.py",` +
+			`"commands":"pip install -r requirements.txt","path":"fn"}]}`,
+		"fn/requirements.txt": "",
+		"fn/src/main.py":      "def main(context):\n    return context.res.text('v1')\n",
+	}
+	for name, contents := range files {
+		path := filepath.Join(directory, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			fail(err)
+		}
+		if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
+			fail(err)
+		}
+	}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		fail(err)
+	}
+	port := listener.Addr().(*net.TCPAddr).Port
+	listener.Close()
+
+	var output lockedBuffer
+	command := h.command("run", "function", "--function-id", "hot-swap", "--port", fmt.Sprint(port))
+	command.Path = cli
+	command.Dir = directory
+	command.Stdout = &output
+	command.Stderr = &output
+	if err := command.Start(); err != nil {
+		fail(err)
+	}
+	// Closed rather than sent on, so both the polling and stop see the exit.
+	exited := make(chan struct{})
+	var exitErr error
+	go func() {
+		exitErr = command.Wait()
+		close(exited)
+	}()
+	// Interrupted rather than killed, so the CLI removes the runtime container
+	// it started on the host. fail exits without running defers, so every
+	// path out calls this first.
+	stop := func() {
+		_ = command.Process.Signal(syscall.SIGINT)
+		select {
+		case <-exited:
+		case <-time.After(30 * time.Second):
+			_ = command.Process.Kill()
+		}
+	}
+
+	url := fmt.Sprintf("http://127.0.0.1:%d/", port)
+
+	// The first start pulls the runtime image and builds, so it gets longer.
+	if err := awaitResponse(url, "v1", 10*time.Minute, exited, &exitErr, &output); err != nil {
+		stop()
+		fail(err)
+	}
+
+	source := filepath.Join(directory, "fn", "src", "main.py")
+	if err := os.WriteFile(source, []byte("def main(context):\n    return context.res.text('v2')\n"), 0o644); err != nil {
+		stop()
+		fail(err)
+	}
+
+	err = awaitResponse(url, "v2", 2*time.Minute, exited, &exitErr, &output)
+	stop()
+	if err != nil {
+		fail(err)
+	}
+	if !strings.Contains(output.String(), "Hot-swapping function") {
+		fail(fmt.Errorf("editing src/main.py should hot-swap, not rebuild:\n%s", output.String()))
+	}
+}
+
+// awaitResponse polls url until it answers want. It reports the CLI's output
+// if the CLI exits or the deadline passes first.
+func awaitResponse(url, want string, timeout time.Duration, exited <-chan struct{}, exitErr *error, output *lockedBuffer) error {
+	client := &http.Client{Timeout: 5 * time.Second}
+	deadline := time.Now().Add(timeout)
+	last := ""
+
+	for time.Now().Before(deadline) {
+		select {
+		case <-exited:
+			return fmt.Errorf("`run function` exited (%v) before serving %q:\n%s", *exitErr, want, output.String())
+		default:
+		}
+
+		if response, err := client.Get(url); err == nil {
+			body, _ := io.ReadAll(response.Body)
+			response.Body.Close()
+			last = string(body)
+			if last == want {
+				return nil
+			}
+		}
+		time.Sleep(time.Second)
+	}
+
+	return fmt.Errorf("`run function` did not serve %q within %s (last %q):\n%s", want, timeout, last, output.String())
+}
+
+// lockedBuffer collects a child process's output while the harness reads it.
+type lockedBuffer struct {
+	mutex  sync.Mutex
+	buffer strings.Builder
+}
+
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	return b.buffer.Write(p)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	return b.buffer.String()
 }

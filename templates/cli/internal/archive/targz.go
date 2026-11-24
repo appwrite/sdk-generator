@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-// gzipped tar handling, shared by the function emulator's hot swap and by
-// `pull`'s deployment download.
+// gzipped tar handling, shared by `pull`'s deployment download, `push`'s
+// upload and the function emulator's hot swap.
 //
 // Extraction refuses an entry that escapes the destination. Both callers feed
 // it an archive the API produced, but an archive is untrusted input to the
@@ -60,11 +60,8 @@ func ExtractTarGz(path, destination string) error {
 				return err
 			}
 		}
-		// Other entry types -- symlinks, devices, hard links -- are skipped.
-		// The bundle is repacked immediately afterwards, so dropping them
-		// changes what the container sees; but honouring a symlink from an
-		// archive is how a path traversal gets in, and the build output the
-		// runtimes produce contains none.
+		// Other entry types -- symlinks, devices, hard links -- are skipped:
+		// honouring a symlink from an archive is how a path traversal gets in.
 	}
 }
 
@@ -176,71 +173,71 @@ func appendFile(writer *tar.Writer, directory, name string) error {
 	return err
 }
 
-// CreateTarGz packs a directory into a gzipped archive.
+// ReplaceTarGz swaps the named files, relative to directory, into an existing
+// gzipped archive.
 //
-// Written to a temporary file and renamed, so an interrupted repack cannot
-// leave a truncated bundle where the container expects a valid one.
-func CreateTarGz(path, directory string) error {
+// Every other entry is copied through untouched -- symlinks, hard links and
+// modes included -- because the archive is a runtime's build output and its
+// virtual envs depend on them: a Python venv whose bin/python3 link is dropped
+// silently falls back to the system interpreter. Nothing is unpacked to disk,
+// so a link in the archive is never followed.
+//
+// Written to a temporary file and renamed, so an interrupted swap cannot leave
+// a truncated bundle where the container expects a valid one.
+func ReplaceTarGz(path, directory string, files []string) error {
+	source, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	decompressed, err := gzip.NewReader(source)
+	if err != nil {
+		return err
+	}
+	defer decompressed.Close()
+
 	temporary, err := os.CreateTemp(filepath.Dir(path), ".build-*.tar.gz")
 	if err != nil {
 		return err
 	}
 	temporaryPath := temporary.Name()
 	defer os.Remove(temporaryPath)
+	defer temporary.Close()
 
 	compressed := gzip.NewWriter(temporary)
 	writer := tar.NewWriter(compressed)
 
-	err = filepath.WalkDir(directory, func(path string, entry os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
+	replaced := make(map[string]bool, len(files))
+	for _, file := range files {
+		replaced[entryName(file)] = true
+	}
 
-		relative, err := filepath.Rel(directory, path)
+	reader := tar.NewReader(decompressed)
+	for {
+		header, err := reader.Next()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			return err
 		}
-		if relative == "." {
-			return nil
-		}
-
-		info, err := entry.Info()
-		if err != nil {
-			return err
-		}
-
-		header, err := tar.FileInfoHeader(info, "")
-		if err != nil {
-			return err
-		}
-		header.Name = "./" + filepath.ToSlash(relative)
-		if entry.IsDir() {
-			header.Name += "/"
+		if replaced[entryName(header.Name)] {
+			continue
 		}
 
 		if err := writer.WriteHeader(header); err != nil {
 			return err
 		}
-		if entry.IsDir() || !info.Mode().IsRegular() {
-			return nil
-		}
-
-		file, err := os.Open(path)
-		if err != nil {
+		if _, err := io.Copy(writer, reader); err != nil {
 			return err
 		}
-		defer file.Close()
+	}
 
-		_, err = io.Copy(writer, file)
-
-		return err
-	})
-	if err != nil {
-		writer.Close()
-		compressed.Close()
-		temporary.Close()
-
-		return err
+	for _, file := range files {
+		if err := appendFile(writer, directory, file); err != nil {
+			return err
+		}
 	}
 
 	if err := writer.Close(); err != nil {
@@ -254,4 +251,10 @@ func CreateTarGz(path, directory string) error {
 	}
 
 	return os.Rename(temporaryPath, path)
+}
+
+// entryName normalises an archive entry name so `./src/main.py` and
+// `src/main.py` compare equal.
+func entryName(name string) string {
+	return strings.TrimPrefix(filepath.ToSlash(name), "./")
 }
