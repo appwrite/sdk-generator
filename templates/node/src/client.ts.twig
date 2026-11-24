@@ -389,8 +389,9 @@ class Client {
      * request's.
     {%~ endif %}
      *
-     * Only takes effect on a client with an API key. Create that client for
-     * each request.
+     * {{ spec.info.title | caseUcfirst }} only accepts these values from a client with an API key, so
+     * call this on that client, and create it for each request. On any
+     * other client they are sent and ignored, as with the setters above.
      *
      * @param {object} request
      *
