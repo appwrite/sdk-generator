@@ -89,7 +89,7 @@ result = {{ service.name | caseSnake }}.{{ (method | methodName) | caseSnake }}(
 {% endif %}
 
     {%~ for parameter in (method | parameters('all')) %}
-    {{ parameter.name | caseSnake }} = {% if (parameter | schemaModel) %}{{ parameter | requestModelExample(spec, service.name) | raw }}{% elseif (parameter | enumSuggestions) | length > 0 %}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
+    {{ parameter.name | escapeKeyword | caseSnake }} = {% if (parameter | schemaModel) %}{{ parameter | requestModelExample(spec, service.name) | raw }}{% elseif (parameter | enumSuggestions) | length > 0 %}{{ parameter | enumExample }}{% else %}{{ parameter | paramExample }}{% endif %}{% if not loop.last %},{% endif %}{% if not parameter.required %} # optional{% endif %}
 
     {%~ endfor %}
 {% if (method | parameters('all')) | length > 0 %})
