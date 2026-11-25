@@ -368,6 +368,7 @@ class Tests: XCTestCase {
         print(Query.equal("released", value: [true]))
         print(Query.equal("title", value: ["Spiderman", "Dr. Strange"]))
         print(Query.notEqual("title", value: "Spiderman"))
+        print(Query.notEqual("statusCode", value: [200, 201]))
         print(Query.lessThan("releasedYear", value: 1990))
         print(Query.greaterThan("releasedYear", value: 1990))
         print(Query.search("name", value: "john"))

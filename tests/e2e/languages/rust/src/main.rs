@@ -269,6 +269,7 @@ async fn test_queries(client: &Client) -> Result<(), Box<dyn std::error::Error>>
     println!("{}", Query::equal("released", true));
     println!("{}", Query::equal("title", vec!["Spiderman", "Dr. Strange"]));
     println!("{}", Query::not_equal("title", "Spiderman"));
+    println!("{}", Query::not_equal("statusCode", vec![200, 201]));
     println!("{}", Query::less_than("releasedYear", 1990));
     println!("{}", Query::greater_than("releasedYear", 1990));
     println!("{}", Query::search("name", "john"));

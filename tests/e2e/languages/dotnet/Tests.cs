@@ -245,6 +245,7 @@ namespace AppwriteTests
             TestContext.WriteLine(Query.Equal("released", new List<bool> { true }));
             TestContext.WriteLine(Query.Equal("title", new List<string> { "Spiderman", "Dr. Strange" }));
             TestContext.WriteLine(Query.NotEqual("title", "Spiderman"));
+            TestContext.WriteLine(Query.NotEqual("statusCode", new List<int> { 200, 201 }));
             TestContext.WriteLine(Query.LessThan("releasedYear", 1990));
             TestContext.WriteLine(Query.GreaterThan("releasedYear", 1990));
             TestContext.WriteLine(Query.Search("name", "john"));

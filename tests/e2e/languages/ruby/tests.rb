@@ -210,6 +210,7 @@ puts url
 puts Query.equal('released', [true])
 puts Query.equal('title', ['Spiderman', 'Dr. Strange'])
 puts Query.not_equal('title', 'Spiderman')
+puts Query.not_equal('statusCode', [200, 201])
 puts Query.less_than('releasedYear', 1990)
 puts Query.greater_than('releasedYear', 1990)
 puts Query.search('name', 'john')

@@ -442,6 +442,7 @@
             console.log(Query.equal("released", [true]));
             console.log(Query.equal("title", ["Spiderman", "Dr. Strange"]));
             console.log(Query.notEqual("title", "Spiderman"));
+            console.log(Query.notEqual("statusCode", [200, 201]));
             console.log(Query.lessThan("releasedYear", 1990));
             console.log(Query.greaterThan("releasedYear", 1990));
             console.log(Query.search("name", "john"));

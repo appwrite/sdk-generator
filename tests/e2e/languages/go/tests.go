@@ -362,6 +362,7 @@ func testQueries(client client.Client) {
 	fmt.Println(query.Equal("released", true))
 	fmt.Println(query.Equal("title", []interface{}{"Spiderman", "Dr. Strange"}))
 	fmt.Println(query.NotEqual("title", "Spiderman"))
+	fmt.Println(query.NotEqual("statusCode", []int{200, 201}))
 	fmt.Println(query.LessThan("releasedYear", 1990))
 	fmt.Println(query.GreaterThan("releasedYear", 1990))
 	fmt.Println(query.Search("name", "john"))

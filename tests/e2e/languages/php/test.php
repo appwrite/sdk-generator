@@ -334,6 +334,7 @@ echo $url . "\n";
 echo Query::equal('released', [true]) . "\n";
 echo Query::equal('title', ['Spiderman', 'Dr. Strange']) . "\n";
 echo Query::notEqual('title', 'Spiderman') . "\n";
+echo Query::notEqual('statusCode', [200, 201]) . "\n";
 echo Query::lessThan('releasedYear', 1990) . "\n";
 echo Query::greaterThan('releasedYear', 1990) . "\n";
 echo Query::search('name', 'john') . "\n";
