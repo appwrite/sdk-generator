@@ -189,6 +189,8 @@ url = general.oauth2(
 print(url)
 
 # Query helper tests
+print(Query.equal("type", MockType.FIRST))
+print(Query.equal("type", [MockType.FIRST, MockType.SECOND]))
 print(Query.equal("released", [True]))
 print(Query.equal("title", ["Spiderman", "Dr. Strange"]))
 print(Query.not_equal("title", "Spiderman"))
