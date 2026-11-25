@@ -364,6 +364,7 @@ namespace AppwriteTests
             LogResult(Query.Equal("released", new List<bool> { true }));
             LogResult(Query.Equal("title", new List<string> { "Spiderman", "Dr. Strange" }));
             LogResult(Query.NotEqual("title", "Spiderman"));
+            LogResult(Query.NotEqual("statusCode", new List<int> { 200, 201 }));
             LogResult(Query.LessThan("releasedYear", 1990));
             LogResult(Query.GreaterThan("releasedYear", 1990));
             LogResult(Query.Search("name", "john"));

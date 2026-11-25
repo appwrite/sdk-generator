@@ -222,6 +222,7 @@ void main() async {
   print(Query.equal('released', [true]));
   print(Query.equal('title', ['Spiderman', 'Dr. Strange']));
   print(Query.notEqual('title', 'Spiderman'));
+  print(Query.notEqual('statusCode', [200, 201]));
   print(Query.lessThan('releasedYear', 1990));
   print(Query.greaterThan('releasedYear', 1990));
   print(Query.search('name', 'john'));

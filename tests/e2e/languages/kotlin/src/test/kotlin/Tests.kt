@@ -255,6 +255,7 @@ class ServiceTest {
             writeToFile(Query.equal("released", listOf(true)))
             writeToFile(Query.equal("title", listOf("Spiderman", "Dr. Strange")))
             writeToFile(Query.notEqual("title", "Spiderman"))
+            writeToFile(Query.notEqual("statusCode", listOf(200, 201)))
             writeToFile(Query.lessThan("releasedYear", 1990))
             writeToFile(Query.greaterThan("releasedYear", 1990))
             writeToFile(Query.search("name", "john"))

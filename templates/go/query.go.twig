@@ -12,9 +12,16 @@ func toArray(val interface{}) []interface{} {
 		return nil
 	case []interface{}:
 		return v
-	default:
+	}
+	value := reflect.ValueOf(val)
+	if value.Kind() != reflect.Slice && value.Kind() != reflect.Array {
 		return []interface{}{val}
 	}
+	values := make([]interface{}, value.Len())
+	for i := range values {
+		values[i] = value.Index(i).Interface()
+	}
+	return values
 }
 
 type queryOptions struct {

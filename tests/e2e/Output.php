@@ -432,6 +432,7 @@ final class Output
         '{"method":"equal","attribute":"released","values":[true]}',
         '{"method":"equal","attribute":"title","values":["Spiderman","Dr. Strange"]}',
         '{"method":"notEqual","attribute":"title","values":["Spiderman"]}',
+        '{"method":"notEqual","attribute":"statusCode","values":[200,201]}',
         '{"method":"lessThan","attribute":"releasedYear","values":[1990]}',
         '{"method":"greaterThan","attribute":"releasedYear","values":[1990]}',
         '{"method":"search","attribute":"name","values":["john"]}',
