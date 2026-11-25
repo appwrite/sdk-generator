@@ -608,6 +608,7 @@ final class GenerationTest extends TestCase
                 'summary' => 'Ping',
                 'description' => 'Ping.',
                 'x-appwrite' => ['method' => 'ping'],
+                'parameters' => [['name' => 'from', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string']]],
                 'responses' => ['204' => ['description' => 'No content']],
             ]]],
             'components' => ['schemas' => ['zzident' => [
@@ -644,7 +645,11 @@ final class GenerationTest extends TestCase
 
         // A method with no response model returns Task<object>.
         $dotnetExample = $this->generateDocument($document, 'dotnet', 'ident')['docs/examples/zzident/ping.md'] ?? '';
-        $this->assertStringContainsString('object result = await zzident.Ping();', $dotnetExample);
+        $this->assertStringContainsString('object result = await zzident.Ping(', $dotnetExample);
+
+        // A parameter named after a Python keyword takes the escaped name the method declares.
+        $pythonExample = $this->generateDocument($document, 'python', 'ident')['docs/examples/zzident/ping.md'] ?? '';
+        $this->assertStringContainsString('    xfrom = ', $pythonExample);
     }
 
     private function removeDirectory(string $dir): void
