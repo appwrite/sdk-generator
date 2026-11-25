@@ -40,6 +40,15 @@ export type TrackingOptions = {
      * is set to `'1'`. Set to false to always fire regardless of the DNT signal.
      */
     respectDoNotTrack?: boolean;
+    /**
+     * Rewrites every URL the tracker reads from the page before sending it:
+     * the page URL, `document.referrer` and the `href` of clicked links.
+     * Use it to keep query strings or fragments that carry secrets (sign-in
+     * links, password resets, invites) out of your analytics, for example
+     * `(url) => url.split(/[?#]/)[0]`. URLs passed explicitly to `track()` or
+     * `pageview()` are sent as given. Defaults to sending URLs unchanged.
+     */
+    transformUrl?: (url: string) => string;
 };
 
 export type OutboundTrackingOptions = {
@@ -156,6 +165,7 @@ export class Tracking {
     private readonly analytics: Analytics;
     private readonly propertyId: string;
     private readonly respectDoNotTrack: boolean;
+    private readonly transformUrl: (url: string) => string;
 
     private pageviewCleanups: Cleanup[] = [];
     private outboundCleanup?: Cleanup;
@@ -184,6 +194,7 @@ export class Tracking {
         this.analytics = analytics;
         this.propertyId = propertyId;
         this.respectDoNotTrack = options.respectDoNotTrack !== false;
+        this.transformUrl = options.transformUrl ?? ((url) => url);
     }
 
     /**
@@ -242,8 +253,8 @@ export class Tracking {
             url: url ?? this.currentPageUrl(),
             referrer:
                 referrer ??
-                (typeof document !== 'undefined'
-                    ? document.referrer
+                (typeof document !== 'undefined' && document.referrer
+                    ? this.transformUrl(document.referrer)
                     : undefined),
         });
     }
@@ -261,19 +272,24 @@ export class Tracking {
             return;
         }
 
-        this.currentPath = this.currentPageUrl();
+        // Routes are compared untransformed, so a transform that drops the
+        // query or fragment can't hide navigations that change only those
+        this.currentPath = this.rawPageUrl();
         this.pageview();
 
         const handleNavigation = (): void => {
-            const nextPath = this.currentPageUrl();
+            const nextPath = this.rawPageUrl();
             if (nextPath === this.currentPath) {
                 return;
             }
-            const previous = this.currentPath;
+            const previous =
+                this.currentPath === undefined
+                    ? undefined
+                    : this.transformUrl(this.currentPath);
             this.currentPath = nextPath;
             this.flushScrollDepth(previous);
             this.flushEngagement(previous);
-            this.pageview(nextPath);
+            this.pageview(this.transformUrl(nextPath));
             // flushEngagement no longer auto-restarts the timer (see its
             // implementation note re: bfcache). SPA navigation stays on the
             // same document, so restart engagement tracking for the new
@@ -384,7 +400,10 @@ export class Tracking {
                 return;
             }
             this.track('outbound_link', {
-                props: { hostname: target.hostname, href: target.href },
+                props: {
+                    hostname: target.hostname,
+                    href: this.transformUrl(target.href),
+                },
             });
         };
 
@@ -444,7 +463,11 @@ export class Tracking {
                 return;
             }
             this.track('file_download', {
-                props: { filename, extension, href: url.href },
+                props: {
+                    filename,
+                    extension,
+                    href: this.transformUrl(url.href),
+                },
             });
         };
 
@@ -642,6 +665,11 @@ export class Tracking {
     }
 
     private currentPageUrl(): string {
+        const url = this.rawPageUrl();
+        return url === '' ? '' : this.transformUrl(url);
+    }
+
+    private rawPageUrl(): string {
         if (typeof window === 'undefined' || !window.location) {
             return '';
         }
