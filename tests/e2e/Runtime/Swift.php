@@ -52,6 +52,7 @@ final class Swift
                 ...Output::ENUM_ARRAY_MODEL_RESPONSES,
                 ...Output::EXCEPTION_RESPONSES,
                 ...Output::OAUTH_RESPONSES,
+                ...Output::QUERY_ENUM_RESPONSES,
                 ...Output::QUERY_HELPER_RESPONSES,
                 ...Output::QUERY_TRANSPORT_RESPONSES,
                 ...Output::PERMISSION_HELPER_RESPONSES,

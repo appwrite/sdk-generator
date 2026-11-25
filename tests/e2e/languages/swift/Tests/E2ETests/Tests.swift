@@ -5,6 +5,7 @@ import FoundationNetworking
 #endif
 import Appwrite
 import AppwriteModels
+import AppwriteEnums
 import JSONCodable
 import NIO
 
@@ -261,6 +262,8 @@ class Tests: XCTestCase {
         print(url!)
 
         // Query helper tests
+        print(Query.equal("type", value: MockType.first))
+        print(Query.equal("type", value: [MockType.first, MockType.second]))
         print(Query.equal("released", value: [true]))
         print(Query.equal("title", value: ["Spiderman", "Dr. Strange"]))
         print(Query.notEqual("title", value: "Spiderman"))

@@ -365,6 +365,8 @@ class Tests: XCTestCase {
         try! await general.empty()
 
         // Query helper tests
+        print(Query.equal("type", value: MockType.first))
+        print(Query.equal("type", value: [MockType.first, MockType.second]))
         print(Query.equal("released", value: [true]))
         print(Query.equal("title", value: ["Spiderman", "Dr. Strange"]))
         print(Query.notEqual("title", value: "Spiderman"))

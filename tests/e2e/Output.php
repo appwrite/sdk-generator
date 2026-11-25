@@ -428,6 +428,12 @@ final class Output
         'Push notification opened:passed',
     ];
 
+    // Enum members passed as query values serialise to their value.
+    public const array QUERY_ENUM_RESPONSES = [
+        '{"method":"equal","attribute":"type","values":["first"]}',
+        '{"method":"equal","attribute":"type","values":["first","second"]}',
+    ];
+
     public const array QUERY_HELPER_RESPONSES = [
         '{"method":"equal","attribute":"released","values":[true]}',
         '{"method":"equal","attribute":"title","values":["Spiderman","Dr. Strange"]}',

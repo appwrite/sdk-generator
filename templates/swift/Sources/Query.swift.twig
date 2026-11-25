@@ -93,6 +93,8 @@ public struct Query: Codable, CustomStringConvertible {
             return [.bool(boolValue)]
         case let queryValue as Query:
             return [.query(queryValue)]
+        case let enumValue as any RawRepresentable:
+            return convertToQueryValueArray(enumValue.rawValue)
         case let anyArray as [Any]:
             // Handle nested arrays
             let nestedValues = anyArray.compactMap { item -> QueryValue? in
@@ -106,6 +108,8 @@ public struct Query: Codable, CustomStringConvertible {
                     return .bool(boolValue)
                 } else if let queryValue = item as? Query {
                     return .query(queryValue)
+                } else if let enumValue = item as? any RawRepresentable {
+                    return convertToQueryValueArray(enumValue.rawValue)?.first
                 } else if let doubleArray = item as? [Double] {
                     return .array(doubleArray.map { .double($0) })
                 } else if let intArray = item as? [Int] {
