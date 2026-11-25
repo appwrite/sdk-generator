@@ -60,6 +60,7 @@ final class Apple
                 'Realtime subscribe reuses socket:passed',
                 'Realtime reconnect:passed',
                 ...Output::COOKIE_RESPONSES,
+                ...Output::QUERY_ENUM_RESPONSES,
                 ...Output::QUERY_HELPER_RESPONSES,
                 ...Output::QUERY_TRANSPORT_RESPONSES,
                 ...Output::PERMISSION_HELPER_RESPONSES,
