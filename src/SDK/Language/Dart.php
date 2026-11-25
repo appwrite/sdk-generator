@@ -255,7 +255,7 @@ class Dart extends Language
             self::TYPE_OBJECT => ($decoded = json_decode((string) $example, true)) !== null
             ? (empty($decoded) && $example === '{}'
                 ? '{}'
-                : $this->escapeInterpolation((string) preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT))))
+                : $this->escapeInterpolation((string) preg_replace('/\n/', "\n    ", json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))))
             : $this->escapeInterpolation((string) $example),
             self::TYPE_STRING => "'" . $this->escapeInterpolation((string) $example) . "'",
         };

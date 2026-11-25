@@ -68,7 +68,7 @@ class GraphQL extends HTTP
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
                 ? '"{}"'
-                : '"' . str_replace('"', '\\"', json_encode(json_decode((string) $example, true))) . '"',
+                : '"' . str_replace('"', '\\"', json_encode(json_decode((string) $example, true), JSON_UNESCAPED_SLASHES)) . '"',
             self::TYPE_STRING => '"' . $example . '"',
         };
     }

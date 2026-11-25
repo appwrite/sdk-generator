@@ -51,7 +51,7 @@ class REST extends HTTP
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($example === '{}')
                 ? '{}'
-                : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
+                : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))
                     ? (function () use ($formatted): string|array|null {
                         // Replace leading four spaces with two spaces for indentation
                         $formatted = preg_replace('/^    /m', '  ', $formatted);
