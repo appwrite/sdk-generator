@@ -2104,6 +2104,13 @@
                     "default": null,
                     "example": 1,
                     "nullable": true
+                  },
+                  "repeat": {
+                    "type": "boolean",
+                    "description": "Optional param named after a reserved keyword",
+                    "default": null,
+                    "example": false,
+                    "nullable": true
                   }
                 },
                 "required": [
@@ -3848,6 +3855,12 @@
               "type": "object",
               "additionalProperties": true
             }
+          },
+          "repeat": {
+            "type": "boolean",
+            "description": "Optional field named after a reserved keyword.",
+            "example": false,
+            "nullable": true
           }
         },
         "required": [

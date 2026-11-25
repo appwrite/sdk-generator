@@ -64,6 +64,7 @@ class Swift extends Language
             "switch",
             "where",
             "while",
+            "repeat",
             "as",
             "dynamicType",
             "false",
