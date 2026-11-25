@@ -14,7 +14,11 @@ class Query:
             self.values = values if isinstance(values, list) else [values]
 
     def __str__(self):
-        return json.dumps(self.__dict__, separators=(",", ":"), default=lambda obj: obj.value if isinstance(obj, Enum) else obj.__dict__)
+        return json.dumps(
+            self.__dict__,
+            separators=(",", ":"),
+            default=lambda obj: obj.value if isinstance(obj, Enum) else obj.__dict__,
+        )
 
     @staticmethod
     def equal(attribute, value):
