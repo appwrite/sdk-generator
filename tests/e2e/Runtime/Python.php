@@ -54,6 +54,7 @@ final class Python
                     ...Output::EXCEPTION_RESPONSES,
                     ...Output::ENDPOINT_RESPONSES,
                     ...Output::OAUTH_RESPONSES,
+                    ...Output::QUERY_ENUM_RESPONSES,
                     ...Output::QUERY_HELPER_RESPONSES,
                     ...Output::QUERY_TRANSPORT_RESPONSES,
                     ...Output::PERMISSION_HELPER_RESPONSES,
