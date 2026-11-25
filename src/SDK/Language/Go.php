@@ -340,7 +340,7 @@ class Go extends Language
 
             $items = [];
             foreach ($value as $key => $item) {
-                $items[] = \json_encode((string) $key, JSON_THROW_ON_ERROR)
+                $items[] = \json_encode((string) $key, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)
                     . ': ' . $this->formatGoExampleValue($item);
             }
 
@@ -351,7 +351,7 @@ class Go extends Language
             return 'nil';
         }
 
-        return \json_encode($value, JSON_THROW_ON_ERROR);
+        return \json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
     }
 
     #[Override]

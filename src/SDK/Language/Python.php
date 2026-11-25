@@ -417,7 +417,7 @@ class Python extends Language
             self::TYPE_BOOLEAN => ($example) ? 'True' : 'False',
             self::TYPE_OBJECT => ($example === '{}')
             ? '{}'
-            : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT))
+            : (($formatted = json_encode(json_decode((string) $example, true), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))
                 ? preg_replace('/\n/', "\n    ", str_replace(['true', 'false'], ['True', 'False'], $formatted))
                 : $example),
             self::TYPE_STRING => "'{$example}'",
@@ -697,7 +697,7 @@ class Python extends Language
             return $value ? 'True' : 'False';
         }
 
-        $json = json_encode($value, JSON_PRESERVE_ZERO_FRACTION);
+        $json = json_encode($value, JSON_PRESERVE_ZERO_FRACTION | JSON_UNESCAPED_SLASHES);
 
         return \is_string($json) ? $json : 'None';
     }

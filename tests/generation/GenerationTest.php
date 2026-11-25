@@ -1220,6 +1220,26 @@ final class GenerationTest extends TestCase
     }
 
     /**
+     * `\/` is an unknown escape in Go and keeps its backslash in Python, so a
+     * slash inside an example value (the fixture's `application/json` header)
+     * must render as a plain `/`.
+     */
+    #[DataProvider('languages')]
+    public function testExamplesKeepSlashesUnescaped(string $name): void
+    {
+        $escaped = [];
+        foreach (self::PLATFORMS as $platform) {
+            foreach ($this->generate($name, $platform) as $path => $contents) {
+                if (\str_contains($path, 'docs/examples/') && \str_contains($contents, '\\/')) {
+                    $escaped[] = "{$name}/{$platform} {$path}";
+                }
+            }
+        }
+
+        $this->assertSame([], $escaped);
+    }
+
+    /**
      * A JSON example for an untyped object array must render as Swift
      * dictionary literals, not as the JavaScript-style `{ ... }` the spec
      * carries. Quotes inside example strings must stay escaped, and an empty
