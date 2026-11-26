@@ -273,7 +273,6 @@ class Go extends Language
                 case self::TYPE_ARRAY:
                     $typeName = $this->getTypeName($param);
                     $output .= match ($typeName) {
-                        '[]string' => '[]string{"example"}',
                         '[]int', '[]int64', '[]float64' => $typeName . '{0}',
                         '[]bool' => $typeName . '{false}',
                         default => $typeName . '{}',
