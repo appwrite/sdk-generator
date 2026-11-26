@@ -417,6 +417,8 @@ class PHP extends Language
                 case self::TYPE_ARRAY:
                     if ($this->isPermissionString($example)) {
                         $output .= $this->getPermissionExample($example);
+                    } elseif ($this->isQueryString($example)) {
+                        $output .= $this->getQueryExample($example, '    ');
                     } else {
                         $decoded = \is_array($example) ? $example : json_decode((string) $example, true);
                         $output .= \is_array($decoded) ? $this->jsonToAssoc($decoded) : (string) $example;
@@ -722,5 +724,11 @@ class PHP extends Language
                 return $enumName . '::' . $resolveKey($value) . '()';
             }),
         ];
+    }
+
+    #[Override]
+    protected function getQueryString(string $value, string $lang = ''): string
+    {
+        return "'" . \addcslashes($value, "'\\") . "'";
     }
 }

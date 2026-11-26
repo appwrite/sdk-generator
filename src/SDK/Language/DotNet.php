@@ -8,6 +8,7 @@ use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
+use stdClass;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
@@ -266,7 +267,11 @@ class DotNet extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
+                    $output .= match (true) {
+                        $this->isPermissionString($example) => $this->getPermissionExample($example),
+                        $this->isQueryString($example) => $this->getQueryExample($example, '    '),
+                        default => $this->getObjectListExample((string) $example) ?? $example,
+                    };
                     break;
                 case self::TYPE_OBJECT:
                     if ($example === '{}') {
@@ -675,6 +680,58 @@ class DotNet extends Language
     }
 
     /**
+     * Render a JSON array holding objects as a list of dictionaries, since a collection
+     * expression cannot hold JSON object literals. Dictionaries keep any key, such as
+     * `$id` or `class`, that could not name an anonymous object member. Null for any other array.
+     */
+    private function getObjectListExample(string $example): ?string
+    {
+        $items = json_decode($example);
+        if (!is_array($items) || !array_any($items, fn(mixed $item): bool => $item instanceof stdClass)) {
+            return null;
+        }
+
+        $lines = [];
+        foreach ($items as $item) {
+            if (!$item instanceof stdClass || get_object_vars($item) === []) {
+                $lines[] = '        ' . $this->formatCSharpJson($item);
+                continue;
+            }
+            $entries = [];
+            foreach (get_object_vars($item) as $key => $value) {
+                $entries[] = '            { ' . $this->formatCSharpLiteral((string) $key) . ', ' . $this->formatCSharpJson($value) . ' }';
+            }
+            $lines[] = "        new Dictionary<string, object>\n        {\n" . implode(",\n", $entries) . "\n        }";
+        }
+
+        return "new List<object>\n    {\n" . implode(",\n", $lines) . "\n    }";
+    }
+
+    /**
+     * A decoded JSON value as a C# expression, keeping `{}` an object and `[]` a list.
+     */
+    private function formatCSharpJson(mixed $value): string
+    {
+        if ($value instanceof stdClass) {
+            $entries = [];
+            foreach (get_object_vars($value) as $key => $item) {
+                $entries[] = '{ ' . $this->formatCSharpLiteral((string) $key) . ', ' . $this->formatCSharpJson($item) . ' }';
+            }
+            return $entries === []
+                ? 'new Dictionary<string, object>()'
+                : 'new Dictionary<string, object> { ' . implode(', ', $entries) . ' }';
+        }
+
+        if (is_array($value)) {
+            return $value === []
+                ? 'new List<object>()'
+                : 'new List<object> { ' . implode(', ', array_map($this->formatCSharpJson(...), $value)) . ' }';
+        }
+
+        return $this->formatCSharpLiteral($value);
+    }
+
+    /**
      * Format a value for C# anonymous object property
      */
     private function formatCSharpValue($value, int $indentLevel = 0): string
@@ -696,5 +753,23 @@ class DotNet extends Language
             return 'new[] { ' . implode(', ', $items) . ' }';
         }
         return 'null';
+    }
+
+    #[Override]
+    protected function getQueryCall(string $method, string $arguments, string $lang = ''): string
+    {
+        return 'Query.' . \ucfirst($method) . '(' . $arguments . ')';
+    }
+
+    #[Override]
+    protected function getQueryValueList(array $values, string $lang = ''): string
+    {
+        return 'new List<object> { ' . \implode(', ', $values) . ' }';
+    }
+
+    #[Override]
+    protected function getQueryListDelimiters(string $lang = ''): array
+    {
+        return ['new List<string> {', '}'];
     }
 }

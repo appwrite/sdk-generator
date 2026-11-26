@@ -27,6 +27,24 @@ abstract class Language
     private const array SUCCESS_STATUSES = ['200', '201', '202', '203', '204', '205', '206', '207', '208', '226', '2XX'];
     private const array REDIRECT_STATUSES = ['300', '301', '302', '303', '304', '305', '307', '308', '3XX'];
 
+    /**
+     * The arguments each Query helper takes, in order, for the methods an example can render.
+     */
+    private const array QUERY_ARGUMENTS = [
+        'equal' => ['attribute', 'value'],
+        'notEqual' => ['attribute', 'value'],
+        'lessThan' => ['attribute', 'value'],
+        'lessThanEqual' => ['attribute', 'value'],
+        'greaterThan' => ['attribute', 'value'],
+        'greaterThanEqual' => ['attribute', 'value'],
+        'between' => ['attribute', 'start', 'end'],
+        'notBetween' => ['attribute', 'start', 'end'],
+        'isNull' => ['attribute'],
+        'isNotNull' => ['attribute'],
+        'and' => ['queries'],
+        'or' => ['queries'],
+    ];
+
     public const string METHOD_TYPE_UPLOAD = 'upload';
     public const string METHOD_TYPE_GRAPHQL = 'graphql';
     public const string METHOD_TYPE_WEB_AUTH = 'webAuth';
@@ -801,5 +819,209 @@ abstract class Language
         }
 
         return $this->getArrayOf(implode(', ', $permissions));
+    }
+
+    /**
+     * Whether an array example is a list of query strings, such as
+     * `["{\"method\":\"equal\",\"attribute\":\"name\",\"values\":[\"a\"]}"]`,
+     * that every item can be written with the SDK's Query helpers.
+     */
+    public function isQueryString(string $example): bool
+    {
+        return $this->parseQueries($example) !== null;
+    }
+
+    public function hasQueryParam(array $parameters): bool
+    {
+        foreach ($parameters as $parameter) {
+            $example = $this->getSchemaExample($parameter);
+            if (\is_string($example) && $example !== '' && $this->isQueryString($example)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Render a list of query strings as Query helper calls, one per line.
+     *
+     * @param string $indent Indentation of the line the example starts on
+     */
+    public function getQueryExample(string $example, string $indent, string $lang = ''): string
+    {
+        return $this->renderQueryList($this->parseQueries($example) ?? [], $indent, $lang);
+    }
+
+    /**
+     * @return list<array{method: string, arguments: array<string, mixed>}>|null
+     */
+    protected function parseQueries(string $example): ?array
+    {
+        $items = \json_decode($example, true);
+        if (!\is_array($items) || $items === [] || !\array_is_list($items)) {
+            return null;
+        }
+
+        $queries = [];
+        foreach ($items as $item) {
+            $query = \is_string($item) ? $this->parseQuery(\json_decode($item, true)) : null;
+            if ($query === null) {
+                return null;
+            }
+            $queries[] = $query;
+        }
+
+        return $queries;
+    }
+
+    /**
+     * @return array{method: string, arguments: array<string, mixed>}|null
+     */
+    private function parseQuery(mixed $query): ?array
+    {
+        if (!\is_array($query) || !\is_string($query['method'] ?? null)) {
+            return null;
+        }
+
+        $names = self::QUERY_ARGUMENTS[$query['method']] ?? null;
+        $values = $query['values'] ?? [];
+        if ($names === null || !\is_array($values) || !\array_is_list($values)) {
+            return null;
+        }
+
+        $isScalar = static fn(mixed $value): bool => \is_string($value) || \is_int($value) || \is_float($value) || \is_bool($value);
+        $arguments = [];
+        foreach ($names as $name) {
+            switch ($name) {
+                case 'attribute':
+                    if (!\is_string($query['attribute'] ?? null) || $query['attribute'] === '') {
+                        return null;
+                    }
+                    $arguments[$name] = $query['attribute'];
+                    break;
+                case 'value':
+                    if ($values === [] || !\array_all($values, $isScalar)) {
+                        return null;
+                    }
+                    $arguments[$name] = \count($values) === 1 ? $values[0] : $values;
+                    break;
+                case 'start':
+                case 'end':
+                    if (\count($values) !== 2 || !\array_all($values, $isScalar)) {
+                        return null;
+                    }
+                    $arguments[$name] = $values[$name === 'start' ? 0 : 1];
+                    break;
+                case 'queries':
+                    if ($values === []) {
+                        return null;
+                    }
+                    $nested = [];
+                    foreach ($values as $value) {
+                        $parsed = $this->parseQuery($value);
+                        if ($parsed === null) {
+                            return null;
+                        }
+                        $nested[] = $parsed;
+                    }
+                    $arguments[$name] = $nested;
+                    break;
+            }
+        }
+
+        return ['method' => $query['method'], 'arguments' => $arguments];
+    }
+
+    /**
+     * @param list<array{method: string, arguments: array<string, mixed>}> $queries
+     */
+    private function renderQueryList(array $queries, string $indent, string $lang): string
+    {
+        $inner = $indent . $this->getQueryIndent();
+        [$open, $close] = $this->getQueryListDelimiters($lang);
+
+        $lines = \array_map(
+            fn(array $query): string => $inner . $this->renderQuery($query, $inner, $lang),
+            $queries,
+        );
+
+        return $open . "\n"
+            . \implode(",\n", $lines) . ($this->hasQueryTrailingComma($lang) ? ',' : '') . "\n"
+            . $indent . $close;
+    }
+
+    /**
+     * @param array{method: string, arguments: array<string, mixed>} $query
+     */
+    private function renderQuery(array $query, string $indent, string $lang): string
+    {
+        $arguments = [];
+        foreach ($query['arguments'] as $name => $value) {
+            $code = $name === 'queries'
+                ? $this->renderQueryList($value, $indent, $lang)
+                : $this->getQueryValue($value, $lang);
+            $arguments[] = $this->getQueryArgument($name, $code);
+        }
+
+        return $this->getQueryCall($query['method'], \implode(', ', $arguments), $lang);
+    }
+
+    /**
+     * A call to the Query helper named by its JSON method, e.g. `Query.notBetween(...)`.
+     */
+    protected function getQueryCall(string $method, string $arguments, string $lang = ''): string
+    {
+        return $this->getPermissionPrefix() . 'Query' . $this->getStaticAccessOperator() . $method . '(' . $arguments . ')';
+    }
+
+    /**
+     * An argument as written at the call site, for languages that label arguments.
+     */
+    protected function getQueryArgument(string $name, string $code): string
+    {
+        return $code;
+    }
+
+    protected function getQueryValue(mixed $value, string $lang = ''): string
+    {
+        return match (true) {
+            \is_array($value) => $this->getQueryValueList(\array_map(fn(mixed $item): string => $this->getQueryValue($item, $lang), $value), $lang),
+            \is_bool($value) => $value ? 'true' : 'false',
+            \is_string($value) => $this->getQueryString($value, $lang),
+            default => \json_encode($value, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+        };
+    }
+
+    /**
+     * @param list<string> $values
+     */
+    protected function getQueryValueList(array $values, string $lang = ''): string
+    {
+        [$open, $close] = $this->getQueryListDelimiters($lang);
+        return $open . \implode(', ', $values) . $close;
+    }
+
+    protected function getQueryString(string $value, string $lang = ''): string
+    {
+        $quote = $this->getStringQuote();
+        return $quote . \addcslashes($value, $quote . '\\') . $quote;
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    protected function getQueryListDelimiters(string $lang = ''): array
+    {
+        return ['[', ']'];
+    }
+
+    protected function getQueryIndent(): string
+    {
+        return '    ';
+    }
+
+    protected function hasQueryTrailingComma(string $lang = ''): bool
+    {
+        return false;
     }
 }

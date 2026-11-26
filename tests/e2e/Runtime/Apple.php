@@ -52,6 +52,7 @@ final class Apple
                 ...Output::OBJECT_ARRAY_RESPONSES,
                 ...Output::MODEL_DEFAULT_RESPONSES,
                 ...Output::NULLABLE_MODEL_RESPONSES,
+                ...Output::OPTIONAL_MAP_MODEL_RESPONSES,
                 ...Output::ENUM_ARRAY_MODEL_RESPONSES,
                 ...Output::EXCEPTION_RESPONSES,
                 ...Output::REALTIME_RESPONSES,

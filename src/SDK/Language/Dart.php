@@ -249,7 +249,11 @@ class Dart extends Language
         }
 
         return match ($type) {
-            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $this->escapeInterpolation((string) $example),
+            self::TYPE_ARRAY => match (true) {
+                $this->isPermissionString($example) => $this->getPermissionExample($example),
+                $this->isQueryString($example) => $this->getQueryExample($example, '    '),
+                default => $this->escapeInterpolation((string) $example),
+            },
             self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',
             self::TYPE_OBJECT => ($decoded = json_decode((string) $example, true)) !== null
@@ -671,5 +675,17 @@ class Dart extends Language
             }),
             new TwigFilter('modelToMapValue', fn(Schema $property, string $name, bool $required): string => $this->getModelToMapValue($property, $name, $required), ['is_safe' => ['html']]),
         ];
+    }
+
+    #[Override]
+    protected function getQueryString(string $value, string $lang = ''): string
+    {
+        return "'" . \addcslashes($value, "'\\$") . "'";
+    }
+
+    #[Override]
+    protected function hasQueryTrailingComma(string $lang = ''): bool
+    {
+        return true;
     }
 }

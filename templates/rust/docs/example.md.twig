@@ -10,6 +10,9 @@ use {{ crateName }}::InputFile;
 use {{ crateName }}::permission::Permission;
 use {{ crateName }}::role::Role;
 {% endif %}
+{% if (method | parameters('all')) | hasQueryParam %}
+use {{ crateName }}::query::Query;
+{% endif %}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

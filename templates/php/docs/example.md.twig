@@ -19,6 +19,9 @@ use {{ namespace | caseNamespace }}\Enums\{{ (parameter | enumName) | caseUcfirs
 use {{ namespace | caseNamespace }}\Permission;
 use {{ namespace | caseNamespace }}\Role;
 {% endif %}
+{% if (method | parameters('all')) | hasQueryParam %}
+use {{ namespace | caseNamespace }}\Query;
+{% endif %}
 
 {% set schemes = method | securitySchemes %}
 $client = (new Client())

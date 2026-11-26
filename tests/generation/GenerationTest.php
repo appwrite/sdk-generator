@@ -1075,6 +1075,7 @@ final class GenerationTest extends TestCase
     {
         $defaults = [];
         $examples = [];
+        $queries = [];
         foreach (['web', 'node', 'react-native'] as $name) {
             foreach (self::PLATFORMS as $platform) {
                 $files = $this->generate($name, $platform);
@@ -1088,10 +1089,20 @@ final class GenerationTest extends TestCase
                     $this->assertMatchesRegularExpression('/\\by: 0\\b/', $files['docs/examples/foo/get.md'], "{$name}/{$platform} number example");
                     $examples[] = "{$name}/{$platform}";
                 }
+                if (isset($files['docs/examples/general/list-rows.md'])) {
+                    // Prettier keeps a query inline while it fits and otherwise hugs its nested list.
+                    $this->assertMatchesRegularExpression(
+                        "/queries: \\[\\n {8}(sdk\\.)?query\\.equal\\('\\\$id', \\['one', 'two'\\]\\),\\n {8}(sdk\\.)?query\\.or\\(\\[\\n {12}(sdk\\.)?query\\.notbetween\\('size', 200, 299\\),\\n {12}(sdk\\.)?query\\.isnull\\('deletedat'\\),\\n {8}\\]\\),\\n {4}\\],/",
+                        $files['docs/examples/general/list-rows.md'],
+                        "{$name}/{$platform} query example",
+                    );
+                    $queries[] = "{$name}/{$platform}";
+                }
             }
         }
         $this->assertNotEmpty($defaults);
         $this->assertNotEmpty($examples);
+        $this->assertNotEmpty($queries);
     }
 
     /**
@@ -1277,8 +1288,9 @@ final class GenerationTest extends TestCase
 
     /**
      * Kotlin and Java examples must compile as written: quotes inside example
-     * strings stay escaped, Kotlin's `$` is not left to interpolate, and named
-     * arguments use the parameter names the service method declares.
+     * strings stay escaped, Kotlin's `$` is not left to interpolate, named
+     * arguments use the parameter names the service method declares, and query
+     * examples are written with the imported Query helpers.
      */
     #[DataProvider('kotlinLanguages')]
     public function testExamplesUseKotlinAndJavaLiterals(string $name, string $platform): void
@@ -1299,6 +1311,16 @@ final class GenerationTest extends TestCase
         $this->assertArrayHasKey($named, $files, "{$name}/{$platform} did not generate {$named}");
         $this->assertStringContainsString('grantid = "<grant_id>"', $files[$named]);
         $this->assertStringNotContainsString('grant_id =', $files[$named]);
+
+        $queries = 'docs/examples/kotlin/general/list-rows.md';
+        $this->assertArrayHasKey($queries, $files, "{$name}/{$platform} did not generate {$queries}");
+        $this->assertStringContainsString('query.equal("\\$id", listof("one", "two"))', $files[$queries]);
+        $this->assertStringContainsString('query.isnull("deletedat")', $files[$queries]);
+        $this->assertStringContainsString('import io.appwrite.query' . "\n", $files[$queries]);
+
+        $queries = 'docs/examples/java/general/list-rows.md';
+        $this->assertArrayHasKey($queries, $files, "{$name}/{$platform} did not generate {$queries}");
+        $this->assertStringContainsString('query.equal("$id", list.of("one", "two"))', $files[$queries]);
     }
 
     /**
