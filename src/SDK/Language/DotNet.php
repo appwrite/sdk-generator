@@ -8,6 +8,7 @@ use Utopia\OpenAPI\Model\Schema;
 use Utopia\OpenAPI\Model\StringSchema;
 use Utopia\OpenAPI\Specification;
 use Override;
+use stdClass;
 use Appwrite\SDK\Language;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
@@ -679,37 +680,55 @@ class DotNet extends Language
     }
 
     /**
-     * Render a JSON array holding objects as a list of anonymous objects, since a
-     * collection expression cannot hold JSON object literals. Null for any other array.
+     * Render a JSON array holding objects as a list of dictionaries, since a collection
+     * expression cannot hold JSON object literals. Dictionaries keep any key, such as
+     * `$id` or `class`, that could not name an anonymous object member. Null for any other array.
      */
     private function getObjectListExample(string $example): ?string
     {
-        $items = json_decode($example, true);
-        if (!is_array($items) || !array_is_list($items) || !array_any($items, fn(mixed $item): bool => is_array($item) && !array_is_list($item))) {
+        $items = json_decode($example);
+        if (!is_array($items) || !array_any($items, fn(mixed $item): bool => $item instanceof stdClass)) {
             return null;
         }
 
-        // A key such as `$id` is not a C# identifier, so it cannot name an anonymous object member.
-        $format = $this->hasOnlyIdentifierKeys($items)
-            ? fn(mixed $item): string => $this->formatCSharpValue($item, 2)
-            : $this->formatCSharpLiteral(...);
-        $lines = array_map(fn(mixed $item): string => '        ' . $format($item), $items);
+        $lines = [];
+        foreach ($items as $item) {
+            if (!$item instanceof stdClass || get_object_vars($item) === []) {
+                $lines[] = '        ' . $this->formatCSharpJson($item);
+                continue;
+            }
+            $entries = [];
+            foreach (get_object_vars($item) as $key => $value) {
+                $entries[] = '            { ' . $this->formatCSharpLiteral((string) $key) . ', ' . $this->formatCSharpJson($value) . ' }';
+            }
+            $lines[] = "        new Dictionary<string, object>\n        {\n" . implode(",\n", $entries) . "\n        }";
+        }
 
         return "new List<object>\n    {\n" . implode(",\n", $lines) . "\n    }";
     }
 
-    private function hasOnlyIdentifierKeys(array $value): bool
+    /**
+     * A decoded JSON value as a C# expression, keeping `{}` an object and `[]` a list.
+     */
+    private function formatCSharpJson(mixed $value): string
     {
-        foreach ($value as $key => $item) {
-            if (\is_string($key) && preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $key) !== 1) {
-                return false;
+        if ($value instanceof stdClass) {
+            $entries = [];
+            foreach (get_object_vars($value) as $key => $item) {
+                $entries[] = '{ ' . $this->formatCSharpLiteral((string) $key) . ', ' . $this->formatCSharpJson($item) . ' }';
             }
-            if (is_array($item) && !$this->hasOnlyIdentifierKeys($item)) {
-                return false;
-            }
+            return $entries === []
+                ? 'new Dictionary<string, object>()'
+                : 'new Dictionary<string, object> { ' . implode(', ', $entries) . ' }';
         }
 
-        return true;
+        if (is_array($value)) {
+            return $value === []
+                ? 'new List<object>()'
+                : 'new List<object> { ' . implode(', ', array_map($this->formatCSharpJson(...), $value)) . ' }';
+        }
+
+        return $this->formatCSharpLiteral($value);
     }
 
     /**
@@ -727,8 +746,8 @@ class DotNet extends Language
             return (string) $value;
         }
         if (is_array($value)) {
-            if (!array_is_list($value)) {
-                return 'new ' . $this->formatCSharpAnonymousObject($value, $indentLevel);
+            if (array_keys($value) !== range(0, count($value) - 1)) {
+                return $this->formatCSharpAnonymousObject($value, $indentLevel);
             }
             $items = array_map(fn($item): string => $this->formatCSharpValue($item, $indentLevel), $value);
             return 'new[] { ' . implode(', ', $items) . ' }';
