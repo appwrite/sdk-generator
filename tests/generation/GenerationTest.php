@@ -608,7 +608,10 @@ final class GenerationTest extends TestCase
                 'summary' => 'Ping',
                 'description' => 'Ping.',
                 'x-appwrite' => ['method' => 'ping'],
-                'parameters' => [['name' => 'from', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string']]],
+                'parameters' => [
+                    ['name' => 'from', 'in' => 'query', 'required' => true, 'schema' => ['type' => 'string']],
+                    ['name' => 'default', 'in' => 'query', 'required' => false, 'schema' => ['type' => 'string']],
+                ],
                 'responses' => ['204' => ['description' => 'No content']],
             ]]],
             'components' => ['schemas' => ['zzident' => [
@@ -650,6 +653,11 @@ final class GenerationTest extends TestCase
         // A parameter named after a Python keyword takes the escaped name the method declares.
         $pythonExample = $this->generateDocument($document, 'python', 'ident')['docs/examples/zzident/ping.md'] ?? '';
         $this->assertStringContainsString('    xfrom = ', $pythonExample);
+
+        // A parameter named after a PHP keyword takes the escaped name the method declares.
+        $php = $this->generateDocument($document, 'php', 'ident');
+        $this->assertStringContainsString('?string $xdefault = null', $php['src/Appwrite/Services/Zzident.php'] ?? '');
+        $this->assertStringContainsString('    xdefault: ', $php['docs/examples/zzident/ping.md'] ?? '');
     }
 
     private function removeDirectory(string $dir): void
