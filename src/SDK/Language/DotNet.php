@@ -266,7 +266,11 @@ class DotNet extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
+                    $output .= match (true) {
+                        $this->isPermissionString($example) => $this->getPermissionExample($example),
+                        $this->isQueryString($example) => $this->getQueryExample($example, '    '),
+                        default => $this->getObjectListExample((string) $example) ?? $example,
+                    };
                     break;
                 case self::TYPE_OBJECT:
                     if ($example === '{}') {
@@ -675,6 +679,40 @@ class DotNet extends Language
     }
 
     /**
+     * Render a JSON array holding objects as a list of anonymous objects, since a
+     * collection expression cannot hold JSON object literals. Null for any other array.
+     */
+    private function getObjectListExample(string $example): ?string
+    {
+        $items = json_decode($example, true);
+        if (!is_array($items) || !array_is_list($items) || !array_any($items, fn(mixed $item): bool => is_array($item) && !array_is_list($item))) {
+            return null;
+        }
+
+        // A key such as `$id` is not a C# identifier, so it cannot name an anonymous object member.
+        $format = $this->hasOnlyIdentifierKeys($items)
+            ? fn(mixed $item): string => $this->formatCSharpValue($item, 2)
+            : $this->formatCSharpLiteral(...);
+        $lines = array_map(fn(mixed $item): string => '        ' . $format($item), $items);
+
+        return "new List<object>\n    {\n" . implode(",\n", $lines) . "\n    }";
+    }
+
+    private function hasOnlyIdentifierKeys(array $value): bool
+    {
+        foreach ($value as $key => $item) {
+            if (\is_string($key) && preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $key) !== 1) {
+                return false;
+            }
+            if (is_array($item) && !$this->hasOnlyIdentifierKeys($item)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Format a value for C# anonymous object property
      */
     private function formatCSharpValue($value, int $indentLevel = 0): string
@@ -689,12 +727,30 @@ class DotNet extends Language
             return (string) $value;
         }
         if (is_array($value)) {
-            if (array_keys($value) !== range(0, count($value) - 1)) {
-                return $this->formatCSharpAnonymousObject($value, $indentLevel);
+            if (!array_is_list($value)) {
+                return 'new ' . $this->formatCSharpAnonymousObject($value, $indentLevel);
             }
             $items = array_map(fn($item): string => $this->formatCSharpValue($item, $indentLevel), $value);
             return 'new[] { ' . implode(', ', $items) . ' }';
         }
         return 'null';
+    }
+
+    #[Override]
+    protected function getQueryCall(string $method, string $arguments, string $lang = ''): string
+    {
+        return 'Query.' . \ucfirst($method) . '(' . $arguments . ')';
+    }
+
+    #[Override]
+    protected function getQueryValueList(array $values, string $lang = ''): string
+    {
+        return 'new List<object> { ' . \implode(', ', $values) . ' }';
+    }
+
+    #[Override]
+    protected function getQueryListDelimiters(string $lang = ''): array
+    {
+        return ['new List<string> {', '}'];
     }
 }
