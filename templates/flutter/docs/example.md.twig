@@ -1,8 +1,11 @@
 ```dart
+{% set isImage = (method | methodType) == 'location' and (method | produces) | filter(type => type starts with 'image/') | length > 0 %}
 {% if (method | methodType) == 'location' %}
 import 'dart:io';
 import 'dart:typed_data';
+{% if isImage %}
 import 'package:flutter/material.dart';
+{% endif %}
 {% endif %}
 import 'package:{{ language.params.packageName }}/{{ language.params.packageName }}.dart';
 {% if method.method.value != 'delete' and (method | methodType) not in ['webAuth', 'location'] and (method | getValidResponseModels)|length <= 1 and (method | responseModel) and (method | responseModel) != 'any' and not (method | textResponse) %}
@@ -40,6 +43,7 @@ Uint8List bytes = await {{ service.name | caseCamel }}.{{ (method | methodName) 
 
 final file = File('path_to_file/filename.ext');
 file.writeAsBytesSync(bytes);
+{% if isImage %}
 
 // Displaying image preview
 FutureBuilder<Uint8List>(
@@ -55,6 +59,7 @@ FutureBuilder<Uint8List>(
             : const CircularProgressIndicator();
     },
 );
+{% endif %}
 {% else %}
 {% if method.method.value != 'delete' and (method | methodType) != 'webAuth' %}{% if (method | methodType) == 'location' %}Uint8List result = {% elseif (method | textResponse) %}String result = {% elseif (method | getValidResponseModels)|length > 1 or (method | responseModel) == 'any' %}dynamic result = {% elseif (method | responseModel) %}models.{{ (method | responseModel) | caseUcfirst | overrideIdentifier }} result = {% endif %}{% endif %}await {{ service.name | caseCamel }}.{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %});{% endif %}
 
