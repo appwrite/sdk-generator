@@ -1676,7 +1676,11 @@
               "type": "array",
               "items": {
                 "type": "string"
-              }
+              },
+              "example": [
+                "{\"method\":\"equal\",\"attribute\":\"$id\",\"values\":[\"one\",\"two\"]}",
+                "{\"method\":\"or\",\"values\":[{\"method\":\"notBetween\",\"attribute\":\"size\",\"values\":[200,299]},{\"method\":\"isNull\",\"attribute\":\"deletedAt\",\"values\":[]}]}"
+              ]
             }
           }
         ]

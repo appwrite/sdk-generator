@@ -1277,8 +1277,9 @@ final class GenerationTest extends TestCase
 
     /**
      * Kotlin and Java examples must compile as written: quotes inside example
-     * strings stay escaped, Kotlin's `$` is not left to interpolate, and named
-     * arguments use the parameter names the service method declares.
+     * strings stay escaped, Kotlin's `$` is not left to interpolate, named
+     * arguments use the parameter names the service method declares, and query
+     * examples are written with the imported Query helpers.
      */
     #[DataProvider('kotlinLanguages')]
     public function testExamplesUseKotlinAndJavaLiterals(string $name, string $platform): void
@@ -1299,6 +1300,16 @@ final class GenerationTest extends TestCase
         $this->assertArrayHasKey($named, $files, "{$name}/{$platform} did not generate {$named}");
         $this->assertStringContainsString('grantid = "<grant_id>"', $files[$named]);
         $this->assertStringNotContainsString('grant_id =', $files[$named]);
+
+        $queries = 'docs/examples/kotlin/general/list-rows.md';
+        $this->assertArrayHasKey($queries, $files, "{$name}/{$platform} did not generate {$queries}");
+        $this->assertStringContainsString('query.equal("\\$id", listof("one", "two"))', $files[$queries]);
+        $this->assertStringContainsString('query.isnull("deletedat")', $files[$queries]);
+        $this->assertStringContainsString('import io.appwrite.query' . "\n", $files[$queries]);
+
+        $queries = 'docs/examples/java/general/list-rows.md';
+        $this->assertArrayHasKey($queries, $files, "{$name}/{$platform} did not generate {$queries}");
+        $this->assertStringContainsString('query.equal("$id", list.of("one", "two"))', $files[$queries]);
     }
 
     /**
