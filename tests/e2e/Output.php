@@ -132,6 +132,11 @@ final class Output
         'preset verified: null',
     ];
 
+    // An optional object the response leaves out stays unset rather than becoming an empty map.
+    public const array OPTIONAL_MAP_MODEL_RESPONSES = [
+        'preset metadata: null',
+    ];
+
     public const array ENUM_DEFAULT_RESPONSES = [
         'preset quality default: medium',
     ];
