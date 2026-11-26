@@ -1075,6 +1075,7 @@ final class GenerationTest extends TestCase
     {
         $defaults = [];
         $examples = [];
+        $queries = [];
         foreach (['web', 'node', 'react-native'] as $name) {
             foreach (self::PLATFORMS as $platform) {
                 $files = $this->generate($name, $platform);
@@ -1088,10 +1089,20 @@ final class GenerationTest extends TestCase
                     $this->assertMatchesRegularExpression('/\\by: 0\\b/', $files['docs/examples/foo/get.md'], "{$name}/{$platform} number example");
                     $examples[] = "{$name}/{$platform}";
                 }
+                if (isset($files['docs/examples/general/list-rows.md'])) {
+                    // Prettier keeps a query inline while it fits and otherwise hugs its nested list.
+                    $this->assertMatchesRegularExpression(
+                        "/queries: \\[\\n {8}(sdk\\.)?query\\.equal\\('\\\$id', \\['one', 'two'\\]\\),\\n {8}(sdk\\.)?query\\.or\\(\\[\\n {12}(sdk\\.)?query\\.notbetween\\('size', 200, 299\\),\\n {12}(sdk\\.)?query\\.isnull\\('deletedat'\\),\\n {8}\\]\\),\\n {4}\\],/",
+                        $files['docs/examples/general/list-rows.md'],
+                        "{$name}/{$platform} query example",
+                    );
+                    $queries[] = "{$name}/{$platform}";
+                }
             }
         }
         $this->assertNotEmpty($defaults);
         $this->assertNotEmpty($examples);
+        $this->assertNotEmpty($queries);
     }
 
     /**
