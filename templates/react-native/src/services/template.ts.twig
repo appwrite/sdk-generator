@@ -114,9 +114,8 @@ export class {{ service.name | caseUcfirst }} extends Service {
             {{ 'params = (paramsOrFirst || {}) as ' | tsObjectStatement(membersBody, ';', 12) | raw }}
             {%~ if 'multipart/form-data' in (method | consumes) and not (method | textResponse) %}
             // A file passed first narrows to the file type here, so read onProgress off a plain record
-            onProgress = (paramsOrFirst as Record<string, unknown> | undefined)?.onProgress as (
-                progress: UploadProgress,
-            ) => void;
+            onProgress = (paramsOrFirst as Record<string, unknown> | undefined)
+                ?.onProgress as (progress: UploadProgress) => void;
             {%~ endif %}
         } else {
             params = {
