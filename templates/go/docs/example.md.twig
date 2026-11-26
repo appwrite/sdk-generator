@@ -6,6 +6,9 @@
 {%- if requireFilesPkg -%}
 {%- set imports = imports | merge([packagePath ~ '/file']) -%}
 {%- endif %}
+{%- if (method | parameters('all')) | hasQueryParam -%}
+{%- set imports = imports | merge([packagePath ~ '/query']) -%}
+{%- endif %}
 package main
 
 import (

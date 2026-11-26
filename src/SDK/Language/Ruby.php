@@ -282,7 +282,11 @@ class Ruby extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
-                    $output .= $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example;
+                    $output .= match (true) {
+                        $this->isPermissionString($example) => $this->getPermissionExample($example),
+                        $this->isQueryString($example) => $this->getQueryExample($example, '    '),
+                        default => $example,
+                    };
                     break;
                 case self::TYPE_OBJECT:
                     $decoded = \is_array($example) ? $example : json_decode((string) $example, true);
@@ -464,5 +468,11 @@ class Ruby extends Language
                 return $enumName . '::' . $resolveKey($value);
             }),
         ];
+    }
+
+    #[Override]
+    protected function getQueryCall(string $method, string $arguments, string $lang = ''): string
+    {
+        return 'Query.' . \strtolower((string) \preg_replace('/(?<!^)[A-Z]/', '_$0', $method)) . '(' . $arguments . ')';
     }
 }

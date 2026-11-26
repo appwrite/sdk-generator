@@ -18,6 +18,9 @@ import {{ sdk.namespace | caseDot }}.enums.{{ (parameter | enumName) | caseUcfir
 import {{ sdk.namespace | caseDot }}.Permission
 import {{ sdk.namespace | caseDot }}.Role
 {% endif %}
+{% if (method | parameters('all')) | hasQueryParam %}
+import {{ sdk.namespace | caseDot }}.Query
+{% endif %}
 
 val client = Client()
 {% if [(method | securitySchemes)]|length > 0 %}

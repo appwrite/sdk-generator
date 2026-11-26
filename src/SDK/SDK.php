@@ -267,6 +267,7 @@ class SDK
             return $parts[0] . '.' . $toSnake($parts[1]);
         }));
         $this->twig->addFilter(new TwigFilter('hasPermissionParam', fn(array $value): bool => $this->language->hasPermissionParam($value)));
+        $this->twig->addFilter(new TwigFilter('hasQueryParam', fn(array $value): bool => $this->language->hasQueryParam($value)));
         $this->twig->addFilter(new TwigFilter('stripMarkdown', function ($value): string|array|null {
             if ($value === null) {
                 return '';

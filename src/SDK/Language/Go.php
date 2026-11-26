@@ -290,6 +290,10 @@ class Go extends Language
                     $output .= $example;
                     break;
                 case self::TYPE_ARRAY:
+                    if ($this->isQueryString((string) $example)) {
+                        $output .= $this->getQueryExample((string) $example, "\t\t");
+                        break;
+                    }
                     $values = \json_decode((string) $example, true);
                     if (\is_array($values) && \array_is_list($values)) {
                         $output .= $this->getTypeName($param) . '{' . \implode(', ', \array_map(
@@ -437,5 +441,35 @@ class Go extends Language
             return 'models.Model';
         }
         return $models === [] ? 'interface{}' : 'models.' . $this->toPascalCase($models[0]);
+    }
+
+    #[Override]
+    protected function getQueryCall(string $method, string $arguments, string $lang = ''): string
+    {
+        return 'query.' . \ucfirst($method) . '(' . $arguments . ')';
+    }
+
+    #[Override]
+    protected function getQueryValueList(array $values, string $lang = ''): string
+    {
+        return '[]interface{}{' . \implode(', ', $values) . '}';
+    }
+
+    #[Override]
+    protected function getQueryListDelimiters(string $lang = ''): array
+    {
+        return ['[]string{', '}'];
+    }
+
+    #[Override]
+    protected function getQueryIndent(): string
+    {
+        return "\t";
+    }
+
+    #[Override]
+    protected function hasQueryTrailingComma(string $lang = ''): bool
+    {
+        return true;
     }
 }

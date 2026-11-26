@@ -61,6 +61,9 @@ from {{ namespace | caseSnake }}.models import {{ modelName | caseUcfirst }}
 from {{ namespace | caseSnake }}.permission import Permission
 from {{ namespace | caseSnake }}.role import Role
 {% endif %}
+{% if (method | parameters('all')) | hasQueryParam %}
+from {{ namespace | caseSnake }}.query import Query
+{% endif %}
 
 client = Client()
 {% if [(method | securitySchemes)]|length > 0 %}

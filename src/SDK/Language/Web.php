@@ -323,6 +323,12 @@ class Web extends JS
      * file input. It is the only part of the example rendering that differs
      * between the JavaScript targets, so everything else stays shared.
      */
+    #[Override]
+    protected function hasQueryTrailingComma(string $lang = ''): bool
+    {
+        return true;
+    }
+
     protected function getFileExample(): string
     {
         return 'document.getElementById(\'uploader\').files[0]';
@@ -346,9 +352,11 @@ class Web extends JS
         }
 
         return match ($type) {
-            self::TYPE_ARRAY => $this->isPermissionString($example)
-                ? $this->getPermissionExample($example)
-                : $this->getObjectExample((string) $example),
+            self::TYPE_ARRAY => match (true) {
+                $this->isPermissionString($example) => $this->getPermissionExample($example),
+                $this->isQueryString($example) => $this->getQueryExample($example, '    '),
+                default => $this->getObjectExample((string) $example),
+            },
             self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_FILE => $this->getFileExample(),
             self::TYPE_BOOLEAN => ($example) ? 'true' : 'false',

@@ -412,7 +412,11 @@ class Python extends Language
         }
 
         return match ($type) {
-            self::TYPE_ARRAY => $this->isPermissionString($example) ? $this->getPermissionExample($example) : $example,
+            self::TYPE_ARRAY => match (true) {
+                $this->isPermissionString($example) => $this->getPermissionExample($example),
+                $this->isQueryString($example) => $this->getQueryExample($example, '    '),
+                default => $example,
+            },
             self::TYPE_FILE, self::TYPE_INTEGER, self::TYPE_NUMBER => $example,
             self::TYPE_BOOLEAN => ($example) ? 'True' : 'False',
             self::TYPE_OBJECT => ($example === '{}')
@@ -1093,5 +1097,26 @@ class Python extends Language
             new TwigFilter('responseModelExample', fn(string $model, Specification $spec): string => $this->toPythonValue($this->getResponseModelExample($model, $spec))),
             new TwigFilter('additionalPropertiesExpectations', fn(string $model, Specification $spec, string $target): string => $this->getAdditionalPropertiesExpectations($model, $spec, $target))
         ];
+    }
+
+    #[Override]
+    protected function getQueryCall(string $method, string $arguments, string $lang = ''): string
+    {
+        $name = \strtolower((string) \preg_replace('/(?<!^)[A-Z]/', '_$0', $method));
+
+        // `and` and `or` are keywords, so the helpers are named `and_queries` and `or_queries`.
+        return 'Query.' . (\in_array($name, ['and', 'or'], true) ? $name . '_queries' : $name) . '(' . $arguments . ')';
+    }
+
+    #[Override]
+    protected function getQueryValue(mixed $value, string $lang = ''): string
+    {
+        return \is_bool($value) ? ($value ? 'True' : 'False') : parent::getQueryValue($value, $lang);
+    }
+
+    #[Override]
+    protected function getQueryString(string $value, string $lang = ''): string
+    {
+        return "'" . \addcslashes($value, "'\\") . "'";
     }
 }

@@ -416,6 +416,10 @@ class Swift extends Language
                         $output .= $this->getPermissionExample($example);
                         break;
                     }
+                    if ($this->isQueryString($example)) {
+                        $output .= $this->getQueryExample($example, '    ');
+                        break;
+                    }
                     $decoded = json_decode((string) $example);
                     $output .= is_array($decoded) ? $this->jsonToSwiftLiteral($decoded) : $example;
                     break;
@@ -680,5 +684,11 @@ class Swift extends Language
         }
 
         return implode("\n", $out);
+    }
+
+    #[Override]
+    protected function getQueryArgument(string $name, string $code): string
+    {
+        return \in_array($name, ['attribute', 'queries'], true) ? $code : $name . ': ' . $code;
     }
 }

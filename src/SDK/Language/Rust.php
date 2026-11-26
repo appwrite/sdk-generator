@@ -369,6 +369,9 @@ class Rust extends Language
                     if (\is_string($example) && $this->isPermissionString($example)) {
                         return $this->getPermissionExample($example);
                     }
+                    if (\is_string($example) && $this->isQueryString($example)) {
+                        return $this->getQueryExample($example, '        ');
+                    }
 
                     $items = $this->getArraySchema($param) ?? $this->getSchema($param);
 
@@ -1012,5 +1015,23 @@ class Rust extends Language
         if (\is_file($legacy) && \is_dir($target . '/src/query')) {
             \unlink($legacy);
         }
+    }
+
+    #[Override]
+    protected function getQueryCall(string $method, string $arguments, string $lang = ''): string
+    {
+        return 'Query::' . \strtolower((string) \preg_replace('/(?<!^)[A-Z]/', '_$0', $method)) . '(' . $arguments . ').to_string()';
+    }
+
+    #[Override]
+    protected function getQueryListDelimiters(string $lang = ''): array
+    {
+        return ['vec![', ']'];
+    }
+
+    #[Override]
+    protected function hasQueryTrailingComma(string $lang = ''): bool
+    {
+        return true;
     }
 }

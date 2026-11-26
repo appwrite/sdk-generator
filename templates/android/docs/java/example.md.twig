@@ -15,6 +15,9 @@ import {{ sdk.namespace | caseDot }}.models.InputFile;
 import {{ sdk.namespace | caseDot }}.Permission;
 import {{ sdk.namespace | caseDot }}.Role;
 {% endif %}
+{% if (method | parameters('all')) | hasQueryParam %}
+import {{ sdk.namespace | caseDot }}.Query;
+{% endif %}
 import {{ sdk.namespace | caseDot }}.services.{{ service.name | caseUcfirst }};
 {% set added = [] %}
 {% for parameter in (method | parameters('all')) %}

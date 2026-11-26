@@ -241,6 +241,8 @@ class Kotlin extends Language
                 case self::TYPE_ARRAY:
                     if ($this->isPermissionString($example)) {
                         $output .= $this->getPermissionExample($example, $lang);
+                    } elseif ($this->isQueryString($example)) {
+                        $output .= $this->getQueryExample($example, '    ', $lang);
                     } else {
                         $output .= $this->getArrayExample($example, $lang, $this->getArrayLeafType($param));
                     }
@@ -858,5 +860,17 @@ class Kotlin extends Language
 
         $value = ($example !== null && $example !== '') ? $example : $enumValues[0];
         return $enumName . '.' . $resolveKey($value);
+    }
+
+    #[Override]
+    protected function getQueryString(string $value, string $lang = ''): string
+    {
+        return '"' . \addcslashes($value, $lang === 'java' ? '"\\' : '"\\$') . '"';
+    }
+
+    #[Override]
+    protected function getQueryListDelimiters(string $lang = ''): array
+    {
+        return $lang === 'java' ? ['List.of(', ')'] : ['listOf(', ')'];
     }
 }
