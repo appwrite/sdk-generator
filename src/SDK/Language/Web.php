@@ -323,10 +323,56 @@ class Web extends JS
      * file input. It is the only part of the example rendering that differs
      * between the JavaScript targets, so everything else stays shared.
      */
+    /**
+     * Prettier checks these examples, so a query stays on one line while it fits the
+     * print width and otherwise hugs its nested list, one query per line. The top-level
+     * list is left to formatExampleEntry(), which knows the width of the key before it.
+     */
     #[Override]
-    protected function hasQueryTrailingComma(string $lang = ''): bool
+    public function getQueryExample(string $example, string $indent, string $lang = ''): string
     {
-        return true;
+        $inner = $indent . '    ';
+        $items = \array_map(fn(array $query): string => $this->renderJsQuery($query, $inner), $this->parseQueries($example) ?? []);
+        if (!\array_any($items, fn(string $item): bool => \str_contains($item, "\n"))) {
+            return '[' . \implode(', ', $items) . ']';
+        }
+
+        return "[\n" . \implode('', \array_map(fn(string $item): string => $inner . $item . ",\n", $items)) . $indent . ']';
+    }
+
+    /**
+     * @param array{method: string, arguments: array<string, mixed>} $query
+     */
+    private function renderJsQuery(array $query, string $indent): string
+    {
+        $inline = $this->renderJsQueryInline($query);
+        $queries = $query['arguments']['queries'] ?? null;
+        if ($queries === null || \mb_strlen($indent . $inline . ',') <= self::PRINT_WIDTH) {
+            return $inline;
+        }
+
+        $inner = $indent . '    ';
+        $lines = '';
+        foreach ($queries as $nested) {
+            $lines .= $inner . $this->renderJsQuery($nested, $inner) . ",\n";
+        }
+
+        return $this->getQueryCall($query['method'], "[\n" . $lines . $indent . ']');
+    }
+
+    /**
+     * @param array{method: string, arguments: array<string, mixed>} $query
+     */
+    private function renderJsQueryInline(array $query): string
+    {
+        $arguments = [];
+        foreach ($query['arguments'] as $name => $value) {
+            $arguments[] = $name === 'queries'
+                ? '[' . \implode(', ', \array_map($this->renderJsQueryInline(...), $value)) . ']'
+                : $this->getQueryValue($value);
+        }
+
+        return $this->getQueryCall($query['method'], \implode(', ', $arguments));
     }
 
     protected function getFileExample(): string

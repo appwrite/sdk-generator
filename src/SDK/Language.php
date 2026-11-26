@@ -855,7 +855,7 @@ abstract class Language
     /**
      * @return list<array{method: string, arguments: array<string, mixed>}>|null
      */
-    private function parseQueries(string $example): ?array
+    protected function parseQueries(string $example): ?array
     {
         $items = \json_decode($example, true);
         if (!\is_array($items) || $items === [] || !\array_is_list($items)) {
