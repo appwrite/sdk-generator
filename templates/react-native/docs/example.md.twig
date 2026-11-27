@@ -6,7 +6,7 @@
 
 const {{ service.name | caseCamel }} = new {{service.name | caseUcfirst}}(client{% if [] | length %}{% for parameter in [] %}, {{ parameter | paramExample }}{% endfor %}{% endif %});
 
-{% if (method | methodType) == 'location' %}const result = {% elseif (method | methodType) != 'webAuth' %}const result = await {% endif %}{{ service.name | caseCamel | escapeKeyword }}.{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %});
+{% if (method | methodType) != 'webAuth' %}const result = await {% endif %}{{ service.name | caseCamel | escapeKeyword }}.{{ (method | methodName) | caseCamel }}({% if (method | parameters('all')) | length == 0 %});
 {% else %}{
 {%~ for parameter in (method | parameters('all')) %}
 {%~ set exampleValue = (parameter | enumValues) | length > 0 ? (parameter | enumExample) : (parameter | paramExample) %}

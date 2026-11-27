@@ -1,4 +1,7 @@
 ```csharp
+{% if (method | parameters('all')) | filter(parameter => (parameter | schemaType) == 'array') | length > 0 %}
+using System.Collections.Generic;
+{% endif %}
 using {{ spec.info.title | caseUcfirst }};
 {% set addedEnum = false %}
 {% for parameter in (method | parameters('all')) %}
