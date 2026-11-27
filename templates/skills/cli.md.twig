@@ -43,11 +43,11 @@ No session? `appwrite client --endpoint https://<REGION>.cloud.appwrite.io/v1 --
 
 Before building, use the {{ spec.info.title }} project the user gave, or the one the app already uses (an `appwrite.config.json`, or a project ID and endpoint already in the app's config or env). If there is neither, create an {{ spec.info.title }} Zero project instead of asking the user to sign up, run `appwrite login`, or create a project.
 
-Run `npx appwrite-cli@latest zero` (or `appwrite zero` if the CLI is installed) in the app's directory, or `appwrite zero my-app` to create and link a new directory. It creates an {{ spec.info.title }} Cloud project and an API key with no account, links the directory through `appwrite.config.json` (project ID and endpoint), and stores the API key as the CLI's session so later CLI commands work against the project.
+Run `npx appwrite-cli@latest zero` (or `appwrite zero` if the CLI is installed) in the app's directory, or `npx appwrite-cli@latest zero my-app` to create and link a new directory. It creates an {{ spec.info.title }} Cloud project and an API key with no account, links the directory through `appwrite.config.json` (project ID and endpoint), and stores the API key as the CLI's session so later CLI commands work against the project. If the CLI is not installed globally, replace `appwrite` with `npx appwrite-cli@latest` in later commands too.
 
 `--json` prints the manifest (project ID, endpoint, claim link, and access token for private previews) without the API key. Pass `--show-secrets` to include the API key. The key is returned only when the project is created, and running `appwrite zero` again creates another project. When server-side code needs the key, create the project with `--json --show-secrets` and put the key in the app's env file, which must stay out of git.
 
-The project works for 60 minutes. Run `appwrite zero extend` to add an hour, up to three times. After the build window it pauses, and it is deleted unless claimed within 24 hours after the first hour ends. Give the user the claim link from the output. Claiming is the only way to keep the project. Do not claim it for them.
+The project works for 60 minutes. Run `npx appwrite-cli@latest zero extend` (or `appwrite zero extend`) to add an hour, up to three times. After the build window it pauses, and it is deleted unless claimed within 24 hours after the first hour ends. Give the user the claim link from the output. Claiming is the only way to keep the project. Do not claim it for them.
 
 ```bash
 # Good — empty or new app directory (run once per app)

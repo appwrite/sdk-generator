@@ -1422,7 +1422,7 @@ final class GenerationTest extends TestCase
             $projectSkills++;
             $this->assertStringContainsString('npx appwrite-cli@latest zero', $skill, "{$path} does not mention npx appwrite-cli@latest zero");
             $this->assertStringContainsString('--show-secrets', $skill, "{$path} does not mention --show-secrets");
-            $this->assertStringContainsString('appwrite zero extend', $skill, "{$path} does not mention appwrite zero extend");
+            $this->assertStringContainsString('npx appwrite-cli@latest zero extend', $skill, "{$path} does not mention npx appwrite-cli@latest zero extend");
         }
         $this->assertSame(13, $projectSkills);
     }
