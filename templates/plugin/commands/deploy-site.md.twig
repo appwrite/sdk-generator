@@ -10,8 +10,8 @@ disable-model-invocation: true
 
 ## Prerequisites
 
-- {{ spec.info.title }} CLI installed (`npm install -g appwrite-cli`), or run commands with `npx appwrite-cli@latest`
-- An existing {{ spec.info.title }} project (authenticated with `appwrite login` and initialized with `appwrite init`), or an {{ spec.info.title }} Zero project created below
+- {{ spec.info.title }} CLI installed (`npm install -g appwrite-cli`). If the CLI is not installed globally, replace `appwrite` with `npx appwrite-cli@latest` in every command below.
+- An existing {{ spec.info.title }} project (authenticated with `appwrite login` and initialized with `appwrite init`), or an {{ spec.info.title }} Zero project created below.
 
 {{ include('skills/base/zero.md.twig', { zeroContext: 'deploying' })|trim }}
 
