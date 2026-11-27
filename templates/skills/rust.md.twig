@@ -13,6 +13,8 @@ cargo add tokio --features full
 cargo add serde_json
 ```
 
+{{ include('skills/base/zero.md.twig', { serverOnly: true })|trim }}
+
 ## Setting Up the Client
 
 The Rust SDK is async. Use it from a Tokio runtime and authenticate server-side with an API key.
