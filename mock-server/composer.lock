@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "61416667f9ef625b2b7ab43c2ffc0a77",
+    "content-hash": "84b351692b6f52fda385982178186a32",
     "packages": [
         {
             "name": "brick/math",
@@ -2165,16 +2165,16 @@
         },
         {
             "name": "utopia-php/query",
-            "version": "0.7.2",
+            "version": "0.8.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/utopia-php/query.git",
-                "reference": "945ef1c9f1c863b0e6e8bbac4c81c1b667dbfc9c"
+                "reference": "aa6ea0415beae93abac10c36c3c644a9402e0c02"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/utopia-php/query/zipball/945ef1c9f1c863b0e6e8bbac4c81c1b667dbfc9c",
-                "reference": "945ef1c9f1c863b0e6e8bbac4c81c1b667dbfc9c",
+                "url": "https://api.github.com/repos/utopia-php/query/zipball/aa6ea0415beae93abac10c36c3c644a9402e0c02",
+                "reference": "aa6ea0415beae93abac10c36c3c644a9402e0c02",
                 "shasum": ""
             },
             "require": {
@@ -2185,6 +2185,9 @@
             },
             "type": "library",
             "autoload": {
+                "files": [
+                    "src/extension.php"
+                ],
                 "psr-4": {
                     "Utopia\\Query\\": "src/"
                 }
@@ -2203,9 +2206,10 @@
             ],
             "support": {
                 "issues": "https://github.com/utopia-php/query/issues",
-                "source": "https://github.com/utopia-php/query/tree/0.7.2"
+                "source": "https://github.com/utopia-php/query/tree/0.8.0"
             },
-            "time": "2026-10-16T10:52:31+00:00"
+            "time": "2026-11-24T16:14:05+00:00",
+            "published-time": "2026-11-24T16:17:02+00:00"
         },
         {
             "name": "utopia-php/servers",
@@ -2492,5 +2496,5 @@
     "platform-overrides": {
         "php": "8.5.0"
     },
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.11.0"
 }
