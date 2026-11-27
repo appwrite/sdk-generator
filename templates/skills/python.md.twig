@@ -11,6 +11,8 @@
 pip install {{ spec.info.title | caseLower }}
 ```
 
+{{ include('skills/base/zero.md.twig', { serverOnly: true })|trim }}
+
 ## Setting Up the Client
 
 ```python

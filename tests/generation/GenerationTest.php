@@ -1403,6 +1403,30 @@ final class GenerationTest extends TestCase
         }
     }
 
+    public function testProjectSkillsCoverAppwriteZero(): void
+    {
+        $skills = array_filter(
+            $this->generate('codex-plugin', 'console'),
+            fn (string $path): bool => basename($path) === 'SKILL.md',
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        $this->assertNotEmpty($skills);
+        $projectSkills = 0;
+        foreach ($skills as $path => $skill) {
+            if (str_contains($path, '-review-')) {
+                $this->assertStringNotContainsString('appwrite-cli@latest zero', $skill, "{$path} should not include the Appwrite Zero project setup flow");
+                continue;
+            }
+
+            $projectSkills++;
+            $this->assertStringContainsString('npx appwrite-cli@latest zero', $skill, "{$path} does not mention npx appwrite-cli@latest zero");
+            $this->assertStringContainsString('--show-secrets', $skill, "{$path} does not mention --show-secrets");
+            $this->assertStringContainsString('appwrite zero extend', $skill, "{$path} does not mention appwrite zero extend");
+        }
+        $this->assertSame(13, $projectSkills);
+    }
+
     public function testCodexReadmeListsTheGeneratedSkillIds(): void
     {
         $files = $this->generate('codex-plugin', 'console');
